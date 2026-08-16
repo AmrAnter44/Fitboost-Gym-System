@@ -50,7 +50,7 @@
     "pt": "الجلسات والمتابعة",
     "coach": "كوتش",
     "rotations": "المناوبات",
-    "dayUse": "يوم استخدام",
+    "dayUse": "استخدامات أخرى",
     "invitations": "الدعوات",
     "staff": "الموظفين",
     "receipts": "الإيصالات",
@@ -1225,7 +1225,7 @@
     "noRecordsForPeriod": "لا توجد سجلات حضور للفترة المحددة"
   },
   "dayUse": {
-    "title": "يوم استخدام / InBody",
+    "title": "استخدامات أخرى",
     "hideForm": "إخفاء النموذج",
     "addNewOperation": "إضافة عملية جديدة",
     "addOperationTitle": "إضافة عملية جديدة",

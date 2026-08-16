@@ -50,19 +50,103 @@ export default function DayUsePage() {
     staleTime: 2 * 60 * 1000,
   })
 
+  //  🏷️ أنواع الاستخدامات الديناميكية (يديرها الأدمن)
+  const { data: services = [] } = useQuery<any[]>({
+    queryKey: ['dayuse-services'],
+    queryFn: async () => {
+      const r = await fetch('/api/dayuse-services')
+      return r.ok ? r.json() : []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+  const isAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
+  const baseServiceName = services.find((s: any) => s.isBase)?.name || 'يوم استخدام'
+  //  عرض النوع مع توافق السجلات القديمة (مفاتيح legacy)
+  const displayType = (st: string) => {
+    if (st === 'DayUse') return t('dayUse.dayUse')
+    if (st === 'InBody') return t('dayUse.inBody')
+    if (st === 'LockerRental') return t('dayUse.lockerRental')
+    return st
+  }
+  //  توحيد للمقارنة في الفلتر (legacy ↔ أسماء جديدة)
+  const normalizeType = (st: string) => {
+    if (st === 'DayUse') return 'يوم استخدام'
+    if (st === 'LockerRental') return 'تأجير لوكر'
+    return st
+  }
+
+  //  🏷️ إدارة أنواع الاستخدامات (للأدمن)
+  const [showManageTypes, setShowManageTypes] = useState(false)
+  const [newType, setNewType] = useState({ name: '', price: '' })
+  const [typeDrafts, setTypeDrafts] = useState<Record<string, { name: string; price: string }>>({})
+  const [typeBusy, setTypeBusy] = useState(false)
+  const refreshTypes = () => queryClient.invalidateQueries({ queryKey: ['dayuse-services'] })
+  const openManageTypes = () => {
+    const d: Record<string, { name: string; price: string }> = {}
+    services.forEach((s: any) => { d[s.id] = { name: s.name, price: String(s.price) } })
+    setTypeDrafts(d)
+    setNewType({ name: '', price: '' })
+    setShowManageTypes(true)
+  }
+  //  مزامنة الـ drafts مع الصفوف الجديدة وقت ما القايمة تتحدّث والمودال مفتوح
+  useEffect(() => {
+    if (!showManageTypes) return
+    setTypeDrafts(prev => {
+      const d = { ...prev }
+      services.forEach((s: any) => { if (!d[s.id]) d[s.id] = { name: s.name, price: String(s.price) } })
+      return d
+    })
+  }, [services, showManageTypes])
+  const addType = async () => {
+    if (!newType.name.trim()) { toast.warning(direction === 'rtl' ? 'اكتب اسم النوع' : 'Enter a name'); return }
+    setTypeBusy(true)
+    try {
+      const r = await fetch('/api/dayuse-services', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newType.name.trim(), price: parseFloat(newType.price) || 0 }),
+      })
+      if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'فشل الإضافة'); return }
+      setNewType({ name: '', price: '' })
+      await refreshTypes()
+      toast.success(direction === 'rtl' ? 'تمت الإضافة' : 'Added')
+    } finally { setTypeBusy(false) }
+  }
+  const saveType = async (id: string) => {
+    const d = typeDrafts[id]; if (!d) return
+    setTypeBusy(true)
+    try {
+      const r = await fetch(`/api/dayuse-services/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: d.name.trim(), price: parseFloat(d.price) || 0 }),
+      })
+      if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'فشل الحفظ'); return }
+      await refreshTypes()
+      toast.success(direction === 'rtl' ? 'اتحفظ' : 'Saved')
+    } finally { setTypeBusy(false) }
+  }
+  const deleteType = async (id: string) => {
+    setTypeBusy(true)
+    try {
+      const r = await fetch(`/api/dayuse-services/${id}`, { method: 'DELETE' })
+      if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'فشل الحذف'); return }
+      await refreshTypes()
+      toast.success(direction === 'rtl' ? 'اتمسح' : 'Deleted')
+    } finally { setTypeBusy(false) }
+  }
+
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   //  بحث + فلتر على Day Use
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 250)
-  const [filterType, setFilterType] = useState<'all' | 'DayUse' | 'InBody' | 'LockerRental'>('all')
+  const [filterType, setFilterType] = useState<string>('all')
   const [filterDate, setFilterDate] = useState<'all' | 'today' | 'week' | 'month'>('all')
 
   //  الـ entries بعد تطبيق البحث + الفلتر
   const filteredEntries = useMemo(() => {
     let list = entries as DayUseEntry[]
     if (filterType !== 'all') {
-      list = list.filter(e => e.serviceType === filterType)
+      list = list.filter(e => normalizeType(e.serviceType) === normalizeType(filterType))
     }
     if (filterDate !== 'all') {
       const now = new Date(); now.setHours(0, 0, 0, 0)
@@ -89,7 +173,7 @@ export default function DayUsePage() {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    serviceType: 'DayUse',
+    serviceType: 'يوم استخدام',
     price: 0,
     staffName: user?.name || '',
     salesStaffId: '',
@@ -248,7 +332,7 @@ export default function DayUsePage() {
         setFormData({
           name: '',
           phone: '',
-          serviceType: 'DayUse',
+          serviceType: 'يوم استخدام',
           price: 0,
           staffName: user?.name || '',
           salesStaffId: '',
@@ -328,6 +412,17 @@ export default function DayUsePage() {
     <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">{t('dayUse.title')}</h1>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+        {isAdmin && (
+          <button
+            onClick={openManageTypes}
+            className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 font-bold"
+            title={direction === 'rtl' ? 'إضافة/تعديل أنواع الاستخدامات وأسعارها' : 'Manage use types & prices'}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.27 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.27-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            {direction === 'rtl' ? 'إدارة الأنواع' : 'Manage types'}
+          </button>
+        )}
         <button
           onClick={() => {
             setShowForm(!showForm)
@@ -336,7 +431,7 @@ export default function DayUsePage() {
               setFormData({
                 name: '',
                 phone: '',
-                serviceType: 'DayUse',
+                serviceType: 'يوم استخدام',
                 price: 0,
                 staffName: user?.name || '',
                 salesStaffId: '',
@@ -353,6 +448,7 @@ export default function DayUsePage() {
         >
           {showForm ? t('dayUse.hideForm') : t('dayUse.addNewOperation')}
         </button>
+        </div>
       </div>
 
       {showForm && (
@@ -438,12 +534,22 @@ export default function DayUsePage() {
                 <label className="block text-sm font-medium mb-1">{t('dayUse.serviceType')}</label>
                 <select
                   value={formData.serviceType}
-                  onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    //  تعبئة السعر الافتراضي للنوع المختار (قابل للتعديل)
+                    const svc = services.find((s: any) => s.name === val)
+                    setFormData(prev => ({
+                      ...prev,
+                      serviceType: val,
+                      price: svc ? svc.price : prev.price,
+                    }))
+                  }}
                   className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                 >
-                  <option value="DayUse">{t('dayUse.dayUse')}</option>
+                  {services.map((s: any) => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
                   {settings.inBodyEnabled && <option value="InBody">{t('dayUse.inBody')}</option>}
-                  <option value="LockerRental">{t('dayUse.lockerRental')}</option>
                 </select>
               </div>
 
@@ -559,10 +665,9 @@ export default function DayUsePage() {
           <div className="flex flex-wrap gap-2">
             {([
               { id: 'all', label: direction === 'rtl' ? 'الكل' : 'All', color: 'gray' },
-              { id: 'DayUse', label: t('dayUse.dayUse'), color: 'primary' },
+              ...services.map((s: any) => ({ id: s.name, label: s.name, color: s.isBase ? 'primary' : 'amber' })),
               ...(settings.inBodyEnabled ? [{ id: 'InBody', label: t('dayUse.inBody'), color: 'purple' }] : []),
-              { id: 'LockerRental', label: t('dayUse.lockerRental'), color: 'amber' },
-            ] as const).map(chip => {
+            ]).map(chip => {
               const isActive = filterType === chip.id
               const activeBg =
                 chip.color === 'primary' ? 'bg-primary-600 text-primary-contrast ring-primary-600' :
@@ -656,14 +761,13 @@ export default function DayUsePage() {
                   <div className="flex items-start gap-2">
                     <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]"> {t('dayUse.serviceLabel')}</span>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      entry.serviceType === 'DayUse'
+                      normalizeType(entry.serviceType) === baseServiceName
                         ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200'
                         : entry.serviceType === 'InBody'
                         ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
                         : 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200'
                     }`}>
-                      {entry.serviceType === 'DayUse' ? t('dayUse.dayUse') :
-                       entry.serviceType === 'InBody' ? t('dayUse.inBody') : t('dayUse.lockerRental')}
+                      {displayType(entry.serviceType)}
                     </span>
                   </div>
 
@@ -727,14 +831,13 @@ export default function DayUsePage() {
                     <td className="px-4 py-3">{entry.phone}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded text-sm ${
-                        entry.serviceType === 'DayUse'
+                        normalizeType(entry.serviceType) === baseServiceName
                           ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200'
                           : entry.serviceType === 'InBody'
                           ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
                           : 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200'
                       }`}>
-                        {entry.serviceType === 'DayUse' ? t('dayUse.dayUse') :
-                         entry.serviceType === 'InBody' ? t('dayUse.inBody') : t('dayUse.lockerRental')}
+                        {displayType(entry.serviceType)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -844,8 +947,7 @@ export default function DayUsePage() {
                   <p><span className="font-semibold">{t('dayUse.deleteModal.phoneLabel')}</span> {entryToDelete.phone}</p>
                   <p>
                     <span className="font-semibold">{t('dayUse.deleteModal.serviceTypeLabel')}</span>
-                    {entryToDelete.serviceType === 'DayUse' ? t('dayUse.dayUse') :
-                     entryToDelete.serviceType === 'InBody' ? t('dayUse.inBody') : t('dayUse.lockerRental')}
+                    {displayType(entryToDelete.serviceType)}
                   </p>
                   <p><span className="font-semibold">{t('dayUse.deleteModal.priceLabel')}</span> {entryToDelete.price} {t('dayUse.egp')}</p>
                   <p><span className="font-semibold">{t('dayUse.deleteModal.dateLabel')}</span> {new Date(entryToDelete.createdAt).toLocaleDateString('ar-EG')}</p>
@@ -875,6 +977,87 @@ export default function DayUsePage() {
                 >
                    {t('dayUse.deleteModal.cancel')}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🏷️ مودال إدارة أنواع الاستخدامات (أدمن) */}
+      {showManageTypes && (
+        <div
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          dir={direction}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowManageTypes(false) }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                {direction === 'rtl' ? 'إدارة أنواع الاستخدامات' : 'Manage Use Types'}
+              </h3>
+              <button onClick={() => setShowManageTypes(false)} className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 flex items-center justify-center">
+                <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto space-y-3">
+              {/* إضافة نوع جديد */}
+              <div className="flex items-end gap-2 bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{direction === 'rtl' ? 'نوع جديد' : 'New type'}</label>
+                  <input
+                    value={newType.name}
+                    onChange={(e) => setNewType({ ...newType, name: e.target.value })}
+                    placeholder={direction === 'rtl' ? 'مثلاً: مساج' : 'e.g. Massage'}
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
+                  />
+                </div>
+                <div className="w-24">
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{direction === 'rtl' ? 'السعر' : 'Price'}</label>
+                  <input
+                    type="number" min="0"
+                    value={newType.price}
+                    onChange={(e) => setNewType({ ...newType, price: e.target.value })}
+                    placeholder="0"
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm text-center"
+                  />
+                </div>
+                <button onClick={addType} disabled={typeBusy} className="bg-primary-600 text-primary-contrast px-4 py-2 rounded-lg hover:bg-primary-700 disabled:opacity-50 text-sm font-bold">
+                  {direction === 'rtl' ? 'إضافة' : 'Add'}
+                </button>
+              </div>
+
+              {/* قائمة الأنواع */}
+              <div className="space-y-2">
+                {services.map((s: any) => (
+                  <div key={s.id} className="flex items-end gap-2 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+                    <div className="flex-1">
+                      <input
+                        value={typeDrafts[s.id]?.name ?? s.name}
+                        onChange={(e) => setTypeDrafts({ ...typeDrafts, [s.id]: { name: e.target.value, price: typeDrafts[s.id]?.price ?? String(s.price) } })}
+                        className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
+                      />
+                    </div>
+                    <div className="w-20">
+                      <input
+                        type="number" min="0"
+                        value={typeDrafts[s.id]?.price ?? String(s.price)}
+                        onChange={(e) => setTypeDrafts({ ...typeDrafts, [s.id]: { name: typeDrafts[s.id]?.name ?? s.name, price: e.target.value } })}
+                        className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm text-center"
+                      />
+                    </div>
+                    <button onClick={() => saveType(s.id)} disabled={typeBusy} title={direction === 'rtl' ? 'حفظ' : 'Save'} className="p-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 disabled:opacity-50">
+                      <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                    </button>
+                    {s.isBase ? (
+                      <span className="p-2 text-[10px] text-gray-400 whitespace-nowrap" title={direction === 'rtl' ? 'أساسي — لا يُحذف' : 'Base — cannot delete'}>{direction === 'rtl' ? 'أساسي' : 'Base'}</span>
+                    ) : (
+                      <button onClick={() => deleteType(s.id)} disabled={typeBusy} title={direction === 'rtl' ? 'حذف' : 'Delete'} className="p-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50">
+                        <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>

@@ -177,6 +177,20 @@ model PTSession {
   @@index([collectedInExpenseId])
 }
 
+//  🏷️ أنواع الاستخدامات (يوم استخدام / مساج / تأجير لوكر…) — يديرها الأدمن بأسعار افتراضية
+model DayUseService {
+  id        String   @id @default(cuid())
+  name      String   // اسم النوع المعروض (بيتخزّن في DayUseInBody.serviceType)
+  price     Float    @default(0)   // السعر الافتراضي (قابل للتعديل وقت التسجيل)
+  isBase    Boolean  @default(false) // النوع الأساسي (يوم استخدام) — مايتشلش
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
 model DayUseInBody {
   id           String    @id @default(cuid())
   name         String

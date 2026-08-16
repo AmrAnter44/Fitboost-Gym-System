@@ -50,7 +50,7 @@
     "pt": "Sessions & Tracking",
     "coach": "Coach",
     "rotations": "Rotations",
-    "dayUse": "Day Use",
+    "dayUse": "Other Uses",
     "invitations": "Invitations",
     "staff": "Staff",
     "receipts": "Receipts",
@@ -1224,7 +1224,7 @@
     "noRecordsForPeriod": "No attendance records for the selected period"
   },
   "dayUse": {
-    "title": "Day Use / InBody",
+    "title": "Other Uses",
     "hideForm": "Hide Form",
     "addNewOperation": "Add New Operation",
     "addOperationTitle": "Add New Operation",

@@ -756,6 +756,32 @@ function migrateDatabase(dbPath) {
       `);
     }
 
+    // 🏷️ DayUseService — أنواع الاستخدامات (يوم استخدام / مساج / تأجير لوكر…)
+    if (!tableExists(db, 'DayUseService')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS DayUseService (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          price REAL NOT NULL DEFAULT 0,
+          isBase INTEGER NOT NULL DEFAULT 0,
+          isActive INTEGER NOT NULL DEFAULT 1,
+          sortOrder INTEGER NOT NULL DEFAULT 0,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS DayUseService_isActive_idx ON DayUseService(isActive);
+      `);
+    }
+    //  بذور أساسية: «يوم استخدام» (محمي) + «تأجير لوكر» لو الجدول فاضي
+    try {
+      const cnt = db.prepare('SELECT COUNT(*) AS c FROM DayUseService').get();
+      if (cnt && cnt.c === 0) {
+        const insert = db.prepare("INSERT INTO DayUseService (id, name, price, isBase, isActive, sortOrder) VALUES (?, ?, 0, ?, 1, ?)");
+        insert.run('dus-dayuse-base', 'يوم استخدام', 1, 0);
+        insert.run('dus-locker', 'تأجير لوكر', 0, 1);
+      }
+    } catch (e) {}
+
     // Task + TaskAssignment — المهام (To-Do)
     if (!tableExists(db, 'Task')) {
       db.exec(`
