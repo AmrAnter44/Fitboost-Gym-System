@@ -336,6 +336,15 @@ function migrateDatabase(dbPath) {
       }
     }
 
+    // ✅ صلاحية مساعد الموارد البشرية (canAccessHR) — جديدة، off افتراضيًا للموظفين
+    if (!columnExists(db, 'Permission', 'canAccessHR')) {
+      db.prepare('ALTER TABLE Permission ADD COLUMN canAccessHR INTEGER NOT NULL DEFAULT 0').run();
+      //  نحافظ على وصول الإدارة الحالية (OWNER/ADMIN/MANAGER) فما يتقفلش عليهم بعد التحديث
+      try {
+        db.prepare(`UPDATE Permission SET canAccessHR = 1 WHERE userId IN (SELECT id FROM User WHERE role IN ('OWNER','ADMIN','MANAGER'))`).run();
+      } catch (e) { /* الجدول ممكن يكون فاضي — عادي */ }
+    }
+
     // ✅ User.isSales — حساب سيلز
     if (!columnExists(db, 'User', 'isSales')) {
       db.prepare('ALTER TABLE User ADD COLUMN isSales INTEGER NOT NULL DEFAULT 0').run();
@@ -503,6 +512,7 @@ function migrateDatabase(dbPath) {
       { col: 'remainingCheckIns',       def: 'INTEGER' },  //  nullable = دخول غير محدود
       { col: 'transferredFromMemberId', def: 'TEXT' },     //  📤 نقل العضوية: العضو اللي نقل للعضو ده
       { col: 'transferredFromAt',       def: 'DATETIME' },
+      { col: 'transferredFromPhone',    def: 'TEXT' },      //  📤 الرقم القديم اللي اتنقلت منه العضوية
     ];
     for (const { col, def } of memberCols) {
       if (!columnExists(db, 'Member', col)) {
@@ -677,6 +687,73 @@ function migrateDatabase(dbPath) {
         CREATE INDEX IF NOT EXISTS LostAndFound_createdAt_idx ON LostAndFound(createdAt);
       `);
     } else {
+    }
+
+    // 📅 جداول الجدول/الإجازات/العطلات — الـ HR الذكي بيقرا منها لحساب الغياب حسب الكاليندر
+    if (!tableExists(db, 'Rotation')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS Rotation (
+          id TEXT PRIMARY KEY,
+          staffId TEXT NOT NULL,
+          dayOfWeek TEXT NOT NULL,
+          startTime TEXT NOT NULL,
+          endTime TEXT NOT NULL,
+          isVariable INTEGER NOT NULL DEFAULT 0,
+          isActive INTEGER NOT NULL DEFAULT 1,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS Rotation_staffId_idx ON Rotation(staffId);
+        CREATE INDEX IF NOT EXISTS Rotation_dayOfWeek_idx ON Rotation(dayOfWeek);
+      `);
+    }
+
+    if (!tableExists(db, 'ShiftAssignment')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS ShiftAssignment (
+          id TEXT PRIMARY KEY,
+          staffId TEXT NOT NULL,
+          date DATETIME NOT NULL,
+          startTime TEXT NOT NULL,
+          endTime TEXT NOT NULL,
+          notes TEXT,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS ShiftAssignment_staffId_date_idx ON ShiftAssignment(staffId, date);
+        CREATE INDEX IF NOT EXISTS ShiftAssignment_date_idx ON ShiftAssignment(date);
+      `);
+    }
+
+    if (!tableExists(db, 'Leave')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS Leave (
+          id TEXT PRIMARY KEY,
+          staffId TEXT NOT NULL,
+          startDate DATETIME NOT NULL,
+          endDate DATETIME NOT NULL,
+          type TEXT NOT NULL,
+          isPaid INTEGER NOT NULL DEFAULT 1,
+          reason TEXT,
+          status TEXT NOT NULL DEFAULT 'approved',
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS Leave_staffId_startDate_idx ON Leave(staffId, startDate);
+      `);
+    }
+
+    if (!tableExists(db, 'Holiday')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS Holiday (
+          id TEXT PRIMARY KEY,
+          date DATETIME NOT NULL,
+          name TEXT NOT NULL,
+          isPaid INTEGER NOT NULL DEFAULT 1,
+          recurring INTEGER NOT NULL DEFAULT 0,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS Holiday_date_key ON Holiday(date);
+        CREATE INDEX IF NOT EXISTS Holiday_date_idx ON Holiday(date);
+      `);
     }
 
     // Task + TaskAssignment — المهام (To-Do)

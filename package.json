@@ -1,6 +1,6 @@
 {
   "name": "fitboost-system",
-  "version": "6.10.2",
+  "version": "6.10.3",
   "description": "FitBoost - Professional Gym Management System",
   "private": true,
   "main": "electron/main.js",
@@ -37,6 +37,7 @@
     "fetch:cloudflared": "node scripts/fetch-cloudflared.js",
     "build:electron": "npm run prebuild:electron && node preelectron-build.js && node scripts/build-empty-seed.js && node scripts/fetch-cloudflared.js win && electron-builder --publish never",
     "build:electron:win": "npm run prebuild:electron && node preelectron-build.js && node scripts/build-empty-seed.js && node scripts/fetch-cloudflared.js win && electron-builder --win --x64 --publish never",
+    "publish:electron:win": "npm run prebuild:electron && node preelectron-build.js && node scripts/build-empty-seed.js && node scripts/fetch-cloudflared.js win && electron-builder --win --x64 --publish always",
     "build:assistant": "electron-builder --config electron-builder.client.json --publish never",
     "build:assistant:win": "electron-builder --config electron-builder.client.json --win --x64 --publish never",
     "build:production": "node scripts/build-production.js",

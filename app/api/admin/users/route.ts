@@ -55,7 +55,7 @@ const VALID_PERMISSION_FIELDS = [
   'canViewPhysiotherapy', 'canCreatePhysiotherapy', 'canEditPhysiotherapy', 'canDeletePhysiotherapy', 'canRegisterPhysioAttendance',
   'canViewGroupClass', 'canCreateGroupClass', 'canEditGroupClass', 'canDeleteGroupClass', 'canRegisterClassAttendance',
   'canViewMore', 'canRegisterMoreAttendance', 'canDeleteMore', 'canAccessMoreCommission',
-  'canViewStaff', 'canCreateStaff', 'canEditStaff', 'canDeleteStaff',
+  'canViewStaff', 'canAccessHR', 'canCreateStaff', 'canEditStaff', 'canDeleteStaff',
   'canViewReceipts', 'canEditReceipts', 'canDeleteReceipts',
   'canViewExpenses', 'canCreateExpense', 'canEditExpense', 'canDeleteExpense',
   'canViewVisitors', 'canCreateVisitor', 'canEditVisitor', 'canDeleteVisitor',

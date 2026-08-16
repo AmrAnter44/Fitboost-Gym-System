@@ -253,3 +253,60 @@ export function getExpectedWorkingDays(
 
   return workingDays
 }
+
+//  خريطة أسماء أيام الأسبوع (زي المخزّنة في Rotation) لأرقام JS (Sunday=0 .. Saturday=6)
+const DAY_NAME_TO_INDEX: Record<string, number> = {
+  sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6,
+}
+
+export function dayNamesToWeekdaySet(names: string[]): Set<number> {
+  const set = new Set<number>()
+  for (const n of names) {
+    const idx = DAY_NAME_TO_INDEX[(n || '').trim().toLowerCase()]
+    if (idx !== undefined) set.add(idx)
+  }
+  return set
+}
+
+/**
+ *  نسخة بتقرأ «الكاليندر»: أيام عمل الموظف من الروتيشن + استثناء الإجازات والعطلات
+ *  - workingWeekdays: أيام الأسبوع اللي بيشتغلها فعلاً (من Rotation). لو فاضية → fallback: كل الأيام ما عدا الجمعة.
+ *  - isOffDate: يرجّع true لو اليوم إجازة (Leave) أو عطلة (Holiday) — فمايتحسبش يوم عمل متوقّع.
+ */
+export function getExpectedWorkingDaysWithSchedule(
+  joinDate: Date,
+  year: number,
+  month: number,
+  cutoffDate: Date | undefined,
+  opts: {
+    scheduledDays?: Set<number> | null   // أرقام أيام الشهر اللي فيها شيفت (من الكاليندر) — الأولوية
+    workingWeekdays?: Set<number> | null  // أيام الأسبوع من الروتيشن — لو مفيش شيفتات
+    isOffDate?: (date: Date) => boolean   // إجازة أو عطلة
+  }
+): number {
+  const startOfMonth = new Date(year, month - 1, 1)
+  const endOfMonth = new Date(year, month, 0)
+  const effectiveEnd = cutoffDate && cutoffDate < endOfMonth ? cutoffDate : endOfMonth
+  if (joinDate > effectiveEnd) return 0
+
+  const startDay = joinDate >= startOfMonth ? joinDate.getDate() : 1
+  const endDay = effectiveEnd.getDate()
+  const sched = opts.scheduledDays
+  const ww = opts.workingWeekdays
+
+  let workingDays = 0
+  for (let day = startDay; day <= endDay; day++) {
+    const date = new Date(year, month - 1, day)
+    const wd = date.getDay()
+    //  الأولوية للكاليندر (الشيفتات): يوم عمل = يوم فيه شيفت.
+    //  لو مفيش شيفتات خالص: نرجع للروتيشن، وإلا كل الأيام شغل.
+    let isWorkingDay: boolean
+    if (sched && sched.size > 0) isWorkingDay = sched.has(day)
+    else if (ww && ww.size > 0) isWorkingDay = ww.has(wd)
+    else isWorkingDay = true
+    if (!isWorkingDay) continue               // يوم الأوف (مفيش شيفت في الكاليندر)
+    if (opts.isOffDate && opts.isOffDate(date)) continue // إجازة أو عطلة
+    workingDays++
+  }
+  return workingDays
+}

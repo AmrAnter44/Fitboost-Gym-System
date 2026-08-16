@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
-import { verifyAuth } from '../../../../lib/auth'
+import { verifyAuth, requirePermission } from '../../../../lib/auth'
 import {
   getWorkingDaysInMonth,
   minutesToHours,
   calculatePerformancePercentage,
   getPerformanceStatus,
   generateAlerts,
-  getExpectedWorkingDays
+  getExpectedWorkingDays,
+  getExpectedWorkingDaysWithSchedule,
+  dayNamesToWeekdaySet
 } from '../../../../lib/hrCalculations'
 import { getLocaleFromRequest } from '../../../../lib/serverTranslation'
 import { calcLateMinutes, calcEarlyMinutes } from '../../../../lib/shiftTime'
@@ -26,6 +28,7 @@ interface RevenueBreakdown {
   nutrition: number
   physiotherapy: number
   other: number
+  sales: number   //  💼 عائدات السيلز الخاصة (إيصالات أعضاءه + يوم استخدامه)
   total: number
 }
 
@@ -49,6 +52,7 @@ interface StaffAnalytics {
   alerts: string[]
   revenue: RevenueBreakdown
   revenueToSalaryRatio: number | null
+  staffType: 'sales' | 'reception' | 'coach'   //  نوع الأكونت — يحدد شكل عرض العائدات
 }
 
 /**
@@ -60,14 +64,8 @@ interface StaffAnalytics {
  */
 export async function GET(request: Request) {
   try {
-    const user = await verifyAuth(request)
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'يجب تسجيل الدخول أولاً' },
-        { status: 401 }
-      )
-    }
+    //  🔒 مساعد الموارد البشرية للإدارة فقط (OWNER/ADMIN بيتجاوزوا، الباقي محتاج canAccessHR)
+    const user = await requirePermission(request, 'canAccessHR')
 
     // استخراج query parameters
     const { searchParams } = new URL(request.url)
@@ -169,9 +167,86 @@ export async function GET(request: Request) {
           orderBy: {
             createdAt: 'desc'
           }
+        },
+        //  📅 الكاليندر: شيفتات الموظف بالتاريخ (المصدر الأساسي) + الروتيشن الأسبوعي (احتياطي)
+        shiftAssignments: {
+          where: { date: { gte: startDate, lte: endDate } },
+          select: { date: true }
+        },
+        rotations: {
+          where: { isActive: true },
+          select: { dayOfWeek: true }
+        },
+        leaves: {
+          where: {
+            status: 'approved',
+            startDate: { lte: endDate },
+            endDate: { gte: startDate }
+          },
+          select: { startDate: true, endDate: true }
         }
       }
     })
+
+    //  📅 عطلات الشهر (Holiday) — تُحمّل مرة واحدة وتُطبّق على الجميع
+    const monthHolidays = await prisma.holiday.findMany({
+      select: { date: true, recurring: true }
+    })
+    const holidayKeys = new Set<string>()      // "MM-DD" للمتكرر + "YYYY-MM-DD" للثابت
+    for (const h of monthHolidays) {
+      const d = new Date(h.date)
+      const mm = String(d.getMonth() + 1).padStart(2, '0')
+      const dd = String(d.getDate()).padStart(2, '0')
+      if (h.recurring) holidayKeys.add(`*-${mm}-${dd}`)
+      else holidayKeys.add(`${d.getFullYear()}-${mm}-${dd}`)
+    }
+    const isHoliday = (date: Date): boolean => {
+      const mm = String(date.getMonth() + 1).padStart(2, '0')
+      const dd = String(date.getDate()).padStart(2, '0')
+      return holidayKeys.has(`*-${mm}-${dd}`) || holidayKeys.has(`${date.getFullYear()}-${mm}-${dd}`)
+    }
+
+    //  💼 حساب عائدات السيلز الخاصة (قبل اللوب) — إيصالات أعضاء منسوبين للسيلز + يوم استخدامه
+    const staffIds = allStaff.map(s => s.id)
+    const salesRevenueByStaff: Record<string, number> = {}
+
+    // 1) أعضاء منسوبين لسيلز → إيصالاتهم في الشهر
+    const salesMembers = await prisma.member.findMany({
+      where: { salesStaffId: { in: staffIds } },
+      select: { id: true, salesStaffId: true },
+    })
+    const memberToSales: Record<string, string> = {}
+    salesMembers.forEach(m => { if (m.salesStaffId) memberToSales[m.id] = m.salesStaffId })
+    const salesMemberIds = salesMembers.map(m => m.id)
+    if (salesMemberIds.length) {
+      const memberReceipts = await prisma.receipt.findMany({
+        where: { memberId: { in: salesMemberIds }, isCancelled: false, createdAt: { gte: startDate, lte: endDate } },
+        select: { memberId: true, amount: true },
+      })
+      memberReceipts.forEach(r => {
+        const sid = r.memberId ? memberToSales[r.memberId] : null
+        if (sid) salesRevenueByStaff[sid] = (salesRevenueByStaff[sid] || 0) + r.amount
+      })
+    }
+
+    // 2) يوم الاستخدام المنسوب لسيلز → إيصالاته في الشهر
+    const salesDayUse = await prisma.dayUseInBody.findMany({
+      where: { salesStaffId: { in: staffIds } },
+      select: { id: true, salesStaffId: true },
+    })
+    const dayUseToSales: Record<string, string> = {}
+    salesDayUse.forEach(d => { if (d.salesStaffId) dayUseToSales[d.id] = d.salesStaffId })
+    const salesDayUseIds = salesDayUse.map(d => d.id)
+    if (salesDayUseIds.length) {
+      const duReceipts = await prisma.receipt.findMany({
+        where: { dayUseId: { in: salesDayUseIds }, isCancelled: false, createdAt: { gte: startDate, lte: endDate } },
+        select: { dayUseId: true, amount: true },
+      })
+      duReceipts.forEach(r => {
+        const sid = r.dayUseId ? dayUseToSales[r.dayUseId] : null
+        if (sid) salesRevenueByStaff[sid] = (salesRevenueByStaff[sid] || 0) + r.amount
+      })
+    }
 
     // حساب التحليلات لكل موظف
     const analytics: StaffAnalytics[] = allStaff.map((staff) => {
@@ -180,11 +255,28 @@ export async function GET(request: Request) {
       const monthlyVacationDays = staff.monthlyVacationDays || 2
 
       // حساب عدد أيام العمل المتوقعة (مراعاة تاريخ الانضمام + تاريخ القطع للشهر الحالي)
-      const expectedWorkingDays = getExpectedWorkingDays(
+      //  📅 أيام العمل المتوقّعة حسب كاليندر الموظف:
+      //  - المصدر الأساسي: الشيفتات المسجّلة في الكاليندر (يوم بلا شيفت = أوف)
+      //  - لو مفيش شيفتات: الروتيشن الأسبوعي، وإلا كل الأيام
+      //  - الإجازات المعتمدة + العطلات → مستثناة دايمًا
+      const scheduledDays = new Set<number>(
+        staff.shiftAssignments.map(s => new Date(s.date).getDate())
+      )
+      const workingWeekdays = dayNamesToWeekdaySet(staff.rotations.map(r => r.dayOfWeek))
+      const leaveRanges = staff.leaves.map(l => ({
+        start: new Date(new Date(l.startDate).setHours(0, 0, 0, 0)),
+        end: new Date(new Date(l.endDate).setHours(23, 59, 59, 999)),
+      }))
+      const isOffDate = (date: Date): boolean => {
+        if (isHoliday(date)) return true
+        return leaveRanges.some(r => date >= r.start && date <= r.end)
+      }
+      const expectedWorkingDays = getExpectedWorkingDaysWithSchedule(
         new Date(staff.createdAt),
         year,
         month,
-        todayCutoff ?? undefined
+        todayCutoff ?? undefined,
+        { scheduledDays, workingWeekdays, isOffDate }
       )
 
       // حساب الساعات الفعلية (sum of durations)
@@ -196,8 +288,8 @@ export async function GET(request: Request) {
       // عدد أيام الحضور
       const daysAttended = staff.attendance.length
 
-      // عدد أيام الغياب
-      const daysAbsent = expectedWorkingDays - daysAttended
+      // عدد أيام الغياب (مايبقاش سالب لو حضر في يوم أوف/عطلة)
+      const daysAbsent = Math.max(0, expectedWorkingDays - daysAttended)
 
       // الساعات المطلوبة
       const requiredHours = workingHours * expectedWorkingDays
@@ -299,12 +391,13 @@ export async function GET(request: Request) {
       const onTimeDays = daysAttended - lateArrivals.length
       const punctualityScore = daysAttended > 0 ? Math.round((onTimeDays / daysAttended) * 100) : 100
 
-      // حساب العائدات من الكوميشن
+      // حساب العائدات من الكوميشن (للكوتش)
       const revenueBreakdown = {
         pt: 0,
         nutrition: 0,
         physiotherapy: 0,
         other: 0,
+        sales: salesRevenueByStaff[staff.id] || 0,   //  💼 عائدات السيلز الخاصة
         total: 0
       }
 
@@ -324,6 +417,15 @@ export async function GET(request: Request) {
         revenueBreakdown.total += amount
       })
 
+      //  تحديد نوع الأكونت من المسمّى الوظيفي (position ممكن يكون متعدد بفاصلة)
+      const posLower = (staff.position || '').toLowerCase()
+      const isSalesStaff = /sales|سيلز|مبيعات/.test(posLower)
+      const isCoachStaff = /coach|مدرب|كوتش|تدريب/.test(posLower) || revenueBreakdown.total > 0
+      const isReceptionStaff = /reception|ريسبشن|ريسيبشن|استقبال/.test(posLower)
+      let staffType: 'sales' | 'reception' | 'coach' = 'coach'
+      if (isSalesStaff) staffType = 'sales'
+      else if (isReceptionStaff && !isCoachStaff) staffType = 'reception'
+
       // حساب السلف
       const advances = {
         total: staff.expenses.reduce((sum, e) => sum + e.amount, 0),
@@ -340,9 +442,12 @@ export async function GET(request: Request) {
         }))
       }
 
-      // حساب نسبة العائدات إلى الراتب
-      const revenueToSalaryRatio = staff.salary && staff.salary > 0
-        ? Math.round((revenueBreakdown.total / staff.salary) * 100) / 100
+      // حساب نسبة العائدات إلى الراتب — للسيلز نعتمد على عائداته الخاصة، للريسيبشن مفيش
+      const ratioBase = staffType === 'sales' ? revenueBreakdown.sales
+        : staffType === 'reception' ? 0
+        : revenueBreakdown.total
+      const revenueToSalaryRatio = staffType !== 'reception' && staff.salary && staff.salary > 0
+        ? Math.round((ratioBase / staff.salary) * 100) / 100
         : null
 
       // توليد التنبيهات
@@ -379,6 +484,7 @@ export async function GET(request: Request) {
         alerts,
         revenue: revenueBreakdown,
         revenueToSalaryRatio,
+        staffType,
         advances,
         shiftStartTime: shiftStart,
         shiftEndTime: shiftEnd,
@@ -410,6 +516,12 @@ export async function GET(request: Request) {
       return NextResponse.json(
         { error: 'يجب تسجيل الدخول أولاً' },
         { status: 401 }
+      )
+    }
+    if (typeof error?.message === 'string' && error.message.includes('Forbidden')) {
+      return NextResponse.json(
+        { error: 'ليس لديك صلاحية الوصول لمساعد الموارد البشرية' },
+        { status: 403 }
       )
     }
 

@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useToast } from '@/contexts/ToastContext'
+import { useConfirm } from '@/hooks/useConfirm'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { useServiceSettings } from '@/contexts/ServiceSettingsContext'
 import { formatDateYMD, calculateDaysBetween } from '@/lib/dateFormatter'
 import PaymentMethodSelector from '@/components/Paymentmethodselector'
@@ -90,6 +92,7 @@ export default function MorePage() {
   const { hasPermission, user, loading: authLoading } = usePermissions()
   const { t, direction, locale } = useLanguage()
   const toast = useToast()
+  const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const { settings } = useServiceSettings()
 
   const [moreSubscriptions, setMoreSubscriptions] = useState<More[]>([])
@@ -460,7 +463,14 @@ export default function MorePage() {
   }
 
   const handleDeleteSubscription = async (moreNumber: number) => {
-    if (!confirm(t('more.confirmDelete'))) return
+    const ok = await confirm({
+      title: locale === 'ar' ? 'حذف الاشتراك' : 'Delete subscription',
+      message: t('more.confirmDelete'),
+      confirmText: locale === 'ar' ? 'حذف' : 'Delete',
+      cancelText: locale === 'ar' ? 'إلغاء' : 'Cancel',
+      type: 'danger',
+    })
+    if (!ok) return
 
     try {
       const response = await fetch(`/api/more?moreNumber=${moreNumber}`, {
@@ -2051,6 +2061,17 @@ export default function MorePage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={isOpen}
+        title={options.title}
+        message={options.message}
+        confirmText={options.confirmText}
+        cancelText={options.cancelText}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+        type={options.type}
+      />
     </div>
   )
 }

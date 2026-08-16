@@ -154,6 +154,8 @@ function FollowUpsPageContent() {
   const [bulkScriptDelayMin, setBulkScriptDelayMin] = useState(15)
   const [bulkScriptDelayMax, setBulkScriptDelayMax] = useState(30)
   const [bulkScriptSkipDays, setBulkScriptSkipDays] = useState(7)
+  //  ⏰ ريمايندر: بعد كام يوم أرجع أكلم الناس دول تاني (0 = بدون ريمايندر)
+  const [bulkScriptReminderDays, setBulkScriptReminderDays] = useState(0)
   const [bulkScriptTestPhone, setBulkScriptTestPhone] = useState('')
   //  نظام التشغيل (running/paused/progress/report) اتنقل لـ BulkSenderContext على مستوى التطبيق
   //  عشان الإرسال يفضل شغّال والكرة/المودالات تفضل ظاهرة حتى بعد الخروج من الصفحة.
@@ -1601,6 +1603,10 @@ function FollowUpsPageContent() {
       return
     }
     const targets = getBulkScriptTargets().map(tg => ({ visitor: tg.visitor }))
+    //  ⏰ لو المستخدم حدّد ريمايندر، نحسب التاريخ مرة واحدة (النهاردة + عدد الأيام)
+    const reminderDate = bulkScriptReminderDays > 0
+      ? new Date(Date.now() + bulkScriptReminderDays * 86400000).toISOString().slice(0, 10)
+      : undefined
     const ok = await bulkSender.start({
       targets,
       messages: validMessages,
@@ -1613,10 +1619,10 @@ function FollowUpsPageContent() {
         dailyLimit: bulkScriptDailyLimit,
         sessionIndex: bulkScriptSessionIndex,
       },
-      meta: { userName: user?.name, sourceFilter },
+      meta: { userName: user?.name, sourceFilter, reminderDate },
     })
     if (ok) setShowBulkScriptModal(false)
-  }, [bulkScriptMessages, getBulkScriptTargets, bulkScriptDelayMin, bulkScriptDelayMax, bulkScriptBatchSize, bulkScriptBatchBreakMin, bulkScriptBatchBreakMax, bulkScriptDailyLimit, bulkScriptSessionIndex, user, sourceFilter, bulkSender, toast, t])
+  }, [bulkScriptMessages, getBulkScriptTargets, bulkScriptDelayMin, bulkScriptDelayMax, bulkScriptBatchSize, bulkScriptBatchBreakMin, bulkScriptBatchBreakMax, bulkScriptDailyLimit, bulkScriptSessionIndex, bulkScriptReminderDays, user, sourceFilter, bulkSender, toast, t])
 
   const getResultBadge = useCallback((result?: string) => {
     const badges = {
@@ -1696,7 +1702,6 @@ function FollowUpsPageContent() {
     let todayCount = 0
     let notContacted = 0
     let contacted = 0
-    let expiredNoFollowUp = 0 //  منتهي بدون متابعة (للزرار الجديد)
     //  مسؤول السيلز بيشوف الكل، مش بس بتاعه
     const isSales = !!user?.isSales && !canManageSales
 
@@ -1768,14 +1773,13 @@ function FollowUpsPageContent() {
       if (priority === 'today') todayCount++
       if (fu.contacted) contacted++
       else notContacted++
-      //  منتهي + لم يتم التواصل = expired-member + !contacted
-      if (fu.visitor.source === 'expired-member' && !fu.contacted) expiredNoFollowUp++
     }
-    return { myFollowUps, todayCount, notContacted, contacted, expiredNoFollowUp }
+    return { myFollowUps, todayCount, notContacted, contacted }
   }, [allFollowUps, isMyFollowUp, getFollowUpPriority, user?.isSales, canManageSales, debouncedSearchTerm, resultFilter, priorityFilter, salesFilter, assignedStaffFilter, sourceFilter, dateFromFilter, dateToFilter])
 
-  //  قائمة مفلترة بكل الفلاتر **ما عدا** فلتر المصدر (Source) — تُستخدم لحساب أرقام أزرار المصدر
-  // عشان لما المستخدم يختار priority/contacted/search، الأرقام في أزرار المصدر تتحدّث برضو
+  //  قائمة مفلترة بكل الفلاتر **ما عدا** فلتر المصدر (Source) وفلتر «تم التواصل»
+  //  — تُستخدم لحساب أرقام أزرار المصدر. بنتجاهل contacted هنا عشان عدّاد «أعضاء منتهين»
+  //  يفضل شامل (متواصل + غير متواصل) فيبقى «منتهي بدون متابعة» دايمًا جزء منه مش أكبر منه.
   const followUpsFilteredExceptSource = useMemo(() => {
     return allFollowUps.filter(fu => {
       const searchNormalized = normalizeArabic(debouncedSearchTerm)
@@ -1786,7 +1790,8 @@ function FollowUpsPageContent() {
         (fu.salesName && normalizeArabic(fu.salesName).includes(searchNormalized))
 
       const matchesResult = resultFilter === 'all' || fu.result === resultFilter
-      const matchesContacted = contactedFilter === 'all' ||
+      //  ملاحظة: فلتر «تم التواصل» مش بيتطبّق هنا عن قصد (شوف الكومنت فوق)
+      const matchesContacted = true ||
         (contactedFilter === 'contacted' && fu.contacted) ||
         (contactedFilter === 'not-contacted' && !fu.contacted)
 
@@ -1827,14 +1832,19 @@ function FollowUpsPageContent() {
   const stats = useMemo(() => {
     const todayStr = new Date().toDateString()
     const base = followUpsFilteredExceptSource
+    //  total/today/overdue تحترم فلتر «تم التواصل»؛ أما عدّادات المصدر تحته فبتتجاهله
+    const passesContacted = (fu: any) => contactedFilter === 'all' ||
+      (contactedFilter === 'contacted' && fu.contacted) ||
+      (contactedFilter === 'not-contacted' && !fu.contacted)
+    const withContacted = base.filter(passesContacted)
     return {
-      total: base.length,
-      today: base.filter(fu => getFollowUpPriority(fu) === 'today').length,
-      overdue: base.filter(fu => getFollowUpPriority(fu) === 'overdue').length,
+      total: withContacted.length,
+      today: withContacted.filter(fu => getFollowUpPriority(fu) === 'today').length,
+      overdue: withContacted.filter(fu => getFollowUpPriority(fu) === 'overdue').length,
       contactedToday: followUps.filter(fu =>
         fu.contacted && new Date(fu.updatedAt || fu.createdAt).toDateString() === todayStr
       ).length,
-      //  counts تحترم الفلاتر الأخرى (priority, contacted, search, إلخ)
+      //  عدّادات المصدر بتتجاهل فلتر contacted عشان «بدون متابعة» يفضل جزء من «أعضاء منتهين»
       expiredMembers: base.filter(fu => fu.visitor.source === 'expired-member').length,
       expiringMembers: base.filter(fu => fu.visitor.source === 'expiring-member').length,
       dayUse: base.filter(fu => fu.visitor.source === 'invitation').length,
@@ -1843,7 +1853,7 @@ function FollowUpsPageContent() {
       visitors: base.filter(fu => !['expired-member', 'expiring-member', 'member-invitation', 'invitation', 'website'].includes(fu.visitor.source)).length,
       convertedToMembers: followUps.filter(fu => isVisitorAMember(fu.visitor.phone)).length,
     }
-  }, [followUpsFilteredExceptSource, followUps, isVisitorAMember, getFollowUpPriority])
+  }, [followUpsFilteredExceptSource, followUps, isVisitorAMember, getFollowUpPriority, contactedFilter])
 
   //  أعضاء عيد ميلادهم اليوم — للنشطين فقط
   const birthdayMembers = useMemo(() => {
@@ -2393,6 +2403,29 @@ function FollowUpsPageContent() {
                 </div>
               )}
 
+              {/* C2. ⏰ ريمايندر — أرجع أكلمهم تاني بعد كام يوم */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg p-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-blue-800 dark:text-blue-300 flex-wrap">
+                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  {locale === 'ar' ? 'ذكّرني أرجع أكلمهم تاني بعد' : 'Remind me to follow up again after'}
+                  <input
+                    type="number"
+                    min={0}
+                    value={bulkScriptReminderDays}
+                    onChange={e => setBulkScriptReminderDays(parseInt(e.target.value) || 0)}
+                    className="w-16 px-2 py-1 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-700 text-center font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+                  />
+                  {locale === 'ar' ? 'يوم' : 'days'}
+                </label>
+                {bulkScriptReminderDays > 0 && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1.5">
+                    {locale === 'ar'
+                      ? `هيظهروا في متابعاتك تاني يوم ${new Date(Date.now() + bulkScriptReminderDays * 86400000).toLocaleDateString('ar-EG')}`
+                      : `They'll reappear in your follow-ups on ${new Date(Date.now() + bulkScriptReminderDays * 86400000).toLocaleDateString('en-US')}`}
+                  </p>
+                )}
+              </div>
+
               {/* D. Messages */}
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -2786,34 +2819,6 @@ function FollowUpsPageContent() {
                 <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                 {t('followups.quickFilters.today')} ({quickFilterCounts.todayCount})
               </button>
-
-              {/*  Shortcut: منتهي بدون متابعة — يفعّل sourceFilter=expired-member + contactedFilter=not-contacted */}
-              {(() => {
-                const isActive = sourceFilter === 'expired-member' && contactedFilter === 'not-contacted'
-                return (
-                  <button
-                    onClick={() => {
-                      if (isActive) {
-                        //  toggle off — رجّع للحالة الافتراضية
-                        setSourceFilter('all')
-                        setContactedFilter('all')
-                      } else {
-                        setSourceFilter('expired-member')
-                        setContactedFilter('not-contacted')
-                      }
-                    }}
-                    title={locale === 'ar' ? 'الأعضاء المنتهي اشتراكهم اللي لسه ما حدش تواصل معاهم' : 'Expired members not contacted yet'}
-                    className={`px-3 py-1.5 rounded-lg font-bold text-xs sm:text-sm transition-colors duration-200 inline-flex items-center gap-1.5 ${
-                      isActive
-                        ? 'bg-red-600 text-white shadow-md ring-2 ring-red-300 dark:ring-red-700'
-                        : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50'
-                    }`}
-                  >
-                    <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                    {locale === 'ar' ? 'منتهي بدون متابعة' : 'Expired · Not contacted'} ({quickFilterCounts.expiredNoFollowUp})
-                  </button>
-                )
-              })()}
 
               {/* Contacted status filter */}
               <div className="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600" />

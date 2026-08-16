@@ -998,6 +998,7 @@ const handleSelfieCapture = async (file: File) => {
               <span>{locale === 'ar' ? 'الجدول والإجازات' : 'Schedule & Leaves'}</span>
             </Link>
           )}
+          {hasPermission('canAccessHR') && (
           <Link
             href="/staff-hr-assistant"
             className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 text-sm"
@@ -1007,6 +1008,7 @@ const handleSelfieCapture = async (file: File) => {
             </svg>
             <span>{t('staff.hrAssistant.title')}</span>
           </Link>
+          )}
           <button
             onClick={() => { resetForm(); setShowForm(true) }}
             className="inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 text-sm"

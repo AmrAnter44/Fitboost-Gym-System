@@ -63,6 +63,7 @@ model Member {
   referrerMemberNumber String?   // 👥 رقم العضو اللي جاب العضو ده (لما المصدر = friend_referral)
   transferredFromMemberId String? // 📤 id العضو اللي نقل العضوية للعضو ده (نقل عضوية existing)
   transferredFromAt       DateTime? // 📤 تاريخ استلام النقل
+  transferredFromPhone    String?   // 📤 الرقم القديم اللي اتنقلت منه العضوية (للـ timeline)
   createdAt         DateTime     @default(now())
   invitationRecords    Invitation[]
   receipts             Receipt[]
@@ -648,6 +649,7 @@ model Permission {
   canCloseDayOnly         Boolean @default(false)  // 📅 صلاحية اليوم — تقفيل أمس/اليوم/غدا فقط
   canAccessPTCommission   Boolean @default(false)  //  صلاحية الوصول لصفحة تقفيل/حاسبة الـ PT
   canViewAllPT            Boolean @default(false)  //  صلاحية رؤية كل الحصص المخصصة + المتابعات (حتى لو الـ user كوتش)
+  canAccessHR             Boolean @default(false)  //  صلاحية مساعد الموارد البشرية (المرتبات/الخصومات/السلف)
   canAccessSettings       Boolean @default(false)
   canAccessAdmin          Boolean @default(false)
   canViewSpaBookings      Boolean @default(false)

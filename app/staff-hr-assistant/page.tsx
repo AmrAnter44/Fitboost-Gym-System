@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useDarkMode } from '@/contexts/DarkModeContext'
 import { useToast } from '@/contexts/ToastContext'
-// import { usePermissions } from '@/hooks/usePermissions'
+import { usePermissions } from '@/hooks/usePermissions'
+import PermissionDenied from '@/components/PermissionDenied'
 import { getStatusColors } from '@/lib/hrCalculations'
 import Link from 'next/link'
 import { LoadingScreen } from '@/components/Spinner'
@@ -24,6 +25,7 @@ interface RevenueBreakdown {
   nutrition: number
   physiotherapy: number
   other: number
+  sales: number
   total: number
 }
 
@@ -88,6 +90,7 @@ interface StaffAnalytics {
   alerts: string[]
   revenue: RevenueBreakdown
   revenueToSalaryRatio: number | null
+  staffType: 'sales' | 'reception' | 'coach'
   advances: AdvancesData
   shiftStartTime: string | null
   shiftEndTime: string | null
@@ -112,6 +115,7 @@ export default function StaffHRAssistantPage() {
   const { t, direction } = useLanguage()
   useDarkMode()
   const toast = useToast()
+  const { hasPermission, loading: permissionsLoading } = usePermissions()
 
   const [loading, setLoading] = useState(true)
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null)
@@ -436,6 +440,14 @@ export default function StaffHRAssistantPage() {
     selectedYear + 1
   ]
 
+  // 🔒 صلاحية مساعد الموارد البشرية — الموظف اللي ملوش الصلاحية ميشوفش الصفحة
+  if (permissionsLoading) {
+    return <LoadingScreen fullScreen message={t('staff.hrAssistant.loading')} />
+  }
+  if (!hasPermission('canAccessHR')) {
+    return <PermissionDenied message={direction === 'rtl' ? 'مساعد الموارد البشرية' : 'HR Assistant'} />
+  }
+
   if (loading) {
     return <LoadingScreen fullScreen message={t('staff.hrAssistant.loading')} />
   }
@@ -693,8 +705,13 @@ export default function StaffHRAssistantPage() {
                           <p className="text-sm font-bold text-gray-900 dark:text-white">{staff.actualHoursWorked.toFixed(0)}h</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-xs text-gray-600 dark:text-gray-400"> {t('staff.hrAssistant.revenue.total')}</p>
-                          <p className="text-sm font-bold text-green-600 dark:text-green-400">{staff.revenue.total.toFixed(0)}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {staff.staffType === 'sales' ? (direction === 'rtl' ? 'عائدات السيلز' : 'Sales revenue') : t('staff.hrAssistant.revenue.total')}
+                          </p>
+                          <p className="text-sm font-bold text-green-600 dark:text-green-400">
+                            {staff.staffType === 'reception' ? '—'
+                              : (staff.staffType === 'sales' ? staff.revenue.sales : staff.revenue.total).toFixed(0)}
+                          </p>
                         </div>
                         <div className="text-center">
                           <p className="text-xs text-gray-600 dark:text-gray-400"> {direction === 'rtl' ? 'سلف' : 'Advances'}</p>
@@ -817,20 +834,22 @@ export default function StaffHRAssistantPage() {
                           </p>
                         </div>
 
-                        {/* Revenue */}
-                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 shadow border border-green-200 dark:border-green-700">
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                             {t('staff.hrAssistant.revenue.total')}
-                          </p>
-                          <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                            {staff.revenue.total.toFixed(0)} {t('common.egp')}
-                          </p>
-                          {staff.revenueToSalaryRatio !== null && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {staff.revenueToSalaryRatio.toFixed(1)}x {t('staff.hrAssistant.revenue.ratio')}
+                        {/* Revenue — الريسيبشن مفيش عائدات، السيلز عائداته الخاصة، الكوتش عمولاته */}
+                        {staff.staffType !== 'reception' && (
+                          <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 shadow border border-green-200 dark:border-green-700">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                               {staff.staffType === 'sales' ? (direction === 'rtl' ? 'عائدات السيلز' : 'Sales Revenue') : t('staff.hrAssistant.revenue.total')}
                             </p>
-                          )}
-                        </div>
+                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                              {(staff.staffType === 'sales' ? staff.revenue.sales : staff.revenue.total).toFixed(0)} {t('common.egp')}
+                            </p>
+                            {staff.revenueToSalaryRatio !== null && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {staff.revenueToSalaryRatio.toFixed(1)}x {t('staff.hrAssistant.revenue.ratio')}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Progress Bar */}
@@ -1084,52 +1103,68 @@ export default function StaffHRAssistantPage() {
 
                     {/* Details Body */}
                     <div className="p-6 bg-gray-50 dark:bg-gray-900 border-t-2 border-gray-200 dark:border-gray-700 space-y-6">
-                    {/* Revenue Breakdown */}
+                    {/* Revenue Breakdown — يختفي خالص للريسيبشن */}
+                    {staff.staffType !== 'reception' && (
                     <div>
                       <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                         {t('staff.hrAssistant.revenue.breakdown')}
+                         {staff.staffType === 'sales' ? (direction === 'rtl' ? 'عائدات السيلز' : 'Sales Revenue') : t('staff.hrAssistant.revenue.breakdown')}
                       </h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {/* PT Revenue */}
-                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                             {t('staff.hrAssistant.revenue.pt')}
-                          </p>
-                          <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                            {staff.revenue.pt.toFixed(0)} {t('common.egp')}
-                          </p>
+                      {staff.staffType === 'sales' ? (
+                        //  💼 السيلز — عائداته الخاصة بس
+                        <div className="grid grid-cols-1 gap-3">
+                          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                              {direction === 'rtl' ? 'عائدات السيلز (اشتراكات + يوم استخدام)' : 'Sales Revenue (subscriptions + day-use)'}
+                            </p>
+                            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                              {staff.revenue.sales.toFixed(0)} {t('common.egp')}
+                            </p>
+                          </div>
                         </div>
+                      ) : (
+                        //  الكوتش — تفصيل العمولات
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {/* PT Revenue */}
+                          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                               {t('staff.hrAssistant.revenue.pt')}
+                            </p>
+                            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                              {staff.revenue.pt.toFixed(0)} {t('common.egp')}
+                            </p>
+                          </div>
 
-                        {/* Nutrition Revenue */}
-                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                             {t('staff.hrAssistant.revenue.nutrition')}
-                          </p>
-                          <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                            {staff.revenue.nutrition.toFixed(0)} {t('common.egp')}
-                          </p>
-                        </div>
+                          {/* Nutrition Revenue */}
+                          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                               {t('staff.hrAssistant.revenue.nutrition')}
+                            </p>
+                            <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                              {staff.revenue.nutrition.toFixed(0)} {t('common.egp')}
+                            </p>
+                          </div>
 
-                        {/* Physiotherapy Revenue */}
-                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                             {t('staff.hrAssistant.revenue.physiotherapy')}
-                          </p>
-                          <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                            {staff.revenue.physiotherapy.toFixed(0)} {t('common.egp')}
-                          </p>
-                        </div>
+                          {/* Physiotherapy Revenue */}
+                          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                               {t('staff.hrAssistant.revenue.physiotherapy')}
+                            </p>
+                            <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                              {staff.revenue.physiotherapy.toFixed(0)} {t('common.egp')}
+                            </p>
+                          </div>
 
-                        {/* Other Revenue */}
-                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                             {t('staff.hrAssistant.revenue.other')}
-                          </p>
-                          <p className="text-xl font-bold text-gray-600 dark:text-gray-400">
-                            {staff.revenue.other.toFixed(0)} {t('common.egp')}
-                          </p>
+                          {/* Other Revenue */}
+                          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                               {t('staff.hrAssistant.revenue.other')}
+                            </p>
+                            <p className="text-xl font-bold text-gray-600 dark:text-gray-400">
+                              {staff.revenue.other.toFixed(0)} {t('common.egp')}
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Salary Comparison */}
                       {staff.salary && staff.salary > 0 && (
@@ -1155,14 +1190,15 @@ export default function StaffHRAssistantPage() {
                               <p className="text-sm text-gray-600 dark:text-gray-400">
                                 {t('staff.hrAssistant.revenue.difference')}
                               </p>
-                              <p className={`text-xl font-bold ${staff.revenue.total >= staff.salary ? 'text-green-600' : 'text-red-600'}`}>
-                                {(staff.revenue.total - staff.salary).toFixed(0)} {t('common.egp')}
+                              <p className={`text-xl font-bold ${(staff.staffType === 'sales' ? staff.revenue.sales : staff.revenue.total) >= staff.salary ? 'text-green-600' : 'text-red-600'}`}>
+                                {((staff.staffType === 'sales' ? staff.revenue.sales : staff.revenue.total) - staff.salary).toFixed(0)} {t('common.egp')}
                               </p>
                             </div>
                           </div>
                         </div>
                       )}
                     </div>
+                    )}
 
                     {/* قسم السلف */}
                     <div>

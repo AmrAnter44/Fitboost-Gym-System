@@ -197,6 +197,7 @@ export async function POST(request: Request) {
               //  📤 نربط المستلم بالعضو المصدر عشان يظهر كلينك في البروفايل
               transferredFromMemberId: fromMember.id,
               transferredFromAt: today,
+              transferredFromPhone: fromMember.phone, // 📤 الرقم القديم للـ timeline
               notes: (toMember!.notes || '') +
                 `\n[تم استلام نقل عضوية من ${fromMember.name} (#${fromMember.memberNumber || 'Other'}) — ${remainingDays} يوم]`
             } as any
@@ -214,7 +215,9 @@ export async function POST(request: Request) {
               phone: newMember!.phone.trim(),
               profileImage: newMember!.profileImage || null,
               notes: (fromMember.notes || '') + identityNote,
-            }
+              transferredFromPhone: fromMember.phone, // 📤 الرقم القديم قبل تغيير الملكية
+              transferredFromAt: today,
+            } as any
           })
           // مش بنعمل Member جديد، فالـ counter ميتغيرش
         }

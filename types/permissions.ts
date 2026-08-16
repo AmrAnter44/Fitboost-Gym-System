@@ -51,6 +51,7 @@ export interface Permissions {
 
   // صلاحيات الموظفين
   canViewStaff: boolean
+  canAccessHR: boolean  //  صلاحية مساعد الموارد البشرية (المرتبات/الخصومات/السلف)
   canCreateStaff: boolean
   canEditStaff: boolean
   canDeleteStaff: boolean
@@ -222,6 +223,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteMore: true,
     canAccessMoreCommission: true,
     canViewStaff: true,
+    canAccessHR: true,
     canCreateStaff: true,
     canEditStaff: true,
     canDeleteStaff: true,
@@ -306,6 +308,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteMore: true,
     canAccessMoreCommission: true,
     canViewStaff: true,
+    canAccessHR: true,
     canCreateStaff: true,
     canEditStaff: true,
     canDeleteStaff: true,
@@ -390,6 +393,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteMore: false,
     canAccessMoreCommission: false,
     canViewStaff: true,
+    canAccessHR: true,
     canCreateStaff: false,
     canEditStaff: false,
     canDeleteStaff: false,
@@ -474,6 +478,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteMore: false,
     canAccessMoreCommission: false,
     canViewStaff: false,
+    canAccessHR: false,
     canCreateStaff: false,
     canEditStaff: false,
     canDeleteStaff: false,
@@ -559,6 +564,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteMore: false,
     canAccessMoreCommission: false,
     canViewStaff: false,
+    canAccessHR: false,
     canCreateStaff: false,
     canEditStaff: false,
     canDeleteStaff: false,
@@ -648,6 +654,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canDeleteMore: 'حذف اشتراك مزيد',
   canAccessMoreCommission: 'عرض عمولات مزيد',
   canViewStaff: 'عرض الموظفين',
+  canAccessHR: 'مساعد الموارد البشرية (المرتبات/الخصومات/السلف)',
   canCreateStaff: 'إضافة موظف',
   canEditStaff: 'تعديل موظف',
   canDeleteStaff: 'حذف موظف',
@@ -770,6 +777,7 @@ export const PERMISSION_GROUPS = {
     label: '👷 الموظفين',
     permissions: [
       'canViewStaff',
+      'canAccessHR',
       'canCreateStaff',
       'canEditStaff',
       'canDeleteStaff',
@@ -929,6 +937,7 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canDeleteMore: '🗑️',
   canAccessMoreCommission: '💰',
   canViewStaff: '👁️',
+  canAccessHR: '📊',
   canCreateStaff: '➕',
   canEditStaff: '✏️',
   canDeleteStaff: '🗑️',

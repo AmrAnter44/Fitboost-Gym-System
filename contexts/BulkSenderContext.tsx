@@ -28,6 +28,8 @@ export interface BulkConfig {
 export interface BulkMeta {
   userName?: string
   sourceFilter: string
+  //  ⏰ تاريخ الريمايندر (YYYY-MM-DD) — يتحطّ كـ nextFollowUpDate لكل مين اتبعتله
+  reminderDate?: string
 }
 
 export interface BulkTarget {
@@ -201,6 +203,8 @@ export function BulkSenderProvider({ children }: { children: ReactNode }) {
                 notes: t('followups.bulkScript.scriptFollowupNote'),
                 contacted: true,
                 salesName: meta.userName,
+                //  ⏰ ريمايندر: يرجع يظهر في المتابعات في التاريخ ده
+                nextFollowUpDate: meta.reminderDate || undefined,
                 visitorData: { name: visitor.name, phone: visitor.phone, source: visitor.source }
               }),
             })
