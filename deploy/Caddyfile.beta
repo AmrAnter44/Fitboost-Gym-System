@@ -1,0 +1,41 @@
+# Caddy config للنسخة التجريبية — HTTPS تلقائي + HTTP/3 + كاش للملفات الثابتة.
+# ضعه في /etc/caddy/Caddyfile وغيّر الدومين، ثم: systemctl reload caddy
+
+beta.example.com {
+    encode zstd gzip
+
+    # ملفات Next الثابتة اسمها فيه hash — كاش سنة كاملة في متصفح الزائر.
+    # ده اللي بيخلي فتح أي صفحة تانية بعد الأولى شبه فوري.
+    @next_static path /_next/static/*
+    header @next_static Cache-Control "public, max-age=31536000, immutable"
+
+    @assets path /icons/* /images/* /fonts/* *.woff2 *.png *.jpg *.svg *.ico
+    header @assets Cache-Control "public, max-age=604800"
+
+    header {
+        -Server
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # نسخة تجريبية — منمنع فهرستها في محركات البحث
+        X-Robots-Tag "noindex, nofollow"
+    }
+
+    reverse_proxy 127.0.0.1:4001 {
+        # اتصالات مفتوحة على طول للتطبيق = مفيش TCP handshake مع كل طلب
+        transport http {
+            keepalive 2m
+            keepalive_idle_conns 32
+        }
+    }
+
+    # رفع الصور والملفات ممكن يعدّي 10MB الافتراضية
+    request_body {
+        max_size 25MB
+    }
+
+    log {
+        output file /var/log/caddy/beta-access.log
+        format json
+    }
+}
