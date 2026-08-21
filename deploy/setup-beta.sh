@@ -33,15 +33,23 @@ apt-get install -y -qq curl git ca-certificates gnupg ufw cron \
   libx11-dev libxtst-dev libxkbcommon-dev sqlite3
 
 step "2/9 مساحة swap (بناء Next محتاج رام)"
-if ! swapon --show | grep -q .; then
-  fallocate -l 4G /swapfile
-  chmod 600 /swapfile
-  mkswap /swapfile >/dev/null
-  swapon /swapfile
-  grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
-  echo "✓ اتعمل swap 4GB"
+# بعض المزودين بيدّوا swap صغيرة (1GB) — مش كفاية للبناء على سيرفر بكور واحد.
+# بنضمن إجمالي ~4GB على الأقل بدل ما نتخطى الخطوة لمجرد وجود أي swap.
+SWAP_KB="$(awk '/SwapTotal/{print $2}' /proc/meminfo 2>/dev/null || echo 0)"
+if [ "${SWAP_KB:-0}" -lt 3000000 ]; then
+  if [ ! -f /swapfile ]; then
+    fallocate -l 4G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile >/dev/null
+    swapon /swapfile
+    grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+    echo "✓ اتضافت swap 4GB (كان فيه $((SWAP_KB/1024))MB بس)"
+  else
+    swapon /swapfile 2>/dev/null || true
+    echo "✓ /swapfile موجود بالفعل"
+  fi
 else
-  echo "✓ في swap بالفعل"
+  echo "✓ في swap كفاية ($((SWAP_KB/1024))MB)"
 fi
 
 step "3/9 Node.js 20 + PM2"

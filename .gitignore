@@ -29,6 +29,22 @@ prisma/**/*.db
 prisma/**/*.db-journal
 *.db-journal
 
+# 🔒 أي ملف قاعدة بيانات أو ملف مؤقت/نسخة منها — بأي لاحقة كانت.
+# القواعد القديمة كانت بتفوّت حاجات زي gym.db.bak-before-date-fix و gym.db-wal
+# و gym.db.corrupt-snapshot، وده كفيل يسرّب بيانات كل الأعضاء على ريبو عام.
+prisma/*.db*
+prisma/**/*.db*
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.corrupt-snapshot
+*-HEALTHY*
+
+# 🔒 ملفات إكسل — غالباً فيها إيرادات أو بيانات أعضاء
+*.xlsx
+*.xls
+
 # Member photos (بيانات شخصية حساسة - لا ترفع على Git)
 prisma/photos/
 
