@@ -80,6 +80,7 @@ export default function DayUsePage() {
   const [newType, setNewType] = useState({ name: '', price: '' })
   const [typeDrafts, setTypeDrafts] = useState<Record<string, { name: string; price: string }>>({})
   const [typeBusy, setTypeBusy] = useState(false)
+  const [savedTypeId, setSavedTypeId] = useState<string | null>(null) //  ✅ مؤشّر «اتحفظ» بعد الحفظ
   const refreshTypes = () => queryClient.invalidateQueries({ queryKey: ['dayuse-services'] })
   const openManageTypes = () => {
     const d: Record<string, { name: string; price: string }> = {}
@@ -121,7 +122,8 @@ export default function DayUsePage() {
       })
       if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'فشل الحفظ'); return }
       await refreshTypes()
-      toast.success(direction === 'rtl' ? 'اتحفظ' : 'Saved')
+      //  ✅ علامة «اتحفظ» تفضل ظاهرة لحد ما يعدّل النوع تاني
+      setSavedTypeId(id)
     } finally { setTypeBusy(false) }
   }
   const deleteType = async (id: string) => {
@@ -1034,7 +1036,7 @@ export default function DayUsePage() {
                     <div className="flex-1">
                       <input
                         value={typeDrafts[s.id]?.name ?? s.name}
-                        onChange={(e) => setTypeDrafts({ ...typeDrafts, [s.id]: { name: e.target.value, price: typeDrafts[s.id]?.price ?? String(s.price) } })}
+                        onChange={(e) => { setTypeDrafts({ ...typeDrafts, [s.id]: { name: e.target.value, price: typeDrafts[s.id]?.price ?? String(s.price) } }); setSavedTypeId((prev) => (prev === s.id ? null : prev)) }}
                         className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
                       />
                     </div>
@@ -1042,13 +1044,20 @@ export default function DayUsePage() {
                       <input
                         type="number" min="0"
                         value={typeDrafts[s.id]?.price ?? String(s.price)}
-                        onChange={(e) => setTypeDrafts({ ...typeDrafts, [s.id]: { name: typeDrafts[s.id]?.name ?? s.name, price: e.target.value } })}
+                        onChange={(e) => { setTypeDrafts({ ...typeDrafts, [s.id]: { name: typeDrafts[s.id]?.name ?? s.name, price: e.target.value } }); setSavedTypeId((prev) => (prev === s.id ? null : prev)) }}
                         className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm text-center"
                       />
                     </div>
-                    <button onClick={() => saveType(s.id)} disabled={typeBusy} title={direction === 'rtl' ? 'حفظ' : 'Save'} className="p-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 disabled:opacity-50">
-                      <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                    </button>
+                    {savedTypeId === s.id ? (
+                      <span className="p-2 inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-bold whitespace-nowrap" title={direction === 'rtl' ? 'اتحفظ' : 'Saved'}>
+                        <svg fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                        {direction === 'rtl' ? 'اتحفظ' : 'Saved'}
+                      </span>
+                    ) : (
+                      <button onClick={() => saveType(s.id)} disabled={typeBusy} title={direction === 'rtl' ? 'حفظ' : 'Save'} className="p-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 disabled:opacity-50">
+                        <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                      </button>
+                    )}
                     {s.isBase ? (
                       <span className="p-2 text-[10px] text-gray-400 whitespace-nowrap" title={direction === 'rtl' ? 'أساسي — لا يُحذف' : 'Base — cannot delete'}>{direction === 'rtl' ? 'أساسي' : 'Base'}</span>
                     ) : (

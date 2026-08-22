@@ -796,16 +796,24 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                 {direction === 'rtl' ? 'الجنس' : 'Gender'}
               </label>
-              <select
-                value={formData.gender}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-              >
-                <option value="">{direction === 'rtl' ? '— غير محدد —' : '— Not set —'}</option>
-                <option value="male">{direction === 'rtl' ? 'رجالي' : 'Male'}</option>
-                <option value="female">{direction === 'rtl' ? 'سيدات' : 'Female'}</option>
-                <option value="unknown">{direction === 'rtl' ? 'غير معروف' : 'Unknown'}</option>
-              </select>
+              {/* select أنيق زي مصدر العضو بالظبط — chevron مخصص */}
+              <div className="relative">
+                <select
+                  value={formData.gender}
+                  onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                  className="w-full appearance-none ps-3 pe-10 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/60 text-gray-900 dark:text-gray-100 text-sm font-medium shadow-inner hover:bg-white dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500 focus:outline-none focus:bg-white dark:focus:bg-gray-700 focus:border-blue-400 dark:focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] transition-all duration-200 cursor-pointer"
+                >
+                  <option value="">{direction === 'rtl' ? '— غير محدد —' : '— Not set —'}</option>
+                  <option value="male">{direction === 'rtl' ? 'رجالي' : 'Male'}</option>
+                  <option value="female">{direction === 'rtl' ? 'سيدات' : 'Female'}</option>
+                  <option value="unknown">{direction === 'rtl' ? 'غير معروف' : 'Unknown'}</option>
+                </select>
+                <div className="absolute end-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-white dark:bg-gray-600 shadow-sm flex items-center justify-center pointer-events-none">
+                  <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" {...stroke}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </div>
+              </div>
             </div>
           )}
 
