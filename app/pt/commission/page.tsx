@@ -108,6 +108,9 @@ interface SessionBasedCommission {
   details: PTSessionsData[]
 }
 
+//  توحيد اسم الكوتش للمقارنة: يتجاهل المسافات وحالة الأحرف (Abdallah / "Abdallah " / abdallah = نفس الشيء)
+const normName = (s: any): string => String(s ?? '').trim().toLowerCase()
+
 export default function CoachCommissionPage() {
   const { t, locale } = useLanguage()
   const toast = useToast()
@@ -861,6 +864,11 @@ export default function CoachCommissionPage() {
 
     // حساب الإيرادات من إيصالات PT (جميع الأنواع)
 
+    //  🔗 أرقام الـ PT الخاصة بالكوتش (من سجلات الـ PT) — مطابقة موثوقة بدل نص الإيصال
+    const coachPtNumbers = new Set(
+      ptSessions.filter((p) => p.coachName === coachName).map((p) => p.ptNumber)
+    )
+
     const ptReceipts = receipts.filter((receipt) => {
       //  استبعاد الإيصالات الملغية — مطابق للتقفيل
       if ((receipt as any).isCancelled) return false
@@ -876,11 +884,14 @@ export default function CoachCommissionPage() {
         return false
       }
 
-      // التحقق من اسم الكوتش في itemDetails
+      //  الأولوية: مطابقة برقم الـ PT (موثوق حتى لو اسم الكوتش في الإيصال ناقص/مختلف)
+      const rptNum = (receipt as any).ptNumber
+      if (rptNum != null && coachPtNumbers.has(rptNum)) return true
+
+      //  fallback: اسم الكوتش المكتوب في الإيصال (للإيصالات القديمة بدون ptNumber)
       try {
         const details = JSON.parse(receipt.itemDetails)
-        const isCorrectCoach = details.coachName === coachName
-        return isCorrectCoach
+        return normName(details.coachName) === normName(coachName)
       } catch {
         return false
       }
@@ -1114,15 +1125,20 @@ export default function CoachCommissionPage() {
     const end = new Date(dateTo)
     end.setHours(23, 59, 59, 999)
 
+    const coachPtNumbersSel = new Set(
+      ptSessions.filter((p) => p.coachName === selectedCoach).map((p) => p.ptNumber)
+    )
     const coachPTReceipts = receipts.filter((receipt) => {
       //  استبعاد الإيصالات الملغية — مطابق للتقفيل
       if ((receipt as any).isCancelled) return false
       if (!PT_RECEIPT_TYPES.includes(receipt.type)) return false
       const receiptDate = new Date(receipt.createdAt)
       if (receiptDate < start || receiptDate > end) return false
+      const rptNum = (receipt as any).ptNumber
+      if (rptNum != null && coachPtNumbersSel.has(rptNum)) return true
       try {
         const details = JSON.parse(receipt.itemDetails)
-        return details.coachName === selectedCoach
+        return normName(details.coachName) === normName(selectedCoach)
       } catch {
         return false
       }
@@ -1738,22 +1754,25 @@ export default function CoachCommissionPage() {
                 const end = new Date(dateTo)
                 end.setHours(23, 59, 59, 999)
 
+                const coachPtNums = new Set(
+                  ptSessions.filter((p) => p.coachName === result.coachName).map((p) => p.ptNumber)
+                )
                 const coachPTReceipts = receipts.filter((receipt) => {
                   //  استبعاد الإيصالات الملغية — مطابق للتقفيل
                   if ((receipt as any).isCancelled) return false
                   // فلترة كل أنواع إيصالات PT للعرض
                   if (!PT_RECEIPT_TYPES.includes(receipt.type)) return false
                   const receiptDate = new Date(receipt.createdAt)
-
-                  // Debug: طباعة التواريخ للتأكد
                   const isInDateRange = receiptDate >= start && receiptDate <= end
-
                   if (!isInDateRange) return false
+
+                  //  الأولوية: مطابقة برقم الـ PT (موثوق)
+                  const rptNum = (receipt as any).ptNumber
+                  if (rptNum != null && coachPtNums.has(rptNum)) return true
 
                   try {
                     const details = JSON.parse(receipt.itemDetails)
-                    const isCorrectCoach = details.coachName === result.coachName
-                    return isCorrectCoach
+                    return normName(details.coachName) === normName(result.coachName)
                   } catch {
                     return false
                   }
@@ -2001,15 +2020,20 @@ export default function CoachCommissionPage() {
                     const end = new Date(dateTo)
                     end.setHours(23, 59, 59, 999)
 
+                    const coachPtNums2 = new Set(
+                      ptSessions.filter((p) => p.coachName === result.coachName).map((p) => p.ptNumber)
+                    )
                     const coachPTReceipts = receipts.filter((receipt) => {
                       //  استبعاد الإيصالات الملغية — مطابق للتقفيل
                       if ((receipt as any).isCancelled) return false
                       if (!PT_RECEIPT_TYPES.includes(receipt.type)) return false
                       const receiptDate = new Date(receipt.createdAt)
                       if (receiptDate < start || receiptDate > end) return false
+                      const rptNum = (receipt as any).ptNumber
+                      if (rptNum != null && coachPtNums2.has(rptNum)) return true
                       try {
                         const details = JSON.parse(receipt.itemDetails)
-                        return details.coachName === result.coachName
+                        return normName(details.coachName) === normName(result.coachName)
                       } catch {
                         return false
                       }
