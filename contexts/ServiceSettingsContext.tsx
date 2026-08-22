@@ -15,6 +15,7 @@ interface ServiceSettings {
   assessmentEnabled: boolean
   lostFoundEnabled: boolean
   pointsEnabled: boolean
+  mixedGymEnabled: boolean  // 🚻 جيم مكس — يفعّل حقل الجنس
   pointsPerCheckIn: number
   pointsPerInvitation: number
   pointsPerReferral: number
@@ -65,6 +66,7 @@ function parseSettings(data: any): ServiceSettings {
     assessmentEnabled: data.assessmentEnabled ?? true,
     lostFoundEnabled: data.lostFoundEnabled ?? true,
     pointsEnabled: data.pointsEnabled,
+    mixedGymEnabled: data.mixedGymEnabled ?? false,
     pointsPerCheckIn: data.pointsPerCheckIn,
     pointsPerInvitation: data.pointsPerInvitation,
     pointsPerReferral: data.pointsPerReferral || 0,
@@ -150,6 +152,7 @@ function getDefaultSettings(): ServiceSettings {
     assessmentEnabled: true,
     lostFoundEnabled: true,
     pointsEnabled: true,
+    mixedGymEnabled: false,
     pointsPerCheckIn: 1,
     pointsPerInvitation: 2,
     pointsPerReferral: 0,

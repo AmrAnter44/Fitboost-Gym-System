@@ -491,6 +491,7 @@ function migrateDatabase(dbPath) {
 
     // ✅ Member new fields — حقول الأعضاء الجديدة
     const memberCols = [
+      { col: 'gender',                  def: 'TEXT' }, // 🚻 male/female/unknown — للجيم المكس
       { col: 'isBanned',                def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'pushToken',               def: 'TEXT' },
       { col: 'remainingFreezeDays',     def: 'INTEGER NOT NULL DEFAULT 0' },
@@ -535,6 +536,7 @@ function migrateDatabase(dbPath) {
 
     // ✅ SystemSettings new fields — إعدادات النظام الجديدة
     const settingsCols = [
+      { col: 'mixedGymEnabled',            def: 'INTEGER NOT NULL DEFAULT 0' }, // 🚻 جيم مكس
       { col: 'gymName',                    def: 'TEXT' },
       { col: 'gymLogo',                    def: 'TEXT' },
       { col: 'primaryColor',               def: 'TEXT' },

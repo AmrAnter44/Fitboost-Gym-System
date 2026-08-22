@@ -10,6 +10,7 @@ import { fetchFollowUpsByDateRange } from '../../lib/api/followups'
 import { fetchPTSessions } from '../../lib/api/pt'
 import { fetchStaff } from '../../lib/api/staff'
 import { useToast } from '../../contexts/ToastContext'
+import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { LoadingScreen } from '../../components/Spinner'
 import { isPTReceipt } from '../../lib/translateReceiptType'
 import { countsAsRevenue } from '../../lib/revenueFilters'
@@ -79,6 +80,7 @@ const labelCls = 'block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.
 export default function ReportsPage() {
   const { t, locale, direction } = useLanguage()
   const { hasPermission, user, loading: permLoading } = usePermissions()
+  const { settings } = useServiceSettings()
 
   const [activeTab, setActiveTab] = useState<TabType>('revenue')
   //  نبني الـ ISO date من المكوّنات المحلية (year/month/day) عشان نتجنّب
@@ -168,6 +170,7 @@ export default function ReportsPage() {
 
       {/* Tab Content */}
       {activeTab === 'revenue' && <RevenueTab dateFrom={dateFrom} dateTo={dateTo} paymentFilter={paymentFilter} setPaymentFilter={setPaymentFilter} typeFilter={typeFilter} setTypeFilter={setTypeFilter} formatDate={formatDate} formatCurrency={formatCurrency} direction={direction} locale={locale} t={t} />}
+      {activeTab === 'revenue' && settings.mixedGymEnabled && <RevenueByGenderCard dateFrom={dateFrom} dateTo={dateTo} formatCurrency={formatCurrency} direction={direction} />}
       {activeTab === 'followups' && <FollowupsTab dateFrom={dateFrom} dateTo={dateTo} formatDate={formatDate} direction={direction} locale={locale} t={t} />}
       {activeTab === 'pt' && <PTTab dateFrom={dateFrom} dateTo={dateTo} formatDate={formatDate} formatCurrency={formatCurrency} direction={direction} locale={locale} t={t} />}
       {activeTab === 'staff' && <StaffTab dateFrom={dateFrom} dateTo={dateTo} formatDate={formatDate} formatCurrency={formatCurrency} direction={direction} locale={locale} t={t} isAdmin={isAdmin} />}
@@ -832,4 +835,69 @@ function PriorityBadge({ priority }: { priority: string }) {
     low: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300',
   }
   return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${colors[priority] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>{priority || '-'}</span>
+}
+
+// 🚻 كارت إيرادات الرجالة مقابل الستات — يظهر في تبويب الإيرادات لو الجيم مكس
+function RevenueByGenderCard({ dateFrom, dateTo, formatCurrency, direction }: {
+  dateFrom: string; dateTo: string; formatCurrency: (n: number) => string; direction: string
+}) {
+  const ar = direction === 'rtl'
+  const { data, isLoading } = useQuery({
+    queryKey: ['revenue-by-gender', dateFrom, dateTo],
+    queryFn: async () => {
+      const r = await fetch(`/api/reports/revenue-by-gender?startDate=${dateFrom}&endDate=${dateTo}`)
+      if (!r.ok) throw new Error('failed')
+      return r.json()
+    },
+  })
+
+  const iconUser = 'M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z'
+  const iconUnknown = 'M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z'
+  const iconUnset = 'M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z'
+  const rows = [
+    { key: 'male', label: ar ? 'رجالي' : 'Male', d: iconUser, cls: 'text-blue-600 dark:text-blue-400', bar: 'bg-blue-500' },
+    { key: 'female', label: ar ? 'سيدات' : 'Female', d: iconUser, cls: 'text-pink-600 dark:text-pink-400', bar: 'bg-pink-500' },
+    { key: 'unknown', label: ar ? 'غير معروف' : 'Unknown', d: iconUnknown, cls: 'text-gray-500', bar: 'bg-gray-400' },
+    { key: 'unset', label: ar ? 'من غير جنس متسجّل' : 'Gender not set', d: iconUnset, cls: 'text-gray-400', bar: 'bg-gray-300' },
+  ]
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 mt-4" dir={direction}>
+      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+        <IconUsers className="w-5 h-5 text-primary-500" />
+        {ar ? 'إيرادات الرجالة مقابل السيدات' : 'Revenue by Gender'}
+      </h3>
+      {isLoading ? (
+        <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">{ar ? 'جارٍ التحميل…' : 'Loading…'}</p>
+      ) : !data ? (
+        <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">{ar ? 'تعذّر التحميل' : 'Failed to load'}</p>
+      ) : (
+        <div className="space-y-3">
+          {rows.map(row => {
+            const b = (data as any)[row.key] || { revenue: 0, members: 0, percentage: 0 }
+            if (row.key === 'unset' && b.revenue === 0) return null
+            return (
+              <div key={row.key}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`text-sm font-bold ${row.cls} inline-flex items-center gap-1.5`}>
+                    <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d={row.d} /></svg>
+                    {row.label} <span className="text-xs font-normal text-gray-400">({b.members} {ar ? 'عضو' : 'members'})</span>
+                  </span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{formatCurrency(b.revenue)} <span className="text-xs text-gray-400">· {b.percentage}%</span></span>
+                </div>
+                <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                  <div className={`h-full ${row.bar}`} style={{ width: `${b.percentage}%` }} />
+                </div>
+              </div>
+            )
+          })}
+          <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{ar ? 'الإجمالي (أعضاء)' : 'Total (members)'}</span>
+            <span className="text-base font-bold text-primary-600 dark:text-primary-400">{formatCurrency((data as any).total || 0)}</span>
+          </div>
+          <p className="text-[11px] text-gray-400">{ar ? '* إيرادات الأعضاء فقط (مش شاملة الاستخدامات بدون عضو).' : '* Member-linked revenue only (excludes non-member uses).'}</p>
+        </div>
+      )}
+    </div>
+  )
 }

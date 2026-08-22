@@ -21,6 +21,7 @@ model Member {
   email             String?
   nationalId        String?
   birthDate         DateTime?
+  gender            String?      // 🚻 'male' | 'female' | 'unknown' — للجيم المكس (اختياري)
   source            String?
   profileImage      String?
   idCardFront       String?
@@ -1169,6 +1170,7 @@ model SystemSettings {
   assessmentEnabled     Boolean  @default(true)
   lostFoundEnabled      Boolean  @default(true)
   pointsEnabled         Boolean  @default(true)
+  mixedGymEnabled       Boolean  @default(false)  // 🚻 جيم مكس — يفعّل حقل الجنس عند تسجيل العضو
   pointsPerCheckIn      Int      @default(1)
   pointsPerInvitation   Int      @default(2)
   pointsPerReferral     Int      @default(0)    // نقاط إحالة عضو جديد

@@ -291,6 +291,7 @@ export async function POST(request: Request) {
       email,
       nationalId,
       birthDate,
+      gender,
       source,
       profileImage,
       idCardFront,
@@ -494,6 +495,7 @@ export async function POST(request: Request) {
       email: email || null,
       nationalId: nationalId || null,
       birthDate: birthDate ? new Date(birthDate) : null,
+      gender: gender || null,
       source: source || null,
       profileImage,
       idCardFront: idCardFront || null,
@@ -1036,6 +1038,7 @@ export async function PUT(request: Request) {
     if (data.birthDate !== undefined) {
       updateData.birthDate = data.birthDate ? new Date(data.birthDate) : null
     }
+    if (data.gender !== undefined) updateData.gender = data.gender || null
     if (data.source !== undefined) updateData.source = data.source || null
     if (data.notes !== undefined) updateData.notes = data.notes
 

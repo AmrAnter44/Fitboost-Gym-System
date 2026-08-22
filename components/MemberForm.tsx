@@ -81,6 +81,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
     email: '',
     nationalId: '',
     birthDate: '',
+    gender: '',
     source: '',
     profileImage: '',
     idCardFront: '',
@@ -788,6 +789,25 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             />
           </div>
+
+          {/* 🚻 الجنس — للجيم المكس فقط */}
+          {settings.mixedGymEnabled && (
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                {direction === 'rtl' ? 'الجنس' : 'Gender'}
+              </label>
+              <select
+                value={formData.gender}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+              >
+                <option value="">{direction === 'rtl' ? '— غير محدد —' : '— Not set —'}</option>
+                <option value="male">{direction === 'rtl' ? 'رجالي' : 'Male'}</option>
+                <option value="female">{direction === 'rtl' ? 'سيدات' : 'Female'}</option>
+                <option value="unknown">{direction === 'rtl' ? 'غير معروف' : 'Unknown'}</option>
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">

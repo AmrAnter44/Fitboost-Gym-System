@@ -338,7 +338,35 @@ export async function DELETE(request: Request) {
     }
 
     const staffToDelete = await prisma.staff.findUnique({ where: { id }, select: { name: true, staffCode: true } })
-    await prisma.staff.delete({ where: { id } })
+    if (!staffToDelete) {
+      return NextResponse.json({ error: 'الموظف غير موجود' }, { status: 404 })
+    }
+
+    //  🧹 حذف قوي: ننضّف كل البيانات المرتبطة صراحةً قبل حذف الموظف
+    //  عشان الحذف ماينفعش يفشل بسبب سجلات مرتبطة (حضور/عمولات/مرتبات/خصومات… إلخ)
+    await prisma.$transaction([
+      //  سجلات يجب الاحتفاظ بها مع فك الارتباط (مش بتتحذف)
+      prisma.member.updateMany({ where: { coachId: id }, data: { coachId: null } }),
+      prisma.member.updateMany({ where: { salesStaffId: id }, data: { salesStaffId: null } }),
+      prisma.followUp.updateMany({ where: { assignedTo: id }, data: { assignedTo: null } }),
+      prisma.whatsAppConversation.updateMany({ where: { assignedToId: id }, data: { assignedToId: null } }),
+      prisma.expense.updateMany({ where: { staffId: id }, data: { staffId: null } }),
+      prisma.pTContactLog.updateMany({ where: { createdBy: id }, data: { createdBy: null } }),
+      prisma.user.updateMany({ where: { staffId: id }, data: { staffId: null } }),
+      //  سجلات مملوكة للموظف — بتتحذف معاه
+      prisma.attendance.deleteMany({ where: { staffId: id } }),
+      prisma.commission.deleteMany({ where: { staffId: id } }),
+      prisma.rotation.deleteMany({ where: { staffId: id } }),
+      prisma.leave.deleteMany({ where: { staffId: id } }),
+      prisma.shiftAssignment.deleteMany({ where: { staffId: id } }),
+      prisma.bonus.deleteMany({ where: { staffId: id } }),
+      prisma.salaryChangeLog.deleteMany({ where: { staffId: id } }),
+      prisma.followUpActivity.deleteMany({ where: { createdBy: id } }),
+      prisma.payslip.deleteMany({ where: { staffId: id } }),
+      prisma.staffDeduction.deleteMany({ where: { staffId: id } }),
+      //  وأخيرًا الموظف نفسه
+      prisma.staff.delete({ where: { id } }),
+    ])
 
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,

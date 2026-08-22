@@ -347,6 +347,7 @@ export default function SettingsPage() {
     padelEnabled: true,
     assessmentEnabled: true,
     lostFoundEnabled: true,
+    mixedGymEnabled: false,
     gymName: '',
     websiteUrl: 'https://www.xgym.website',
     showWebsiteOnReceipts: true,
@@ -1566,6 +1567,26 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
+              {/* 🚻 جيم مكس — يفعّل حقل الجنس عند تسجيل العضو */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 mb-4">
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
+                  <div>
+                    <h4 className="font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? 'جيم مكس (رجالة وستات)' : 'Mixed Gym'}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{locale === 'ar' ? 'يفعّل اختيار الجنس (رجالي/سيدات/غير معروف) عند تسجيل العضو + تقرير إيرادات الرجالة والسيدات' : 'Enables gender field on member sign-up + male/female revenue report'}</p>
+                  </div>
+                  <label className="toggle-switch toggle-yellow">
+                    <input
+                      type="checkbox"
+                      checked={serviceSettings.mixedGymEnabled}
+                      onChange={() => updateSetting('mixedGymEnabled', !serviceSettings.mixedGymEnabled)}
+                    />
+                    <span className="toggle-track">
+                      <span className="toggle-thumb"></span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
                 <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 mb-6">
                   <div>
