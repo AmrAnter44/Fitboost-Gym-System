@@ -32,6 +32,9 @@ const nextConfig = {
   // Enable standalone output for production
   output: 'standalone',
 
+  //  🔒 إخفاء هيدر X-Powered-By (كان بيسرّب إن السيرفر Next.js) — ZAP: Low
+  poweredByHeader: false,
+
   // React strict mode
   reactStrictMode: true,
 
@@ -78,6 +81,24 @@ const nextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()' // منع الوصول للكاميرا/ميكروفون
+          },
+          {
+            //  🔒 Content-Security-Policy — ZAP: "CSP Header Not Set" (Medium)
+            //  ملاحظة: script/style فيهم 'unsafe-inline' لأن Next.js بيحقن inline scripts
+            //  للـ hydration. إزالتهم تحتاج nonce-based CSP (شغل أكبر ممكن يكسر الصفحات).
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' data: https://fonts.gstatic.com",
+              "img-src 'self' data: blob: https:",
+              "connect-src 'self' https://system.xgym.website https://xgym.website https://*.supabase.co https://api.backblazeb2.com https://*.backblazeb2.com wss: ws:",
+              "frame-ancestors 'self'",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'"
+            ].join('; ')
           }
         ]
       }
