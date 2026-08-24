@@ -109,6 +109,10 @@ async function main() {
     data: {
       id: 'singleton',
       gymName: 'FitBoost Demo',
+      // اللون الأساسي للسيستم (الأصفر بتاع FitBoost) — بيتخزّن هنا عشان يفضل
+      // ثابت بعد كل تصفير للداتا التجريبية بدل ما يترجع فاضي كل مرة
+      primaryColor: '#fbe003',
+      primaryTextColor: 'auto',
       pointsEnabled: true,
       remainingEnabled: true,
       ptFreezeEnabled: true,
