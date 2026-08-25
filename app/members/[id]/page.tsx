@@ -342,6 +342,7 @@ export default function MemberDetailPage() {
  notes: '',
  startDate: '',
  expiryDate: '',
+ gender: '' as string,
  allowedCheckInStart: '' as string,
  allowedCheckInEnd: '' as string
  })
@@ -1385,6 +1386,7 @@ export default function MemberDetailPage() {
  coachId: editBasicInfoData.coachId,
  salesStaffId: editBasicInfoData.salesStaffId || null,
  notes: editBasicInfoData.notes.trim() || null,
+ gender: editBasicInfoData.gender || null,
  startDate: editBasicInfoData.startDate || null,
  expiryDate: editBasicInfoData.expiryDate || null,
  allowedCheckInStart: editBasicInfoData.allowedCheckInStart || null,
@@ -1428,6 +1430,7 @@ export default function MemberDetailPage() {
  startDate: '',
  expiryDate: '',
  salesStaffId: null,
+ gender: '',
  allowedCheckInStart: '',
  allowedCheckInEnd: ''
  })
@@ -1966,6 +1969,7 @@ export default function MemberDetailPage() {
  expiryDate: member.expiryDate ? formatDateYMD(member.expiryDate) : '',
  idCardFront: member.idCardFront || null,
  idCardBack: member.idCardBack || null,
+ gender: (member as any).gender || '',
  allowedCheckInStart: (member as any).allowedCheckInStart || '',
  allowedCheckInEnd: (member as any).allowedCheckInEnd || ''
  })
@@ -3092,6 +3096,25 @@ export default function MemberDetailPage() {
  className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
  />
  </div>
+
+ {/* 🚻 الجنس — للجيم المكس فقط */}
+ {settings.mixedGymEnabled && (
+ <div>
+ <label className="block text-xs font-medium mb-1">
+ {direction === 'rtl' ? 'الجنس' : 'Gender'}
+ </label>
+ <select
+ value={editBasicInfoData.gender}
+ onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, gender: e.target.value })}
+ className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ >
+ <option value="">{direction === 'rtl' ? '— غير محدد —' : '— Not set —'}</option>
+ <option value="male">{direction === 'rtl' ? 'رجالي' : 'Male'}</option>
+ <option value="female">{direction === 'rtl' ? 'سيدات' : 'Female'}</option>
+ <option value="unknown">{direction === 'rtl' ? 'غير معروف' : 'Unknown'}</option>
+ </select>
+ </div>
+ )}
 
  <div>
  <label className="block text-xs font-medium mb-1">

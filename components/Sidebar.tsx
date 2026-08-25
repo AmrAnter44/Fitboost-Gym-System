@@ -123,6 +123,12 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
 
+  //  📱 واتساب ويب يظهر في نسخة الإلكترون فقط — مش على الموقع (الويب)
+  const [isElectronApp, setIsElectronApp] = useState(false)
+  useEffect(() => {
+    setIsElectronApp(!!(window as any).electron?.isElectron || navigator.userAgent.toLowerCase().includes('electron'))
+  }, [])
+
   //  بادجات: رسائل الوارد غير المقروءة + المهام المفتوحة
   const [inboxUnread, setInboxUnread] = useState(0)
   const [tasksPending, setTasksPending] = useState(0)
@@ -213,7 +219,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
         ...(user?.staffId && user?.role !== 'OWNER' && user?.role !== 'ADMIN' ? [
           { href: '/my-payslips', label: locale === 'ar' ? 'مرتباتي' : 'My Payslips', icon: NavIcons.myPayslips, permission: null },
         ] : []),
-        ...(!isCoach ? [{ href: '/whatsapp-web', label: 'WhatsApp Web', icon: NavIcons.whatsapp, permission: 'canViewWhatsAppInbox' as keyof Permissions }] : []),
+        ...(!isCoach && isElectronApp ? [{ href: '/whatsapp-web', label: 'WhatsApp Web', icon: NavIcons.whatsapp, permission: 'canViewWhatsAppInbox' as keyof Permissions }] : []),
         { href: '/settings', label: t('nav.settings'), icon: NavIcons.settings, permission: null },
       ]
     },
