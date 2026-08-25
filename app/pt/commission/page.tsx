@@ -587,7 +587,14 @@ export default function CoachCommissionPage() {
       if (response.ok) {
         const data = await response.json()
         setCurrentUser(data.user)
-        const isAdminUser = data.user.role === 'ADMIN' || data.user.role === 'OWNER'
+        //  «يشوف كل الكباتن» = OWNER/ADMIN/MANAGER، أو أي حساب (حتى لو كوتش) عنده صلاحية
+        //  تقفيل الـ PT / عرض كل الـ PT — ده اللي بيخلي الكوتش-الفتنس-مانجر يشوف الكل.
+        //  الكوتش العادي (من غير الصلاحية) بيشوف نفسه بس.
+        const role = data.user.role
+        const perms = data.user.permissions || {}
+        const isAdminUser =
+          role === 'ADMIN' || role === 'OWNER' || role === 'MANAGER' ||
+          !!perms.canAccessPTCommission || !!perms.canViewAllPT
         setIsAdmin(isAdminUser)
       }
     } catch (error) {

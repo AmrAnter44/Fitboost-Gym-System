@@ -144,16 +144,29 @@ export async function GET(request: Request) {
     }
     const ptReceipts = await prisma.receipt.findMany({
       where: receiptWhere,
-      select: { type: true, amount: true, itemDetails: true },
+      select: { type: true, amount: true, itemDetails: true, ptNumber: true },
     })
+    //  🔗 خريطة رقم الـ PT → الكوتش الحقيقي — أدق من اسم الكوتش المكتوب في الإيصال
+    const cvPtNums = Array.from(new Set(ptReceipts.map(r => r.ptNumber).filter((n): n is number => n != null)))
+    const cvPtRows = cvPtNums.length
+      ? await prisma.pT.findMany({ where: { ptNumber: { in: cvPtNums } }, select: { ptNumber: true, coachName: true } })
+      : []
+    const cvPtNumToCoach = new Map<number, string>()
+    cvPtRows.forEach(p => { if (p.coachName) cvPtNumToCoach.set(p.ptNumber, p.coachName.trim()) })
+
     const revenueByCoach = new Map<string, number>()
     for (const r of ptReceipts) {
       if (!isPTReceipt(r.type)) continue
       let coachName = ''
-      try {
-        const details = r.itemDetails ? JSON.parse(r.itemDetails) : {}
-        coachName = (details.coachName || '').trim()
-      } catch { coachName = '' }
+      //  رقم الـ PT هو الحَكَم
+      if (r.ptNumber != null && cvPtNumToCoach.has(r.ptNumber)) {
+        coachName = cvPtNumToCoach.get(r.ptNumber) || ''
+      } else {
+        try {
+          const details = r.itemDetails ? JSON.parse(r.itemDetails) : {}
+          coachName = (details.coachName || '').trim()
+        } catch { coachName = '' }
+      }
       if (!coachName) continue
       revenueByCoach.set(coachName, (revenueByCoach.get(coachName) || 0) + (r.amount || 0))
     }

@@ -226,6 +226,45 @@ export default function MemberDetailPage() {
  const [showTransferForm, setShowTransferForm] = useState(false)
  const [lastReceiptNumber, setLastReceiptNumber] = useState<number | null>(null)
  const [ptSubscription, setPtSubscription] = useState<any>(null)
+ //  🥋 مودال تعديل تفاصيل الـ PT (الكوتش + الحصص + السعر + الانتهاء)
+ const [showPTEdit, setShowPTEdit] = useState(false)
+ const [ptEditForm, setPtEditForm] = useState({ coachName: '', sessionsPurchased: 0, sessionsRemaining: 0, remainingAmount: 0, expiryDate: '' })
+ const [ptEditSaving, setPtEditSaving] = useState(false)
+ const [ptCoaches, setPtCoaches] = useState<any[]>([]) //  قايمة كباتن الـ PT (كل الكباتن — زي صفحة الـ PT)
+ const openPTEdit = () => {
+   if (!ptSubscription) return
+   //  نجيب كل كباتن الـ PT من نفس مصدر صفحة الـ PT (مش /api/coaches الضيقة)
+   fetch('/api/coaches/with-stats').then(r => r.ok ? r.json() : []).then(d => setPtCoaches(Array.isArray(d) ? d : [])).catch(() => {})
+   setPtEditForm({
+     coachName: ptSubscription.coachName || '',
+     sessionsPurchased: ptSubscription.sessionsPurchased || 0,
+     sessionsRemaining: ptSubscription.sessionsRemaining || 0,
+     remainingAmount: ptSubscription.remainingAmount || 0,
+     expiryDate: ptSubscription.expiryDate ? formatDateYMD(ptSubscription.expiryDate) : '',
+   })
+   setShowPTEdit(true)
+ }
+ const savePTEdit = async () => {
+   if (!ptSubscription?.ptNumber) return
+   setPtEditSaving(true)
+   try {
+     const res = await fetch('/api/pt', {
+       method: 'PUT', headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({
+         ptNumber: ptSubscription.ptNumber,
+         coachName: ptEditForm.coachName,
+         sessionsPurchased: ptEditForm.sessionsPurchased,
+         sessionsRemaining: ptEditForm.sessionsRemaining,
+         remainingAmount: ptEditForm.remainingAmount,
+         expiryDate: ptEditForm.expiryDate || undefined,
+       }),
+     })
+     if (!res.ok) { const e = await res.json().catch(() => ({})); toast.error(e.error || 'فشل تعديل الـ PT'); return }
+     toast.success(locale === 'ar' ? 'اتعدّل الـ PT' : 'PT updated')
+     setShowPTEdit(false)
+     fetchPTSubscription()
+   } finally { setPtEditSaving(false) }
+ }
  const [showIdCardModal, setShowIdCardModal] = useState(false)
  const [missingImageUpload, setMissingImageUpload] = useState<
  | { field: 'profileImage' | 'idCardFront' | 'idCardBack'; label: string }
@@ -300,6 +339,8 @@ export default function MemberDetailPage() {
  days: 0,
  reason: ''
  })
+ //  🥋 تجميد الـ PT مع العضوية (لو العضو مشترك PT وخاصية فريز الـ PT مفعّلة)
+ const [freezePTToo, setFreezePTToo] = useState(false)
 
  //  باك فريز — تجميد بأثر رجعي لفترة غياب الميمبر (من آخر حضور لغاية النهاردة)
  const [backFreezeData, setBackFreezeData] = useState<{ days: number; lastCheckIn: string | null; loading: boolean }>({
@@ -1515,11 +1556,26 @@ export default function MemberDetailPage() {
  const result = await response.json()
 
  if (response.ok) {
- toast.success(`تم تجميد الاشتراك لمدة ${freezeData.days} يوم بنجاح`)
+ //  🥋 تجميد الـ PT كمان لو المستخدم اختار كده والعضو مشترك PT
+ let ptMsg = ''
+ if (freezePTToo && ptSubscription?.ptNumber) {
+ try {
+ const ptRes = await fetch('/api/pt/freeze', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ ptNumber: ptSubscription.ptNumber, freezeDays: freezeData.days })
+ })
+ if (ptRes.ok) ptMsg = ' + الـ PT'
+ else { const e = await ptRes.json().catch(() => ({})); toast.error(e.error || 'فشل تجميد الـ PT') }
+ } catch { toast.error('فشل تجميد الـ PT') }
+ }
+ toast.success(`تم تجميد الاشتراك${ptMsg} لمدة ${freezeData.days} يوم بنجاح`)
 
  setFreezeData({ days: 0, reason: '' })
+ setFreezePTToo(false)
  setActiveModal(null)
  fetchMember()
+ fetchPTSubscription()
  } else {
  toast.error(result.error || 'فشل التجميد')
  }
@@ -2313,9 +2369,18 @@ export default function MemberDetailPage() {
 
  </div>
  <p className="text-3xl font-bold text-primary-600 mb-1">{member.invitations ?? 0}</p>
+ {(() => {
+ const remaining = member.invitations ?? 0
+ //  إجمالي الدعوات من الباقة (الأصح). لو مفيش باقة، نرجع لعدد المستخدَم + المتبقّي.
+ const pkgInv = Number((member as any).offerBenefits?.invitations) || 0
+ const totalInv = pkgInv > 0 ? Math.max(pkgInv, remaining) : (invitationHistory.length + remaining)
+ const usedInv = Math.max(0, totalInv - remaining)
+ return (
  <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">
- {locale === 'ar' ? 'استخدم' : 'Used'} {invitationHistory.length} {locale === 'ar' ? 'من' : 'of'} {invitationHistory.length + (member.invitations ?? 0)}
+ {locale === 'ar' ? 'استخدم' : 'Used'} {usedInv} {locale === 'ar' ? 'من' : 'of'} {totalInv}
  </p>
+ )
+ })()}
  <button
  onClick={handleUseInvitation}
  disabled={(member.invitations ?? 0) <= 0 || loading}
@@ -2565,10 +2630,15 @@ export default function MemberDetailPage() {
  </div>
  <p className="text-3xl font-bold text-cyan-600 mb-1">{member.remainingFreezeDays ?? 0}</p>
  {(() => {
- const usedFreezeDays = freezeHistory.reduce((s: number, f: any) => s + (Number(f?.days) || 0), 0)
+ const remaining = member.remainingFreezeDays ?? 0
+ //  إجمالي الفريز من الباقة (الأصح). لو مفيش باقة، نرجع لمجموع سجل الفريز + المتبقي.
+ const pkgFreeze = Number((member as any).offerBenefits?.freezeDays) || 0
+ const historyUsed = freezeHistory.reduce((s: number, f: any) => s + (Number(f?.days) || 0), 0)
+ const totalFreeze = pkgFreeze > 0 ? Math.max(pkgFreeze, remaining) : (historyUsed + remaining)
+ const usedFreezeDays = Math.max(0, totalFreeze - remaining)
  return (
  <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
- {locale === 'ar' ? 'خد' : 'Used'} {usedFreezeDays} {locale === 'ar' ? 'يوم من' : 'days of'} {usedFreezeDays + (member.remainingFreezeDays ?? 0)}
+ {locale === 'ar' ? 'خد' : 'Used'} {usedFreezeDays} {locale === 'ar' ? 'يوم من' : 'days of'} {totalFreeze}
  </p>
  )
  })()}
@@ -2655,13 +2725,23 @@ export default function MemberDetailPage() {
  </div>
  )}
 
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+ {hasPermission('canEditPT') && (
+ <button
+ onClick={openPTEdit}
+ className="bg-white/20 dark:bg-gray-800/30 text-white py-3 rounded-lg hover:bg-white/30 dark:hover:bg-gray-700/50 font-bold flex items-center justify-center gap-2 transition-colors duration-200 active:scale-95 ring-1 ring-white/40"
+ >
+ <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+ <span>{locale === 'ar' ? 'تعديل الـ PT / الكوتش' : 'Edit PT / Coach'}</span>
+ </button>
+ )}
  <button
  onClick={() => router.push('/pt')}
- className="w-full mt-4 bg-white dark:bg-gray-700 text-teal-600 dark:text-teal-400 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-bold flex items-center justify-center gap-2 transition-colors duration-200 active:scale-95"
+ className="bg-white dark:bg-gray-700 text-teal-600 dark:text-teal-400 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-bold flex items-center justify-center gap-2 transition-colors duration-200 active:scale-95"
  >
- 
  <span>عرض تفاصيل PT الكاملة</span>
  </button>
+ </div>
  </div>
  )}
 
@@ -3630,6 +3710,26 @@ export default function MemberDetailPage() {
  {t('memberDetails.freezeModal.canFreezeUpTo')} {member.remainingFreezeDays} {t('common.day')}
  </p>
  </div>
+
+ {/* 🥋 خيار تجميد الـ PT كمان — يظهر لو العضو مشترك PT وخاصية فريز الـ PT مفعّلة */}
+ {ptSubscription?.ptNumber && settings.ptFreezeEnabled && (
+ <label className="flex items-center gap-3 p-3 rounded-lg bg-teal-50 dark:bg-teal-900/20 ring-1 ring-teal-200 dark:ring-teal-800 cursor-pointer">
+ <input
+ type="checkbox"
+ checked={freezePTToo}
+ onChange={(e) => setFreezePTToo(e.target.checked)}
+ className="w-5 h-5 accent-teal-600"
+ />
+ <div>
+ <p className="text-sm font-bold text-teal-800 dark:text-teal-300">
+ {locale === 'ar' ? 'جمّد اشتراك الـ PT كمان' : 'Freeze the PT subscription too'}
+ </p>
+ <p className="text-xs text-teal-600 dark:text-teal-400">
+ {locale === 'ar' ? `PT #${ptSubscription.ptNumber} — نفس عدد الأيام` : `PT #${ptSubscription.ptNumber} — same number of days`}
+ </p>
+ </div>
+ </label>
+ )}
 
  {freezeData.days > 0 && member.expiryDate && (
  <div className="bg-green-50 dark:bg-green-900/30 ring-1 ring-green-300 dark:ring-green-700/60 rounded-lg p-4">
@@ -5630,6 +5730,57 @@ export default function MemberDetailPage() {
  ))}
  </ol>
  )}
+ </div>
+ </div>
+ </div>
+ )}
+
+ {/* 🥋 مودال تعديل الـ PT / الكوتش */}
+ {showPTEdit && ptSubscription && (
+ <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" dir={direction} onClick={(e) => { if (e.target === e.currentTarget) setShowPTEdit(false) }}>
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 max-h-[85vh] overflow-y-auto">
+ <div className="flex justify-between items-center mb-5">
+ <h3 className="text-xl font-bold dark:text-white">{locale === 'ar' ? `تعديل PT #${ptSubscription.ptNumber}` : `Edit PT #${ptSubscription.ptNumber}`}</h3>
+ <button onClick={() => setShowPTEdit(false)} className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 flex items-center justify-center">
+ <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+ </button>
+ </div>
+ <div className="space-y-4">
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-200">{locale === 'ar' ? 'الكوتش' : 'Coach'}</label>
+ <select value={ptEditForm.coachName} onChange={(e) => setPtEditForm({ ...ptEditForm, coachName: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+ <option value="">{locale === 'ar' ? '— اختر الكوتش —' : '— Select coach —'}</option>
+ {ptEditForm.coachName && !ptCoaches.some((c: any) => c.name === ptEditForm.coachName) && (
+ <option value={ptEditForm.coachName}>{ptEditForm.coachName}</option>
+ )}
+ {ptCoaches.map((c: any) => (
+ <option key={c.id} value={c.name}>{c.name}</option>
+ ))}
+ </select>
+ </div>
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-200">{locale === 'ar' ? 'الحصص المشتراة' : 'Purchased'}</label>
+ <input type="number" min="0" value={ptEditForm.sessionsPurchased} onChange={(e) => setPtEditForm({ ...ptEditForm, sessionsPurchased: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" />
+ </div>
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-200">{locale === 'ar' ? 'الحصص المتبقية' : 'Remaining'}</label>
+ <input type="number" min="0" value={ptEditForm.sessionsRemaining} onChange={(e) => setPtEditForm({ ...ptEditForm, sessionsRemaining: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" />
+ </div>
+ </div>
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-200">{locale === 'ar' ? 'المبلغ المتبقي' : 'Remaining amount'}</label>
+ <input type="number" min="0" value={ptEditForm.remainingAmount} onChange={(e) => setPtEditForm({ ...ptEditForm, remainingAmount: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" />
+ </div>
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-200">{locale === 'ar' ? 'تاريخ الانتهاء' : 'Expiry'}</label>
+ <input type="date" value={ptEditForm.expiryDate} onChange={(e) => setPtEditForm({ ...ptEditForm, expiryDate: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" />
+ </div>
+ </div>
+ <button onClick={savePTEdit} disabled={ptEditSaving} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2.5 rounded-lg disabled:opacity-50 transition-colors">
+ {ptEditSaving ? (locale === 'ar' ? 'جارٍ الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ' : 'Save')}
+ </button>
  </div>
  </div>
  </div>
