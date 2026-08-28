@@ -12,7 +12,7 @@ const VALID_PERMISSION_FIELDS = [
   'canViewGroupClass', 'canCreateGroupClass', 'canEditGroupClass', 'canDeleteGroupClass', 'canRegisterClassAttendance',
   'canViewMore', 'canRegisterMoreAttendance', 'canDeleteMore', 'canAccessMoreCommission',
   'canViewStaff', 'canAccessHR', 'canCreateStaff', 'canEditStaff', 'canDeleteStaff',
-  'canViewReceipts', 'canEditReceipts', 'canDeleteReceipts',
+  'canViewReceipts', 'canEditReceipts', 'canEditReceiptBasic', 'canDeleteReceipts',
   'canViewExpenses', 'canCreateExpense', 'canEditExpense', 'canDeleteExpense',
   'canViewVisitors', 'canCreateVisitor', 'canEditVisitor', 'canDeleteVisitor',
   'canViewFollowUps', 'canCreateFollowUp', 'canEditFollowUp', 'canDeleteFollowUp', 'canManageSales',

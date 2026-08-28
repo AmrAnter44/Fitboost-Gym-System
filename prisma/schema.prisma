@@ -639,6 +639,7 @@ model Permission {
   canDeleteStaff          Boolean @default(false)
   canViewReceipts         Boolean @default(false)
   canEditReceipts         Boolean @default(false)
+  canEditReceiptBasic     Boolean @default(false)  // تعديل محدود: اسم/تليفون + طريقة الدفع بس
   canDeleteReceipts       Boolean @default(false)
   canViewExpenses         Boolean @default(false)
   canCreateExpense        Boolean @default(false)

@@ -59,6 +59,7 @@ export interface Permissions {
   // صلاحيات الإيصالات
   canViewReceipts: boolean
   canEditReceipts: boolean
+  canEditReceiptBasic: boolean  // تعديل محدود: اسم/تليفون الكلاينت + طريقة الدفع بس
   canDeleteReceipts: boolean
 
   // صلاحيات المصروفات
@@ -229,6 +230,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteStaff: true,
     canViewReceipts: true,
     canEditReceipts: true,
+    canEditReceiptBasic: true,
     canDeleteReceipts: true,
     canViewExpenses: true,
     canCreateExpense: true,
@@ -314,6 +316,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteStaff: true,
     canViewReceipts: true,
     canEditReceipts: true,
+    canEditReceiptBasic: true,
     canDeleteReceipts: true,
     canViewExpenses: true,
     canCreateExpense: true,
@@ -399,6 +402,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteStaff: false,
     canViewReceipts: true,
     canEditReceipts: true,
+    canEditReceiptBasic: true,
     canDeleteReceipts: false,
     canViewExpenses: true,
     canCreateExpense: true,
@@ -484,6 +488,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteStaff: false,
     canViewReceipts: true,
     canEditReceipts: false,
+    canEditReceiptBasic: false,
     canDeleteReceipts: false,
     canViewExpenses: false,
     canCreateExpense: false,
@@ -570,6 +575,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteStaff: false,
     canViewReceipts: false,
     canEditReceipts: false,
+    canEditReceiptBasic: false,
     canDeleteReceipts: false,
     canViewExpenses: false,
     canCreateExpense: false,
@@ -660,6 +666,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canDeleteStaff: 'حذف موظف',
   canViewReceipts: 'عرض الإيصالات',
   canEditReceipts: 'تعديل إيصال',
+  canEditReceiptBasic: 'تعديل محدود للإيصال (الاسم/التليفون + طريقة الدفع بس)',
   canDeleteReceipts: 'حذف إيصال',
   canViewExpenses: 'عرض المصروفات',
   canCreateExpense: 'إضافة مصروف',
@@ -788,6 +795,7 @@ export const PERMISSION_GROUPS = {
     permissions: [
       'canViewReceipts',
       'canEditReceipts',
+      'canEditReceiptBasic',
       'canDeleteReceipts',
     ] as Array<keyof Permissions>,
   },
@@ -943,6 +951,7 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canDeleteStaff: '🗑️',
   canViewReceipts: '👁️',
   canEditReceipts: '✏️',
+  canEditReceiptBasic: '📝',
   canDeleteReceipts: '🗑️',
   canViewExpenses: '👁️',
   canCreateExpense: '➕',

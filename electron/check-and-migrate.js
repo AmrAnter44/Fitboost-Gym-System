@@ -326,7 +326,8 @@ function migrateDatabase(dbPath) {
       'canCreateDeduction',
       'canEditDeduction',
       'canDeleteDeduction',
-      'canManageBannedMembers'
+      'canManageBannedMembers',
+      'canEditReceiptBasic'
     ];
 
     for (const permission of morePermissions) {

@@ -87,8 +87,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const [createdReceipt, setCreatedReceipt] = useState<any>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null)
-  //  وضع المزايا: false = تجميع (افتراضي، عادل للعميل) | true = ريست (يبتدي من الصفر)
-  const [resetBenefits, setResetBenefits] = useState(false)
+  //  وضع المزايا: false = تجميع | true = ريست (يبتدي من الصفر). الافتراضي دلوقتي = ريست (مفعّل)
+  const [resetBenefits, setResetBenefits] = useState(true)
 
   //  حساب الأيام المتبقية في الاشتراك القديم (لو لسه فيه)
   // لما العضو يجدد قبل ما اشتراكه ينتهي، الأيام دي بتتضاف على مدة الاشتراك الجديد

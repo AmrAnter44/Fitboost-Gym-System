@@ -1893,8 +1893,8 @@ export default function PTPage() {
                 </button>
               )}
 
-              {/* ترقية */}
-              {settings.ptUpgradeEnabled && menuSession.ptNumber >= 0 && (
+              {/* ترقية — مش متاحة للاشتراك المنتهي (لازم يجدّد) */}
+              {settings.ptUpgradeEnabled && menuSession.ptNumber >= 0 && !isExpired(menuSession) && (
                 <button
                   onClick={() => { const s = menuSession; setMenuSession(null); setUpgradeSession(s) }}
                   className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 px-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors duration-200"
@@ -2082,8 +2082,8 @@ export default function PTPage() {
             setUpgradeSession(null)
             toast.success(
               locale === 'ar'
-                ? `تم الترقية — فرق السعر: ${res.upgradeFee} ج`
-                : `Upgraded — fee: ${res.upgradeFee} EGP`
+                ? `تم الترقية — المدفوع: ${res.upgradeFee} ج`
+                : `Upgraded — paid: ${res.upgradeFee} EGP`
             )
             queryClient.invalidateQueries({ queryKey: ['receipts'] })
           }}

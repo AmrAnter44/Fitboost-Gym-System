@@ -30,6 +30,7 @@ interface Staff {
   staffCode: string
   name: string
   position?: string
+  workingHours?: number
 }
 
 interface Attendance {
@@ -579,18 +580,24 @@ export default function AttendanceReportPage() {
               const checkOutTime = att.checkOut ? new Date(att.checkOut) : null
               const currentTime = new Date()
 
-              // التحقق إذا كان السجل من اليوم الحالي
-              const isToday = checkInTime.toDateString() === currentTime.toDateString()
-              const isActuallyInside = att.checkOut === null && isToday
+              //  نافذة الشيفت الديناميكية: السجل المفتوح يُعتبر «شغّال دلوقتي» طالما لسه
+              //  في وقت شيفته — (ساعات العمل + 4 ساعات buffer، بحد أدنى 12 ساعة).
+              //  ده بيدعم الشيفت الليلي اللي بيعدّي منتصف الليل (مثلاً 11م → 7ص) فميتحسبش
+              //  «سجل قديم / نسي يسجّل خروج» وهو لسه في شيفته — بدل مقارنة اليوم بالتقويم.
+              const baseHours = att.staff?.workingHours && att.staff.workingHours > 0 ? att.staff.workingHours : 8
+              const shiftWindowHours = Math.max(baseHours + 4, 12)
+              const hoursSinceCheckIn = (currentTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60)
+              const isActiveShift = att.checkOut === null && hoursSinceCheckIn <= shiftWindowHours
+              const isActuallyInside = isActiveShift
 
               // حساب الساعات الفعلية
               let actualMinutes = att.duration || 0
               if (!att.checkOut) {
-                // إذا كان السجل من اليوم الحالي، احسب حتى الآن
-                if (isToday) {
+                // طالما لسه في نافذة شيفته، احسب حتى الآن
+                if (isActiveShift) {
                   actualMinutes = Math.floor((currentTime.getTime() - checkInTime.getTime()) / (1000 * 60))
                 } else {
-                  // إذا كان سجل قديم، لا تحسب (سيظهر 0)
+                  // سجل قديم (عدّى نافذة الشيفت من غير انصراف) — لا تحسب
                   actualMinutes = 0
                 }
               }
@@ -722,7 +729,7 @@ export default function AttendanceReportPage() {
                             {checkOutTime.toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'short' })}
                           </p>
                         </>
-                      ) : isToday ? (
+                      ) : isActiveShift ? (
                         <>
                           <p className="text-sm font-bold text-amber-700 dark:text-amber-300">{t('attendanceReport.notCheckedOut')}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('attendanceReport.working')}</p>
@@ -740,7 +747,7 @@ export default function AttendanceReportPage() {
                       <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">{t('attendanceReport.workHours')}</div>
                       {hours === 0 && minutes === 0 ? (
                         <p className="text-sm font-bold text-gray-600 dark:text-gray-300">
-                          {att.checkOut === null && !isToday ? t('attendanceReport.notCalculated') : t('attendanceReport.justStarted')}
+                          {att.checkOut === null && !isActiveShift ? t('attendanceReport.notCalculated') : t('attendanceReport.justStarted')}
                         </p>
                       ) : (
                         <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
@@ -750,13 +757,13 @@ export default function AttendanceReportPage() {
                       <p className={`text-xs mt-1 font-semibold ${
                         att.checkOut
                           ? 'text-gray-500 dark:text-gray-400'
-                          : isToday
+                          : isActiveShift
                           ? 'text-green-600 dark:text-green-400'
                           : 'text-red-600 dark:text-red-400'
                       }`}>
                         {att.checkOut
                           ? t('attendanceReport.finished')
-                          : isToday
+                          : isActiveShift
                           ? t('attendanceReport.workingNow')
                           : (direction === 'rtl' ? 'لم يسجّل خروج' : 'Missed check-out')}
                       </p>

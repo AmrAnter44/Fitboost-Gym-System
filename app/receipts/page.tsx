@@ -192,7 +192,9 @@ export default function ReceiptsPage() {
  const todayRevenue = receiptsPage?.todayRevenue ?? 0
 
  // جميع الـ hooks يجب أن تكون قبل أي return
- const canEdit = hasPermission('canEditReceipts')
+ const canEditFull = hasPermission('canEditReceipts')          // تعديل كامل
+ const canEditBasic = hasPermission('canEditReceiptBasic')     // تعديل محدود (اسم/تليفون + طريقة الدفع)
+ const canEdit = canEditFull || canEditBasic                   // يظهر زرار التعديل لأي منهم
  const canDelete = hasPermission('canDeleteReceipts')
  const canCancel = hasPermission('canEditReceipts') // استخدام canEditReceipts للإلغاء
 
@@ -1660,6 +1662,7 @@ export default function ReceiptsPage() {
 
  <div className="space-y-3">
  {/* الصف الأول: رقم الإيصال والمبلغ */}
+ {canEditFull && (
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
  {/* رقم الإيصال */}
  <div>
@@ -1693,8 +1696,9 @@ export default function ReceiptsPage() {
  />
  </div>
  </div>
+ )}
 
- {/* طريقة الدفع (يدعم الدفع المتعدد) */}
+ {/* طريقة الدفع (يدعم الدفع المتعدد) — متاحة للتعديل المحدود كمان */}
  <PaymentMethodSelector
  value={editFormData.paymentMethod}
  onChange={(method) => setEditFormData({ ...editFormData, paymentMethod: method })}
@@ -1702,6 +1706,8 @@ export default function ReceiptsPage() {
  allowMultiple={true}
  />
 
+ {canEditFull && (
+ <>
  {/* اسم الموظف */}
  <div>
  <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">
@@ -1731,6 +1737,8 @@ export default function ReceiptsPage() {
  ℹ {t('receipts.edit.dateNote')}
  </p>
  </div>
+ </>
+ )}
 
  {/* بيانات الاشتراك (الاسم/التليفون/التواريخ) */}
  <div className="bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-700/60 rounded-lg p-4 space-y-3">
@@ -1762,7 +1770,7 @@ export default function ReceiptsPage() {
  </div>
  </div>
 
- {editFormData.hasSubscriptionMoney && (
+ {canEditFull && editFormData.hasSubscriptionMoney && (
  <div>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
  <div>
@@ -1787,7 +1795,7 @@ export default function ReceiptsPage() {
  </div>
  )}
 
- {editFormData.hasSubscriptionDates && (
+ {canEditFull && editFormData.hasSubscriptionDates && (
  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
  <div>
  <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">تاريخ البداية</label>
@@ -1811,7 +1819,7 @@ export default function ReceiptsPage() {
  )}
 
  {/* الكوتش — يظهر بس للإيصالات اللي فيها coachName */}
- {editFormData.hasCoachField && (
+ {canEditFull && editFormData.hasCoachField && (
  <div>
  <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">الكوتش</label>
  {coachOptions.length > 0 ? (
@@ -1848,7 +1856,7 @@ export default function ReceiptsPage() {
  )}
 
  {/* 🔗 موظف السيلز — لإيصالات العضوية بس، بيتحدّث على العضو على طول */}
- {editingReceipt.memberId && (
+ {canEditFull && editingReceipt.memberId && (
  <div>
  <SalesStaffSelector
  value={editFormData.salesStaffId}
@@ -1861,7 +1869,8 @@ export default function ReceiptsPage() {
  </div>
  )}
 
- {/* Cascade toggle */}
+ {/* Cascade toggle — كاملة بس */}
+ {canEditFull && (
  <label className={`flex items-start gap-2 p-3 rounded-lg cursor-pointer transition ${
  editFormData.cascade
  ? 'bg-green-50 dark:bg-green-900/30 ring-1 ring-green-300 dark:ring-green-700/60'
@@ -1885,6 +1894,7 @@ export default function ReceiptsPage() {
  </p>
  </div>
  </label>
+ )}
  </div>
 
  {/* ملاحظة تحذيرية */}

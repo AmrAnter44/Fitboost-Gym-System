@@ -45,7 +45,7 @@ interface UpgradeResult {
   success: boolean
   upgradeFee: number
   computedUpgradeFee: number
-  remainingValueFromPrevious: number
+  currentPackagePrice: number
   pt: any
   receipt: UpgradeReceipt
 }
@@ -98,7 +98,12 @@ export default function PTUpgradeForm({ session, onClose, onSuccess }: Props) {
   const eligiblePackages = packages
 
   const selectedPackage = packages.find(p => p.id === selectedId)
-  const computedFee = selectedPackage ? Math.max(0, Math.round(selectedPackage.price - remainingValue)) : 0
+  //  نموذج «سعر بسعر»: المطلوب = سعر الباقة الجديدة − سعر الباقة الحالية (فرق السعر بس).
+  //  الحصص تتبدل بحصص الباقة الجديدة، والمستهلك بيتخصم منها.
+  const currentPackagePrice = (session.pricePerSession || 0) * (session.sessionsPurchased || 0)
+  const sessionsUsed = Math.max(0, (session.sessionsPurchased || 0) - (session.sessionsRemaining || 0))
+  const computedFee = selectedPackage ? Math.max(0, Math.round(selectedPackage.price - currentPackagePrice)) : 0
+  const remainingAfterUpgrade = selectedPackage ? Math.max(0, selectedPackage.sessions - sessionsUsed) : 0
   const finalFee = customPrice !== '' && !isNaN(parseFloat(customPrice))
     ? Math.max(0, Math.round(parseFloat(customPrice)))
     : computedFee
@@ -227,9 +232,8 @@ export default function PTUpgradeForm({ session, onClose, onSuccess }: Props) {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {eligiblePackages.map(pkg => {
-                const rawDiff = pkg.price - remainingValue
-                const fee = Math.max(0, Math.round(rawDiff))
-                const isSmaller = rawDiff < 0
+                const fee = Math.max(0, Math.round(pkg.price - currentPackagePrice))
+                const pkgRemainingAfter = Math.max(0, pkg.sessions - sessionsUsed)
                 const isSelected = selectedId === pkg.id
                 return (
                   <button
@@ -260,18 +264,16 @@ export default function PTUpgradeForm({ session, onClose, onSuccess }: Props) {
                       <span className="font-bold text-gray-900 dark:text-gray-100">{pkg.price.toFixed(0)} {locale === 'ar' ? 'ج' : 'EGP'}</span>
                     </div>
                     <div className="flex justify-between text-xs mt-1">
-                      <span className="text-gray-600 dark:text-gray-400">{locale === 'ar' ? 'فرق السعر:' : 'Diff:'}</span>
-                      <span className={`font-bold ${isSmaller ? 'text-gray-500 dark:text-gray-400' : 'text-orange-600 dark:text-orange-400'}`}>
-                        {isSmaller
-                          ? (locale === 'ar' ? 'بدون فرق' : 'No diff')
-                          : `+${fee} ${locale === 'ar' ? 'ج' : 'EGP'}`}
+                      <span className="text-gray-600 dark:text-gray-400">{locale === 'ar' ? 'المطلوب دفعه:' : 'Amount due:'}</span>
+                      <span className="font-bold text-orange-600 dark:text-orange-400">
+                        {`${fee} ${locale === 'ar' ? 'ج' : 'EGP'}`}
                       </span>
                     </div>
-                    {isSmaller && (
-                      <p className="mt-1 text-[10px] text-amber-600 dark:text-amber-400">
-                        {locale === 'ar' ? 'باقة أصغر من الرصيد الحالي' : 'Smaller than current credit'}
-                      </p>
-                    )}
+                    <p className="mt-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+                      {locale === 'ar'
+                        ? `المتاح بعد الترقية: ${pkgRemainingAfter}/${pkg.sessions} حصة`
+                        : `Available after upgrade: ${pkgRemainingAfter}/${pkg.sessions} sessions`}
+                    </p>
                   </button>
                 )
               })}
@@ -282,9 +284,14 @@ export default function PTUpgradeForm({ session, onClose, onSuccess }: Props) {
         {selectedPackage && (
           <div className="bg-orange-50 dark:bg-orange-900/20 ring-1 ring-orange-200 dark:ring-orange-900/50 rounded-xl p-4 mb-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-orange-800 dark:text-orange-200 font-bold">{locale === 'ar' ? 'فرق السعر المحسوب:' : 'Computed difference:'}</span>
+              <span className="text-sm text-orange-800 dark:text-orange-200 font-bold">{locale === 'ar' ? 'المطلوب دفعه:' : 'Amount due:'}</span>
               <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">{computedFee} {locale === 'ar' ? 'ج' : 'EGP'}</span>
             </div>
+            <p className="text-xs text-emerald-700 dark:text-emerald-300 mb-2">
+              {locale === 'ar'
+                ? `المتاح بعد الترقية: ${remainingAfterUpgrade}/${selectedPackage.sessions} حصة${sessionsUsed > 0 ? ` (اتخصم ${sessionsUsed} مستهلكة)` : ''}`
+                : `Available after upgrade: ${remainingAfterUpgrade}/${selectedPackage.sessions}${sessionsUsed > 0 ? ` (${sessionsUsed} used deducted)` : ''}`}
+            </p>
             <div className="flex items-center gap-3 mt-2">
               <label htmlFor="upgrade-custom-price" className="text-sm font-bold text-gray-900 dark:text-gray-100 flex-1">
                 {locale === 'ar' ? 'سعر النقل النهائي:' : 'Final fee:'}

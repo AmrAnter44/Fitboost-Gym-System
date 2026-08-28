@@ -280,6 +280,9 @@
 
 
 
+
+
+
 /* Dark Mode Colors */
 .dark {
   /* Dark Mode Primary Colors */
@@ -871,13 +874,30 @@ table {
 @media (display-mode: standalone) {
   body {
     background: #f9fafb;
+    /*  ندفع المحتوى تحت الـ Dynamic Island / النوتش عشان الزراير متتخبّاش */
+    padding-top: env(safe-area-inset-top);
   }
   .dark body {
     background: rgb(17, 24, 39);
   }
+
+  /*  شريط أسود يغطّي منطقة الـ Dynamic Island فوق (iOS PWA) */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top);
+    background: #000;
+    z-index: 9999;
+    pointer-events: none;
+  }
+
   .navbar {
     position: sticky;
-    top: 0;
+    /*  الـ navbar يفضل تحت الشريط الأسود مباشرة */
+    top: env(safe-area-inset-top);
     z-index: 50;
   }
 }
