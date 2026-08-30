@@ -327,12 +327,20 @@ function migrateDatabase(dbPath) {
       'canEditDeduction',
       'canDeleteDeduction',
       'canManageBannedMembers',
-      'canEditReceiptBasic'
+      'canEditReceiptBasic',
+      'canEditMemberBasic'
     ];
 
     for (const permission of morePermissions) {
       if (!columnExists(db, 'Permission', permission)) {
         db.prepare(`ALTER TABLE Permission ADD COLUMN ${permission} INTEGER NOT NULL DEFAULT 0`).run();
+        //  canEditMemberBasic: الإدارة (OWNER/ADMIN/MANAGER) عندها التعديل الكامل أصلاً،
+        //  فنخليها on عشان التوافق بعد التحديث (الموظفين off لحد ما الأدمن يفعّلها)
+        if (permission === 'canEditMemberBasic') {
+          try {
+            db.prepare(`UPDATE Permission SET canEditMemberBasic = 1 WHERE userId IN (SELECT id FROM User WHERE role IN ('OWNER','ADMIN','MANAGER'))`).run();
+          } catch (e) { /* الجدول ممكن يكون فاضي — عادي */ }
+        }
       } else {
       }
     }

@@ -5,7 +5,7 @@ import { requireAdmin } from '../../../../../../lib/auth'
 
 // ✅ الحقول المسموحة في جدول Permission
 const VALID_PERMISSION_FIELDS = [
-  'canViewMembers', 'canCreateMembers', 'canEditMembers', 'canDeleteMembers',
+  'canViewMembers', 'canCreateMembers', 'canEditMembers', 'canEditMemberBasic', 'canDeleteMembers',
   'canViewPT', 'canCreatePT', 'canEditPT', 'canDeletePT', 'canRegisterPTAttendance',
   'canViewNutrition', 'canCreateNutrition', 'canEditNutrition', 'canDeleteNutrition', 'canRegisterNutritionAttendance',
   'canViewPhysiotherapy', 'canCreatePhysiotherapy', 'canEditPhysiotherapy', 'canDeletePhysiotherapy', 'canRegisterPhysioAttendance',
@@ -49,6 +49,16 @@ export async function PUT(
 
     // ✅ تصفية الحقول المسموحة فقط
     const filteredBody = filterPermissions(body)
+
+    //  🛡️ حقول جديدة ممكن الـ Prisma client يكون لسه outdated عنها (مش متعمل regenerate) —
+    //  نشيلها من الـ upsert ونطبّقها بـ raw SQL بعده، عشان الحفظ ما يفشلش بـ "Unknown argument".
+    const rawFallback: Record<string, boolean> = {}
+    for (const f of ['canEditMemberBasic']) {
+      if (f in filteredBody) {
+        rawFallback[f] = filteredBody[f]
+        delete filteredBody[f]
+      }
+    }
 
     // التحقق من وجود المستخدم
     const user = await prisma.user.findUnique({
@@ -97,7 +107,20 @@ export async function PUT(
       }
     }
 
-    return NextResponse.json(permission)
+    //  Raw SQL للحقول الجديدة (canEditMemberBasic) — بتشتغل حتى لو الـ client outdated
+    for (const [field, value] of Object.entries(rawFallback)) {
+      try {
+        await prisma.$executeRawUnsafe(
+          `UPDATE Permission SET ${field} = ? WHERE userId = ?`,
+          value ? 1 : 0,
+          params.id
+        )
+      } catch (rawErr) {
+        console.error(`⚠️ Raw SQL fallback for ${field} failed:`, rawErr)
+      }
+    }
+
+    return NextResponse.json({ ...permission, ...rawFallback })
     
   } catch (error: any) {
     console.error('Error updating permissions:', error)

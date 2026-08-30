@@ -1390,6 +1390,40 @@ export default function MemberDetailPage() {
  })
  }
 
+ //  حفظ محدود: الاسم ورقم الموبايل بس (صلاحية canEditMemberBasic)
+ const handleEditNamePhone = async () => {
+ if (!member || !editBasicInfoData.name.trim() || !editBasicInfoData.phone.trim()) {
+ toast.warning(t('memberDetails.editModal.enterNameAndPhone'))
+ return
+ }
+ setLoading(true)
+ try {
+ const response = await fetch('/api/members', {
+ method: 'PUT',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ id: member.id,
+ name: editBasicInfoData.name.trim(),
+ phone: editBasicInfoData.phone.trim(),
+ }),
+ })
+ if (response.ok) {
+ toast.success(t('memberDetails.editModal.updateSuccess'))
+ setActiveModal(null)
+ fetchMember()
+ queryClient.invalidateQueries({ queryKey: ['members'] })
+ } else {
+ const err = await response.json().catch(() => ({}))
+ toast.error(err.error || 'فشل التعديل')
+ }
+ } catch (error) {
+ console.error(error)
+ toast.error('حدث خطأ في الاتصال')
+ } finally {
+ setLoading(false)
+ }
+ }
+
  const handleEditBasicInfo = async () => {
  if (!member || !editBasicInfoData.name.trim() || !editBasicInfoData.phone.trim()) {
  toast.warning(t('memberDetails.editModal.enterNameAndPhone'))
@@ -2043,6 +2077,26 @@ export default function MemberDetailPage() {
  </span>
  </button>
  )}
+
+ {/* تعديل محدود: الاسم/الموبايل بس — لصاحب canEditMemberBasic اللي معهوش التعديل الكامل */}
+ {!hasPermission('canEditMembers') && hasPermission('canEditMemberBasic') && (
+ <button
+ onClick={() => {
+ setEditBasicInfoData(prev => ({ ...prev, name: member.name, phone: member.phone }))
+ setActiveModal('edit-name-phone')
+ }}
+ disabled={loading}
+ className="bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors duration-200 backdrop-blur-sm border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+ title={locale === 'ar' ? 'تعديل الاسم/الموبايل' : 'Edit name/phone'}
+ >
+ <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+ <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+ </svg>
+ <span className="font-semibold text-sm">
+ {locale === 'ar' ? 'تعديل الاسم/الموبايل' : 'Edit name/phone'}
+ </span>
+ </button>
+ )}
  </div>{/* end Action Buttons */}
  </div>{/* end info+buttons row */}
  </div>{/* end right side container */}
@@ -2391,15 +2445,26 @@ export default function MemberDetailPage() {
  </div>
 
  {/* حصص الدخول المتبقية — تظهر بس لو الباقة محدودة الدخلات (remainingCheckIns != null) */}
- {(member as any).remainingCheckIns !== null && (member as any).remainingCheckIns !== undefined && (
+ {(member as any).remainingCheckIns !== null && (member as any).remainingCheckIns !== undefined && (() => {
+ const remainingCI = Number((member as any).remainingCheckIns) || 0
+ const totalCI = Number((member as any).offerBenefits?.maxCheckIns) || 0
+ const usedCI = totalCI > 0 ? Math.max(0, totalCI - remainingCI) : 0
+ return (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-orange-500`}>
  <div className="flex items-center justify-between mb-2">
  <p className="text-xs text-gray-600 dark:text-white font-semibold">{locale === 'ar' ? 'حصص الدخول المتبقية' : 'Remaining Check-ins'}</p>
  </div>
- <p className={`text-3xl font-bold mb-3 ${((member as any).remainingCheckIns ?? 0) <= 0 ? 'text-red-600' : 'text-orange-600'}`}>{(member as any).remainingCheckIns ?? 0}</p>
- <p className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'دخلة متبقية في الباقة' : 'entries left in package'}</p>
+ <p className={`text-3xl font-bold mb-3 ${remainingCI <= 0 ? 'text-red-600' : 'text-orange-600'}`}>
+ {remainingCI}{totalCI > 0 && <span className="text-lg text-gray-400 dark:text-gray-500"> / {totalCI}</span>}
+ </p>
+ <p className="text-[11px] text-gray-500 dark:text-gray-400">
+ {totalCI > 0
+ ? (locale === 'ar' ? `استخدم ${usedCI} من ${totalCI} دخلة` : `Used ${usedCI} of ${totalCI} entries`)
+ : (locale === 'ar' ? 'دخلة متبقية في الباقة' : 'entries left in package')}
+ </p>
  </div>
- )}
+ )
+ })()}
  </div>
  </div>
 
@@ -3058,6 +3123,62 @@ export default function MemberDetailPage() {
  )}
 
  {/* Modal: تعديل البيانات الأساسية */}
+ {/* مودال محدود: تعديل الاسم/الموبايل بس (canEditMemberBasic) */}
+ {activeModal === 'edit-name-phone' && (
+ <div
+ className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center p-4 overflow-y-auto"
+ style={{ zIndex: 9999 }}
+ onClick={(e) => { if (e.target === e.currentTarget) setActiveModal(null) }}
+ >
+ <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-5 my-4" onClick={(e) => e.stopPropagation()} dir={direction}>
+ <div className="flex justify-between items-center mb-4 pb-2 border-b dark:border-gray-700">
+ <h3 className="text-base font-bold dark:text-gray-100">{locale === 'ar' ? 'تعديل الاسم / الموبايل' : 'Edit name / phone'}</h3>
+ <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" aria-label="close">
+ <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+ </button>
+ </div>
+ <div className="space-y-3">
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">{locale === 'ar' ? 'الاسم' : 'Name'}</label>
+ <input
+ type="text"
+ value={editBasicInfoData.name}
+ onChange={(e) => setEditBasicInfoData(prev => ({ ...prev, name: e.target.value }))}
+ className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+ placeholder={locale === 'ar' ? 'اسم العضو' : 'Member name'}
+ />
+ </div>
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">{locale === 'ar' ? 'رقم الموبايل' : 'Phone'}</label>
+ <input
+ type="tel"
+ value={editBasicInfoData.phone}
+ onChange={(e) => setEditBasicInfoData(prev => ({ ...prev, phone: e.target.value }))}
+ className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono focus:outline-none focus:ring-2 focus:ring-primary-500"
+ placeholder="010xxxxxxxx"
+ />
+ </div>
+ </div>
+ <div className="flex gap-2 mt-5">
+ <button
+ onClick={handleEditNamePhone}
+ disabled={loading}
+ className="flex-1 bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2.5 rounded-lg font-bold transition-colors disabled:opacity-60"
+ >
+ {loading ? (locale === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (locale === 'ar' ? 'حفظ' : 'Save')}
+ </button>
+ <button
+ onClick={() => setActiveModal(null)}
+ disabled={loading}
+ className="px-5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-60"
+ >
+ {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
+
  {activeModal === 'edit-basic-info' && (
  <div
  className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center p-4 overflow-y-auto"

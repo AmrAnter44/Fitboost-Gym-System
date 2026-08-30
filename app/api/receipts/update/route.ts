@@ -133,8 +133,9 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'معرف الإيصال مطلوب' }, { status: 400 })
     }
 
-    //  🔒 الصلاحية المحدودة: يُسمح فقط بتعديل اسم/تليفون الكلاينت + طريقة الدفع.
-    //  نعقّم أي حقل تاني (المبلغ/التواريخ/الكوتش/رقم الإيصال… إلخ) عشان مايتغيّرش.
+    //  🔒 الصلاحية المحدودة (canEditReceiptBasic): يُسمح فقط بتعديل طريقة الدفع.
+    //  الاسم/التليفون بقى يتعدّل من بروفايل العضو (canEditMemberBasic) مش من الإيصال.
+    //  نعقّم أي حقل تاني عشان مايتغيّرش.
     if (!isFullEdit) {
       receiptNumber = undefined
       amount = undefined
@@ -142,10 +143,8 @@ export async function PUT(request: Request) {
       staffName = undefined
       createdAt = undefined
       salesStaffId = undefined
-      cascade = false // تعديل على الإيصال بس (مايحتاجش canEditMembers)
-      if (subscription) {
-        subscription = { name: subscription.name, phone: subscription.phone }
-      }
+      subscription = undefined // مفيش تعديل اسم/تليفون من الإيصال
+      cascade = false
     }
 
     // التحقق من وجود الإيصال

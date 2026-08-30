@@ -109,7 +109,7 @@ export async function GET(request: Request) {
       const membersByPhone = phones.length > 0
         ? await prisma.member.findMany({
             where: { phone: { in: phones } },
-            select: { id: true, phone: true, profileImage: true, memberNumber: true }
+            select: { id: true, phone: true, profileImage: true, memberNumber: true, inBodyScans: true, freeAssessmentSessions: true }
           })
         : []
       for (const m of membersByPhone) phoneToMember.set(m.phone, m)
@@ -123,7 +123,10 @@ export async function GET(request: Request) {
         ...s,
         profileImage: mem?.profileImage || null,
         memberNumber: mem?.memberNumber ?? null,
-        memberId: mem?.id ?? null
+        memberId: mem?.id ?? null,
+        //  رصيد الـ InBody/التقييم من عضوية الكلاينت (للكوتش يخصم منها من لوحته)
+        inBodyScans: mem?.inBodyScans ?? 0,
+        freeAssessmentSessions: mem?.freeAssessmentSessions ?? 0
       }
     })
 

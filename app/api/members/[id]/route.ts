@@ -120,6 +120,9 @@ export async function GET(
         where: { id: (member as any).offerId },
         select: {
           inBodyScans: true,
+          invitations: true,
+          freezeDays: true,
+          maxCheckIns: true,
           freeNutritionSessions: true,
           freePhysioSessions: true,
           freeGroupClassSessions: true,
@@ -127,7 +130,7 @@ export async function GET(
           freePadelSessions: true,
           freeAssessmentSessions: true,
           freeMoreSessions: true,
-        }
+        } as any
       })
     }
 

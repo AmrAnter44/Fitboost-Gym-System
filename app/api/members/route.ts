@@ -1,7 +1,7 @@
 // app/api/members/route.ts - مع فحص الصلاحيات
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
-import { requirePermission, verifyAuth } from '../../../lib/auth'
+import { requirePermission, requireAnyPermission, verifyAuth } from '../../../lib/auth'
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -890,11 +890,20 @@ export async function POST(request: Request) {
 // PUT - تحديث عضو
 export async function PUT(request: Request) {
   try {
-    // ✅ التحقق من صلاحية تعديل عضو
-    const user = await requirePermission(request, 'canEditMembers')
-    
+    // ✅ التحقق من صلاحية تعديل عضو — كاملة (canEditMembers) أو محدودة (canEditMemberBasic = اسم/تليفون بس)
+    const user = await requireAnyPermission(request, ['canEditMembers', 'canEditMemberBasic'])
+    const isFullMemberEdit = user.role === 'OWNER' || user.role === 'ADMIN' || !!user.permissions?.canEditMembers
+
     const body = await request.json()
-    const { id, profileImage, idCardFront, idCardBack, ...data } = body
+    let { id, profileImage, idCardFront, idCardBack, ...data } = body
+
+    //  🔒 الصلاحية المحدودة: يُسمح فقط بتعديل الاسم ورقم الموبايل — نعقّم أي حقل تاني
+    if (!isFullMemberEdit) {
+      profileImage = undefined
+      idCardFront = undefined
+      idCardBack = undefined
+      data = { name: data.name, phone: data.phone }
+    }
 
     const updateData: any = {}
     

@@ -68,13 +68,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'المدرب غير موجود أو غير نشط' }, { status: 404 })
     }
 
-    // 6. Transaction: decrement freePTSessions + create PTSession record
-    const [updatedMember, session] = await prisma.$transaction([
-      prisma.member.update({
-        where: { id: memberId },
-        data: { freePTSessions: member.freePTSessions - 1 }
-      }),
-      prisma.pTSession.create({
+    // 6. Transaction ذرّي: خصم حصة مجانية (بشكل آمن ضد الـ race) + إنشاء PTSession
+    //    الخصم بيتم بـ updateMany مع شرط (freePTSessions > 0) عشان:
+    //    - ميوصلش لسالب، وميحصلش lost-update لو الكوتش دوس مرتين بسرعة.
+    const result = await prisma.$transaction(async (tx) => {
+      const dec = await tx.member.updateMany({
+        where: { id: memberId, freePTSessions: { gt: 0 } },
+        data: { freePTSessions: { decrement: 1 } },
+      })
+      if (dec.count === 0) {
+        throw new Error('NO_FREE_SESSIONS')
+      }
+
+      const session = await tx.pTSession.create({
         data: {
           ptNumber: 0, // Free session - no PT subscription
           clientName: member.name,
@@ -88,18 +94,31 @@ export async function POST(request: Request) {
           memberId: member.id
         }
       })
-    ])
+
+      const fresh = await tx.member.findUnique({
+        where: { id: memberId },
+        select: { freePTSessions: true },
+      })
+
+      return { session, remaining: fresh?.freePTSessions ?? 0 }
+    })
 
     return NextResponse.json({
       success: true,
       message: `تم تسجيل جلسة PT مجانية بنجاح`,
-      remainingFree: updatedMember.freePTSessions,
+      remainingFree: result.remaining,
       session: {
-        id: session.id,
-        sessionDate: session.sessionDate
+        id: result.session.id,
+        sessionDate: result.session.sessionDate
       }
     })
   } catch (error: any) {
+    if (error?.message === 'NO_FREE_SESSIONS') {
+      return NextResponse.json(
+        { error: 'لا توجد جلسات PT مجانية متاحة' },
+        { status: 400 }
+      )
+    }
     console.error('Error deducting free PT session (coach):', error)
     return NextResponse.json(
       { error: 'فشل تسجيل الجلسة' },

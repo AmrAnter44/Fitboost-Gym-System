@@ -49,7 +49,7 @@ export async function GET(request: Request) {
 
 // ✅ الحقول المسموحة في جدول Permission - لتصفية أي حقول غير معروفة
 const VALID_PERMISSION_FIELDS = [
-  'canViewMembers', 'canCreateMembers', 'canEditMembers', 'canDeleteMembers',
+  'canViewMembers', 'canCreateMembers', 'canEditMembers', 'canEditMemberBasic', 'canDeleteMembers',
   'canViewPT', 'canCreatePT', 'canEditPT', 'canDeletePT', 'canRegisterPTAttendance',
   'canViewNutrition', 'canCreateNutrition', 'canEditNutrition', 'canDeleteNutrition', 'canRegisterNutritionAttendance',
   'canViewPhysiotherapy', 'canCreatePhysiotherapy', 'canEditPhysiotherapy', 'canDeletePhysiotherapy', 'canRegisterPhysioAttendance',
@@ -206,9 +206,19 @@ export async function POST(request: Request) {
     }
 
     // ✅ استخدام الصلاحيات المخصصة إذا تم إرسالها، وإلا استخدام الافتراضية
-    const permData = permissions && Object.keys(permissions).length > 0
+    const permData: Record<string, any> = permissions && Object.keys(permissions).length > 0
       ? filterPermissions(permissions)
       : defaultPermissions
+
+    //  🛡️ نشيل الحقول الجديدة (canEditMemberBasic) من الـ create ونطبّقها بـ raw SQL بعده،
+    //  عشان لو الـ Prisma client لسه outdated الإنشاء ما يفشلش
+    const rawFallback: Record<string, boolean> = {}
+    for (const f of ['canEditMemberBasic']) {
+      if (f in permData) {
+        rawFallback[f] = permData[f]
+        delete permData[f]
+      }
+    }
 
     await prisma.permission.create({
       data: {
@@ -216,6 +226,18 @@ export async function POST(request: Request) {
         ...permData
       }
     })
+
+    for (const [field, value] of Object.entries(rawFallback)) {
+      try {
+        await prisma.$executeRawUnsafe(
+          `UPDATE Permission SET ${field} = ? WHERE userId = ?`,
+          value ? 1 : 0,
+          user.id
+        )
+      } catch (rawErr) {
+        console.error(`⚠️ Raw SQL fallback for ${field} failed:`, rawErr)
+      }
+    }
     
     createAuditLog({
       userId: adminUser.userId, userEmail: adminUser.email, userName: adminUser.name, userRole: adminUser.role,

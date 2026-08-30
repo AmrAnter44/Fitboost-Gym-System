@@ -612,6 +612,7 @@ model Permission {
   canViewMembers          Boolean @default(false)
   canCreateMembers        Boolean @default(false)
   canEditMembers          Boolean @default(false)
+  canEditMemberBasic      Boolean @default(false)  // تعديل محدود: اسم/موبايل العضو بس
   canDeleteMembers        Boolean @default(false)
   canViewPT               Boolean @default(false)
   canCreatePT             Boolean @default(false)

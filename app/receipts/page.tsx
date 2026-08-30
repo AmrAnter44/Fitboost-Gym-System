@@ -1740,10 +1740,11 @@ export default function ReceiptsPage() {
  </>
  )}
 
- {/* بيانات الاشتراك (الاسم/التليفون/التواريخ) */}
+ {/* بيانات الاشتراك — للتعديل الكامل بس (الاسم/التليفون بقى يتعدّل من بروفايل العضو) */}
+ {canEditFull && (
  <div className="bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-700/60 rounded-lg p-4 space-y-3">
  <h3 className="font-bold text-base text-primary-800 dark:text-primary-200 flex items-center gap-2">
- 
+
  <span>بيانات الاشتراك</span>
  </h3>
 
@@ -1896,6 +1897,7 @@ export default function ReceiptsPage() {
  </label>
  )}
  </div>
+ )}
 
  {/* ملاحظة تحذيرية */}
  <div className={`bg-yellow-50 dark:bg-yellow-900/30 border-s-4 border-yellow-500 dark:border-yellow-700 rounded-lg p-3`}>

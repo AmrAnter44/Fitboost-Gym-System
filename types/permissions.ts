@@ -13,6 +13,7 @@ export interface Permissions {
   canViewMembers: boolean
   canCreateMembers: boolean
   canEditMembers: boolean
+  canEditMemberBasic: boolean  // تعديل محدود: اسم ورقم موبايل العضو بس (من البروفايل)
   canDeleteMembers: boolean
 
   // صلاحيات التدريب الشخصي
@@ -59,7 +60,7 @@ export interface Permissions {
   // صلاحيات الإيصالات
   canViewReceipts: boolean
   canEditReceipts: boolean
-  canEditReceiptBasic: boolean  // تعديل محدود: اسم/تليفون الكلاينت + طريقة الدفع بس
+  canEditReceiptBasic: boolean  // تعديل محدود: طريقة الدفع في الإيصال بس
   canDeleteReceipts: boolean
 
   // صلاحيات المصروفات
@@ -198,6 +199,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewMembers: true,
     canCreateMembers: true,
     canEditMembers: true,
+    canEditMemberBasic: true,
     canDeleteMembers: true,
     canViewPT: true,
     canCreatePT: true,
@@ -284,6 +286,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewMembers: true,
     canCreateMembers: true,
     canEditMembers: true,
+    canEditMemberBasic: true,
     canDeleteMembers: true,
     canViewPT: true,
     canCreatePT: true,
@@ -370,6 +373,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewMembers: true,
     canCreateMembers: true,
     canEditMembers: true,
+    canEditMemberBasic: true,
     canDeleteMembers: false,
     canViewPT: true,
     canCreatePT: true,
@@ -456,6 +460,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewMembers: true,
     canCreateMembers: false,
     canEditMembers: false,
+    canEditMemberBasic: false,
     canDeleteMembers: false,
     canViewPT: true,
     canCreatePT: false,
@@ -543,6 +548,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewMembers: false,
     canCreateMembers: false,
     canEditMembers: false,
+    canEditMemberBasic: false,
     canDeleteMembers: false,
     canViewPT: true, // يرى حصصه فقط
     canCreatePT: false,
@@ -634,6 +640,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canViewMembers: 'عرض الأعضاء',
   canCreateMembers: 'إضافة عضو',
   canEditMembers: 'تعديل عضو',
+  canEditMemberBasic: 'تعديل اسم/موبايل العضو بس (من البروفايل)',
   canDeleteMembers: 'حذف عضو',
   canViewPT: 'عرض التدريب الشخصي',
   canCreatePT: 'إنشاء جلسة PT',
@@ -666,7 +673,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canDeleteStaff: 'حذف موظف',
   canViewReceipts: 'عرض الإيصالات',
   canEditReceipts: 'تعديل إيصال',
-  canEditReceiptBasic: 'تعديل محدود للإيصال (الاسم/التليفون + طريقة الدفع بس)',
+  canEditReceiptBasic: 'تعديل طريقة الدفع في الإيصال بس',
   canDeleteReceipts: 'حذف إيصال',
   canViewExpenses: 'عرض المصروفات',
   canCreateExpense: 'إضافة مصروف',
@@ -727,6 +734,7 @@ export const PERMISSION_GROUPS = {
       'canViewMembers',
       'canCreateMembers',
       'canEditMembers',
+      'canEditMemberBasic',
       'canDeleteMembers',
     ] as Array<keyof Permissions>,
   },
@@ -919,6 +927,7 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canViewMembers: '👁️',
   canCreateMembers: '➕',
   canEditMembers: '✏️',
+  canEditMemberBasic: '📝',
   canDeleteMembers: '🗑️',
   canViewPT: '👁️',
   canCreatePT: '➕',
