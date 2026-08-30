@@ -585,6 +585,9 @@ function migrateDatabase(dbPath) {
       { col: 'payrollLateGraceMinutes',    def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'payrollMonthEndDay',         def: 'INTEGER NOT NULL DEFAULT 1' },
       { col: 'payrollSuggestedLatePerMinute', def: 'REAL DEFAULT 0' },
+      // 💪 مميزات اشتراك PT (فريز/ترقية) — غيابها بيفشّل قراءة الإعدادات وترقية الـ PT
+      { col: 'ptFreezeEnabled',            def: 'INTEGER NOT NULL DEFAULT 0' },
+      { col: 'ptUpgradeEnabled',           def: 'INTEGER NOT NULL DEFAULT 0' },
     ];
     for (const { col, def } of settingsCols) {
       if (!columnExists(db, 'SystemSettings', col)) {

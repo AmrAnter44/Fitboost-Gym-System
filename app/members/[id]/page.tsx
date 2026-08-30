@@ -2545,6 +2545,12 @@ export default function MemberDetailPage() {
  
  </div>
  <p className="text-3xl font-bold text-lime-600 dark:text-lime-400 mb-1">{member.freeNutritionSessions ?? 0}</p>
+ {(() => {
+ const total = Number((member as any).offerBenefits?.freeNutritionSessions) || 0
+ const remaining = member.freeNutritionSessions ?? 0
+ if (total <= 0 || remaining > total) return null
+ return (<p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">{locale === 'ar' ? 'استخدم' : 'Used'} {total - remaining} {locale === 'ar' ? 'من' : 'of'} {total}</p>)
+ })()}
  {paidSessionCounts.nutrition > 0 && (
  <p className="text-xs text-lime-600 dark:text-lime-400 font-semibold mb-2">
  + {paidSessionCounts.nutrition} {locale === 'ar' ? 'مدفوعة' : 'paid'}
@@ -2578,6 +2584,12 @@ export default function MemberDetailPage() {
  
  </div>
  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">{member.freePhysioSessions ?? 0}</p>
+ {(() => {
+ const total = Number((member as any).offerBenefits?.freePhysioSessions) || 0
+ const remaining = member.freePhysioSessions ?? 0
+ if (total <= 0 || remaining > total) return null
+ return (<p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">{locale === 'ar' ? 'استخدم' : 'Used'} {total - remaining} {locale === 'ar' ? 'من' : 'of'} {total}</p>)
+ })()}
  {paidSessionCounts.physio > 0 && (
  <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mb-2">
  + {paidSessionCounts.physio} {locale === 'ar' ? 'مدفوعة' : 'paid'}
@@ -2611,6 +2623,12 @@ export default function MemberDetailPage() {
  
  </div>
  <p className="text-3xl font-bold text-fuchsia-600 dark:text-fuchsia-400 mb-1">{member.freeGroupClassSessions ?? 0}</p>
+ {(() => {
+ const total = Number((member as any).offerBenefits?.freeGroupClassSessions) || 0
+ const remaining = member.freeGroupClassSessions ?? 0
+ if (total <= 0 || remaining > total) return null
+ return (<p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">{locale === 'ar' ? 'استخدم' : 'Used'} {total - remaining} {locale === 'ar' ? 'من' : 'of'} {total}</p>)
+ })()}
  {paidSessionCounts.groupClass > 0 && (
  <p className="text-xs text-fuchsia-600 dark:text-fuchsia-400 font-semibold mb-2">
  + {paidSessionCounts.groupClass} {locale === 'ar' ? 'مدفوعة' : 'paid'}
@@ -2643,7 +2661,13 @@ export default function MemberDetailPage() {
  <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.poolSessions')}</p>
  
  </div>
- <p className="text-3xl font-bold text-teal-600 dark:text-teal-400 mb-3">{member.freePoolSessions ?? 0}</p>
+ <p className="text-3xl font-bold text-teal-600 dark:text-teal-400 mb-1">{member.freePoolSessions ?? 0}</p>
+ {(() => {
+ const total = Number((member as any).offerBenefits?.freePoolSessions) || 0
+ const remaining = member.freePoolSessions ?? 0
+ if (total <= 0 || remaining > total) return null
+ return (<p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'استخدم' : 'Used'} {total - remaining} {locale === 'ar' ? 'من' : 'of'} {total}</p>)
+ })()}
  <button
  onClick={handleUsePool}
  disabled={(member.freePoolSessions ?? 0) <= 0 || loading}
@@ -2660,7 +2684,13 @@ export default function MemberDetailPage() {
  <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.padelSessions')}</p>
  
  </div>
- <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mb-3">{member.freePadelSessions ?? 0}</p>
+ <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mb-1">{member.freePadelSessions ?? 0}</p>
+ {(() => {
+ const total = Number((member as any).offerBenefits?.freePadelSessions) || 0
+ const remaining = member.freePadelSessions ?? 0
+ if (total <= 0 || remaining > total) return null
+ return (<p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'استخدم' : 'Used'} {total - remaining} {locale === 'ar' ? 'من' : 'of'} {total}</p>)
+ })()}
  <button
  onClick={handleUsePadel}
  disabled={(member.freePadelSessions ?? 0) <= 0 || loading}
@@ -2677,7 +2707,13 @@ export default function MemberDetailPage() {
  <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.assessmentSessions')}</p>
  
  </div>
- <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-3">{member.freeAssessmentSessions ?? 0}</p>
+ <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-1">{member.freeAssessmentSessions ?? 0}</p>
+ {(() => {
+ const total = Number((member as any).offerBenefits?.freeAssessmentSessions) || 0
+ const remaining = member.freeAssessmentSessions ?? 0
+ if (total <= 0 || remaining > total) return null
+ return (<p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'استخدم' : 'Used'} {total - remaining} {locale === 'ar' ? 'من' : 'of'} {total}</p>)
+ })()}
  <button
  onClick={handleUseAssessment}
  disabled={(member.freeAssessmentSessions ?? 0) <= 0 || loading}
