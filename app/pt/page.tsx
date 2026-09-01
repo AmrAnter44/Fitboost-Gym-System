@@ -74,7 +74,8 @@ export default function PTPage() {
 
   //  تابات صفحة الحصص المخصصة: الحصص | متابعة الكباتن | التغذية | العلاج الطبيعي
   const [activeTab, setActiveTab] = useState<'sessions' | 'captains' | 'nutrition' | 'physio'>('sessions')
-  const canSeeCaptains = hasPermission('canAccessPTCommission')
+  //  المشرف (MANAGER) بيشوف متابعة الكباتن بحكم دوره (زيّ الأونر/الأدمن) — من غير ما نحتاج صلاحية العمولة
+  const canSeeCaptains = user?.role === 'MANAGER' || hasPermission('canAccessPTCommission')
   //  التغذية والعلاج الطبيعي بيظهروا كتابات بس لو مفعّلين من الإعدادات
   const canSeeNutrition = settings.nutritionEnabled
   const canSeePhysio = settings.physiotherapyEnabled

@@ -594,7 +594,7 @@ export default function CoachCommissionPage() {
         const perms = data.user.permissions || {}
         const isAdminUser =
           role === 'ADMIN' || role === 'OWNER' || role === 'MANAGER' ||
-          !!perms.canAccessPTCommission || !!perms.canViewAllPT
+          !!perms.canAccessPTCommission
         setIsAdmin(isAdminUser)
       }
     } catch (error) {

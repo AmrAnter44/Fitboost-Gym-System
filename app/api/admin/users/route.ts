@@ -59,7 +59,7 @@ const VALID_PERMISSION_FIELDS = [
   'canViewReceipts', 'canEditReceipts', 'canEditReceiptBasic', 'canDeleteReceipts',
   'canViewExpenses', 'canCreateExpense', 'canEditExpense', 'canDeleteExpense',
   'canViewVisitors', 'canCreateVisitor', 'canEditVisitor', 'canDeleteVisitor',
-  'canViewFollowUps', 'canCreateFollowUp', 'canEditFollowUp', 'canDeleteFollowUp', 'canManageSales',
+  'canViewFollowUps', 'hideFollowUpNumbers', 'canCreateFollowUp', 'canEditFollowUp', 'canDeleteFollowUp', 'canManageSales',
   'canViewDayUse', 'canCreateDayUse', 'canEditDayUse', 'canDeleteDayUse',
   'canViewReports', 'canViewFinancials', 'canViewAttendance', 'canAccessClosing', 'canCloseDayOnly', 'canAccessPTCommission', 'canViewAllPT', 'canAccessSettings', 'canAccessAdmin',
   'canViewSpaBookings', 'canCreateSpaBooking', 'canEditSpaBooking', 'canCancelSpaBooking', 'canViewSpaReports',
@@ -213,7 +213,7 @@ export async function POST(request: Request) {
     //  🛡️ نشيل الحقول الجديدة (canEditMemberBasic) من الـ create ونطبّقها بـ raw SQL بعده،
     //  عشان لو الـ Prisma client لسه outdated الإنشاء ما يفشلش
     const rawFallback: Record<string, boolean> = {}
-    for (const f of ['canEditMemberBasic']) {
+    for (const f of ['canEditMemberBasic', 'hideFollowUpNumbers']) {
       if (f in permData) {
         rawFallback[f] = permData[f]
         delete permData[f]

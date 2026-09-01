@@ -26,6 +26,9 @@ interface Member {
   expiryDate?: string
   salesStaff?: { id: string; name: string } | null
   coach?: { id: string; name: string } | null
+  noCoachWanted?: boolean
+  pendingRenewalStartDate?: string | null
+  pendingRenewalExpiryDate?: string | null
 }
 
 interface MemberCardRowProps {
@@ -240,6 +243,15 @@ const MemberCardRow = ({
                 🎟️ {member.remainingCheckIns} {locale === 'ar' ? 'دخلة' : 'entries'}
               </span>
             )}
+            {/*  🔁 تجديد مجدول — العضو جدّد واشتراكه القديم لسه شغّال */}
+            {member.pendingRenewalStartDate && (
+              <span
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 ring-1 ring-blue-300 dark:ring-blue-700"
+                title={locale === 'ar' ? `يبدأ ${formatDateYMD(member.pendingRenewalStartDate)}` : `Starts ${formatDateYMD(member.pendingRenewalStartDate)}`}
+              >
+                🔁 {locale === 'ar' ? 'تجديد مجدول' : 'Scheduled renewal'}
+              </span>
+            )}
             </div>
             <span className="text-primary-700 dark:text-primary-400 font-bold text-xs">
               {getPackageName(member.startDate, member.expiryDate, locale)}
@@ -261,8 +273,15 @@ const MemberCardRow = ({
           </div>
 
           {/* Sales / Coach tags */}
-          {(member.salesStaff?.name || member.coach?.name) && (
+          {(member.salesStaff?.name || member.coach?.name || member.noCoachWanted) && (
             <div className="flex flex-wrap gap-1.5">
+              {/*  مش عايز كابتن — يظهر لو مفيش كوتش متعيّن */}
+              {!member.coach?.name && member.noCoachWanted && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-800">
+                  <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 1 1-12.728 0M12 3v9" /></svg>
+                  {locale === 'ar' ? 'مش عايز كابتن' : 'No coach wanted'}
+                </span>
+              )}
               {member.salesStaff?.name && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">
                   <svg className="w-3 h-3" {...stroke}>

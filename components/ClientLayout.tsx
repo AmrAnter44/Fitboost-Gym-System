@@ -29,6 +29,8 @@ import BackToTop from './BackToTop'
 import LicenseLockedScreen from './LicenseLockedScreen'
 import BulkSenderOverlay from './BulkSenderOverlay'
 import InternalMailNotifier from './InternalMailNotifier'
+import FollowUpReminderBar from './FollowUpReminderBar'
+import SalesRemindersBar from './SalesRemindersBar'
 import Link from 'next/link'
 
 function LayoutContent({ children }: { children: ReactNode }) {
@@ -103,6 +105,10 @@ function LayoutContent({ children }: { children: ReactNode }) {
 
               {/* Breadcrumb */}
               <Breadcrumb />
+
+              {/*  بار تذكير المتابعات (لغير السيلز) + بار تذكيرات السيلز الثابت — فوق المحتوى في كل الصفحات */}
+              {!isEmbedded && <FollowUpReminderBar />}
+              {!isEmbedded && <SalesRemindersBar />}
 
               {/* Main Content */}
               <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900">

@@ -1,6 +1,6 @@
 {
   "name": "fitboost-system",
-  "version": "6.10.7",
+  "version": "6.10.8",
   "description": "FitBoost - Professional Gym Management System",
   "private": true,
   "main": "electron/main.js",

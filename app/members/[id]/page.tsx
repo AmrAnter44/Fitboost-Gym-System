@@ -217,6 +217,8 @@ export default function MemberDetailPage() {
  const [showReceipt, setShowReceipt] = useState(false)
  const [receiptData, setReceiptData] = useState<any>(null)
  const [showRenewalForm, setShowRenewalForm] = useState(false)
+ const [showCancelRenewalModal, setShowCancelRenewalModal] = useState(false)
+ const [cancelRenewalLoading, setCancelRenewalLoading] = useState(false)
  //  متابعة سريعة على العضو
  const [showQuickFollowUp, setShowQuickFollowUp] = useState(false)
  const [followUpHistory, setFollowUpHistory] = useState<any[]>([])
@@ -534,6 +536,32 @@ export default function MemberDetailPage() {
  toast.error(t('memberDetails.errorLoadingData'))
  } finally {
  setLoading(false)
+ }
+ }
+
+ //  🔁 إلغاء تجديد مجدول (بيتنفّذ بعد التأكيد من الموديل)
+ const confirmCancelPendingRenewal = async () => {
+ if (!member?.id) return
+ setCancelRenewalLoading(true)
+ try {
+ const res = await fetch('/api/members/cancel-pending-renewal', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ memberId: member.id })
+ })
+ const data = await res.json()
+ if (!res.ok) {
+ toast.error(data?.error || (locale === 'ar' ? 'فشل إلغاء التجديد المجدول' : 'Failed to cancel'))
+ return
+ }
+ toast.success(locale === 'ar' ? 'تم إلغاء التجديد المجدول' : 'Scheduled renewal cancelled')
+ setShowCancelRenewalModal(false)
+ await fetchMember()
+ } catch (error) {
+ console.error('Error cancelling pending renewal:', error)
+ toast.error(locale === 'ar' ? 'فشل إلغاء التجديد المجدول' : 'Failed to cancel')
+ } finally {
+ setCancelRenewalLoading(false)
  }
  }
 
@@ -2271,6 +2299,28 @@ export default function MemberDetailPage() {
  </div>
 
  <div className="mt-6 pt-6 border-t border-white dark:border-gray-400 border-opacity-20">
+ {/*  🔁 بانر التجديد المجدول — الاشتراك الحالي لسه شغّال والتجديد هيتفعّل تلقائي */}
+ {(member as any).pendingRenewal && (
+ <div className="mb-4 rounded-xl bg-white/20 dark:bg-gray-900/30 ring-1 ring-white/40 p-4 flex items-start gap-3 text-white">
+ <svg className="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+ <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+ </svg>
+ <div className="flex-1 min-w-0">
+ <p className="font-bold text-base mb-0.5">🔁 {locale === 'ar' ? 'تجديد مجدول' : 'Scheduled Renewal'}</p>
+ <p className="text-sm opacity-95 leading-relaxed">
+ {locale === 'ar'
+ ? `الاشتراك الحالي شغّال لحد ${formatDateYMD(member.expiryDate)}. اشتراك التجديد يبدأ ${formatDateYMD((member as any).pendingRenewal.startDate)}${(member as any).pendingRenewal.expiryDate ? ` وينتهي ${formatDateYMD((member as any).pendingRenewal.expiryDate)}` : ''} — هيتفعّل تلقائي في ميعاده.`
+ : `Current subscription active until ${formatDateYMD(member.expiryDate)}. Renewal starts ${formatDateYMD((member as any).pendingRenewal.startDate)}${(member as any).pendingRenewal.expiryDate ? ` and ends ${formatDateYMD((member as any).pendingRenewal.expiryDate)}` : ''} — activates automatically.`}
+ </p>
+ </div>
+ <button
+ onClick={() => setShowCancelRenewalModal(true)}
+ className="flex-shrink-0 bg-white/90 hover:bg-white text-red-600 font-bold text-xs px-3 py-1.5 rounded-lg transition-colors duration-200"
+ >
+ {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+ </button>
+ </div>
+ )}
  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-white">
  <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
  <p className="text-sm opacity-90">{t('memberDetails.status')}</p>
@@ -4977,6 +5027,60 @@ export default function MemberDetailPage() {
  }}
  onClose={() => setShowRenewalForm(false)}
  />
+ )}
+
+ {/*  🔁 موديل تأكيد إلغاء التجديد المجدول */}
+ {showCancelRenewalModal && (
+ <div
+ className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+ onClick={() => { if (!cancelRenewalLoading) setShowCancelRenewalModal(false) }}
+ >
+ <div
+ dir={locale === 'ar' ? 'rtl' : 'ltr'}
+ className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-md p-6 animate-modal-in"
+ onClick={(e) => e.stopPropagation()}
+ >
+ <div className="flex items-start gap-3 mb-4">
+ <div className="w-11 h-11 rounded-xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0">
+ <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+ <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+ </svg>
+ </div>
+ <div className="flex-1 min-w-0">
+ <h3 className="text-lg font-black text-gray-900 dark:text-gray-100 mb-1">
+ {locale === 'ar' ? 'إلغاء التجديد المجدول؟' : 'Cancel scheduled renewal?'}
+ </h3>
+ <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+ {locale === 'ar'
+ ? 'التجديد المجدول ده هيتلغي ومش هيتفعّل. ملاحظة: الفلوس اللي اتدفعت في الإيصال مش هترجع تلقائي.'
+ : 'The scheduled renewal will be cancelled and will not activate. Note: any paid amount will not be auto-refunded.'}
+ </p>
+ </div>
+ </div>
+ <div className="flex gap-2 justify-end">
+ <button
+ onClick={() => setShowCancelRenewalModal(false)}
+ disabled={cancelRenewalLoading}
+ className="px-4 py-2 rounded-lg font-bold text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50"
+ >
+ {locale === 'ar' ? 'رجوع' : 'Back'}
+ </button>
+ <button
+ onClick={confirmCancelPendingRenewal}
+ disabled={cancelRenewalLoading}
+ className="px-4 py-2 rounded-lg font-bold text-sm bg-red-600 hover:bg-red-700 text-white transition-colors duration-200 disabled:opacity-50 inline-flex items-center gap-2"
+ >
+ {cancelRenewalLoading && (
+ <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+ <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+ <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+ </svg>
+ )}
+ {locale === 'ar' ? 'تأكيد الإلغاء' : 'Confirm cancel'}
+ </button>
+ </div>
+ </div>
+ </div>
  )}
 
  {/* نموذج الترقية */}

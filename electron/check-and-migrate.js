@@ -328,7 +328,8 @@ function migrateDatabase(dbPath) {
       'canDeleteDeduction',
       'canManageBannedMembers',
       'canEditReceiptBasic',
-      'canEditMemberBasic'
+      'canEditMemberBasic',
+      'hideFollowUpNumbers'
     ];
 
     for (const permission of morePermissions) {
@@ -490,6 +491,9 @@ function migrateDatabase(dbPath) {
       { col: 'monthlyVacationDays', def: 'INTEGER' },
       { col: 'shiftStartTime',      def: 'TEXT' },
       { col: 'shiftEndTime',        def: 'TEXT' },
+      //  تارجت الكوتش اليومي (عدد الحصص) — رينج من/إلى
+      { col: 'dailySessionTargetMin', def: 'INTEGER' },
+      { col: 'dailySessionTargetMax', def: 'INTEGER' },
     ];
     for (const { col, def } of staffHrCols) {
       if (!columnExists(db, 'Staff', col)) {
@@ -523,6 +527,10 @@ function migrateDatabase(dbPath) {
       { col: 'transferredFromMemberId', def: 'TEXT' },     //  📤 نقل العضوية: العضو اللي نقل للعضو ده
       { col: 'transferredFromAt',       def: 'DATETIME' },
       { col: 'transferredFromPhone',    def: 'TEXT' },      //  📤 الرقم القديم اللي اتنقلت منه العضوية
+      { col: 'noCoachWanted',           def: 'INTEGER NOT NULL DEFAULT 0' }, //  العضو مش عايز كابتن
+      { col: 'pendingRenewalStartDate',  def: 'DATETIME' }, //  🔁 تجديد مجدول: تاريخ بداية التجديد المؤجل
+      { col: 'pendingRenewalExpiryDate', def: 'DATETIME' }, //  🔁 تاريخ نهاية التجديد المؤجل
+      { col: 'pendingRenewalData',       def: 'TEXT' },     //  🔁 JSON بتفاصيل التجديد المؤجل
     ];
     for (const { col, def } of memberCols) {
       if (!columnExists(db, 'Member', col)) {

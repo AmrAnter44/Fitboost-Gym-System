@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { verifyAuth } from '../../../../lib/auth'
+import { activatePendingRenewalForMember, readPendingRenewal } from '../../../../lib/pendingRenewal'
 
 // GET - جلب بيانات عضو واحد (متاح للكوتش بدون صلاحيات خاصة)
 
@@ -27,6 +28,9 @@ export async function GET(
         { status: 400 }
       )
     }
+
+    //  🔁 فعّل التجديد المجدول لو وصل ميعاده قبل ما نجيب بيانات العضو
+    try { await activatePendingRenewalForMember(memberId) } catch { /* ignore */ }
 
     const member = await prisma.member.findUnique({
       where: { id: memberId },
@@ -145,6 +149,13 @@ export async function GET(
       if (src) transferredFrom = src
     }
 
+    //  🔁 التجديد المجدول (لو لسه موجود وما اتفعّلش) — للعرض في بوكس الحالة
+    let pendingRenewal: { startDate: string; expiryDate: string | null } | null = null
+    try {
+      const p = await readPendingRenewal(memberId)
+      if (p) pendingRenewal = { startDate: p.startDate.toISOString(), expiryDate: p.expiryDate ? p.expiryDate.toISOString() : null }
+    } catch { /* ignore */ }
+
     return NextResponse.json({
       ...member,
       referrerInfo,
@@ -153,6 +164,7 @@ export async function GET(
       freePTSessionsUsed,
       offerBenefits,
       transferredFrom,
+      pendingRenewal,
     }, { status: 200 })
   } catch (error: any) {
     console.error('❌ Error fetching member:', error)

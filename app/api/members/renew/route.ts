@@ -15,6 +15,7 @@ import { round2 } from '../../../../lib/money'
 import { RenewInputSchema, firstIssue } from '../../../../lib/schemas/financialSchemas'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 import { logError } from '../../../../lib/errorLogger'
+import { writePendingRenewal, readPendingRenewal, type PendingRenewalData } from '../../../../lib/pendingRenewal'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,6 +85,14 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'هذا العضو محظور ولا يمكن تجديد اشتراكه' }, { status: 403 })
         }
       }
+    }
+
+    //  🔁 لو فيه تجديد مجدول لسه ما اتفعّلش — نمنع تجديد تاني عشان مايحصلش لخبطة
+    const existingPending = await readPendingRenewal(memberId)
+    if (existingPending) {
+      return NextResponse.json({
+        error: 'فيه تجديد مجدول بالفعل لسه ما اتفعّلش لهذا العضو. لازم يتفعّل أو يتلغى الأول.'
+      }, { status: 409 })
     }
 
     //  سياسة التجديد:
@@ -179,6 +188,130 @@ export async function POST(request: Request) {
 
     // ✅ BUG 5: null-safe trim عشان لو staffName جاي null
     const safeStaffName = (staffName || '').trim()
+
+    //  🔁 تجديد مجدول: لو تاريخ بداية التجديد في المستقبل (الريسيبشن محدد إنه يبدأ بعد كده)،
+    //  والاشتراك الحالي لسه شغّال — منكتبش على الاشتراك الحالي. نخزّن التجديد ويتفعّل تلقائي
+    //  أول ما نوصل لتاريخ البداية (التاريخ + المزايا + السعر مع بعض).
+    const startDateObj = startDate ? new Date(startDate) : null
+    if (startDateObj) startDateObj.setHours(0, 0, 0, 0)
+    const oldStillValid = !!member.expiryDate && new Date(member.expiryDate) >= renewToday
+    const isScheduled = !!startDateObj && startDateObj.getTime() > renewToday.getTime() && oldStillValid
+
+    if (isScheduled) {
+      const pendingData: PendingRenewalData = {
+        subscriptionPrice,
+        remainingAmount: round2(remainingAmount || 0),
+        remainingDueDate: remainingDueDate || null,
+        additionalFreePT,
+        additionalNutrition: additionalNutritionSessions,
+        additionalPhysio: additionalPhysioSessions,
+        additionalGroupClass: additionalGroupClassSessions,
+        additionalInBody,
+        additionalInvitations,
+        additionalFreezeDays,
+        renewOfferMaxCheckIns,
+        renewEntriesOnly,
+        resetBenefits,
+        ...(source !== undefined ? { source: source || null } : {}),
+        offerId: offerId || null,
+        notes: notes || null,
+      }
+
+      let schedReceipt: any
+      try {
+        schedReceipt = await prisma.$transaction(async (tx) => {
+          const receiptNumber = await getNextReceiptNumber(tx)
+          const r = await tx.receipt.create({
+            data: {
+              receiptNumber,
+              type: RECEIPT_TYPES.MEMBERSHIP_RENEWAL,
+              amount: paidAmount,
+              paymentMethod: finalPaymentMethod,
+              staffName: safeStaffName,
+              itemDetails: JSON.stringify({
+                memberNumber: member.memberNumber,
+                memberName: member.name,
+                phone: member.phone,
+                subscriptionPrice,
+                paidAmount,
+                remainingAmount: remainingAmount || 0,
+                freePTSessions: additionalFreePT,
+                freeNutritionSessions: additionalNutritionSessions,
+                freePhysioSessions: additionalPhysioSessions,
+                freeGroupClassSessions: additionalGroupClassSessions,
+                inBodyScans: additionalInBody,
+                invitations: additionalInvitations,
+                remainingFreezeDays: additionalFreezeDays,
+                previousExpiryDate: member.expiryDate,
+                newStartDate: startDate,
+                newExpiryDate: expiryDate,
+                subscriptionDays,
+                isRenewal: true,
+                scheduledRenewal: true,   //  🔁 تجديد مجدول (لسه ما اتفعّلش)
+                benefitsMode: resetBenefits ? 'reset' : 'accumulate',
+                staffName: safeStaffName,
+                salesPersonName: member.salesStaff?.name || null,
+              }),
+              memberId: member.id,
+            },
+          })
+
+          const pr = await processPaymentWithPoints(
+            member.id, member.phone, member.memberNumber, finalPaymentMethod,
+            `دفع تجديد عضوية (مجدول) - ${member.name}`, tx
+          )
+          if (!pr.success) {
+            const e: any = new Error(pr.message || 'فشل خصم النقاط')
+            e.code = 'POINTS_FAILED'; e.userMessage = pr.message
+            throw e
+          }
+
+          //  نخزّن التجديد المؤجل — من غير ما نلمس اشتراك العضو الحالي
+          await writePendingRenewal(
+            memberId,
+            startDateObj!,
+            expiryDate ? new Date(expiryDate) : null,
+            pendingData,
+            tx
+          )
+
+          return r
+        })
+      } catch (txErr: any) {
+        if (txErr?.code === 'POINTS_FAILED') {
+          return NextResponse.json({ error: txErr.userMessage || 'فشل خصم النقاط' }, { status: 400 })
+        }
+        console.error('❌ خطأ في التجديد المجدول (rolled back):', txErr)
+        logError({ error: txErr, endpoint: '/api/members/renew', method: 'POST', statusCode: 500, additionalContext: { type: 'scheduled_renew_failed', memberId } })
+        return NextResponse.json({ error: 'فشل تسجيل التجديد المجدول ولم يتم أي تغيير. من فضلك حاول مرة أخرى.' }, { status: 500 })
+      }
+
+      try {
+        await addPointsForPayment(member.id, paidAmount, `مكافأة تجديد اشتراك (مجدول) - ${member.name}`)
+      } catch (pointsError) { console.error('Error adding reward points:', pointsError) }
+
+      createAuditLog({
+        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+        action: 'UPDATE', resource: 'Member', resourceId: member.id,
+        details: { operation: 'ScheduledRenew', memberNumber: member.memberNumber, memberName: member.name, subscriptionPrice, paidAmount, startDate, expiryDate, receiptNumber: schedReceipt.receiptNumber },
+        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+      })
+
+      return NextResponse.json({
+        member,               //  العضو زي ما هو (الاشتراك الحالي ما اتغيرش)
+        scheduled: true,      //  🔁 علامة إن ده تجديد مجدول
+        pendingRenewal: { startDate, expiryDate },
+        receipt: {
+          id: schedReceipt.id,
+          receiptNumber: schedReceipt.receiptNumber,
+          amount: schedReceipt.amount,
+          paymentMethod: schedReceipt.paymentMethod,
+          staffName: schedReceipt.staffName,
+          itemDetails: JSON.parse(schedReceipt.itemDetails),
+          createdAt: schedReceipt.createdAt,
+        }
+      }, { status: 200 })
+    }
 
     let receipt: any
     let updatedMember: any

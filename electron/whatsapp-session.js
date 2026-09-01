@@ -28,9 +28,11 @@ class WhatsAppSession {
     this.isReady = false;
     this.qrCode = null;
     this.isInitializing = false;
+    this.reconnecting = false;   // بيعيد الاتصال دلوقتي (بعد 515 مثلاً) — عشان الواجهة تقول «جاري الاتصال» مش «غير متصل»
     this.generation = 0;
     this.reconnectCount = 0;
-    this.MAX_RECONNECTS = 5;
+    this.MAX_RECONNECTS = 8;
+    this._cachedVersion = null;  // نكاش نسخة Baileys عشان الـ reconnect يبقى أسرع
     this.phoneNumber = null;
     this.broadcast = broadcast;
     this.loadDeps = loadDeps;
@@ -65,6 +67,8 @@ class WhatsAppSession {
       qrCode: this.qrCode,
       hasClient: this.sock !== null,
       phoneNumber: this.phoneNumber,
+      //  جاري إعادة الاتصال (بعد 515 مثلاً) — الواجهة تعرضها كـ «جاري الاتصال» مش فصل
+      reconnecting: this.reconnecting,
     };
   }
 
@@ -89,11 +93,14 @@ class WhatsAppSession {
       const pino = require('pino');
       const logger = pino({ level: 'silent' });
 
-      let version = this.BAILEYS_VERSION_FALLBACK;
-      try {
-        const result = await fetchLatestBaileysVersion();
-        version = result.version;
-      } catch (e) {
+      let version = this._cachedVersion || this.BAILEYS_VERSION_FALLBACK;
+      if (!this._cachedVersion) {
+        try {
+          const result = await fetchLatestBaileysVersion();
+          version = result.version;
+          this._cachedVersion = version;  // نكاش عشان الـ reconnect الجاي يبقى فوري
+        } catch (e) {
+        }
       }
 
       const { state, saveCreds } = await useMultiFileAuthState(this.authPath);
@@ -160,6 +167,7 @@ class WhatsAppSession {
           if (!this.isReady) this.broadcast('ready', { isReady: true, sessionIndex: idx });
           this.isReady = true;
           this.qrCode = null;
+          this.reconnecting = false;
           this.reconnectCount = 0;
 
           // Extract phone number
@@ -185,22 +193,32 @@ class WhatsAppSession {
           this.sock = null;
           try { old?.ws?.close(); } catch {}
 
-          this._api('update-session', { sessionIndex: idx, status: 'disconnected' });
-
           const { DisconnectReason } = this.loadDeps();
 
           if (code === DisconnectReason.loggedOut) {
+            //  تسجيل خروج فعلي → محتاج QR جديد
+            this.reconnecting = false;
             this._deleteCreds();
             this.reconnectCount = 0;
+            this._api('update-session', { sessionIndex: idx, status: 'disconnected' });
             this.broadcast('disconnected', { reason: 'Logged out', sessionIndex: idx });
           } else if (code === DisconnectReason.restartRequired || code === 515) {
-            setTimeout(() => this.initialize(), 1000);
+            //  ده طبيعي بعد أول مسح — إعادة اتصال سريعة، والواجهة تفضل «جاري الاتصال»
+            this.reconnecting = true;
+            this._api('update-session', { sessionIndex: idx, status: 'connecting' });
+            this.broadcast('connecting', { percent: 60, message: 'Reconnecting...', sessionIndex: idx })
+            setTimeout(() => this.initialize(), 800);
           } else if (this.reconnectCount < this.MAX_RECONNECTS) {
+            this.reconnecting = true;
             this.reconnectCount++;
-            const delay = Math.min(2000 * Math.pow(2, this.reconnectCount - 1), 30000);
+            this._api('update-session', { sessionIndex: idx, status: 'connecting' });
+            this.broadcast('connecting', { percent: 40, message: 'Reconnecting...', sessionIndex: idx })
+            const delay = Math.min(1500 * Math.pow(2, this.reconnectCount - 1), 30000);
             setTimeout(() => this.initialize(), delay);
           } else {
+            this.reconnecting = false;
             this.reconnectCount = 0;
+            this._api('update-session', { sessionIndex: idx, status: 'disconnected' });
             this.broadcast('disconnected', { reason: 'Max reconnects reached', sessionIndex: idx });
           }
         }

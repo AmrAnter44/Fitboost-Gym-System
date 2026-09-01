@@ -74,22 +74,13 @@ export async function GET(request: Request) {
         }
       })
 
-      // فلترة حسب الدور إذا كان كوتش (إلا لو عنده canViewAllPT — يبص على كله)
+      // فلترة حسب الدور: الكوتش يرى جلسات عملائه بس. «رؤية الكل» بقت للمشرف/الإدارة بالدور.
       if (user.role === 'COACH') {
-        //  الفتنس مانجر اللي عنده canViewAllPT يبص على كل الجلسات حتى لو دوره COACH
-        //  cast to any — Prisma client مش متعمل regenerate لسه
-        const permission = await (prisma.permission as any).findUnique({
-          where: { userId: user.userId },
-          select: { canViewAllPT: true }
+        const filteredSessions = sessions.filter(session => {
+          if (session.isFreeSession) return true
+          return session.pt?.coachUserId === user.userId
         })
-        if (!permission?.canViewAllPT) {
-          // الكوتش العادي يرى فقط جلسات عملائه المدفوعة + الجلسات المجانية
-          const filteredSessions = sessions.filter(session => {
-            if (session.isFreeSession) return true
-            return session.pt?.coachUserId === user.userId
-          })
-          return NextResponse.json(filteredSessions)
-        }
+        return NextResponse.json(filteredSessions)
       }
 
       return NextResponse.json(sessions)

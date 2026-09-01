@@ -55,6 +55,35 @@ export async function GET(request: Request) {
 
     const trainerIds = trainers.map(t => t.id)
 
+    //  📊 عدد حصص كل كوتش النهاردة (مجاني + مدفوع) — للتارجت اليومي
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
+    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999)
+    const todaySessionsRaw = await prisma.pTSession.findMany({
+      where: { sessionDate: { gte: todayStart, lte: todayEnd } },
+      select: { coachName: true },
+    })
+    const todayByCoach = new Map<string, number>()
+    for (const s of todaySessionsRaw) {
+      const cn = (s.coachName || '').trim()
+      if (!cn) continue
+      todayByCoach.set(cn, (todayByCoach.get(cn) || 0) + 1)
+    }
+
+    //  🎯 التارجت اليومي لكل كوتش — بـ raw SQL (الأعمدة جديدة، آمنة حتى لو الـ client outdated)
+    const targetByCoachId = new Map<string, { min: number | null; max: number | null }>()
+    try {
+      const rows: any[] = await prisma.$queryRawUnsafe(
+        `SELECT id, dailySessionTargetMin, dailySessionTargetMax FROM Staff WHERE id IN (${trainerIds.map(() => '?').join(',')})`,
+        ...trainerIds
+      )
+      for (const r of rows) {
+        targetByCoachId.set(r.id, {
+          min: r.dailySessionTargetMin ?? null,
+          max: r.dailySessionTargetMax ?? null,
+        })
+      }
+    } catch (e) { /* الأعمدة ممكن تكون لسه مش موجودة — نتعامل كـ null */ }
+
     //  2. جلب كل الأعضاء المعينين للكباتن دول
     const members = await prisma.member.findMany({
       where: { coachId: { in: trainerIds } },
@@ -247,6 +276,10 @@ export async function GET(request: Request) {
           id: coach.id,
           name: coach.name,
           staffCode: coach.staffCode,
+          //  التارجت اليومي (رينج) + عدد حصص النهاردة
+          dailyTargetMin: targetByCoachId.get(coach.id)?.min ?? null,
+          dailyTargetMax: targetByCoachId.get(coach.id)?.max ?? null,
+          todaySessions: todayByCoach.get((coach.name || '').trim()) || 0,
         },
         stats,
         members: coachMembers,

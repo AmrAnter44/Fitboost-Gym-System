@@ -11,6 +11,14 @@ import type { MessageTemplate } from './MessageTemplateManager'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
+//  إخفاء الرقم: نسيب أول 3 وآخر 2 والباقي نقط
+function maskPhone(p?: string | null): string {
+  const s = (p || '').replace(/\s/g, '')
+  if (!s) return ''
+  if (s.length <= 5) return '•'.repeat(s.length)
+  return s.slice(0, 3) + '•'.repeat(Math.max(4, s.length - 5)) + s.slice(-2)
+}
+
 //  Dynamic imports - تحميل عند الحاجة فقط
 const FollowUpForm = nextDynamic(() => import('./FollowUpForm'), { ssr: false })
 const SalesDashboard = nextDynamic(() => import('./SalesDashboard'), {
@@ -110,6 +118,8 @@ function FollowUpsPageContent() {
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
   // 💼 صلاحية مسؤول السيلز — مخصصة لإدارة كل حاجة في تاب إدارة السيلز
   const canManageSales = hasPermission('canManageSales')
+  //  إخفاء أرقام المتابعات في القوائم (تتكشف جوّه نافذة المتابعة بس)
+  const hideNumbers = hasPermission('hideFollowUpNumbers')
   const { t, direction, locale } = useLanguage()
   const toast = useToast()
   const router = useRouter()
@@ -154,8 +164,11 @@ function FollowUpsPageContent() {
   const [bulkScriptDelayMin, setBulkScriptDelayMin] = useState(15)
   const [bulkScriptDelayMax, setBulkScriptDelayMax] = useState(30)
   const [bulkScriptSkipDays, setBulkScriptSkipDays] = useState(7)
+  //  نص الإدخال منفصل عن القيمة الرقمية — عشان الكتابة تفضل سلسة ومتتأثرش بإعادة الرندر (refetch)
+  const [bulkScriptSkipDaysText, setBulkScriptSkipDaysText] = useState('7')
   //  ⏰ ريمايندر: بعد كام يوم أرجع أكلم الناس دول تاني (0 = بدون ريمايندر)
   const [bulkScriptReminderDays, setBulkScriptReminderDays] = useState(0)
+  const [bulkScriptReminderDaysText, setBulkScriptReminderDaysText] = useState('0')
   const [bulkScriptTestPhone, setBulkScriptTestPhone] = useState('')
   //  نظام التشغيل (running/paused/progress/report) اتنقل لـ BulkSenderContext على مستوى التطبيق
   //  عشان الإرسال يفضل شغّال والكرة/المودالات تفضل ظاهرة حتى بعد الخروج من الصفحة.
@@ -1107,6 +1120,12 @@ function FollowUpsPageContent() {
       setViewMode('list')
       router.replace('/followups', { scroll: false })
     }
+    //  🔁 جاي من بار تذكيرات السيلز: ?due=today → فلتر «متابعاتي المستحقة النهاردة»
+    if (searchParams.get('due') === 'today') {
+      setViewMode('list')
+      setSalesFilter('my-due')
+      router.replace('/followups', { scroll: false })
+    }
   }, [searchParams, router])
 
   //  Deep-link من الـ Dashboard smart search — يفتح modal الزائر فور التحميل
@@ -1304,6 +1323,9 @@ function FollowUpsPageContent() {
           matchesSales = isMyFollowUp(fu) && priority === 'overdue'
         } else if (salesFilter === 'today') {
           matchesSales = priority === 'today'
+        } else if (salesFilter === 'my-due') {
+          //  🔁 متابعاتي المستحقة النهاردة (متأخرة + النهاردة) — يطابق عدّاد بار التذكيرات
+          matchesSales = isMyFollowUp(fu) && (priority === 'overdue' || priority === 'today')
         }
 
         //  فلترة حسب المصدر
@@ -1657,6 +1679,11 @@ function FollowUpsPageContent() {
       'expiring-member': t('followups.sources.expiringMember'),
       'facebook': t('followups.sources.facebook'),
       'instagram': t('followups.sources.instagram'),
+      'tiktok': locale === 'ar' ? 'تيك توك' : 'TikTok',
+      'chatgpt': 'ChatGPT',
+      'google_maps': locale === 'ar' ? 'جوجل ماب / Google Maps' : 'Google Maps',
+      'suggestion': locale === 'ar' ? 'اقتراح' : 'Suggestion',
+      'friend_referral': locale === 'ar' ? 'إحالة من صديق' : 'Friend Referral',
       'friend': t('followups.sources.friend'),
       'other': t('followups.sources.other'),
       'website': locale === 'ar' ? 'موقع الويب' : 'Website',
@@ -1736,6 +1763,7 @@ function FollowUpsPageContent() {
       if (salesFilter === 'my-followups' && !isMyFollowUp(fu)) continue
       if (salesFilter === 'my-overdue' && (!isMyFollowUp(fu) || priority !== 'overdue')) continue
       if (salesFilter === 'today' && priority !== 'today') continue
+      if (salesFilter === 'my-due' && (!isMyFollowUp(fu) || (priority !== 'overdue' && priority !== 'today'))) continue
 
       //  assigned staff
       if (assignedStaffFilter !== 'all') {
@@ -1805,6 +1833,8 @@ function FollowUpsPageContent() {
         matchesSales = isMyFollowUp(fu) && priority === 'overdue'
       } else if (salesFilter === 'today') {
         matchesSales = priority === 'today'
+      } else if (salesFilter === 'my-due') {
+        matchesSales = isMyFollowUp(fu) && (priority === 'overdue' || priority === 'today')
       }
 
       const matchesAssignedStaff = assignedStaffFilter === 'all'
@@ -2394,8 +2424,13 @@ function FollowUpsPageContent() {
                     <input
                       type="number"
                       min={0}
-                      value={bulkScriptSkipDays}
-                      onChange={e => setBulkScriptSkipDays(parseInt(e.target.value) || 0)}
+                      value={bulkScriptSkipDaysText}
+                      onChange={e => {
+                        const raw = e.target.value
+                        setBulkScriptSkipDaysText(raw)
+                        const n = parseInt(raw, 10)
+                        setBulkScriptSkipDays(isNaN(n) || n < 0 ? 0 : n)
+                      }}
                       className="w-16 px-2 py-1 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-700 text-center font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors duration-200"
                     />
                     {t('followups.bulkScript.day')}
@@ -2411,8 +2446,13 @@ function FollowUpsPageContent() {
                   <input
                     type="number"
                     min={0}
-                    value={bulkScriptReminderDays}
-                    onChange={e => setBulkScriptReminderDays(parseInt(e.target.value) || 0)}
+                    value={bulkScriptReminderDaysText}
+                    onChange={e => {
+                      const raw = e.target.value
+                      setBulkScriptReminderDaysText(raw)
+                      const n = parseInt(raw, 10)
+                      setBulkScriptReminderDays(isNaN(n) || n < 0 ? 0 : n)
+                    }}
                     className="w-16 px-2 py-1 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-700 text-center font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
                   />
                   {locale === 'ar' ? 'يوم' : 'days'}
@@ -2778,7 +2818,7 @@ function FollowUpsPageContent() {
       )}
 
       {/* Unified Filters Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 mb-6 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 mb-6 overflow-visible">
 
         {/* Row 1: Personal quick filters + sort toggle */}
         {user?.name && (
@@ -3260,8 +3300,8 @@ function FollowUpsPageContent() {
                           <div className="flex-1">
                             <div className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{t('followups.table.phoneNumber')}</div>
                             <div className="flex gap-2 items-center">
-                              <span className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200" dir="ltr">
-                                {followUp.visitor.phone}
+                              <span className={`font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200 ${hideNumbers ? 'select-none tracking-widest' : ''}`} dir="ltr">
+                                {hideNumbers ? maskPhone(followUp.visitor.phone) : followUp.visitor.phone}
                               </span>
                               <button
                                 onClick={() => openTemplateModal(followUp.visitor)}
@@ -3589,7 +3629,7 @@ function FollowUpsPageContent() {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <p className="font-bold text-gray-900 dark:text-gray-100 text-sm sm:text-base">{fu.visitor.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{fu.visitor.phone}</p>
+                        <p className={`text-xs text-gray-500 dark:text-gray-400 ${hideNumbers ? 'select-none tracking-widest' : ''}`} dir="ltr">{hideNumbers ? maskPhone(fu.visitor.phone) : fu.visitor.phone}</p>
                         {isRenewal && (
                           <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 text-[10px] font-bold rounded-full">
                             <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -3861,10 +3901,11 @@ function FollowUpsPageContent() {
                         <option value="instagram">Instagram</option>
                         <option value="tiktok">TikTok</option>
                         <option value="chatgpt">{locale === 'ar' ? 'شات جي بي تي / ChatGPT' : 'ChatGPT'}</option>
+                        <option value="google_maps">{locale === 'ar' ? 'جوجل ماب / Google Maps' : 'Google Maps'}</option>
                         <option value="website">{locale === 'ar' ? 'الموقع / Website' : 'Website'}</option>
                         <option value="friend_referral">{locale === 'ar' ? 'إحالة من صديق / Friend Referral' : 'Friend Referral'}</option>
                         {/* احتفاظ بالقيمة القديمة لو الزائر متسجّل بمصدر مش في القائمة */}
-                        {editTarget.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','website','friend_referral'].includes(editTarget.source) && (
+                        {editTarget.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','chatgpt','google_maps','website','friend_referral'].includes(editTarget.source) && (
                           <option value={editTarget.source}>{editTarget.source}</option>
                         )}
                       </select>

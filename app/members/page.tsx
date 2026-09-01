@@ -62,6 +62,10 @@ interface Member {
   startDate?: string
   expiryDate?: string
   createdAt: string
+  coachId?: string | null
+  noCoachWanted?: boolean
+  salesStaff?: { id: string; name: string } | null
+  coach?: { id: string; name: string } | null
 }
 
 // Fuzzy search helper
@@ -208,6 +212,14 @@ function MembersPageContent() {
       // نظّف الـ URL بعد ما نقرأ القيم — عشان لو رفرش الصفحة ميـ re-open الفورم
       router.replace('/members', { scroll: false })
     }
+
+    //  🔁 فلتر جاي من بار تذكيرات السيلز: ?status=expired|expiring-today|expiring-tomorrow|expiring-soon
+    const statusParam = searchParams.get('status')
+    const allowed = ['expired', 'expiring-today', 'expiring-tomorrow', 'expiring-soon', 'active', 'has-remaining', 'no-coach']
+    if (statusParam && allowed.includes(statusParam)) {
+      setFilterStatus(statusParam as any)
+      router.replace('/members', { scroll: false })
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -231,7 +243,7 @@ function MembersPageContent() {
   const debouncedSearch = useDebounce(search, 300)
   const debouncedSearchId = useDebounce(searchId, 300)
 
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'has-remaining' | 'other' | 'analytics' | 'banned' | 'no-coach'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'expiring-today' | 'expiring-tomorrow' | 'has-remaining' | 'other' | 'analytics' | 'banned' | 'no-coach'>('all')
   const [filterPackage, setFilterPackage] = useState<'all' | 'month' | '3-months' | '6-months' | 'year'>('all')
   const [filterSalesId, setFilterSalesId] = useState<string>('all') // فلتر السيلز ('all' / '__none__' / staff.id)
   const [filterCoachId, setFilterCoachId] = useState<string>('all') // ‍ فلتر الكوتش ('all' / '__none__' / staff.id)
@@ -355,6 +367,12 @@ function MembersPageContent() {
           return !isActiveNow && !notStartedYet
         } else if (filterStatus === 'expiring-soon') {
           return isExpiringSoon && isActiveNow
+        } else if (filterStatus === 'expiring-today' || filterStatus === 'expiring-tomorrow') {
+          //  🔁 بيخلص النهاردة / بكره بالظبط (مقارنة بتاريخ الانتهاء)
+          if (!member.expiryDate) return false
+          const t0 = new Date(); t0.setHours(0, 0, 0, 0)
+          if (filterStatus === 'expiring-tomorrow') t0.setDate(t0.getDate() + 1)
+          return formatDateYMD(new Date(member.expiryDate)) === formatDateYMD(t0) && isActiveNow
         } else if (filterStatus === 'active') {
           return isActiveNow
         } else if (filterStatus === 'has-remaining') {
@@ -662,6 +680,12 @@ function MembersPageContent() {
       return !isActiveNow && !notStartedYet
     }
     if (filterStatus === 'expiring-soon') return isExpiringSoon && isActiveNow
+    if (filterStatus === 'expiring-today' || filterStatus === 'expiring-tomorrow') {
+      if (!member.expiryDate) return false
+      const t0 = new Date(); t0.setHours(0, 0, 0, 0)
+      if (filterStatus === 'expiring-tomorrow') t0.setDate(t0.getDate() + 1)
+      return formatDateYMD(new Date(member.expiryDate)) === formatDateYMD(t0) && isActiveNow
+    }
     if (filterStatus === 'active') return isActiveNow
     if (filterStatus === 'has-remaining') return member.remainingAmount > 0
     if (filterStatus === 'other') return member.memberNumber === null
@@ -2181,8 +2205,13 @@ function MembersPageContent() {
                       </div>
 
                       {/* سيلز / ‍ كوتش tags — تظهر فقط لو في تخصيص */}
-                      {(member.salesStaff?.name || member.coach?.name) && (
+                      {(member.salesStaff?.name || member.coach?.name || member.noCoachWanted) && (
                         <div className="flex flex-wrap gap-1.5">
+                          {!member.coach?.name && member.noCoachWanted && (
+                            <span className="inline-flex items-center gap-1 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 rounded-full px-2 py-0.5 text-[11px] font-bold">
+                              {locale === 'ar' ? 'مش عايز كابتن' : 'No coach wanted'}
+                            </span>
+                          )}
                           {member.salesStaff?.name && (
                             <span className="inline-flex items-center gap-1 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-700 rounded-full px-2 py-0.5 text-[11px] font-medium">
                                {member.salesStaff.name}

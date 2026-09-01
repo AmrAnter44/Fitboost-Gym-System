@@ -11,6 +11,7 @@ import { LoadingScreen } from '../../components/Spinner'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import CloudBackupCard from '../../components/settings/CloudBackupCard'
 import ImageUpload from '../../components/ImageUpload'
+import ImportSheetSection from '../../components/ImportSheetSection'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -1339,7 +1340,8 @@ export default function SettingsPage() {
       { id: 'license', label: t('settingsPage.navigation.license') },
       { id: 'database', label: t('settingsPage.navigation.database') },
       { id: 'tunnel', label: 'تانل' },
-      { id: 'apply-features', label: 'تطبيق مميزات الباقات' }
+      { id: 'apply-features', label: 'تطبيق مميزات الباقات' },
+      { id: 'import-sheet', label: 'استيراد شيت' }
     ] : []),
     ...(typeof window !== 'undefined' && (window as any).electron?.isElectron ? [{ id: 'updates', label: t('settingsPage.navigation.updates') }] : []),
     { id: 'support', label: t('settingsPage.navigation.support') }
@@ -3407,6 +3409,10 @@ export default function SettingsPage() {
               </div>
 
             </div>
+          )}
+
+          {activeSection === 'import-sheet' && user?.role === 'OWNER' && (
+            <ImportSheetSection />
           )}
 
           {activeSection === 'apply-features' && user?.role === 'OWNER' && (

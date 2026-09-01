@@ -77,6 +77,7 @@ export interface Permissions {
 
   // صلاحيات المتابعات
   canViewFollowUps: boolean
+  hideFollowUpNumbers: boolean  // إخفاء أرقام المتابعات (قيد) — تتكشف جوّه نافذة المتابعة بس
   canCreateFollowUp: boolean
   canEditFollowUp: boolean
   canDeleteFollowUp: boolean
@@ -243,6 +244,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditVisitor: true,
     canDeleteVisitor: true,
     canViewFollowUps: true,
+    hideFollowUpNumbers: false,
     canCreateFollowUp: true,
     canEditFollowUp: true,
     canDeleteFollowUp: true,
@@ -330,6 +332,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditVisitor: true,
     canDeleteVisitor: true,
     canViewFollowUps: true,
+    hideFollowUpNumbers: false,
     canCreateFollowUp: true,
     canEditFollowUp: true,
     canDeleteFollowUp: true,
@@ -417,6 +420,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditVisitor: true,
     canDeleteVisitor: false,
     canViewFollowUps: true,
+    hideFollowUpNumbers: false,
     canCreateFollowUp: true,
     canEditFollowUp: true,
     canDeleteFollowUp: false,
@@ -504,6 +508,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditVisitor: false,
     canDeleteVisitor: false,
     canViewFollowUps: false,
+    hideFollowUpNumbers: false,
     canCreateFollowUp: false,
     canEditFollowUp: false,
     canDeleteFollowUp: false,
@@ -592,6 +597,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditVisitor: false,
     canDeleteVisitor: false,
     canViewFollowUps: false,
+    hideFollowUpNumbers: false,
     canCreateFollowUp: false,
     canEditFollowUp: false,
     canDeleteFollowUp: false,
@@ -684,6 +690,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canEditVisitor: 'تعديل زائر',
   canDeleteVisitor: 'حذف زائر',
   canViewFollowUps: 'عرض المتابعات',
+  hideFollowUpNumbers: 'إخفاء أرقام المتابعات (تظهر جوّه نافذة المتابعة بس)',
   canCreateFollowUp: 'إضافة متابعة',
   canEditFollowUp: 'تعديل متابعة',
   canDeleteFollowUp: 'حذف متابعة',
@@ -746,7 +753,7 @@ export const PERMISSION_GROUPS = {
       'canEditPT',
       'canDeletePT',
       'canRegisterPTAttendance',
-      'canViewAllPT',
+      // canViewAllPT اتشالت من قايمة الصلاحيات — بقت للمشرف (MANAGER) تلقائيًا حسب الدور
     ] as Array<keyof Permissions>,
   },
   groupClass: {
@@ -829,6 +836,7 @@ export const PERMISSION_GROUPS = {
     label: '📝 المتابعات',
     permissions: [
       'canViewFollowUps',
+      'hideFollowUpNumbers',
       'canCreateFollowUp',
       'canEditFollowUp',
       'canDeleteFollowUp',
@@ -971,6 +979,7 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canEditVisitor: '✏️',
   canDeleteVisitor: '🗑️',
   canViewFollowUps: '👁️',
+  hideFollowUpNumbers: '🙈',
   canCreateFollowUp: '➕',
   canEditFollowUp: '✏️',
   canDeleteFollowUp: '🗑️',

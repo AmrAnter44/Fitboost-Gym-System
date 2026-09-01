@@ -675,9 +675,10 @@ export default function VisitorsPage() {
                     <option value="instagram">{t('visitors.sources.instagram')}</option>
                     <option value="tiktok">{t('visitors.sources.tiktok')}</option>
                     <option value="chatgpt">{t('visitors.sources.chatgpt')}</option>
+                    <option value="google_maps">{direction === 'rtl' ? 'جوجل ماب / Google Maps' : 'Google Maps'}</option>
                     <option value="website">{t('visitors.sources.website')}</option>
                     <option value="friend_referral">{t('visitors.sources.friendReferral')}</option>
-                    {formData.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','chatgpt','website','friend_referral'].includes(formData.source) && (
+                    {formData.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','chatgpt','google_maps','website','friend_referral'].includes(formData.source) && (
                       <option value={formData.source}>{formData.source === 'friend' ? t('visitors.sources.friend') : formData.source === 'other' ? t('visitors.sources.other') : formData.source}</option>
                     )}
                   </select>

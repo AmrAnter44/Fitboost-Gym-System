@@ -16,6 +16,7 @@ export interface SessionInfo {
   qrCode: string | null
   hasClient: boolean
   phoneNumber?: string | null
+  reconnecting?: boolean   // بيعيد الاتصال دلوقتي (بعد 515 مثلاً)
 }
 
 export interface ConversationInfo {

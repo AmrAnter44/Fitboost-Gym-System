@@ -69,7 +69,21 @@ export async function GET(request: Request) {
     // ✅ الصلاحيات من الداتابيز (محدّثة فورًا) — بدل التوكن اللي ممكن يكون قديم
     //  فأي صلاحية بتتفعّل تشتغل من غير ما المستخدم يعمل logout/login.
     //  fallback للتوكن ثم DEFAULT لو مفيش سجل صلاحيات (زي حساب المالك الاحتياطي).
-    const permissions = dbUser?.permissions || user.permissions || DEFAULT_PERMISSIONS[user.role]
+    let permissions: any = dbUser?.permissions || user.permissions || DEFAULT_PERMISSIONS[user.role]
+
+    //  🛡️ أعمدة صلاحيات جديدة ممكن الـ Prisma client يكون لسه outdated عنها — نقراها بـ raw SQL ونـ merge
+    //  (عشان تشتغل على الـ dev من غير ما نعيد توليد الـ client)
+    if (dbUser?.permissions) {
+      try {
+        const rows: any = await prisma.$queryRawUnsafe(
+          `SELECT canEditMemberBasic, hideFollowUpNumbers FROM Permission WHERE userId = ? LIMIT 1`,
+          user.userId
+        )
+        if (Array.isArray(rows) && rows.length) {
+          permissions = { ...permissions, canEditMemberBasic: !!rows[0].canEditMemberBasic, hideFollowUpNumbers: !!rows[0].hideFollowUpNumbers }
+        }
+      } catch { /* الأعمدة ممكن تكون لسه مش موجودة — عادي */ }
+    }
 
     // 🔒 فحص الرخصة (cached — بدون Supabase call)
     let licenseValid = true

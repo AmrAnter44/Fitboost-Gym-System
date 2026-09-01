@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
+import { activatePendingRenewalForMember } from '../../../../lib/pendingRenewal'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -19,11 +20,12 @@ export async function GET(
     }
 
     // البحث عن العضو برقم العضوية
-    const member = await prisma.member.findFirst({
+    let member = await prisma.member.findFirst({
       where: {
         memberNumber: memberNumber
       },
       select: {
+        id: true,
         name: true,
         memberNumber: true,
         isActive: true,
@@ -38,6 +40,18 @@ export async function GET(
         { status: 404 }
       )
     }
+
+    //  🔁 لو فيه تجديد مجدول وصل ميعاده — نفعّله قبل ما نحكم على حالة الاشتراك
+    try {
+      const activated = await activatePendingRenewalForMember(member.id)
+      if (activated) {
+        const fresh = await prisma.member.findUnique({
+          where: { id: member.id },
+          select: { id: true, name: true, memberNumber: true, isActive: true, expiryDate: true, isBanned: true },
+        })
+        if (fresh) member = fresh
+      }
+    } catch { /* ignore */ }
 
     // التحقق من الحظر مباشرة من حقل isBanned
     if (member.isBanned) {

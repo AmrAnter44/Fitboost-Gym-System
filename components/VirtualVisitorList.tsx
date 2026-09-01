@@ -53,8 +53,15 @@ const VisitorCardRow = ({
 
   const sourceLabels: Record<string, string> = {
     'walk-in': t('visitors.sources.walkIn'),
+    'call-in': t('visitors.sources.callIn'),
+    'suggestion': t('visitors.sources.suggestion'),
     'facebook': t('visitors.sources.facebook'),
     'instagram': t('visitors.sources.instagram'),
+    'tiktok': t('visitors.sources.tiktok'),
+    'chatgpt': t('visitors.sources.chatgpt'),
+    'google_maps': direction === 'rtl' ? 'جوجل ماب / Google Maps' : 'Google Maps',
+    'website': t('visitors.sources.website'),
+    'friend_referral': t('visitors.sources.friendReferral'),
     'friend': t('visitors.sources.friend'),
     'other': t('visitors.sources.other'),
   }

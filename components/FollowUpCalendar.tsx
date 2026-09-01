@@ -112,6 +112,7 @@ export default function FollowUpCalendar({ followUps, onOpenFollowUp, onAddFollo
       'member-invitation': ar ? 'دعوة' : 'Invitation',
       'invitation': ar ? 'day use' : 'Day Use',
       'walk-in': ar ? 'walk-in' : 'Walk-in',
+      'google_maps': ar ? 'جوجل ماب / Google Maps' : 'Google Maps',
     }
     return map[source] || source
   }
