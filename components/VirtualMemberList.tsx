@@ -3,7 +3,7 @@
 import { useRef, useEffect, CSSProperties, useCallback } from 'react'
 import { List, useDynamicRowHeight, DynamicRowHeight } from 'react-window'
 import { useQueryClient } from '@tanstack/react-query'
-import { formatDateYMD, calculateRemainingDays } from '@/lib/dateFormatter'
+import { formatDateYMD, calculateRemainingDays, calculateDaysBetween } from '@/lib/dateFormatter'
 import { getPackageName } from '@/lib/memberUtils'
 import LazyAvatar from './LazyAvatar'
 
@@ -73,7 +73,16 @@ const MemberCardRow = ({
   const expiryDateNorm = member.expiryDate ? (() => { const d = new Date(member.expiryDate); d.setHours(0, 0, 0, 0); return d })() : null
   const startDate = member.startDate ? (() => { const d = new Date(member.startDate); d.setHours(0, 0, 0, 0); return d })() : null
   const isExpired = expiryDateNorm ? expiryDateNorm < todayCheck : false
-  const daysRemaining = calculateRemainingDays(member.expiryDate)
+  //  🧊 لو مجمّد، نعدّ الأيام المتبقية من بعد نهاية الفريز (الأيام المجمّدة مش متبقية للاستخدام)
+  const daysRemaining = (() => {
+    if (!expiryDateNorm) return null
+    let base = todayCheck
+    if (member.isFrozen && member.freezeUntil) {
+      const fe = new Date(member.freezeUntil); fe.setHours(0, 0, 0, 0)
+      if (fe.getTime() > base.getTime()) base = fe
+    }
+    return calculateDaysBetween(base, expiryDateNorm)
+  })()
   const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
   const isBanned = member.isBanned
   const isNotStartedYet = !!(member.isActive && startDate && startDate > todayCheck)

@@ -13,7 +13,7 @@ import TransferMembershipForm from '../../../components/TransferMembershipForm'
 import QuickMemberFollowUpModal from '../../../components/QuickMemberFollowUpModal'
 import ImageUpload from '../../../components/ImageUpload'
 import { LoadingScreen } from '../../../components/Spinner'
-import { formatDateYMD, calculateRemainingDays } from '../../../lib/dateFormatter'
+import { formatDateYMD, calculateRemainingDays, calculateDaysBetween } from '../../../lib/dateFormatter'
 import { prepareReceiptMessage } from '../../../lib/whatsappReceiptMessage'
 import { usePermissions } from '../../../hooks/usePermissions'
 import PermissionDenied from '../../../components/PermissionDenied'
@@ -1902,7 +1902,22 @@ export default function MemberDetailPage() {
  const isMemberActiveNow = member.isActive && hasStarted && notExpired
  const isNotStartedYet = member.isActive && startDate && startDate > today
  const daysUntilStart = isNotStartedYet ? Math.ceil((startDate!.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : 0
- const daysRemaining = calculateRemainingDays(member.expiryDate)
+ //  🧊 الأيام المتبقية — لو العضو مجمّد دلوقتي، نستثني فترة الفريز اللي لسه جاية
+ //  (الأيام المجمّدة مش «متبقية» للاستخدام — بتتحسب من بعد ما الفريز يخلص). كده الفريز
+ //  مبيضخّمش العدّاد: عضو عنده 90 يوم ويعمل فريز 7 يفضل 90 مش 97.
+ const daysRemaining = (() => {
+   if (!member.expiryDate) return null
+   const expiry = new Date(member.expiryDate); expiry.setHours(0, 0, 0, 0)
+   let base = new Date(); base.setHours(0, 0, 0, 0)
+   if ((member as any).isFrozen) {
+     const feRaw = (member as any).freezeUntil || (member as any).freezeRequests?.[0]?.endDate
+     if (feRaw) {
+       const fe = new Date(feRaw); fe.setHours(0, 0, 0, 0)
+       if (fe.getTime() > base.getTime()) base = fe  //  نعدّ من نهاية الفريز
+     }
+   }
+   return calculateDaysBetween(base, expiry)
+ })()
 
  return (
  <div className="container mx-auto p-6" dir={direction}>
