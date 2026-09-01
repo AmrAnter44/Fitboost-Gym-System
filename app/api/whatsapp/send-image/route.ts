@@ -31,6 +31,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Phone and imageBase64 are required' }, { status: 400 });
     }
 
+    //  📝 كابشن الصورة في واتساب له حد (~1024 حرف) — لو الرسالة أطول (شروط طويلة مثلاً)
+    //  بنبعت الصورة بالجزء الأول، والباقي كامل في رسالة نصية منفصلة بعدها عشان مايتقصّش.
+    const CAPTION_LIMIT = 1000;
+    const fullCaption = caption || '';
+    const isLong = fullCaption.length > CAPTION_LIMIT;
+    const imageCaption = isLong ? '' : fullCaption;
+    const followUpText = isLong ? fullCaption : '';
+
+    //  يبعت رسالة نصية منفصلة على نفس الـ session (أو الـ legacy لو مفيش multi)
+    const sendFollowUp = async (sessionIdx: number | null) => {
+      if (!followUpText) return;
+      try {
+        if (sessionIdx === null) {
+          await fetch(`${SIDECAR}/send`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone, message: followUpText }), cache: 'no-store'
+          });
+        } else {
+          await fetch(`${SIDECAR}/send-multi`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionIndex: sessionIdx, phone, message: followUpText }), cache: 'no-store'
+          });
+        }
+      } catch { /* الرسالة الأساسية اتبعتت — الفولو أب best-effort */ }
+    };
+
     const connectedSessions = await getConnectedSessions();
 
     if (connectedSessions.length === 0) {
@@ -39,10 +65,11 @@ export async function POST(request: Request) {
         const res = await fetch(`${SIDECAR}/send-image`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, imageBase64, caption: caption || '' }),
+          body: JSON.stringify({ phone, imageBase64, caption: imageCaption }),
           cache: 'no-store'
         });
         const data = await res.json();
+        if (res.ok && data?.success) await sendFollowUp(null);
         return NextResponse.json(data, { status: res.ok ? 200 : 500 });
       } catch (err) {
         return NextResponse.json({ success: false, error: 'لا يوجد أرقام واتساب متصلة' }, { status: 500 });
@@ -55,11 +82,12 @@ export async function POST(request: Request) {
         const res = await fetch(`${SIDECAR}/send-image-multi`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionIndex: sessionIdx, phone, imageBase64, caption: caption || '' }),
+          body: JSON.stringify({ sessionIndex: sessionIdx, phone, imageBase64, caption: imageCaption }),
           cache: 'no-store'
         });
         const data = await res.json() as { success: boolean; error?: string };
         if (data.success) {
+          await sendFollowUp(sessionIdx);
           return NextResponse.json({ ...data, sessionUsed: sessionIdx });
         }
         lastError = data.error || `Session ${sessionIdx} failed`;

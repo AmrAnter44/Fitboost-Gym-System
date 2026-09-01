@@ -5234,6 +5234,7 @@ export default function MemberDetailPage() {
  {
  websiteUrl: settings?.websiteUrl,
  showWebsite: settings?.showWebsiteOnReceipts,
+ receiptTerms: settings?.receiptTerms || undefined,
  }
  )
  const cancelledNote = receipt.isCancelled
@@ -5811,6 +5812,7 @@ export default function MemberDetailPage() {
  {
  websiteUrl: settings?.websiteUrl,
  showWebsite: settings?.showWebsiteOnReceipts,
+ receiptTerms: settings?.receiptTerms || undefined,
  }
  )
 
