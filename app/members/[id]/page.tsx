@@ -219,6 +219,7 @@ export default function MemberDetailPage() {
  const [showRenewalForm, setShowRenewalForm] = useState(false)
  const [showCancelRenewalModal, setShowCancelRenewalModal] = useState(false)
  const [cancelRenewalLoading, setCancelRenewalLoading] = useState(false)
+ const [showRenewalDetails, setShowRenewalDetails] = useState(false)
  //  متابعة سريعة على العضو
  const [showQuickFollowUp, setShowQuickFollowUp] = useState(false)
  const [followUpHistory, setFollowUpHistory] = useState<any[]>([])
@@ -386,6 +387,7 @@ export default function MemberDetailPage() {
  startDate: '',
  expiryDate: '',
  gender: '' as string,
+ birthDate: '' as string,
  allowedCheckInStart: '' as string,
  allowedCheckInEnd: '' as string
  })
@@ -1490,6 +1492,7 @@ export default function MemberDetailPage() {
  salesStaffId: editBasicInfoData.salesStaffId || null,
  notes: editBasicInfoData.notes.trim() || null,
  gender: editBasicInfoData.gender || null,
+ birthDate: editBasicInfoData.birthDate || null,
  startDate: editBasicInfoData.startDate || null,
  expiryDate: editBasicInfoData.expiryDate || null,
  allowedCheckInStart: editBasicInfoData.allowedCheckInStart || null,
@@ -1534,6 +1537,7 @@ export default function MemberDetailPage() {
  expiryDate: '',
  salesStaffId: null,
  gender: '',
+ birthDate: '',
  allowedCheckInStart: '',
  allowedCheckInEnd: ''
  })
@@ -2103,6 +2107,7 @@ export default function MemberDetailPage() {
  idCardFront: member.idCardFront || null,
  idCardBack: member.idCardBack || null,
  gender: (member as any).gender || '',
+ birthDate: (member as any).birthDate ? formatDateYMD((member as any).birthDate) : '',
  allowedCheckInStart: (member as any).allowedCheckInStart || '',
  allowedCheckInEnd: (member as any).allowedCheckInEnd || ''
  })
@@ -2316,24 +2321,64 @@ export default function MemberDetailPage() {
  <div className="mt-6 pt-6 border-t border-white dark:border-gray-400 border-opacity-20">
  {/*  🔁 بانر التجديد المجدول — الاشتراك الحالي لسه شغّال والتجديد هيتفعّل تلقائي */}
  {(member as any).pendingRenewal && (
- <div className="mb-4 rounded-xl bg-white/20 dark:bg-gray-900/30 ring-1 ring-white/40 p-4 flex items-start gap-3 text-white">
- <svg className="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
- <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
- </svg>
+ <div className="mb-4 rounded-xl bg-white/20 dark:bg-gray-900/30 ring-1 ring-white/40 p-4 text-white">
+ <div className="flex items-start gap-3">
  <div className="flex-1 min-w-0">
- <p className="font-bold text-base mb-0.5">🔁 {locale === 'ar' ? 'تجديد مجدول' : 'Scheduled Renewal'}</p>
+ <p className="font-bold text-base mb-0.5">{locale === 'ar' ? 'تجديد مجدول' : 'Scheduled Renewal'}</p>
  <p className="text-sm opacity-95 leading-relaxed">
  {locale === 'ar'
  ? `الاشتراك الحالي شغّال لحد ${formatDateYMD(member.expiryDate)}. اشتراك التجديد يبدأ ${formatDateYMD((member as any).pendingRenewal.startDate)}${(member as any).pendingRenewal.expiryDate ? ` وينتهي ${formatDateYMD((member as any).pendingRenewal.expiryDate)}` : ''} — هيتفعّل تلقائي في ميعاده.`
  : `Current subscription active until ${formatDateYMD(member.expiryDate)}. Renewal starts ${formatDateYMD((member as any).pendingRenewal.startDate)}${(member as any).pendingRenewal.expiryDate ? ` and ends ${formatDateYMD((member as any).pendingRenewal.expiryDate)}` : ''} — activates automatically.`}
  </p>
  </div>
+ <div className="flex items-center gap-1.5 flex-shrink-0">
+ {/*  زرار تفاصيل التجديد (فيه الباقي بتاعه) */}
+ <button
+ onClick={() => setShowRenewalDetails(v => !v)}
+ title={locale === 'ar' ? 'تفاصيل التجديد' : 'Renewal details'}
+ className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors duration-200"
+ >
+ <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>
+ </button>
  <button
  onClick={() => setShowCancelRenewalModal(true)}
- className="flex-shrink-0 bg-white/90 hover:bg-white text-red-600 font-bold text-xs px-3 py-1.5 rounded-lg transition-colors duration-200"
+ className="bg-white/90 hover:bg-white text-red-600 font-bold text-xs px-3 py-1.5 rounded-lg transition-colors duration-200"
  >
  {locale === 'ar' ? 'إلغاء' : 'Cancel'}
  </button>
+ </div>
+ </div>
+
+ {/*  تفاصيل التجديد المجدول — الباقي بتاعه منفصل عن الباقي القديم عشان مايتلخبطش */}
+ {showRenewalDetails && (
+ <div className="mt-3 pt-3 border-t border-white/25 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+ <div className="bg-white/10 rounded-lg px-3 py-2">
+ <p className="opacity-75 text-xs">{locale === 'ar' ? 'سعر التجديد' : 'Renewal price'}</p>
+ <p className="font-bold">{(member as any).pendingRenewal.subscriptionPrice || 0} {locale === 'ar' ? 'ج.م' : 'EGP'}</p>
+ </div>
+ <div className="bg-white/10 rounded-lg px-3 py-2">
+ <p className="opacity-75 text-xs">{locale === 'ar' ? 'باقي على التجديد' : 'Renewal remaining'}</p>
+ <p className="font-bold text-amber-200">{(member as any).pendingRenewal.remainingAmount || 0} {locale === 'ar' ? 'ج.م' : 'EGP'}</p>
+ </div>
+ {((member as any).pendingRenewal.freePTSessions > 0) && (
+ <div className="bg-white/10 rounded-lg px-3 py-2">
+ <p className="opacity-75 text-xs">{locale === 'ar' ? 'حصص PT' : 'PT sessions'}</p>
+ <p className="font-bold">{(member as any).pendingRenewal.freePTSessions}</p>
+ </div>
+ )}
+ {((member as any).pendingRenewal.invitations > 0) && (
+ <div className="bg-white/10 rounded-lg px-3 py-2">
+ <p className="opacity-75 text-xs">{locale === 'ar' ? 'دعوات' : 'Invitations'}</p>
+ <p className="font-bold">{(member as any).pendingRenewal.invitations}</p>
+ </div>
+ )}
+ <div className="col-span-2 sm:col-span-4 text-xs opacity-80">
+ {locale === 'ar'
+ ? '⚠️ الباقي ده خاص باشتراك التجديد وهيتفعّل مع بدايته — مش الباقي القديم.'
+ : '⚠️ This remaining belongs to the scheduled renewal and activates when it starts — not the current balance.'}
+ </div>
+ </div>
+ )}
  </div>
  )}
  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-white">
@@ -3426,6 +3471,19 @@ export default function MemberDetailPage() {
  type="date"
  value={editBasicInfoData.expiryDate}
  onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, expiryDate: e.target.value })}
+ className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ />
+ </div>
+
+ {/* 🎂 تاريخ الميلاد — تحت */}
+ <div>
+ <label className="block text-xs font-medium mb-1">
+ {direction === 'rtl' ? 'تاريخ الميلاد' : 'Birthdate'}
+ </label>
+ <input
+ type="date"
+ value={editBasicInfoData.birthDate}
+ onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, birthDate: e.target.value })}
  className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
  />
  </div>

@@ -15,6 +15,7 @@ const VALID_PERMISSION_FIELDS = [
   'canViewReceipts', 'canEditReceipts', 'canEditReceiptBasic', 'canDeleteReceipts',
   'canViewExpenses', 'canCreateExpense', 'canEditExpense', 'canDeleteExpense',
   'canViewVisitors', 'canCreateVisitor', 'canEditVisitor', 'canDeleteVisitor',
+  'hideMemberNumbers',
   'canViewFollowUps', 'hideFollowUpNumbers', 'canCreateFollowUp', 'canEditFollowUp', 'canDeleteFollowUp', 'canManageSales',
   'canViewDayUse', 'canCreateDayUse', 'canEditDayUse', 'canDeleteDayUse',
   'canViewReports', 'canViewFinancials', 'canViewAttendance', 'canAccessClosing', 'canCloseDayOnly', 'canAccessPTCommission', 'canViewAllPT', 'canAccessSettings', 'canAccessAdmin',
@@ -53,7 +54,7 @@ export async function PUT(
     //  🛡️ حقول جديدة ممكن الـ Prisma client يكون لسه outdated عنها (مش متعمل regenerate) —
     //  نشيلها من الـ upsert ونطبّقها بـ raw SQL بعده، عشان الحفظ ما يفشلش بـ "Unknown argument".
     const rawFallback: Record<string, boolean> = {}
-    for (const f of ['canEditMemberBasic', 'hideFollowUpNumbers']) {
+    for (const f of ['canEditMemberBasic', 'hideFollowUpNumbers', 'hideMemberNumbers']) {
       if (f in filteredBody) {
         rawFallback[f] = filteredBody[f]
         delete filteredBody[f]

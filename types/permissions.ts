@@ -78,6 +78,7 @@ export interface Permissions {
   // صلاحيات المتابعات
   canViewFollowUps: boolean
   hideFollowUpNumbers: boolean  // إخفاء أرقام المتابعات (قيد) — تتكشف جوّه نافذة المتابعة بس
+  hideMemberNumbers: boolean  // إخفاء أرقام الأعضاء في القوائم (قيد) — تتكشف جوّه بروفايل العضو
   canCreateFollowUp: boolean
   canEditFollowUp: boolean
   canDeleteFollowUp: boolean
@@ -245,6 +246,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteVisitor: true,
     canViewFollowUps: true,
     hideFollowUpNumbers: false,
+    hideMemberNumbers: false,
     canCreateFollowUp: true,
     canEditFollowUp: true,
     canDeleteFollowUp: true,
@@ -333,6 +335,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteVisitor: true,
     canViewFollowUps: true,
     hideFollowUpNumbers: false,
+    hideMemberNumbers: false,
     canCreateFollowUp: true,
     canEditFollowUp: true,
     canDeleteFollowUp: true,
@@ -421,6 +424,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteVisitor: false,
     canViewFollowUps: true,
     hideFollowUpNumbers: false,
+    hideMemberNumbers: false,
     canCreateFollowUp: true,
     canEditFollowUp: true,
     canDeleteFollowUp: false,
@@ -509,6 +513,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteVisitor: false,
     canViewFollowUps: false,
     hideFollowUpNumbers: false,
+    hideMemberNumbers: false,
     canCreateFollowUp: false,
     canEditFollowUp: false,
     canDeleteFollowUp: false,
@@ -598,6 +603,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteVisitor: false,
     canViewFollowUps: false,
     hideFollowUpNumbers: false,
+    hideMemberNumbers: false,
     canCreateFollowUp: false,
     canEditFollowUp: false,
     canDeleteFollowUp: false,
@@ -691,6 +697,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canDeleteVisitor: 'حذف زائر',
   canViewFollowUps: 'عرض المتابعات',
   hideFollowUpNumbers: 'إخفاء أرقام المتابعات (تظهر جوّه نافذة المتابعة بس)',
+  hideMemberNumbers: 'إخفاء أرقام الأعضاء (تظهر جوّه بروفايل العضو بس)',
   canCreateFollowUp: 'إضافة متابعة',
   canEditFollowUp: 'تعديل متابعة',
   canDeleteFollowUp: 'حذف متابعة',
@@ -739,6 +746,7 @@ export const PERMISSION_GROUPS = {
     label: '👥 الأعضاء',
     permissions: [
       'canViewMembers',
+      'hideMemberNumbers',
       'canCreateMembers',
       'canEditMembers',
       'canEditMemberBasic',
@@ -979,7 +987,8 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canEditVisitor: '✏️',
   canDeleteVisitor: '🗑️',
   canViewFollowUps: '👁️',
-  hideFollowUpNumbers: '🙈',
+  hideFollowUpNumbers: '🔒',
+  hideMemberNumbers: '🔒',
   canCreateFollowUp: '➕',
   canEditFollowUp: '✏️',
   canDeleteFollowUp: '🗑️',

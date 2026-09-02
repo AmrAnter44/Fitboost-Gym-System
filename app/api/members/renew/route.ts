@@ -58,6 +58,7 @@ export async function POST(request: Request) {
       paymentMethod,
       staffName,
       offerId,         // 📦 الباقة المطبَّقة عند التجديد (لو فيه)
+      salesStaffId,    // 🧑‍💼 موظف السيلز — string = تعيين، null = بدون سيلز، undefined = مايتغيرش
       resetBenefits = false  //  وضع المزايا: false = تجميع (default) | true = ريست
     } = body
 
@@ -266,7 +267,13 @@ export async function POST(request: Request) {
             throw e
           }
 
-          //  نخزّن التجديد المؤجل — من غير ما نلمس اشتراك العضو الحالي
+          //  🧑‍💼 موظف السيلز بيتحدّث فورًا (مش مرتبط بموعد التجديد)
+          if (salesStaffId !== undefined) {
+            await tx.member.update({ where: { id: memberId }, data: { salesStaffId: salesStaffId || null } as any })
+          }
+
+          //  نخزّن التجديد المؤجل (بالباقي بتاعه جوّاه) — من غير ما نلمس رصيد الباقي الحالي للعضو
+          //  عشان مايتلخبطش مع الباقي القديم؛ باقي التجديد بيظهر في تفاصيل بانر التجديد ويتفعّل وقت التفعيل.
           await writePendingRenewal(
             memberId,
             startDateObj!,
@@ -339,6 +346,7 @@ export async function POST(request: Request) {
             remainingCheckIns: totalCheckIns,
             ...(source !== undefined ? { source: source || null } : {}),
             ...(offerId ? { offerId } : {}),
+            ...(salesStaffId !== undefined ? { salesStaffId: salesStaffId || null } : {}),
           } as any,
         })
 

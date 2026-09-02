@@ -189,6 +189,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       links: [
         { href: '/members', label: t('nav.members'), icon: NavIcons.members, permission: 'canViewMembers' as keyof Permissions },
         { href: '/followups', label: t('nav.followups'), icon: NavIcons.followups, permission: 'canViewFollowUps' as keyof Permissions },
+        { href: '/sales-management', label: locale === 'ar' ? 'إدارة السيلز' : 'Sales Management', icon: NavIcons.staff, permission: null },
       ]
     },
     {
@@ -242,6 +243,11 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
           hasPermission('canCreateExpense') ||
           hasPermission('canEditExpense') ||
           hasPermission('canDeleteExpense')
+      }
+      //  استثناء: إدارة السيلز — للإدارة (OWNER/ADMIN/MANAGER) أو اللي عنده إدارة السيلز/تعديل الأعضاء
+      if (link.href === '/sales-management') {
+        return user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'MANAGER'
+          || hasPermission('canManageSales') || hasPermission('canEditMembers')
       }
       if (link.permission && !hasPermission(link.permission)) return false
       return true

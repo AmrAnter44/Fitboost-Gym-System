@@ -329,7 +329,8 @@ function migrateDatabase(dbPath) {
       'canManageBannedMembers',
       'canEditReceiptBasic',
       'canEditMemberBasic',
-      'hideFollowUpNumbers'
+      'hideFollowUpNumbers',
+      'hideMemberNumbers'
     ];
 
     for (const permission of morePermissions) {
@@ -548,6 +549,16 @@ function migrateDatabase(dbPath) {
       if (!columnExists(db, 'User', col)) {
         db.prepare(`ALTER TABLE User ADD COLUMN ${col} ${def}`).run();
       } else {
+      }
+    }
+
+    // ✅ Visitor new fields — حقول الزوار الجديدة
+    const visitorCols = [
+      { col: 'gender', def: 'TEXT' }, // 🚻 male/female/null — لتوزيع السيلز بالجندر
+    ];
+    for (const { col, def } of visitorCols) {
+      if (!columnExists(db, 'Visitor', col)) {
+        db.prepare(`ALTER TABLE Visitor ADD COLUMN ${col} ${def}`).run();
       }
     }
 

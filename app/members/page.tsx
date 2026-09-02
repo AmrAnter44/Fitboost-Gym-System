@@ -112,7 +112,17 @@ function isMemberActiveNow(member: Member): boolean {
 function MembersPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { hasPermission, loading: permissionsLoading, user } = usePermissions()
+  const { hasPermission, loading: permissionsLoading, user, permissions } = usePermissions()
+  //  قيد إخفاء الأرقام: نتشيّك على القيمة الخام (مش hasPermission اللي بيتخطّى للأونر/الأدمن)
+  //  عشان الأدمن/الأونر يشوفوا الأرقام عادي، والموظف اللي عليه القيد بس هو اللي تتخفي عنه.
+  const hideMemberNumbers = permissions?.hideMemberNumbers === true
+  //  تشفير الرقم: أول 3 وآخر 2 والباقي نقط
+  const maskPhoneNum = (p?: string | null) => {
+    const s = (p || '').replace(/\s/g, '')
+    if (!s) return ''
+    if (s.length <= 5) return '•'.repeat(s.length)
+    return s.slice(0, 3) + '•'.repeat(Math.max(4, s.length - 5)) + s.slice(-2)
+  }
   const { customCreatedAt } = useAdminDate()
   const { t, locale, direction } = useLanguage()
   const toast = useToast()
@@ -372,7 +382,7 @@ function MembersPageContent() {
           if (!member.expiryDate) return false
           const t0 = new Date(); t0.setHours(0, 0, 0, 0)
           if (filterStatus === 'expiring-tomorrow') t0.setDate(t0.getDate() + 1)
-          return formatDateYMD(new Date(member.expiryDate)) === formatDateYMD(t0) && isActiveNow
+          return formatDateYMD(new Date(member.expiryDate)) === formatDateYMD(t0) && !member.isBanned && !(member as any).isFrozen
         } else if (filterStatus === 'active') {
           return isActiveNow
         } else if (filterStatus === 'has-remaining') {
@@ -684,7 +694,7 @@ function MembersPageContent() {
       if (!member.expiryDate) return false
       const t0 = new Date(); t0.setHours(0, 0, 0, 0)
       if (filterStatus === 'expiring-tomorrow') t0.setDate(t0.getDate() + 1)
-      return formatDateYMD(new Date(member.expiryDate)) === formatDateYMD(t0) && isActiveNow
+      return formatDateYMD(new Date(member.expiryDate)) === formatDateYMD(t0) && !member.isBanned && !(member as any).isFrozen
     }
     if (filterStatus === 'active') return isActiveNow
     if (filterStatus === 'has-remaining') return member.remainingAmount > 0
@@ -2146,15 +2156,21 @@ function MembersPageContent() {
                             <span className="text-gray-500 text-xs">{locale === 'ar' ? 'بدون عضوية' : 'Non-Member'}</span>
                           )}
                           <span className="text-gray-400 dark:text-gray-500">|</span>
-                          <a
-                            href={`https://wa.me/+20${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-green-600 hover:text-green-700 text-sm font-medium"
-                          >
-                            {member.phone}
-                          </a>
+                          {hideMemberNumbers ? (
+                            <span className="text-gray-500 dark:text-gray-400 text-sm font-medium font-mono select-none tracking-widest" dir="ltr">
+                              {maskPhoneNum(member.phone)}
+                            </span>
+                          ) : (
+                            <a
+                              href={`https://wa.me/+20${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-green-600 hover:text-green-700 text-sm font-medium"
+                            >
+                              {member.phone}
+                            </a>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -2253,6 +2269,7 @@ function MembersPageContent() {
               t={t}
               locale={locale}
               direction={direction}
+              hideNumbers={hideMemberNumbers}
             />
           </div>
         </>

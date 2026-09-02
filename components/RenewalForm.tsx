@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import PaymentMethodSelector from './Paymentmethodselector'
 import ReceiptSuccessModal from './ReceiptSuccessModal'
+import SalesStaffSelector from './SalesStaffSelector'
 import { calculateDaysBetween, formatDateYMD } from '../lib/dateFormatter'
 import { usePermissions } from '../hooks/usePermissions'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -90,6 +91,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const [source, setSource] = useState((member as any).source || '') // مصدر العضو (يتحدّث عند التجديد)
   const [paymentMethod, setPaymentMethod] = useState<string | PaymentMethod[]>('cash')
   const [staffName, setStaffName] = useState(user?.name || '')
+  //  🧑‍💼 موظف السيلز للعضو — مبدئيًا القيمة الحالية، وتقدر تخليه «بدون سيلز» (null)
+  const [salesStaffId, setSalesStaffId] = useState<string | null>((member as any).salesStaffId ?? null)
   const [remainingAmount, setRemainingAmount] = useState('0')
   const [remainingDueDate, setRemainingDueDate] = useState('')
   const [loading, setLoading] = useState(false)
@@ -99,8 +102,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const [createdReceipt, setCreatedReceipt] = useState<any>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null)
-  //  وضع المزايا: false = تجميع | true = ريست (يبتدي من الصفر). الافتراضي دلوقتي = ريست (مفعّل)
-  const [resetBenefits, setResetBenefits] = useState(true)
+  //  وضع المزايا: دايمًا ريست — الاشتراك الجديد بينزّل مزايا الباقة الجديدة من الصفر (من غير تجميع)
+  const resetBenefits = true
 
   //  حساب الأيام المتبقية في الاشتراك القديم (لو لسه فيه)
   // لما العضو يجدد قبل ما اشتراكه ينتهي، الأيام دي بتتضاف على مدة الاشتراك الجديد
@@ -254,6 +257,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
           source: source || null,
           paymentMethod,
           staffName: user?.name || '',
+          salesStaffId: salesStaffId,  //  موظف السيلز (أو null = بدون سيلز)
           offerId: selectedOfferId,
           //  وضع المزايا: لو true → الـ API يـ reset، لو false → بيجمع القديم + الجديد
           resetBenefits,
@@ -436,42 +440,6 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
           </div>
         )}
 
-        {/*  Toggle: وضع المزايا (تجميع / ريست) */}
-        <div className="mt-3 p-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-200 dark:ring-indigo-700">
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={resetBenefits}
-              onChange={(e) => setResetBenefits(e.target.checked)}
-              className="mt-0.5 w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-            />
-            <div className="flex-1 text-sm">
-              <div className="font-bold text-indigo-900 dark:text-indigo-100 flex items-center gap-2 flex-wrap">
-                🔁 {direction === 'rtl' ? 'ريست للمزايا (ابدأ من جديد)' : 'Reset benefits (start fresh)'}
-                {!resetBenefits && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
-                    {direction === 'rtl' ? 'تجميع مفعّل' : 'Accumulating'}
-                  </span>
-                )}
-                {resetBenefits && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
-                    {direction === 'rtl' ? 'ريست مفعّل' : 'Reset on'}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
-                {direction === 'rtl'
-                  ? resetBenefits
-                    ? '⚠️ المزايا القديمة (حصص PT، تغذية، علاج طبيعي، جروب كلاس، InBody، دعوات، أيام التجميد) هتتمسح ويبتدي العضو بالمزايا الجديدة من الباقة فقط.'
-                    : '✅ المزايا الفاضلة من الاشتراك القديم هتتجمع مع مزايا الباقة الجديدة (عادل للعميل اللي دفع ولم يستخدم).'
-                  : resetBenefits
-                    ? '⚠️ Old benefits (PT/Nutrition/Physio/Group Class sessions, InBody scans, invitations, freeze days) will be wiped. Member starts with only the new package benefits.'
-                    : '✅ Unused benefits from the old subscription will be added to the new package benefits (fair to the member who paid).'}
-              </div>
-            </div>
-          </label>
-        </div>
-
         {error && (
           <div className={`bg-red-50 dark:bg-red-900/20 ${direction === 'rtl' ? 'border-e-4' : 'border-s-4'} border-red-500 dark:border-red-700 p-3 rounded-lg mb-3`}>
             <p className="text-red-700 dark:text-red-300 font-medium text-sm flex items-center gap-2">
@@ -562,6 +530,11 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 cursor-not-allowed"
                   placeholder={t('renewal.staffNamePlaceholder')}
                 />
+              </div>
+
+              {/*  🧑‍💼 موظف السيلز — تقدر تختار سيلز أو «بدون موظف سيلز» */}
+              <div>
+                <SalesStaffSelector value={salesStaffId} onChange={setSalesStaffId} />
               </div>
             </div>
           </div>

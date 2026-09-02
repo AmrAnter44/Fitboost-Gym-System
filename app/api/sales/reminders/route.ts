@@ -31,15 +31,30 @@ export async function GET(request: Request) {
     //  الاشتراكات عامة (كل الجيم) — أي سيلز يقدر يكلّم أي عضو للتجديد؛ الضغط بيوديه لصفحة الأعضاء مفلترة.
     const memberBase = { isFrozen: false, isBanned: false }
 
+    //  📞 متابعات النهاردة للمستخدم الحالي — بنطابق صفحة المتابعات بالظبط:
+    //  نستثني الليدز اللي اتحوّلوا لأعضاء نشطين، أو المشتركين/المرفوضين/المحذوفين (الصفحة بتخفيهم).
+    const computeFollowUpsToday = async (): Promise<number> => {
+      if (!user.staffId) return 0
+      const [fus, activeMembers] = await Promise.all([
+        prisma.followUp.findMany({
+          where: { assignedTo: user.staffId, contacted: false, nextFollowUpDate: { lte: endOfToday } },
+          select: { visitor: { select: { phone: true, status: true, isDeleted: true } } },
+        }),
+        prisma.member.findMany({ where: { isActive: true }, select: { phone: true } }),
+      ])
+      const norm = (p?: string | null) => (p || '').replace(/\D/g, '')
+      const memberPhones = new Set(activeMembers.map(m => norm(m.phone)))
+      return fus.filter(f => {
+        const v = f.visitor
+        if (!v || v.isDeleted) return false
+        if (v.status === 'subscribed' || v.status === 'rejected') return false
+        if (memberPhones.has(norm(v.phone))) return false  //  اتحوّل لعضو نشط
+        return true
+      }).length
+    }
+
     const [followUpsToday, expiringToday, expiringTomorrow, expired] = await Promise.all([
-      //  المتابعات: بتاعة السيلز الحالي بس (assignedTo = staffId) عشان تطابق صفحة المتابعات
-      prisma.followUp.count({
-        where: {
-          contacted: false,
-          nextFollowUpDate: { lte: endOfToday },
-          ...(user.staffId ? { assignedTo: user.staffId } : {}),
-        },
-      }),
+      computeFollowUpsToday(),
       prisma.member.count({
         where: { ...memberBase, expiryDate: { gte: startOfToday, lte: endOfToday } },
       }),

@@ -111,6 +111,7 @@ export async function activatePendingRenewalForMember(memberId: string): Promise
       where: { id: memberId },
       data: {
         subscriptionPrice: d.subscriptionPrice,
+        //  الباقي بتاع التجديد بيتفعّل مع الاشتراك الجديد (كان متخزّن في التجديد المجدول)
         remainingAmount: d.remainingAmount || 0,
         remainingDueDate: d.remainingDueDate ? new Date(d.remainingDueDate) : null,
         freePTSessions: accumulate(member.freePTSessions || 0, d.additionalFreePT || 0),

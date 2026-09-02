@@ -12,6 +12,7 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import CloudBackupCard from '../../components/settings/CloudBackupCard'
 import ImageUpload from '../../components/ImageUpload'
 import ImportSheetSection from '../../components/ImportSheetSection'
+import PWAInstallButton from '../../components/PWAInstallButton'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -2318,6 +2319,8 @@ export default function SettingsPage() {
 
           {activeSection === 'display' && (
             <div className="space-y-4 sm:space-y-6">
+              {/*  📲 زرار تحميل/تثبيت الـ PWA السريع */}
+              <PWAInstallButton />
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">

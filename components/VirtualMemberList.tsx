@@ -31,6 +31,14 @@ interface Member {
   pendingRenewalExpiryDate?: string | null
 }
 
+//  إخفاء الرقم: أول 3 وآخر 2 والباقي نقط
+function maskMemberPhone(p?: string | null): string {
+  const s = (p || '').replace(/\s/g, '')
+  if (!s) return ''
+  if (s.length <= 5) return '•'.repeat(s.length)
+  return s.slice(0, 3) + '•'.repeat(Math.max(4, s.length - 5)) + s.slice(-2)
+}
+
 interface MemberCardRowProps {
   members: Member[]
   lastReceipts: Record<string, any>
@@ -40,6 +48,7 @@ interface MemberCardRowProps {
   t: (key: string, params?: Record<string, string>) => string
   locale: string
   direction: string
+  hideNumbers?: boolean
   dynamicRowHeight: DynamicRowHeight
 }
 
@@ -56,6 +65,7 @@ const MemberCardRow = ({
   t,
   locale,
   direction,
+  hideNumbers,
   dynamicRowHeight,
 }: { index: number; style: CSSProperties; ariaAttributes: any } & MemberCardRowProps) => {
   const ref = useRef<HTMLDivElement>(null)
@@ -219,15 +229,22 @@ const MemberCardRow = ({
                 <span className="text-gray-500 dark:text-gray-400 text-xs">{locale === 'ar' ? 'بدون عضوية' : 'Non-Member'}</span>
               )}
               <span className="text-gray-300 dark:text-gray-600">|</span>
-              <a
-                href={`https://wa.me/+20${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 text-sm font-medium font-mono transition-colors duration-200"
-              >
-                {member.phone}
-              </a>
+              {hideNumbers ? (
+                //  🙈 رقم مخفي — يتكشف جوّه بروفايل العضو
+                <span className="text-gray-500 dark:text-gray-400 text-sm font-medium font-mono select-none tracking-widest" dir="ltr">
+                  {maskMemberPhone(member.phone)}
+                </span>
+              ) : (
+                <a
+                  href={`https://wa.me/+20${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 text-sm font-medium font-mono transition-colors duration-200"
+                >
+                  {member.phone}
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -365,6 +382,7 @@ interface VirtualMemberListProps {
   t: (key: string, params?: Record<string, string>) => string
   locale: string
   direction: string
+  hideNumbers?: boolean
 }
 
 export default function VirtualMemberList({
@@ -375,6 +393,7 @@ export default function VirtualMemberList({
   t,
   locale,
   direction,
+  hideNumbers = false,
 }: VirtualMemberListProps) {
   const dynamicRowHeight = useDynamicRowHeight({ defaultRowHeight: 250 })
   const queryClient = useQueryClient()
@@ -399,6 +418,7 @@ export default function VirtualMemberList({
         t,
         locale,
         direction,
+        hideNumbers,
         dynamicRowHeight,
       } as any}
       rowCount={members.length}

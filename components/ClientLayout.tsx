@@ -11,6 +11,7 @@ import { ServiceSettingsProvider, useServiceSettings } from '../contexts/Service
 import { DarkModeProvider } from '../contexts/DarkModeContext'
 import { LicenseProvider } from '../contexts/LicenseContext'
 import { BulkSenderProvider } from '../contexts/BulkSenderContext'
+import { PWAInstallProvider } from '../contexts/PWAInstallContext'
 import { TabsProvider, useTabs } from '../contexts/TabsContext'
 import QueryProvider from './QueryProvider'
 import Sidebar from './Sidebar'
@@ -143,6 +144,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
               <SearchProvider>
                 <ToastProvider>
                   <BulkSenderProvider>
+                    <PWAInstallProvider>
                     <UpdateProvider>
                       <AdminDateProvider>
                         <LicenseProvider>
@@ -152,6 +154,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                         </LicenseProvider>
                       </AdminDateProvider>
                     </UpdateProvider>
+                    </PWAInstallProvider>
                   </BulkSenderProvider>
                 </ToastProvider>
               </SearchProvider>

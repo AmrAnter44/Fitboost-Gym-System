@@ -105,7 +105,9 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canViewVisitors')
 
     const body = await request.json()
-    const { name, phone, notes, source, interestedIn, salesStaffId, referrerMemberNumber } = body
+    const { name, phone, notes, source, interestedIn, salesStaffId, referrerMemberNumber, gender } = body
+    //  🚻 الجندر عمود جديد — بنحدّثه بـ raw SQL بعد الإنشاء (الـ Prisma client ممكن يكون outdated)
+    const normalizedGender = (gender === 'male' || gender === 'female') ? gender : null
 
     // التحقق من البيانات المطلوبة
     if (!name || !phone) {
@@ -224,6 +226,11 @@ export async function POST(request: Request) {
 
       return v
     })
+
+    //  🚻 حفظ الجندر (raw SQL) لو متحدد
+    if (normalizedGender) {
+      try { await prisma.$executeRawUnsafe(`UPDATE Visitor SET gender = ? WHERE id = ?`, normalizedGender, visitor.id) } catch { /* عمود ممكن يكون لسه مش موجود */ }
+    }
 
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,

@@ -222,6 +222,7 @@ model Visitor {
   notes                String?
   source               String     @default("walk-in")
   interestedIn         String?
+  gender               String?    // 🚻 'male' | 'female' | null = غير معروف — لتوزيع السيلز بالجندر
   status               String     @default("pending")
   referrerMemberNumber String?    // 👥 رقم العضو اللي جاب الزائر (للـ tracking لما النقاط معطلة)
   isDeleted            Boolean    @default(false)
@@ -622,6 +623,7 @@ model Permission {
   canEditMembers          Boolean @default(false)
   canEditMemberBasic      Boolean @default(false)  // تعديل محدود: اسم/موبايل العضو بس
   hideFollowUpNumbers     Boolean @default(false)  // إخفاء أرقام المتابعات (تتكشف جوّه نافذة المتابعة بس)
+  hideMemberNumbers       Boolean @default(false)  // إخفاء أرقام الأعضاء في القوائم (تتكشف جوّه بروفايل العضو)
   canDeleteMembers        Boolean @default(false)
   canViewPT               Boolean @default(false)
   canCreatePT             Boolean @default(false)

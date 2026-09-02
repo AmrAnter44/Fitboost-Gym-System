@@ -149,11 +149,21 @@ export async function GET(
       if (src) transferredFrom = src
     }
 
-    //  🔁 التجديد المجدول (لو لسه موجود وما اتفعّلش) — للعرض في بوكس الحالة
-    let pendingRenewal: { startDate: string; expiryDate: string | null } | null = null
+    //  🔁 التجديد المجدول (لو لسه موجود وما اتفعّلش) — للعرض في بوكس الحالة + تفاصيله (باقي/سعر)
+    let pendingRenewal: any = null
     try {
       const p = await readPendingRenewal(memberId)
-      if (p) pendingRenewal = { startDate: p.startDate.toISOString(), expiryDate: p.expiryDate ? p.expiryDate.toISOString() : null }
+      if (p) pendingRenewal = {
+        startDate: p.startDate.toISOString(),
+        expiryDate: p.expiryDate ? p.expiryDate.toISOString() : null,
+        subscriptionPrice: p.data.subscriptionPrice || 0,
+        remainingAmount: p.data.remainingAmount || 0,
+        remainingDueDate: p.data.remainingDueDate || null,
+        freePTSessions: p.data.additionalFreePT || 0,
+        inBodyScans: p.data.additionalInBody || 0,
+        invitations: p.data.additionalInvitations || 0,
+        offerName: p.data.offerName || null,
+      }
     } catch { /* ignore */ }
 
     return NextResponse.json({

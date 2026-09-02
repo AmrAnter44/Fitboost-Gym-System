@@ -115,11 +115,12 @@ interface Member {
 }
 
 function FollowUpsPageContent() {
-  const { hasPermission, loading: permissionsLoading, user } = usePermissions()
+  const { hasPermission, loading: permissionsLoading, user, permissions } = usePermissions()
   // 💼 صلاحية مسؤول السيلز — مخصصة لإدارة كل حاجة في تاب إدارة السيلز
   const canManageSales = hasPermission('canManageSales')
   //  إخفاء أرقام المتابعات في القوائم (تتكشف جوّه نافذة المتابعة بس)
-  const hideNumbers = hasPermission('hideFollowUpNumbers')
+  //  قيد إخفاء الأرقام: قيمة خام (مش hasPermission اللي بيتخطّى للأونر/الأدمن) — الأدمن يشوف عادي
+  const hideNumbers = permissions?.hideFollowUpNumbers === true
   const { t, direction, locale } = useLanguage()
   const toast = useToast()
   const router = useRouter()
@@ -2177,12 +2178,12 @@ function FollowUpsPageContent() {
             </h3>
             <div className="flex flex-wrap gap-3">
               {birthdayMembers.map(m => (
-                <a
+                <button
                   key={m.id}
-                  href={createWhatsAppUrl(m.phone, direction === 'rtl' ? `كل سنة وانت طيب ${m.name}!` : `Happy Birthday ${m.name}!`)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-white dark:bg-gray-800 ring-1 ring-pink-200 dark:ring-pink-900/50 rounded-xl px-3 py-2 hover:shadow-md transition-shadow duration-200"
+                  type="button"
+                  onClick={() => router.push(`/members/${m.id}`)}
+                  title={direction === 'rtl' ? 'فتح البروفايل' : 'Open profile'}
+                  className="flex items-center gap-2 bg-white dark:bg-gray-800 ring-1 ring-pink-200 dark:ring-pink-900/50 rounded-xl px-3 py-2 hover:shadow-md transition-shadow duration-200 text-start cursor-pointer"
                 >
                   <div className="w-9 h-9 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                     {m.name.charAt(0)}
@@ -2193,8 +2194,9 @@ function FollowUpsPageContent() {
                       {direction === 'rtl' ? `${m.age} سنة` : `${m.age} years old`}
                     </p>
                   </div>
-                  <svg className="w-4 h-4 text-green-500 ms-1" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 20l1.5-4.5A8 8 0 1112 20H7l-4 0z"/></svg>
-                </a>
+                  {/*  أيقونة فتح البروفايل */}
+                  <svg className={`w-4 h-4 text-gray-400 ms-1 ${direction === 'rtl' ? 'rotate-180' : ''}`} {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                </button>
               ))}
             </div>
           </div>
@@ -3303,6 +3305,17 @@ function FollowUpsPageContent() {
                               <span className={`font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200 ${hideNumbers ? 'select-none tracking-widest' : ''}`} dir="ltr">
                                 {hideNumbers ? maskPhone(followUp.visitor.phone) : followUp.visitor.phone}
                               </span>
+                              {/*  📞 زرار اتصال سريع — بيظهر على الموبايل ويرن على الرقم على طول (tel:) */}
+                              {!hideNumbers && (
+                                <a
+                                  href={`tel:${followUp.visitor.phone.replace(/[^\d+]/g, '')}`}
+                                  className="sm:hidden bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm transition-colors duration-200 inline-flex items-center gap-1"
+                                  title={locale === 'ar' ? 'اتصال' : 'Call'}
+                                >
+                                  <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
+                                  {locale === 'ar' ? 'اتصال' : 'Call'}
+                                </a>
+                              )}
                               <button
                                 onClick={() => openTemplateModal(followUp.visitor)}
                                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm transition-colors duration-200 inline-flex items-center gap-1"
