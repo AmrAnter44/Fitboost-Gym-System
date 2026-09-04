@@ -53,20 +53,7 @@ export default function FloatingScanButton() {
           onClick={() => setOpen(false)}
         >
           <div dir={ar ? 'rtl' : 'ltr'} className="w-full max-w-lg animate-modal-in" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3 text-white">
-              <h2 className="text-xl font-black flex items-center gap-2">
-                <svg className="w-6 h-6" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875v14.25M6.75 4.875v14.25M10.5 4.875v14.25M14.25 4.875v14.25M17.25 4.875v14.25M20.25 4.875v14.25" /></svg>
-                {ar ? 'سكان مزيد' : 'More Scan'}
-              </h2>
-              <button
-                onClick={() => setOpen(false)}
-                aria-label={ar ? 'إغلاق' : 'Close'}
-                className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
-              >
-                <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <MoreScanPanel autoFocus />
+            <MoreScanPanel autoFocus title={ar ? 'سكان مزيد' : 'More Scan'} onClose={() => setOpen(false)} />
           </div>
         </div>
       )}

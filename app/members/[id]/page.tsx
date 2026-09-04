@@ -220,6 +220,9 @@ export default function MemberDetailPage() {
  const [showCancelRenewalModal, setShowCancelRenewalModal] = useState(false)
  const [cancelRenewalLoading, setCancelRenewalLoading] = useState(false)
  const [showRenewalDetails, setShowRenewalDetails] = useState(false)
+ const [showEditRenewalModal, setShowEditRenewalModal] = useState(false)
+ const [editRenewalLoading, setEditRenewalLoading] = useState(false)
+ const [editRenewalData, setEditRenewalData] = useState({ startDate: '', expiryDate: '', freePTSessions: 0, inBodyScans: 0, invitations: 0, freezeDays: 0 })
  //  متابعة سريعة على العضو
  const [showQuickFollowUp, setShowQuickFollowUp] = useState(false)
  const [followUpHistory, setFollowUpHistory] = useState<any[]>([])
@@ -565,6 +568,60 @@ export default function MemberDetailPage() {
  } finally {
  setCancelRenewalLoading(false)
  }
+ }
+
+ //  🔁 فتح موديل تعديل التجديد المجدول (يملأ من بيانات التجديد الحالية)
+ const openEditRenewal = () => {
+ const pr = (member as any)?.pendingRenewal
+ if (!pr) return
+ setEditRenewalData({
+ startDate: pr.startDate ? formatDateYMD(pr.startDate) : '',
+ expiryDate: pr.expiryDate ? formatDateYMD(pr.expiryDate) : '',
+ freePTSessions: pr.freePTSessions || 0,
+ inBodyScans: pr.inBodyScans || 0,
+ invitations: pr.invitations || 0,
+ freezeDays: pr.freezeDays || 0,
+ })
+ setShowEditRenewalModal(true)
+ }
+
+ //  لما تغيّر تاريخ بداية التجديد → النهاية تتزحلق بنفس المدة تلقائي
+ const handleEditRenewalStartChange = (value: string) => {
+ setEditRenewalData(prev => {
+ if (prev.startDate && prev.expiryDate && value) {
+ const oldStart = new Date(prev.startDate)
+ const oldExpiry = new Date(prev.expiryDate)
+ const newStart = new Date(value)
+ const durationMs = oldExpiry.getTime() - oldStart.getTime()
+ if (!isNaN(newStart.getTime()) && durationMs > 0) {
+ return { ...prev, startDate: value, expiryDate: formatDateYMD(new Date(newStart.getTime() + durationMs)) }
+ }
+ }
+ return { ...prev, startDate: value }
+ })
+ }
+
+ const saveEditRenewal = async () => {
+ if (!member?.id) return
+ if (!editRenewalData.startDate || !editRenewalData.expiryDate) {
+ toast.error(locale === 'ar' ? 'حدد تاريخ البداية والنهاية' : 'Set start and expiry dates'); return
+ }
+ setEditRenewalLoading(true)
+ try {
+ const res = await fetch('/api/members/edit-pending-renewal', {
+ method: 'POST', headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ memberId: member.id, startDate: editRenewalData.startDate, expiryDate: editRenewalData.expiryDate })
+ })
+ const data = await res.json()
+ if (!res.ok) { toast.error(data?.error || (locale === 'ar' ? 'فشل التعديل' : 'Failed')); return }
+ toast.success(data.activatedNow
+ ? (locale === 'ar' ? 'اتفعّل التجديد فورًا (تاريخ البداية النهاردة) ✅' : 'Renewal activated now ✅')
+ : (locale === 'ar' ? 'تم تعديل التجديد المجدول' : 'Scheduled renewal updated'))
+ setShowEditRenewalModal(false)
+ await fetchMember()
+ } catch {
+ toast.error(locale === 'ar' ? 'فشل التعديل' : 'Failed')
+ } finally { setEditRenewalLoading(false) }
  }
 
  // رفع صورة ناقصة (شخصية أو بطاقة) — يعمل لأي مستخدم مسجل دخول طالما الحقل فاضي
@@ -2339,6 +2396,14 @@ export default function MemberDetailPage() {
  className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors duration-200"
  >
  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>
+ </button>
+ {/*  تعديل التجديد المجدول */}
+ <button
+ onClick={openEditRenewal}
+ title={locale === 'ar' ? 'تعديل التجديد' : 'Edit renewal'}
+ className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors duration-200"
+ >
+ <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
  </button>
  <button
  onClick={() => setShowCancelRenewalModal(true)}
@@ -5103,6 +5168,30 @@ export default function MemberDetailPage() {
  )}
 
  {/*  🔁 موديل تأكيد إلغاء التجديد المجدول */}
+ {/*  🔁 موديل تعديل التجديد المجدول */}
+ {showEditRenewalModal && (
+ <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => { if (!editRenewalLoading) setShowEditRenewalModal(false) }}>
+ <div dir={locale === 'ar' ? 'rtl' : 'ltr'} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-md p-6 animate-modal-in" onClick={(e) => e.stopPropagation()}>
+ <h3 className="text-lg font-black text-gray-900 dark:text-gray-100 mb-1">{locale === 'ar' ? 'تعديل التجديد المجدول' : 'Edit scheduled renewal'}</h3>
+ <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{locale === 'ar' ? 'التعديل ده على تفاصيل التجديد بس — الإيصال المدفوع مبيتغيّرش.' : 'Edits the renewal details only — the paid receipt is unchanged.'}</p>
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">{locale === 'ar' ? 'تاريخ البداية' : 'Start'}</label>
+ <input type="date" value={editRenewalData.startDate} onChange={(e) => handleEditRenewalStartChange(e.target.value)} className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
+ </div>
+ <div>
+ <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">{locale === 'ar' ? 'تاريخ النهاية' : 'Expiry'}</label>
+ <input type="date" value={editRenewalData.expiryDate} onChange={(e) => setEditRenewalData({ ...editRenewalData, expiryDate: e.target.value })} className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
+ </div>
+ </div>
+ <div className="flex gap-2 justify-end mt-5">
+ <button onClick={() => setShowEditRenewalModal(false)} disabled={editRenewalLoading} className="px-4 py-2 rounded-lg font-bold text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50">{locale === 'ar' ? 'رجوع' : 'Back'}</button>
+ <button onClick={saveEditRenewal} disabled={editRenewalLoading} className="px-4 py-2 rounded-lg font-bold text-sm bg-primary-600 hover:bg-primary-700 text-primary-contrast disabled:opacity-50">{editRenewalLoading ? (locale === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (locale === 'ar' ? 'حفظ' : 'Save')}</button>
+ </div>
+ </div>
+ </div>
+ )}
+
  {showCancelRenewalModal && (
  <div
  className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"

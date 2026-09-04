@@ -162,6 +162,7 @@ export async function GET(
         freePTSessions: p.data.additionalFreePT || 0,
         inBodyScans: p.data.additionalInBody || 0,
         invitations: p.data.additionalInvitations || 0,
+        freezeDays: p.data.additionalFreezeDays || 0,
         offerName: p.data.offerName || null,
       }
     } catch { /* ignore */ }
