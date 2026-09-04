@@ -100,15 +100,8 @@ export async function GET(request: Request) {
         expiryDate: true,
         salesStaffId: true,
         subscriptionPrice: true,
-        source: true,
       }
     })
-
-    //  🚶 أعضاء walk-in (جم لوحدهم) — مايتحسبوش في تارجت/عمولة السيلز
-    //  (بدل ما نشيل السيلز يدوي — العضو يفضل مسنّد ويظهر في المتابعات، بس تحصيله مايتحسبش)
-    const walkInMemberIds = new Set(
-      salesMembers.filter(m => (m.source || '').toLowerCase().trim() === 'walk-in').map(m => m.id)
-    )
 
     // جلب إيصالات الشهر الحالي لأعضاء السيلز
     const salesMemberIds = salesMembers.map(m => m.id)
@@ -123,10 +116,10 @@ export async function GET(request: Request) {
         })
       : []
 
-    // بناء map للتحصيل لكل عضو — مع استبعاد أعضاء walk-in من تحصيل السيلز
+    // بناء map للتحصيل لكل عضو — بيشمل كل الأعضاء المسنّدين (بما فيهم walk-in)
     const memberRevenueMap: Record<string, number> = {}
     for (const receipt of thisMonthReceipts) {
-      if (receipt.memberId && !walkInMemberIds.has(receipt.memberId)) {
+      if (receipt.memberId) {
         memberRevenueMap[receipt.memberId] = (memberRevenueMap[receipt.memberId] || 0) + receipt.amount
       }
     }
