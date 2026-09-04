@@ -195,7 +195,10 @@ export async function POST(request: Request) {
     //  أول ما نوصل لتاريخ البداية (التاريخ + المزايا + السعر مع بعض).
     const startDateObj = startDate ? new Date(startDate) : null
     if (startDateObj) startDateObj.setHours(0, 0, 0, 0)
-    const oldStillValid = !!member.expiryDate && new Date(member.expiryDate) >= renewToday
+    //  لسه فاضل أيام بعد النهاردة؟ (لو خلص النهاردة أو منتهي → تجديد فوري مش مجدول)
+    const oldExpiryMid = member.expiryDate ? new Date(member.expiryDate) : null
+    if (oldExpiryMid) oldExpiryMid.setHours(0, 0, 0, 0)
+    const oldStillValid = !!oldExpiryMid && oldExpiryMid.getTime() > renewToday.getTime()
     const isScheduled = !!startDateObj && startDateObj.getTime() > renewToday.getTime() && oldStillValid
 
     if (isScheduled) {

@@ -58,6 +58,22 @@ function extractItems(rows: string[][]): { name: string; phone: string }[] {
   return items
 }
 
+//  إدخال على دفعات — SQLite عنده حد أقصى لعدد المتغيرات في الاستعلام الواحد،
+//  فالشيتات الكبيرة (1000+) لازم تتقسّم عشان متتقصّش.
+async function insertInChunks<T>(
+  rows: T[],
+  insertFn: (batch: T[]) => Promise<{ count: number }>,
+  chunkSize = 100
+): Promise<number> {
+  let total = 0
+  for (let i = 0; i < rows.length; i += chunkSize) {
+    const batch = rows.slice(i, i + chunkSize)
+    const res = await insertFn(batch)
+    total += res.count
+  }
+  return total
+}
+
 export async function POST(request: Request) {
   try {
     const user = await verifyAuth(request)
@@ -128,10 +144,10 @@ export async function POST(request: Request) {
       })
       let inserted = 0
       if (toInsert.length) {
-        const res = await prisma.visitor.createMany({
-          data: toInsert.map(i => ({ name: i.name, phone: i.phone, source: 'import' })),
-        })
-        inserted = res.count
+        inserted = await insertInChunks(
+          toInsert.map(i => ({ name: i.name, phone: i.phone, source: 'import' })),
+          batch => prisma.visitor.createMany({ data: batch })
+        )
       }
       return NextResponse.json({ success: true, destination, inserted, skipped: validItems.length - inserted })
     }
@@ -140,10 +156,11 @@ export async function POST(request: Request) {
       const serviceType = String(formData.get('serviceType') || '').trim() || 'يوم استخدام'
       const price = parseFloat(String(formData.get('price') || '0')) || 0
       const staffName = (user.name || 'استيراد').trim()
-      const res = await prisma.dayUseInBody.createMany({
-        data: validItems.map(i => ({ name: i.name, phone: i.phone, serviceType, price, staffName })),
-      })
-      return NextResponse.json({ success: true, destination, inserted: res.count, skipped: 0 })
+      const inserted = await insertInChunks(
+        validItems.map(i => ({ name: i.name, phone: i.phone, serviceType, price, staffName })),
+        batch => prisma.dayUseInBody.createMany({ data: batch })
+      )
+      return NextResponse.json({ success: true, destination, inserted, skipped: validItems.length - inserted })
     }
 
     if (destination === 'invitations') {
@@ -155,10 +172,11 @@ export async function POST(request: Request) {
           select: { id: true },
         })
       }
-      const res = await prisma.invitation.createMany({
-        data: validItems.map(i => ({ guestName: i.name, guestPhone: i.phone, memberId: dummy!.id })),
-      })
-      return NextResponse.json({ success: true, destination, inserted: res.count, skipped: 0 })
+      const inserted = await insertInChunks(
+        validItems.map(i => ({ guestName: i.name, guestPhone: i.phone, memberId: dummy!.id })),
+        batch => prisma.invitation.createMany({ data: batch })
+      )
+      return NextResponse.json({ success: true, destination, inserted, skipped: validItems.length - inserted })
     }
 
     return NextResponse.json({ error: 'وجهة غير معروفة' }, { status: 400 })

@@ -382,6 +382,40 @@ export default function MorePage() {
     }
   }
 
+  //  🏊 إرسال باركود (فيه رقم التليفون) على الواتساب — العميل يمسحه عند الدخول
+  const [sendingBarcode, setSendingBarcode] = useState<number | null>(null)
+  const handleSendBarcode = async (sub: { moreNumber: number; clientName: string; phone: string }) => {
+    if (!sub.phone) { toast.error(direction === 'rtl' ? 'مفيش رقم تليفون' : 'No phone number'); return }
+    setSendingBarcode(sub.moreNumber)
+    try {
+      //  الباركود بيتعمل برقم التليفون (raw) عشان لما يتمسح يتعرف بالرقم
+      const bcRes = await fetch('/api/barcode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: sub.phone.replace(/\D/g, '') })
+      })
+      const bc = await bcRes.json()
+      if (!bc.barcode) { toast.error(direction === 'rtl' ? 'فشل توليد الباركود' : 'Barcode failed'); return }
+
+      const caption = direction === 'rtl'
+        ? `أهلاً ${sub.clientName}\nده باركود الدخول بتاعك — امسحه عند كل دخول.`
+        : `Hi ${sub.clientName}\nThis is your entry barcode — scan it at each entry.`
+
+      const res = await fetch('/api/whatsapp/send-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: sub.phone, imageBase64: bc.barcode, caption })
+      })
+      const data = await res.json()
+      if (data.success) toast.success(direction === 'rtl' ? 'اتبعت الباركود على الواتس ✅' : 'Barcode sent ✅')
+      else toast.error(data.error || (direction === 'rtl' ? 'فشل إرسال الواتساب' : 'WhatsApp send failed'))
+    } catch {
+      toast.error(direction === 'rtl' ? 'فشل الإرسال' : 'Send failed')
+    } finally {
+      setSendingBarcode(null)
+    }
+  }
+
   const handleRegisterSession = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -1194,6 +1228,15 @@ export default function MorePage() {
                         </span>
                       </button>
                     )}
+                    {/* 🏊 إرسال الباركود على الواتس (فيه رقم التليفون) */}
+                    <button
+                      onClick={() => handleSendBarcode(sub)}
+                      disabled={sendingBarcode === sub.moreNumber || !sub.phone}
+                      className="col-span-2 inline-flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg text-sm transition-colors duration-200 font-bold disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875v14.25M6.75 4.875v14.25M10.5 4.875v14.25M14.25 4.875v14.25M17.25 4.875v14.25M20.25 4.875v14.25" /></svg>
+                      <span>{sendingBarcode === sub.moreNumber ? (locale === 'ar' ? 'جاري الإرسال...' : 'Sending...') : (locale === 'ar' ? 'باركود واتساب' : 'Barcode WhatsApp')}</span>
+                    </button>
                     <button
                       onClick={() => handleOpenEdit(sub)}
                       className="inline-flex items-center justify-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2 rounded-lg text-sm transition-colors duration-200 font-bold"

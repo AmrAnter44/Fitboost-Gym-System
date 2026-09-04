@@ -79,7 +79,9 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
     if (member.expiryDate) {
       const today = new Date(); today.setHours(0, 0, 0, 0)
       const oldExp = new Date(member.expiryDate); oldExp.setHours(0, 0, 0, 0)
-      if (oldExp >= today) {
+      //  بس لو لسه فاضل أيام بعد النهاردة (expiry > today) نجدول من بعد ما يخلص.
+      //  لو خلص النهاردة أو منتهي → تجديد فوري يبدأ النهاردة (مايستناش 24 ساعة).
+      if (oldExp.getTime() > today.getTime()) {
         const next = new Date(oldExp); next.setDate(next.getDate() + 1)
         return formatDateYMD(next)
       }
@@ -131,7 +133,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
     const today = new Date(); today.setHours(0, 0, 0, 0)
     const oldExp = new Date(member.expiryDate); oldExp.setHours(0, 0, 0, 0)
     const s = new Date(startDate); s.setHours(0, 0, 0, 0)
-    return oldExp >= today && s.getTime() > today.getTime()
+    //  مجدول بس لو لسه فاضل أيام بعد النهاردة (مش لو خلص النهاردة)
+    return oldExp.getTime() > today.getTime() && s.getTime() > today.getTime()
   })()
 
   useEffect(() => {

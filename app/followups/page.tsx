@@ -507,10 +507,11 @@ function FollowUpsPageContent() {
         expiryDate.setHours(0, 0, 0, 0)
         //  منتهي = تاريخ الانتهاء فات (سواء اتعطل يدوي أو لا)
         if (!(expiryDate < today)) return false
-        //  لو سيلز  بيشوف أعضاءه اللي assigned ليه بس
-        //  استثناء: مسؤول السيلز (canManageSales) بيشوف الكل حتى لو هو نفسه isSales
+        //  السيلز بيشوف أعضاءه المسنّدين له + الأعضاء غير المسنّدين (عشان يتابعهم)
+        //  استثناء: مسؤول السيلز (canManageSales) بيشوف الكل
         if (user?.isSales && !canManageSales) {
-          return user.staffId ? (m as any).salesStaffId === user.staffId : false
+          if (!user.staffId) return false
+          return (m as any).salesStaffId === user.staffId || !(m as any).salesStaffId
         }
         return true
       })
@@ -541,10 +542,11 @@ function FollowUpsPageContent() {
         expiryDate.setHours(0, 0, 0, 0)
         // الأعضاء النشطين اللي اشتراكهم هينتهي في خلال الأيام المحددة
         if (!(expiryDate >= today && expiryDate <= futureDate)) return false
-        //  لو سيلز  بيشوف أعضاءه اللي assigned ليه بس
+        //  السيلز بيشوف أعضاءه المسنّدين له + الأعضاء غير المسنّدين (عشان يتابعهم)
         //  استثناء: مسؤول السيلز (canManageSales) بيشوف الكل
         if (user?.isSales && !canManageSales) {
-          return user.staffId ? (m as any).salesStaffId === user.staffId : false
+          if (!user.staffId) return false
+          return (m as any).salesStaffId === user.staffId || !(m as any).salesStaffId
         }
         return true
       })
@@ -732,6 +734,8 @@ function FollowUpsPageContent() {
       return merged.filter(fu => {
         if (fu.assignedTo === user.staffId) return true
         if (fu.visitor?.source === 'member-invitation' && !fu.assignedTo) return true
+        //  الأعضاء المنتهيين/قرب ينتهي غير المسنّدين يظهروا للسيلز عشان يتابعهم
+        if ((fu.visitor?.source === 'expired-member' || fu.visitor?.source === 'expiring-member') && !fu.assignedTo) return true
         return false
       })
     }
