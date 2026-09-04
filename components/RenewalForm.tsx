@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import PaymentMethodSelector from './Paymentmethodselector'
 import ReceiptSuccessModal from './ReceiptSuccessModal'
-import SalesStaffSelector from './SalesStaffSelector'
 import { calculateDaysBetween, formatDateYMD } from '../lib/dateFormatter'
 import { usePermissions } from '../hooks/usePermissions'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -93,8 +92,6 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const [source, setSource] = useState((member as any).source || '') // مصدر العضو (يتحدّث عند التجديد)
   const [paymentMethod, setPaymentMethod] = useState<string | PaymentMethod[]>('cash')
   const [staffName, setStaffName] = useState(user?.name || '')
-  //  🧑‍💼 موظف السيلز للعضو — مبدئيًا القيمة الحالية، وتقدر تخليه «بدون سيلز» (null)
-  const [salesStaffId, setSalesStaffId] = useState<string | null>((member as any).salesStaffId ?? null)
   const [remainingAmount, setRemainingAmount] = useState('0')
   const [remainingDueDate, setRemainingDueDate] = useState('')
   const [loading, setLoading] = useState(false)
@@ -260,7 +257,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
           source: source || null,
           paymentMethod,
           staffName: user?.name || '',
-          salesStaffId: salesStaffId,  //  موظف السيلز (أو null = بدون سيلز)
+          //  ملاحظة: مبنبعتش salesStaffId عند التجديد — موظف السيلز الحالي للعضو مبيتغيرش
           offerId: selectedOfferId,
           //  وضع المزايا: لو true → الـ API يـ reset، لو false → بيجمع القديم + الجديد
           resetBenefits,
@@ -533,11 +530,6 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 cursor-not-allowed"
                   placeholder={t('renewal.staffNamePlaceholder')}
                 />
-              </div>
-
-              {/*  🧑‍💼 موظف السيلز — تقدر تختار سيلز أو «بدون موظف سيلز» */}
-              <div>
-                <SalesStaffSelector value={salesStaffId} onChange={setSalesStaffId} />
               </div>
             </div>
           </div>
