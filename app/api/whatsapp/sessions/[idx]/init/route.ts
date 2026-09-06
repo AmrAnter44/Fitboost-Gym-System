@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { verifyAuth } from '../../../../../../lib/auth'
+import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 export async function POST(request: Request, { params }: { params: { idx: string } }) {
   // 🔒 Auth
@@ -9,7 +10,7 @@ export async function POST(request: Request, { params }: { params: { idx: string
   }
 
   try {
-    const res = await fetch(`http://127.0.0.1:4002/init/${params.idx}`, { method: 'POST', cache: 'no-store' })
+    const res = await fetch(`${WHATSAPP_SIDECAR}/init/${params.idx}`, { method: 'POST', cache: 'no-store' })
     const data = await res.json()
     return NextResponse.json(data, { status: res.ok ? 200 : 400 })
   } catch (err) {

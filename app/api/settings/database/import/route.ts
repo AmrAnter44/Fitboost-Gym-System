@@ -5,6 +5,7 @@ import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { requireAdmin } from '../../../../../lib/auth';
+import { resolveDbDir, resolveDbName } from '@/lib/dbPath'
 
 const execAsync = promisify(exec);
 
@@ -53,13 +54,14 @@ export async function POST(request: NextRequest) {
     }
 
     const projectRoot = process.cwd();
-    const prismaDir = path.join(projectRoot, 'prisma');
-    const currentDbPath = path.join(prismaDir, 'gym.db');
-    const tempDbPath = path.join(prismaDir, 'gym.db.temp');
+    const prismaDir = resolveDbDir();
+    const dbName = resolveDbName();
+    const currentDbPath = path.join(prismaDir, dbName);
+    const tempDbPath = path.join(prismaDir, `${dbName}.temp`);
 
     // مسار النسخة الاحتياطية
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('.')[0];
-    const backupPath = path.join(prismaDir, `gym.db.backup.import-${timestamp}`);
+    const backupPath = path.join(prismaDir, `${dbName}.backup.import-${timestamp}`);
 
     // الخطوة 1: حفظ الملف المرفوع مؤقتاً
     await writeFile(tempDbPath, buffer);
@@ -185,8 +187,8 @@ export async function POST(request: NextRequest) {
  */
 export async function GET() {
   try {
-    const prismaDir = path.join(process.cwd(), 'prisma');
-    const { stdout } = await execAsync(`ls -1 "${prismaDir}" | grep "gym.db.backup"`);
+    const prismaDir = resolveDbDir();
+    const { stdout } = await execAsync(`ls -1 "${prismaDir}" | grep "${resolveDbName()}.backup"`);
 
     const backups = stdout
       .split('\n')

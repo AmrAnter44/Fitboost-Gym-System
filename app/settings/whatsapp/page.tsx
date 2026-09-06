@@ -494,7 +494,7 @@ export default function WhatsAppPage() {
               : 'bg-red-50 ring-red-200 text-red-700 dark:bg-red-900/20 dark:ring-red-900/50 dark:text-red-300'
           }`}>
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${sidecarUp ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-            <span className="text-xs font-mono opacity-70">port 4002</span>
+            
             <span>{sidecarUp ? 'WhatsApp Service Online' : 'WhatsApp Service Offline'}</span>
             <svg {...stroke} className="w-4 h-4 ms-auto" aria-hidden="true">
               {sidecarUp ? (

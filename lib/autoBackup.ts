@@ -1,11 +1,13 @@
 import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'fs'
 import path from 'path'
 import { prisma } from './prisma'
-import { resolveDbPath } from './dbPath'
+import { resolveDbPath, resolveDbName } from './dbPath'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const KEEP_BACKUPS = 14 // نحتفظ بآخر أسبوعين من النسخ اليومية
-const PREFIX = 'gym.db.auto-'
+// البادئة بتتبع اسم الملف الحقيقي — لو كانت ثابتة، تنظيف النسخ
+// القديمة مش هيلاقي حاجة على جيم اسم ملفه مختلف.
+const PREFIX = `${resolveDbName()}.auto-`
 
 /**
  * ياخد نسخة احتياطية يومية تلقائية للـ DB لو عدّى يوم على آخر نسخة.

@@ -16,7 +16,7 @@ const MIN_DELAY_MS = 10000;  // 10 seconds
 const MAX_DELAY_MS = 40000;  // 40 seconds
 const POLL_INTERVAL = 5000;      // فحص سريع طالما فيه رسايل في الطابور
 const POLL_INTERVAL_MAX = 60000; // تباطؤ تدريجي لما الطابور فاضي (بدل ما نخبط الـ DB كل 5 ثواني على الفاضي)
-const API_BASE = 'http://127.0.0.1:4001';
+const { API_BASE } = require('./service-ports');
 
 function internalHeaders() {
   const tok = process.env.INTERNAL_API_TOKEN;

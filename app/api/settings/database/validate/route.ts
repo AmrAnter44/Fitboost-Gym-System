@@ -4,6 +4,7 @@ import path from 'path';
 import Database from 'better-sqlite3';
 import { requireAdmin } from '../../../../../lib/auth';
 import { prisma } from '../../../../../lib/prisma';
+import { resolveDbPath } from '@/lib/dbPath'
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
   try {
     await requireAdmin(request);
     const projectRoot = process.cwd();
-    const dbPath = path.join(projectRoot, 'prisma', 'gym.db');
+    const dbPath = resolveDbPath();
 
     if (!existsSync(dbPath)) {
       return NextResponse.json({

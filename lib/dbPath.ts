@@ -36,3 +36,24 @@ export function resolveDbPath(): string {
   // أفضل تخمين حتى لو مش موجود (المستدعي بيتعامل مع الغياب)
   return candidates[0]
 }
+
+/** المجلد اللي فيه ملف الداتابيز — النسخ الاحتياطية والملفات المؤقتة بتتحط جنبه. */
+export function resolveDbDir(): string {
+  return path.dirname(resolveDbPath())
+}
+
+/**
+ * اسم ملف الداتابيز من غير مسار (مثلاً 'gym.db' أو 'helmyapoint.db').
+ *
+ * الاسم مش ثابت: كل جيم على السيرفر المشترك ممكن يكون ليه اسم مختلف،
+ * وفي Electron الملف بيكون في userData. أي كود بيبني اسم نسخة احتياطية
+ * أو بيفلتر ملفات المجلد لازم يشتق من هنا مش من نص مكتوب.
+ */
+export function resolveDbName(): string {
+  return path.basename(resolveDbPath())
+}
+
+/** نفس الاسم بس آمن للاستخدام جوّه regex. */
+export function escapeForRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}

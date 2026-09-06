@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
+import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(_req: Request, { params }: { params: { idx: string } }) {
   try {
-    const res = await fetch(`http://127.0.0.1:4002/status/${params.idx}`, { cache: 'no-store' })
+    const res = await fetch(`${WHATSAPP_SIDECAR}/status/${params.idx}`, { cache: 'no-store' })
     const data = await res.json()
     return NextResponse.json(data)
   } catch (err) {

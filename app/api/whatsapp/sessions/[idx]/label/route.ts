@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
+import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 export async function PUT(req: Request, { params }: { params: { idx: string } }) {
   try {
     const { label } = await req.json()
-    const res = await fetch(`http://127.0.0.1:4002/session/${params.idx}/label`, {
+    const res = await fetch(`${WHATSAPP_SIDECAR}/session/${params.idx}/label`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ label }),

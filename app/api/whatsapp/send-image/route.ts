@@ -4,12 +4,11 @@
 
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '../../../../lib/auth';
-
-const SIDECAR = 'http://127.0.0.1:4002';
+import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 async function getConnectedSessions(): Promise<number[]> {
   try {
-    const res = await fetch(`${SIDECAR}/status/all`, { cache: 'no-store' });
+    const res = await fetch(`${WHATSAPP_SIDECAR}/status/all`, { cache: 'no-store' });
     const sessions = await res.json() as { sessionIndex: number; isReady: boolean }[];
     return sessions.filter(s => s.isReady).map(s => s.sessionIndex);
   } catch {
@@ -36,7 +35,7 @@ export async function POST(request: Request) {
     if (connectedSessions.length === 0) {
       // Fallback: try legacy /send-image (session 0)
       try {
-        const res = await fetch(`${SIDECAR}/send-image`, {
+        const res = await fetch(`${WHATSAPP_SIDECAR}/send-image`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phone, imageBase64, caption: caption || '' }),
@@ -52,7 +51,7 @@ export async function POST(request: Request) {
     let lastError = '';
     for (const sessionIdx of connectedSessions) {
       try {
-        const res = await fetch(`${SIDECAR}/send-image-multi`, {
+        const res = await fetch(`${WHATSAPP_SIDECAR}/send-image-multi`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionIndex: sessionIdx, phone, imageBase64, caption: caption || '' }),

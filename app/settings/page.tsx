@@ -400,6 +400,8 @@ export default function SettingsPage() {
   const [optimizeMessage, setOptimizeMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [dbFiles, setDbFiles] = useState<Array<{ name: string; sizeMB: number; sizeBytes: number; isLive: boolean; modified: string }>>([])
   const [dbFilesTotalMB, setDbFilesTotalMB] = useState<number>(0)
+  // اسم ملف الداتابيز مش ثابت (كل جيم ليه اسمه) — بييجي من الـ API
+  const [dbFileName, setDbFileName] = useState<string>('gym.db')
   const [loadingDbFiles, setLoadingDbFiles] = useState(false)
 
   // 🗜️ Base64 Image Migration state
@@ -943,6 +945,7 @@ export default function SettingsPage() {
         const data = await res.json()
         setDbFiles(Array.isArray(data.files) ? data.files : [])
         setDbFilesTotalMB(Number(data.totalMB) || 0)
+        if (typeof data.liveName === 'string' && data.liveName) setDbFileName(data.liveName)
       }
     } catch {
       /* ignore */
@@ -952,11 +955,11 @@ export default function SettingsPage() {
   }
 
   const handleOptimizeDb = async (target?: string, all?: boolean) => {
-    const isLive = !target || target === 'gym.db'
+    const isLive = !target || target === dbFileName
     const confirmMsg = all
-      ? 'هل تريد تنظيف كل النسخ الاحتياطية القديمة؟\n\nالعملية بتشغّل VACUUM على كل ملفات gym.db.backup-* وبتصغّر حجمها.\nالملف الأساسي (gym.db) مش هيتأثر.'
+      ? `هل تريد تنظيف كل النسخ الاحتياطية القديمة؟\n\nالعملية بتشغّل VACUUM على كل ملفات ${dbFileName}.backup-* وبتصغّر حجمها.\nالملف الأساسي (${dbFileName}) مش هيتأثر.`
       : isLive
-        ? 'هل تريد تنظيف ملف قاعدة البيانات الأساسي (gym.db)؟\n\nالعملية آمنة وبتصغّر الحجم من غير ما تغيّر في البيانات.\nيُفضَّل عمل نسخة احتياطية قبلها من زر "النسخ الاحتياطي".'
+        ? `هل تريد تنظيف ملف قاعدة البيانات الأساسي (${dbFileName})؟\n\nالعملية آمنة وبتصغّر الحجم من غير ما تغيّر في البيانات.\nيُفضَّل عمل نسخة احتياطية قبلها من زر "النسخ الاحتياطي".`
         : `هل تريد تنظيف الملف "${target}"؟`
 
     setConfirmState({
@@ -971,7 +974,7 @@ export default function SettingsPage() {
           const res = await fetch('/api/settings/database/optimize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(all ? { all: true } : { target: target || 'gym.db' }),
+            body: JSON.stringify(all ? { all: true } : { target: target || dbFileName }),
           })
           const data = await res.json()
 
@@ -3243,7 +3246,7 @@ export default function SettingsPage() {
 
                 <div className="flex flex-col sm:flex-row gap-2">
                   <button
-                    onClick={() => handleOptimizeDb('gym.db')}
+                    onClick={() => handleOptimizeDb(dbFileName)}
                     disabled={optimizingDb}
                     className="flex-1 px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
@@ -3259,7 +3262,7 @@ export default function SettingsPage() {
                         <svg {...stroke} className="w-5 h-5" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="m7.875 14.25 1.214 1.942a2.25 2.25 0 0 0 1.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 0 1 1.872 1.002l.164.246a2.25 2.25 0 0 0 1.872 1.002h2.092a2.25 2.25 0 0 0 1.872-1.002l.164-.246A2.25 2.25 0 0 1 16.954 9h4.636" />
                         </svg>
-                        <span>تنظيف الملف الأساسي (gym.db)</span>
+                        <span>تنظيف الملف الأساسي ({dbFileName})</span>
                       </>
                     )}
                   </button>
@@ -3294,7 +3297,7 @@ export default function SettingsPage() {
                     ايه ده؟
                   </p>
                   <p className="text-gray-700 dark:text-gray-200 leading-relaxed">
-                    النظام بيخزن صور الأعضاء القديمة كنصوص <strong>base64</strong> جوه قاعدة البيانات نفسها — ده بيخلي ملف <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">gym.db</code> يكبر بشكل كبير. التنظيف ده بينقل الصور دي لملفات منفصلة في فولدر <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">uploads/</code> ويرجّع حجم قاعدة البيانات لطبيعته. مفيش بيانات هتضيع.
+                    النظام بيخزن صور الأعضاء القديمة كنصوص <strong>base64</strong> جوه قاعدة البيانات نفسها — ده بيخلي ملف <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">{dbFileName}</code> يكبر بشكل كبير. التنظيف ده بينقل الصور دي لملفات منفصلة في فولدر <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">uploads/</code> ويرجّع حجم قاعدة البيانات لطبيعته. مفيش بيانات هتضيع.
                   </p>
                 </div>
 
@@ -3333,7 +3336,7 @@ export default function SettingsPage() {
                     <ul className="list-disc list-inside space-y-1 text-amber-900 dark:text-amber-200">
                       <li>عدد الصور القديمة: <strong>{cleanupInfo.candidates}</strong></li>
                       <li>الحجم في قاعدة البيانات: <strong>{cleanupInfo.estimatedBase64Mb} MB</strong></li>
-                      <li>الحجم الكلي لـ <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">gym.db</code>: <strong>{cleanupInfo.currentDbSizeMb} MB</strong></li>
+                      <li>الحجم الكلي لـ <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">{dbFileName}</code>: <strong>{cleanupInfo.currentDbSizeMb} MB</strong></li>
                       <li>الحجم المتوقع بعد التنظيف: <strong>~{Math.max(0.5, +(cleanupInfo.currentDbSizeMb - cleanupInfo.estimatedBase64Mb).toFixed(1))} MB</strong></li>
                     </ul>
                   </div>

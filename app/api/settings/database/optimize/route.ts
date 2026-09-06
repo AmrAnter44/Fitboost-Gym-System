@@ -5,14 +5,18 @@ import Database from 'better-sqlite3';
 import { requireAdmin } from '../../../../../lib/auth';
 import { prisma } from '../../../../../lib/prisma';
 import { clearReadonlyOnWindows } from '../../../../../lib/dbFilePermissions';
+import { resolveDbDir, resolveDbName, escapeForRegex } from '../../../../../lib/dbPath';
 
 export const dynamic = 'force-dynamic';
 
-const LIVE_DB = 'gym.db';
-const SAFE_NAME_RE = /^gym\.db[A-Za-z0-9._\-]*$/;
+// اسم الداتابيز مش ثابت — بيتغير حسب الجيم (helmyapoint.db …) وفي
+// Electron الملف بيكون في userData مش في prisma/. بنشتق الاتنين من
+// DATABASE_URL بدل ما نفترضهم.
+const LIVE_DB = resolveDbName();
+const SAFE_NAME_RE = new RegExp(`^${escapeForRegex(LIVE_DB)}[A-Za-z0-9._\\-]*$`);
 
 function prismaDirPath(): string {
-  return path.join(process.cwd(), 'prisma');
+  return resolveDbDir();
 }
 
 function resolveTargetPath(target: string): string | null {
@@ -53,7 +57,7 @@ export async function GET(request: Request) {
     const entries = readdirSync(dir);
     const files = entries
       .filter((name) =>
-        name.startsWith('gym.db') &&
+        name.startsWith(LIVE_DB) &&
         !name.endsWith('-shm') &&
         !name.endsWith('-wal') &&
         !name.endsWith('-journal')
@@ -68,6 +72,7 @@ export async function GET(request: Request) {
     const totalBytes = files.reduce((sum, f) => sum + f.sizeBytes, 0);
     return NextResponse.json({
       files,
+      liveName: LIVE_DB,   // الواجهة عميل — مش هتعرف الاسم غير من هنا
       totalBytes,
       totalMB: Number((totalBytes / (1024 * 1024)).toFixed(2)),
     });
@@ -83,10 +88,10 @@ export async function GET(request: Request) {
 }
 
 /**
- * 🧹 POST: run VACUUM on target file (default: live gym.db).
+ * 🧹 POST: run VACUUM on target file (default: live DB).
  * Body: { target?: string, all?: boolean }
  * - target: specific filename in prisma/ (allowlist pattern)
- * - all: if true, vacuums every backup file (skips the live gym.db unless includeLive=true)
+ * - all: if true, vacuums every backup file (skips the live DB unless includeLive=true)
  */
 export async function POST(request: Request) {
   try {
@@ -102,7 +107,7 @@ export async function POST(request: Request) {
     if (all) {
       const entries = readdirSync(dir).filter(
         (name) =>
-          name.startsWith('gym.db') &&
+          name.startsWith(LIVE_DB) &&
           !name.endsWith('-shm') &&
           !name.endsWith('-wal') &&
           !name.endsWith('-journal') &&

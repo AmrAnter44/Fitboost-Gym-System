@@ -8,6 +8,7 @@ import Database from 'better-sqlite3'
 import path from 'path'
 import fs from 'fs'
 import { requirePermission } from '../../../../lib/auth'
+import { resolveDbPath } from '@/lib/dbPath'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,19 +19,10 @@ export async function POST(request: Request) {
 
 
     // تحديد مسار قاعدة البيانات
-    let dbPath = path.join(process.cwd(), 'prisma', 'gym.db')
-    let isProduction = false
-
-    // في Production (Electron)، قاعدة البيانات في AppData
-    if (process.env.NODE_ENV === 'production' || !fs.existsSync(dbPath)) {
-      const appData = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share")
-      const productionDbPath = path.join(appData, 'gym-management', 'gym.db')
-
-      if (fs.existsSync(productionDbPath)) {
-        dbPath = productionDbPath
-        isProduction = true
-      }
-    }
+    // resolveDbPath بيشتق المسار من DATABASE_URL، فبيشتغل مع أي اسم ملف
+    // (helmyapoint.db …) ومع مكان الـ DB في نسخة Electron المعبّأة.
+    const dbPath = resolveDbPath()
+    const isProduction = !dbPath.startsWith(path.join(process.cwd(), 'prisma') + path.sep)
 
     if (!fs.existsSync(dbPath)) {
       return NextResponse.json(
@@ -232,16 +224,10 @@ export async function GET(request: Request) {
     await requirePermission(request, 'canAccessAdmin')
 
     // تحديد مسار قاعدة البيانات
-    let dbPath = path.join(process.cwd(), 'prisma', 'gym.db')
-
-    if (process.env.NODE_ENV === 'production' || !fs.existsSync(dbPath)) {
-      const appData = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share")
-      const productionDbPath = path.join(appData, 'gym-management', 'gym.db')
-
-      if (fs.existsSync(productionDbPath)) {
-        dbPath = productionDbPath
-      }
-    }
+    // resolveDbPath بيشتق المسار من DATABASE_URL، فبيشتغل مع أي اسم ملف
+    // (helmyapoint.db …) ومع مكان الـ DB في نسخة Electron المعبّأة.
+    const dbPath = resolveDbPath()
+    const isProduction = !dbPath.startsWith(path.join(process.cwd(), 'prisma') + path.sep)
 
     if (!fs.existsSync(dbPath)) {
       return NextResponse.json({ error: 'قاعدة البيانات غير موجودة' }, { status: 404 })

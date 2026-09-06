@@ -3,13 +3,12 @@
  */
 
 import { NextResponse } from 'next/server';
-
-const SIDECAR = 'http://127.0.0.1:4002';
+import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 export async function GET() {
   try {
     // Try multi-session status first
-    const allRes = await fetch(`${SIDECAR}/status/all`, { cache: 'no-store' });
+    const allRes = await fetch(`${WHATSAPP_SIDECAR}/status/all`, { cache: 'no-store' });
     const sessions = await allRes.json() as { sessionIndex: number; isReady: boolean; phoneNumber?: string }[];
     const connectedSessions = sessions.filter(s => s.isReady);
 
@@ -40,7 +39,7 @@ export async function GET() {
   } catch {
     // Fallback to legacy single-session status
     try {
-      const res = await fetch(`${SIDECAR}/status`, { cache: 'no-store' });
+      const res = await fetch(`${WHATSAPP_SIDECAR}/status`, { cache: 'no-store' });
       const data = await res.json();
       return NextResponse.json({ success: true, sidecarOnline: true, ...data });
     } catch {
