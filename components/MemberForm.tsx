@@ -108,6 +108,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
     isOther: false,
     skipReceipt: false, // خيار عدم إنشاء إيصال
     coachId: null as string | null, // ‍ معرف الكوتش
+    noCoachWanted: false, //  العضو مش عايز كابتن
     salesStaffId: null as string | null, // موظف السيلز
     ptCommissionAmount: null as number | null, // عمولة الكوتش من الباقة (null = استخدام الافتراضي من الإعدادات)
     referralMemberNumber: '', // رقم العضو المُحيل
@@ -393,6 +394,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
       staffName: user?.name || '',
       customCreatedAt: customCreatedAt ? customCreatedAt.toISOString() : null,
       coachId: formData.coachId, // ‍ إرسال معرف الكوتش
+      noCoachWanted: formData.noCoachWanted, //  العضو مش عايز كابتن
       salesStaffId: formData.salesStaffId || null, // موظف السيلز
       ptCommissionAmount: formData.ptCommissionAmount, // عمولة الباقة (null أو رقم)
       referralMemberNumber: formData.referralMemberNumber, // رقم العضو المُحيل
@@ -844,10 +846,11 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
                 <option value="instagram">{t('members.form.sourceInstagram')}</option>
                 <option value="tiktok">{t('members.form.sourceTiktok')}</option>
                 <option value="chatgpt">{t('members.form.sourceChatGPT')}</option>
+                <option value="google_maps">{direction === 'rtl' ? 'جوجل ماب / Google Maps' : 'Google Maps'}</option>
                 <option value="website">{t('members.form.sourceWebsite')}</option>
                 <option value="friend_referral">{t('members.form.sourceFriendReferral')}</option>
                 {/* احتفظ بالقيمة القديمة لو العضو متسجّل قبل كده بـ source غير موجود في القائمة الجديدة */}
-                {formData.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','chatgpt','website','friend_referral'].includes(formData.source) && (
+                {formData.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','chatgpt','google_maps','website','friend_referral'].includes(formData.source) && (
                   <option value={formData.source}>{formData.source}</option>
                 )}
               </select>
@@ -929,8 +932,10 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
       {/* 🏋️ اختيار الكوتش — يظهر دايماً (مش مرتبط بـ PT Commission) */}
       <CoachSelector
         value={formData.coachId}
-        onChange={(coachId) => setFormData({ ...formData, coachId })}
+        onChange={(coachId) => setFormData(prev => ({ ...prev, coachId, noCoachWanted: coachId ? false : prev.noCoachWanted }))}
         required={false}
+        noCoach={formData.noCoachWanted}
+        onNoCoachChange={(v) => setFormData(prev => ({ ...prev, noCoachWanted: v, coachId: v ? null : prev.coachId }))}
       />
 
       {/* اختيار موظف السيلز — مقفول لغير OWNER/ADMIN لما الرقم متطابق مع متابعة

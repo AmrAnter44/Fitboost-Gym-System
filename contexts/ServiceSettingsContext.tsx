@@ -33,6 +33,7 @@ interface ServiceSettings {
   physioReferralPercentage: number
   websiteUrl?: string
   showWebsiteOnReceipts?: boolean
+  receiptTerms?: string
   gymName?: string | null
   gymLogo?: string | null
   primaryColor?: string | null
@@ -84,6 +85,7 @@ function parseSettings(data: any): ServiceSettings {
     physioReferralPercentage: data.physioReferralPercentage ?? 0,
     websiteUrl: data.websiteUrl || '',
     showWebsiteOnReceipts: data.showWebsiteOnReceipts ?? false,
+    receiptTerms: data.receiptTerms || '',
     gymName: data.gymName || null,
     gymLogo: data.gymLogo || null,
     primaryColor: data.primaryColor || null,
@@ -170,6 +172,7 @@ function getDefaultSettings(): ServiceSettings {
     physioReferralPercentage: 0,
     websiteUrl: '',
     showWebsiteOnReceipts: false,
+    receiptTerms: '',
     remainingEnabled: false,
     requireSelfieOnCheckIn: false,
     gymName: null,

@@ -74,8 +74,18 @@ export async function GET(request: Request) {
         amount: true,
         type: true,
         itemDetails: true,
+        ptNumber: true,
       },
     })
+
+    //  🔗 خريطة رقم الـ PT → الكوتش الحقيقي (من سجل الـ PT) — أدق من اسم الكوتش في الإيصال
+    const ptNums = Array.from(new Set(receipts.map(r => r.ptNumber).filter((n): n is number => n != null)))
+    const ptRows = ptNums.length
+      ? await prisma.pT.findMany({ where: { ptNumber: { in: ptNums } }, select: { ptNumber: true, coachName: true } })
+      : []
+    const ptNumToCoach = new Map<number, string>()
+    ptRows.forEach(p => { if (p.coachName) ptNumToCoach.set(p.ptNumber, p.coachName.trim()) })
+    const normNm = (s: any) => String(s ?? '').trim().toLowerCase()
 
     //  لكل كوتش، نجمع amount من الإيصالات اللي coachName فيها = اسم الكوتش
     const result = trainers.map(c => {
@@ -85,13 +95,20 @@ export async function GET(request: Request) {
       const breakdown: Record<string, number> = {}
 
       for (const r of receipts) {
+        //  رقم الـ PT هو الحَكَم: لو الإيصال مربوط بـ PT معروف يُنسب لكوتشه الحقيقي
+        if (r.ptNumber != null && ptNumToCoach.has(r.ptNumber)) {
+          if (normNm(ptNumToCoach.get(r.ptNumber)) !== normNm(c.name)) continue
+          collected += r.amount || 0
+          receiptsCount++
+          breakdown[r.type] = (breakdown[r.type] || 0) + (r.amount || 0)
+          continue
+        }
+        //  fallback: اسم الكوتش في itemDetails (بعد تطبيع) — للإيصالات بدون رقم PT أو خدمات تانية
         if (!r.itemDetails) continue
         try {
           const details = JSON.parse(r.itemDetails)
-          //  الكوتش متعيّن بـ coachName في الـ itemDetails (نفس طريقة حاسبة التحصيل)
-          // ندعم coachName + nutritionistName + therapistName
           const name = details.coachName || details.nutritionistName || details.therapistName
-          if (name !== c.name) continue
+          if (normNm(name) !== normNm(c.name)) continue
           collected += r.amount || 0
           receiptsCount++
           breakdown[r.type] = (breakdown[r.type] || 0) + (r.amount || 0)

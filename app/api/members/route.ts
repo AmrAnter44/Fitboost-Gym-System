@@ -1,7 +1,7 @@
 // app/api/members/route.ts - مع فحص الصلاحيات
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
-import { requirePermission, verifyAuth } from '../../../lib/auth'
+import { requirePermission, requireAnyPermission, verifyAuth } from '../../../lib/auth'
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -14,6 +14,7 @@ import { getNextReceiptNumberDirect } from '../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 import { memberCreateSchema, formatZodError } from '../../../lib/schemas/memberSchema'
 import { memberPhotoUrl } from '../../../lib/memberPhoto'
+import { sweepDuePendingRenewals } from '../../../lib/pendingRenewal'
 
 export const dynamic = 'force-dynamic'
 
@@ -185,6 +186,9 @@ export async function GET(request: Request) {
       findManyArgs.take = pageSize
     }
 
+    //  🔁 فعّل أي تجديدات مجدولة وصل ميعادها قبل ما نرجّع القايمة (عشان الحالة تبان محدّثة)
+    try { await sweepDuePendingRenewals() } catch { /* ignore */ }
+
     // في الـ paginated mode بنجيب الـ total بالتوازي مع الـ findMany
     const [members, total] = await Promise.all([
       prisma.member.findMany(findManyArgs),
@@ -206,6 +210,25 @@ export async function GET(request: Request) {
       const { idCardFront, idCardBack, ...rest } = m
       return { ...rest, profileImage: memberPhotoUrl(m.id, m.profileImage) }
     })
+
+    //  🚫 noCoachWanted — raw SQL merge (عمود جديد، آمن حتى لو الـ Prisma client لسه outdated)
+    try {
+      const ids = members.map((m: any) => m.id)
+      if (ids.length) {
+        const rows: any[] = await prisma.$queryRawUnsafe(
+          `SELECT id, noCoachWanted, pendingRenewalStartDate, pendingRenewalExpiryDate FROM Member WHERE id IN (${ids.map(() => '?').join(',')})`,
+          ...ids
+        )
+        const ncMap = new Map(rows.map(r => [r.id, r]))
+        for (const lm of lightMembers as any[]) {
+          const row: any = ncMap.get(lm.id)
+          lm.noCoachWanted = row ? !!row.noCoachWanted : false
+          //  🔁 معلومات التجديد المجدول (لو لسه ما اتفعّلش) — للعرض في كارت العضو
+          lm.pendingRenewalStartDate = row?.pendingRenewalStartDate != null ? new Date(Number(row.pendingRenewalStartDate)).toISOString() : null
+          lm.pendingRenewalExpiryDate = row?.pendingRenewalExpiryDate != null ? new Date(Number(row.pendingRenewalExpiryDate)).toISOString() : null
+        }
+      }
+    } catch (e) { /* العمود ممكن يكون لسه مش موجود — نتعامل كـ false */ }
 
     if (isPaginated) {
       const hasMore = page * pageSize < total
@@ -318,6 +341,7 @@ export async function POST(request: Request) {
       customCreatedAt,
       skipReceipt,
       coachId,
+      noCoachWanted,
       salesStaffId,
       offerId,          // 📦 الباقة المختارة من الفورم
       ptCommissionAmount,
@@ -566,6 +590,13 @@ export async function POST(request: Request) {
         }
         throw createErr
       }
+    }
+
+    //  🚫 noCoachWanted — raw SQL (عمود جديد، آمن حتى لو الـ Prisma client لسه outdated)
+    if (member?.id && noCoachWanted) {
+      try {
+        await prisma.$executeRawUnsafe(`UPDATE Member SET noCoachWanted = 1 WHERE id = ?`, member.id)
+      } catch (e) { console.error('set noCoachWanted failed:', e) }
     }
 
     // 📝 Audit log
@@ -890,11 +921,20 @@ export async function POST(request: Request) {
 // PUT - تحديث عضو
 export async function PUT(request: Request) {
   try {
-    // ✅ التحقق من صلاحية تعديل عضو
-    const user = await requirePermission(request, 'canEditMembers')
-    
+    // ✅ التحقق من صلاحية تعديل عضو — كاملة (canEditMembers) أو محدودة (canEditMemberBasic = اسم/تليفون بس)
+    const user = await requireAnyPermission(request, ['canEditMembers', 'canEditMemberBasic'])
+    const isFullMemberEdit = user.role === 'OWNER' || user.role === 'ADMIN' || !!user.permissions?.canEditMembers
+
     const body = await request.json()
-    const { id, profileImage, idCardFront, idCardBack, ...data } = body
+    let { id, profileImage, idCardFront, idCardBack, ...data } = body
+
+    //  🔒 الصلاحية المحدودة: يُسمح فقط بتعديل الاسم ورقم الموبايل — نعقّم أي حقل تاني
+    if (!isFullMemberEdit) {
+      profileImage = undefined
+      idCardFront = undefined
+      idCardBack = undefined
+      data = { name: data.name, phone: data.phone }
+    }
 
     const updateData: any = {}
     
@@ -1092,6 +1132,17 @@ export async function PUT(request: Request) {
 
       return updated
     })
+
+    //  🚫 noCoachWanted — raw SQL (عمود جديد). لو اتبعت صراحةً نحطه؛ ولو اتعيّن كوتش، نمسحه.
+    if (isFullMemberEdit) {
+      try {
+        if (data.noCoachWanted !== undefined) {
+          await prisma.$executeRawUnsafe(`UPDATE Member SET noCoachWanted = ? WHERE id = ?`, data.noCoachWanted ? 1 : 0, id)
+        } else if (data.coachId !== undefined && data.coachId) {
+          await prisma.$executeRawUnsafe(`UPDATE Member SET noCoachWanted = 0 WHERE id = ?`, id)
+        }
+      } catch (e) { console.error('update noCoachWanted failed:', e) }
+    }
 
     // 🔗 مزامنة عكسية (Member → Receipt): تعديل بيانات العضو يحدّث سناب-شوت الإيصالات المرتبطة
     //    عشان تفضل متطابقة مع الاتجاه العكسي (Receipt → Member) الموجود في /api/receipts/update

@@ -30,6 +30,7 @@ export const COUNTRIES: Country[] = [
   { code: 'DZ', nameAr: 'الجزائر', nameEn: 'Algeria', dial: '213', flag: '🇩🇿' },
   { code: 'TN', nameAr: 'تونس', nameEn: 'Tunisia', dial: '216', flag: '🇹🇳' },
   { code: 'TR', nameAr: 'تركيا', nameEn: 'Turkey', dial: '90', flag: '🇹🇷' },
+  { code: 'IT', nameAr: 'إيطاليا', nameEn: 'Italy', dial: '39', flag: '🇮🇹' },
   { code: 'GB', nameAr: 'بريطانيا', nameEn: 'United Kingdom', dial: '44', flag: '🇬🇧' },
   { code: 'US', nameAr: 'أمريكا', nameEn: 'United States', dial: '1', flag: '🇺🇸' },
 ]

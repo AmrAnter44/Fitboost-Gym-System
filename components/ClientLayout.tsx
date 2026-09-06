@@ -11,6 +11,7 @@ import { ServiceSettingsProvider, useServiceSettings } from '../contexts/Service
 import { DarkModeProvider } from '../contexts/DarkModeContext'
 import { LicenseProvider } from '../contexts/LicenseContext'
 import { BulkSenderProvider } from '../contexts/BulkSenderContext'
+import { PWAInstallProvider } from '../contexts/PWAInstallContext'
 import { TabsProvider, useTabs } from '../contexts/TabsContext'
 import QueryProvider from './QueryProvider'
 import Sidebar from './Sidebar'
@@ -21,6 +22,7 @@ import ToastContainer from './ToastContainer'
 import SearchModal from './SearchModal'
 import BarcodeInputDetector from './BarcodeInputDetector'
 import FloatingSearchButton from './FloatingSearchButton'
+import FloatingScanButton from './FloatingScanButton'
 import UpdateNotification from './UpdateNotification'
 import InstallPrompt from './InstallPrompt'
 import KeyboardShortcuts from './KeyboardShortcuts'
@@ -29,6 +31,8 @@ import BackToTop from './BackToTop'
 import LicenseLockedScreen from './LicenseLockedScreen'
 import BulkSenderOverlay from './BulkSenderOverlay'
 import InternalMailNotifier from './InternalMailNotifier'
+import FollowUpReminderBar from './FollowUpReminderBar'
+import SalesRemindersBar from './SalesRemindersBar'
 import Link from 'next/link'
 
 function LayoutContent({ children }: { children: ReactNode }) {
@@ -104,6 +108,10 @@ function LayoutContent({ children }: { children: ReactNode }) {
               {/* Breadcrumb */}
               <Breadcrumb />
 
+              {/*  بار تذكير المتابعات (لغير السيلز) + بار تذكيرات السيلز الثابت — فوق المحتوى في كل الصفحات */}
+              {!isEmbedded && <FollowUpReminderBar />}
+              {!isEmbedded && <SalesRemindersBar />}
+
               {/* Main Content */}
               <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900">
                 <div className="w-full max-w-full">
@@ -111,8 +119,9 @@ function LayoutContent({ children }: { children: ReactNode }) {
                 </div>
               </main>
 
-              {/* Floating Search Button */}
+              {/* Floating Search + Scan Buttons */}
               <FloatingSearchButton />
+              <FloatingScanButton />
 
               {/* Back to Top Button */}
               <BackToTop />
@@ -137,6 +146,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
               <SearchProvider>
                 <ToastProvider>
                   <BulkSenderProvider>
+                    <PWAInstallProvider>
                     <UpdateProvider>
                       <AdminDateProvider>
                         <LicenseProvider>
@@ -146,6 +156,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                         </LicenseProvider>
                       </AdminDateProvider>
                     </UpdateProvider>
+                    </PWAInstallProvider>
                   </BulkSenderProvider>
                 </ToastProvider>
               </SearchProvider>

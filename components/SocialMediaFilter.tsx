@@ -2,12 +2,17 @@
 
 import { useState, useRef, useEffect } from 'react'
 
-//  مصادر السوشيال ميديا المتاحة في النظام (نفس القيم المخزّنة في source)
+//  كل المصادر المتاحة في النظام (نفس القيم المخزّنة في source — زي قائمة المصدر في نافذة الإضافة)
 const PLATFORMS: { value: string; ar: string; en: string; dot: string }[] = [
-  { value: 'facebook',  ar: 'فيسبوك',   en: 'Facebook',  dot: '#1877F2' },
-  { value: 'instagram', ar: 'انستجرام', en: 'Instagram', dot: '#E4405F' },
-  { value: 'tiktok',    ar: 'تيك توك',  en: 'TikTok',    dot: '#111111' },
-  { value: 'chatgpt',   ar: 'ChatGPT',  en: 'ChatGPT',   dot: '#10A37F' },
+  { value: 'facebook',        ar: 'فيسبوك',          en: 'Facebook',        dot: '#1877F2' },
+  { value: 'instagram',       ar: 'انستجرام',        en: 'Instagram',       dot: '#E4405F' },
+  { value: 'tiktok',          ar: 'تيك توك',         en: 'TikTok',          dot: '#111111' },
+  { value: 'chatgpt',         ar: 'ChatGPT',         en: 'ChatGPT',         dot: '#10A37F' },
+  { value: 'google_maps',     ar: 'جوجل ماب / Google Maps', en: 'Google Maps', dot: '#34A853' },
+  { value: 'walk-in',         ar: 'زيارة مباشرة',    en: 'Walk In',         dot: '#16A34A' },
+  { value: 'call-in',         ar: 'اتصال',           en: 'Call In',         dot: '#0EA5E9' },
+  { value: 'friend_referral', ar: 'إحالة من صديق',   en: 'Friend Referral', dot: '#F59E0B' },
+  { value: 'suggestion',      ar: 'اقتراح',          en: 'Suggestion',      dot: '#A855F7' },
 ]
 
 interface Props {
@@ -99,7 +104,7 @@ export default function SocialMediaFilter({ selected, onChange, locale = 'ar', f
               </button>
             )}
           </div>
-          <div className="space-y-0.5">
+          <div className="space-y-0.5 max-h-64 overflow-y-auto overscroll-contain">
             {PLATFORMS.map(p => {
               const on = selected.includes(p.value)
               return (

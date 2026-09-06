@@ -13,7 +13,7 @@ import TransferMembershipForm from '../../../components/TransferMembershipForm'
 import QuickMemberFollowUpModal from '../../../components/QuickMemberFollowUpModal'
 import ImageUpload from '../../../components/ImageUpload'
 import { LoadingScreen } from '../../../components/Spinner'
-import { formatDateYMD, calculateRemainingDays } from '../../../lib/dateFormatter'
+import { formatDateYMD, calculateRemainingDays, calculateDaysBetween } from '../../../lib/dateFormatter'
 import { prepareReceiptMessage } from '../../../lib/whatsappReceiptMessage'
 import { usePermissions } from '../../../hooks/usePermissions'
 import PermissionDenied from '../../../components/PermissionDenied'
@@ -217,6 +217,12 @@ export default function MemberDetailPage() {
  const [showReceipt, setShowReceipt] = useState(false)
  const [receiptData, setReceiptData] = useState<any>(null)
  const [showRenewalForm, setShowRenewalForm] = useState(false)
+ const [showCancelRenewalModal, setShowCancelRenewalModal] = useState(false)
+ const [cancelRenewalLoading, setCancelRenewalLoading] = useState(false)
+ const [showRenewalDetails, setShowRenewalDetails] = useState(false)
+ const [showEditRenewalModal, setShowEditRenewalModal] = useState(false)
+ const [editRenewalLoading, setEditRenewalLoading] = useState(false)
+ const [editRenewalData, setEditRenewalData] = useState({ startDate: '', expiryDate: '', freePTSessions: 0, inBodyScans: 0, invitations: 0, freezeDays: 0 })
  //  متابعة سريعة على العضو
  const [showQuickFollowUp, setShowQuickFollowUp] = useState(false)
  const [followUpHistory, setFollowUpHistory] = useState<any[]>([])
@@ -226,6 +232,45 @@ export default function MemberDetailPage() {
  const [showTransferForm, setShowTransferForm] = useState(false)
  const [lastReceiptNumber, setLastReceiptNumber] = useState<number | null>(null)
  const [ptSubscription, setPtSubscription] = useState<any>(null)
+ //  🥋 مودال تعديل تفاصيل الـ PT (الكوتش + الحصص + السعر + الانتهاء)
+ const [showPTEdit, setShowPTEdit] = useState(false)
+ const [ptEditForm, setPtEditForm] = useState({ coachName: '', sessionsPurchased: 0, sessionsRemaining: 0, remainingAmount: 0, expiryDate: '' })
+ const [ptEditSaving, setPtEditSaving] = useState(false)
+ const [ptCoaches, setPtCoaches] = useState<any[]>([]) //  قايمة كباتن الـ PT (كل الكباتن — زي صفحة الـ PT)
+ const openPTEdit = () => {
+   if (!ptSubscription) return
+   //  نجيب كل كباتن الـ PT من نفس مصدر صفحة الـ PT (مش /api/coaches الضيقة)
+   fetch('/api/coaches/with-stats').then(r => r.ok ? r.json() : []).then(d => setPtCoaches(Array.isArray(d) ? d : [])).catch(() => {})
+   setPtEditForm({
+     coachName: ptSubscription.coachName || '',
+     sessionsPurchased: ptSubscription.sessionsPurchased || 0,
+     sessionsRemaining: ptSubscription.sessionsRemaining || 0,
+     remainingAmount: ptSubscription.remainingAmount || 0,
+     expiryDate: ptSubscription.expiryDate ? formatDateYMD(ptSubscription.expiryDate) : '',
+   })
+   setShowPTEdit(true)
+ }
+ const savePTEdit = async () => {
+   if (!ptSubscription?.ptNumber) return
+   setPtEditSaving(true)
+   try {
+     const res = await fetch('/api/pt', {
+       method: 'PUT', headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({
+         ptNumber: ptSubscription.ptNumber,
+         coachName: ptEditForm.coachName,
+         sessionsPurchased: ptEditForm.sessionsPurchased,
+         sessionsRemaining: ptEditForm.sessionsRemaining,
+         remainingAmount: ptEditForm.remainingAmount,
+         expiryDate: ptEditForm.expiryDate || undefined,
+       }),
+     })
+     if (!res.ok) { const e = await res.json().catch(() => ({})); toast.error(e.error || 'فشل تعديل الـ PT'); return }
+     toast.success(locale === 'ar' ? 'اتعدّل الـ PT' : 'PT updated')
+     setShowPTEdit(false)
+     fetchPTSubscription()
+   } finally { setPtEditSaving(false) }
+ }
  const [showIdCardModal, setShowIdCardModal] = useState(false)
  const [missingImageUpload, setMissingImageUpload] = useState<
  | { field: 'profileImage' | 'idCardFront' | 'idCardBack'; label: string }
@@ -300,6 +345,8 @@ export default function MemberDetailPage() {
  days: 0,
  reason: ''
  })
+ //  🥋 تجميد الـ PT مع العضوية (لو العضو مشترك PT وخاصية فريز الـ PT مفعّلة)
+ const [freezePTToo, setFreezePTToo] = useState(false)
 
  //  باك فريز — تجميد بأثر رجعي لفترة غياب الميمبر (من آخر حضور لغاية النهاردة)
  const [backFreezeData, setBackFreezeData] = useState<{ days: number; lastCheckIn: string | null; loading: boolean }>({
@@ -342,6 +389,8 @@ export default function MemberDetailPage() {
  notes: '',
  startDate: '',
  expiryDate: '',
+ gender: '' as string,
+ birthDate: '' as string,
  allowedCheckInStart: '' as string,
  allowedCheckInEnd: '' as string
  })
@@ -493,6 +542,86 @@ export default function MemberDetailPage() {
  } finally {
  setLoading(false)
  }
+ }
+
+ //  🔁 إلغاء تجديد مجدول (بيتنفّذ بعد التأكيد من الموديل)
+ const confirmCancelPendingRenewal = async () => {
+ if (!member?.id) return
+ setCancelRenewalLoading(true)
+ try {
+ const res = await fetch('/api/members/cancel-pending-renewal', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ memberId: member.id })
+ })
+ const data = await res.json()
+ if (!res.ok) {
+ toast.error(data?.error || (locale === 'ar' ? 'فشل إلغاء التجديد المجدول' : 'Failed to cancel'))
+ return
+ }
+ toast.success(locale === 'ar' ? 'تم إلغاء التجديد المجدول' : 'Scheduled renewal cancelled')
+ setShowCancelRenewalModal(false)
+ await fetchMember()
+ } catch (error) {
+ console.error('Error cancelling pending renewal:', error)
+ toast.error(locale === 'ar' ? 'فشل إلغاء التجديد المجدول' : 'Failed to cancel')
+ } finally {
+ setCancelRenewalLoading(false)
+ }
+ }
+
+ //  🔁 فتح موديل تعديل التجديد المجدول (يملأ من بيانات التجديد الحالية)
+ const openEditRenewal = () => {
+ const pr = (member as any)?.pendingRenewal
+ if (!pr) return
+ setEditRenewalData({
+ startDate: pr.startDate ? formatDateYMD(pr.startDate) : '',
+ expiryDate: pr.expiryDate ? formatDateYMD(pr.expiryDate) : '',
+ freePTSessions: pr.freePTSessions || 0,
+ inBodyScans: pr.inBodyScans || 0,
+ invitations: pr.invitations || 0,
+ freezeDays: pr.freezeDays || 0,
+ })
+ setShowEditRenewalModal(true)
+ }
+
+ //  لما تغيّر تاريخ بداية التجديد → النهاية تتزحلق بنفس المدة تلقائي
+ const handleEditRenewalStartChange = (value: string) => {
+ setEditRenewalData(prev => {
+ if (prev.startDate && prev.expiryDate && value) {
+ const oldStart = new Date(prev.startDate)
+ const oldExpiry = new Date(prev.expiryDate)
+ const newStart = new Date(value)
+ const durationMs = oldExpiry.getTime() - oldStart.getTime()
+ if (!isNaN(newStart.getTime()) && durationMs > 0) {
+ return { ...prev, startDate: value, expiryDate: formatDateYMD(new Date(newStart.getTime() + durationMs)) }
+ }
+ }
+ return { ...prev, startDate: value }
+ })
+ }
+
+ const saveEditRenewal = async () => {
+ if (!member?.id) return
+ if (!editRenewalData.startDate || !editRenewalData.expiryDate) {
+ toast.error(locale === 'ar' ? 'حدد تاريخ البداية والنهاية' : 'Set start and expiry dates'); return
+ }
+ setEditRenewalLoading(true)
+ try {
+ const res = await fetch('/api/members/edit-pending-renewal', {
+ method: 'POST', headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ memberId: member.id, startDate: editRenewalData.startDate, expiryDate: editRenewalData.expiryDate })
+ })
+ const data = await res.json()
+ if (!res.ok) { toast.error(data?.error || (locale === 'ar' ? 'فشل التعديل' : 'Failed')); return }
+ toast.success(data.activatedNow
+ ? (locale === 'ar' ? 'اتفعّل التجديد فورًا (تاريخ البداية النهاردة) ✅' : 'Renewal activated now ✅')
+ : (locale === 'ar' ? 'تم تعديل التجديد المجدول' : 'Scheduled renewal updated'))
+ setShowEditRenewalModal(false)
+ await fetchMember()
+ } catch {
+ toast.error(locale === 'ar' ? 'فشل التعديل' : 'Failed')
+ } finally { setEditRenewalLoading(false) }
  }
 
  // رفع صورة ناقصة (شخصية أو بطاقة) — يعمل لأي مستخدم مسجل دخول طالما الحقل فاضي
@@ -1348,6 +1477,40 @@ export default function MemberDetailPage() {
  })
  }
 
+ //  حفظ محدود: الاسم ورقم الموبايل بس (صلاحية canEditMemberBasic)
+ const handleEditNamePhone = async () => {
+ if (!member || !editBasicInfoData.name.trim() || !editBasicInfoData.phone.trim()) {
+ toast.warning(t('memberDetails.editModal.enterNameAndPhone'))
+ return
+ }
+ setLoading(true)
+ try {
+ const response = await fetch('/api/members', {
+ method: 'PUT',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ id: member.id,
+ name: editBasicInfoData.name.trim(),
+ phone: editBasicInfoData.phone.trim(),
+ }),
+ })
+ if (response.ok) {
+ toast.success(t('memberDetails.editModal.updateSuccess'))
+ setActiveModal(null)
+ fetchMember()
+ queryClient.invalidateQueries({ queryKey: ['members'] })
+ } else {
+ const err = await response.json().catch(() => ({}))
+ toast.error(err.error || 'فشل التعديل')
+ }
+ } catch (error) {
+ console.error(error)
+ toast.error('حدث خطأ في الاتصال')
+ } finally {
+ setLoading(false)
+ }
+ }
+
  const handleEditBasicInfo = async () => {
  if (!member || !editBasicInfoData.name.trim() || !editBasicInfoData.phone.trim()) {
  toast.warning(t('memberDetails.editModal.enterNameAndPhone'))
@@ -1385,6 +1548,8 @@ export default function MemberDetailPage() {
  coachId: editBasicInfoData.coachId,
  salesStaffId: editBasicInfoData.salesStaffId || null,
  notes: editBasicInfoData.notes.trim() || null,
+ gender: editBasicInfoData.gender || null,
+ birthDate: editBasicInfoData.birthDate || null,
  startDate: editBasicInfoData.startDate || null,
  expiryDate: editBasicInfoData.expiryDate || null,
  allowedCheckInStart: editBasicInfoData.allowedCheckInStart || null,
@@ -1428,6 +1593,8 @@ export default function MemberDetailPage() {
  startDate: '',
  expiryDate: '',
  salesStaffId: null,
+ gender: '',
+ birthDate: '',
  allowedCheckInStart: '',
  allowedCheckInEnd: ''
  })
@@ -1512,11 +1679,26 @@ export default function MemberDetailPage() {
  const result = await response.json()
 
  if (response.ok) {
- toast.success(`تم تجميد الاشتراك لمدة ${freezeData.days} يوم بنجاح`)
+ //  🥋 تجميد الـ PT كمان لو المستخدم اختار كده والعضو مشترك PT
+ let ptMsg = ''
+ if (freezePTToo && ptSubscription?.ptNumber) {
+ try {
+ const ptRes = await fetch('/api/pt/freeze', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ ptNumber: ptSubscription.ptNumber, freezeDays: freezeData.days })
+ })
+ if (ptRes.ok) ptMsg = ' + الـ PT'
+ else { const e = await ptRes.json().catch(() => ({})); toast.error(e.error || 'فشل تجميد الـ PT') }
+ } catch { toast.error('فشل تجميد الـ PT') }
+ }
+ toast.success(`تم تجميد الاشتراك${ptMsg} لمدة ${freezeData.days} يوم بنجاح`)
 
  setFreezeData({ days: 0, reason: '' })
+ setFreezePTToo(false)
  setActiveModal(null)
  fetchMember()
+ fetchPTSubscription()
  } else {
  toast.error(result.error || 'فشل التجميد')
  }
@@ -1781,7 +1963,22 @@ export default function MemberDetailPage() {
  const isMemberActiveNow = member.isActive && hasStarted && notExpired
  const isNotStartedYet = member.isActive && startDate && startDate > today
  const daysUntilStart = isNotStartedYet ? Math.ceil((startDate!.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : 0
- const daysRemaining = calculateRemainingDays(member.expiryDate)
+ //  🧊 الأيام المتبقية — لو العضو مجمّد دلوقتي، نستثني فترة الفريز اللي لسه جاية
+ //  (الأيام المجمّدة مش «متبقية» للاستخدام — بتتحسب من بعد ما الفريز يخلص). كده الفريز
+ //  مبيضخّمش العدّاد: عضو عنده 90 يوم ويعمل فريز 7 يفضل 90 مش 97.
+ const daysRemaining = (() => {
+   if (!member.expiryDate) return null
+   const expiry = new Date(member.expiryDate); expiry.setHours(0, 0, 0, 0)
+   let base = new Date(); base.setHours(0, 0, 0, 0)
+   if ((member as any).isFrozen) {
+     const feRaw = (member as any).freezeUntil || (member as any).freezeRequests?.[0]?.endDate
+     if (feRaw) {
+       const fe = new Date(feRaw); fe.setHours(0, 0, 0, 0)
+       if (fe.getTime() > base.getTime()) base = fe  //  نعدّ من نهاية الفريز
+     }
+   }
+   return calculateDaysBetween(base, expiry)
+ })()
 
  return (
  <div className="container mx-auto p-6" dir={direction}>
@@ -1966,6 +2163,8 @@ export default function MemberDetailPage() {
  expiryDate: member.expiryDate ? formatDateYMD(member.expiryDate) : '',
  idCardFront: member.idCardFront || null,
  idCardBack: member.idCardBack || null,
+ gender: (member as any).gender || '',
+ birthDate: (member as any).birthDate ? formatDateYMD((member as any).birthDate) : '',
  allowedCheckInStart: (member as any).allowedCheckInStart || '',
  allowedCheckInEnd: (member as any).allowedCheckInEnd || ''
  })
@@ -1980,6 +2179,26 @@ export default function MemberDetailPage() {
  </svg>
  <span className="font-semibold text-sm">
  {locale === 'ar' ? 'تعديل البيانات' : 'Edit Info'}
+ </span>
+ </button>
+ )}
+
+ {/* تعديل محدود: الاسم/الموبايل بس — لصاحب canEditMemberBasic اللي معهوش التعديل الكامل */}
+ {!hasPermission('canEditMembers') && hasPermission('canEditMemberBasic') && (
+ <button
+ onClick={() => {
+ setEditBasicInfoData(prev => ({ ...prev, name: member.name, phone: member.phone }))
+ setActiveModal('edit-name-phone')
+ }}
+ disabled={loading}
+ className="bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors duration-200 backdrop-blur-sm border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+ title={locale === 'ar' ? 'تعديل الاسم/الموبايل' : 'Edit name/phone'}
+ >
+ <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+ <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+ </svg>
+ <span className="font-semibold text-sm">
+ {locale === 'ar' ? 'تعديل الاسم/الموبايل' : 'Edit name/phone'}
  </span>
  </button>
  )}
@@ -2157,6 +2376,76 @@ export default function MemberDetailPage() {
  </div>
 
  <div className="mt-6 pt-6 border-t border-white dark:border-gray-400 border-opacity-20">
+ {/*  🔁 بانر التجديد المجدول — الاشتراك الحالي لسه شغّال والتجديد هيتفعّل تلقائي */}
+ {(member as any).pendingRenewal && (
+ <div className="mb-4 rounded-xl bg-white/20 dark:bg-gray-900/30 ring-1 ring-white/40 p-4 text-white">
+ <div className="flex items-start gap-3">
+ <div className="flex-1 min-w-0">
+ <p className="font-bold text-base mb-0.5">{locale === 'ar' ? 'تجديد مجدول' : 'Scheduled Renewal'}</p>
+ <p className="text-sm opacity-95 leading-relaxed">
+ {locale === 'ar'
+ ? `الاشتراك الحالي شغّال لحد ${formatDateYMD(member.expiryDate)}. اشتراك التجديد يبدأ ${formatDateYMD((member as any).pendingRenewal.startDate)}${(member as any).pendingRenewal.expiryDate ? ` وينتهي ${formatDateYMD((member as any).pendingRenewal.expiryDate)}` : ''} — هيتفعّل تلقائي في ميعاده.`
+ : `Current subscription active until ${formatDateYMD(member.expiryDate)}. Renewal starts ${formatDateYMD((member as any).pendingRenewal.startDate)}${(member as any).pendingRenewal.expiryDate ? ` and ends ${formatDateYMD((member as any).pendingRenewal.expiryDate)}` : ''} — activates automatically.`}
+ </p>
+ </div>
+ <div className="flex items-center gap-1.5 flex-shrink-0">
+ {/*  زرار تفاصيل التجديد (فيه الباقي بتاعه) */}
+ <button
+ onClick={() => setShowRenewalDetails(v => !v)}
+ title={locale === 'ar' ? 'تفاصيل التجديد' : 'Renewal details'}
+ className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors duration-200"
+ >
+ <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>
+ </button>
+ {/*  تعديل التجديد المجدول */}
+ <button
+ onClick={openEditRenewal}
+ title={locale === 'ar' ? 'تعديل التجديد' : 'Edit renewal'}
+ className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors duration-200"
+ >
+ <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
+ </button>
+ <button
+ onClick={() => setShowCancelRenewalModal(true)}
+ className="bg-white/90 hover:bg-white text-red-600 font-bold text-xs px-3 py-1.5 rounded-lg transition-colors duration-200"
+ >
+ {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+ </button>
+ </div>
+ </div>
+
+ {/*  تفاصيل التجديد المجدول — الباقي بتاعه منفصل عن الباقي القديم عشان مايتلخبطش */}
+ {showRenewalDetails && (
+ <div className="mt-3 pt-3 border-t border-white/25 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+ <div className="bg-white/10 rounded-lg px-3 py-2">
+ <p className="opacity-75 text-xs">{locale === 'ar' ? 'سعر التجديد' : 'Renewal price'}</p>
+ <p className="font-bold">{(member as any).pendingRenewal.subscriptionPrice || 0} {locale === 'ar' ? 'ج.م' : 'EGP'}</p>
+ </div>
+ <div className="bg-white/10 rounded-lg px-3 py-2">
+ <p className="opacity-75 text-xs">{locale === 'ar' ? 'باقي على التجديد' : 'Renewal remaining'}</p>
+ <p className="font-bold text-amber-200">{(member as any).pendingRenewal.remainingAmount || 0} {locale === 'ar' ? 'ج.م' : 'EGP'}</p>
+ </div>
+ {((member as any).pendingRenewal.freePTSessions > 0) && (
+ <div className="bg-white/10 rounded-lg px-3 py-2">
+ <p className="opacity-75 text-xs">{locale === 'ar' ? 'حصص PT' : 'PT sessions'}</p>
+ <p className="font-bold">{(member as any).pendingRenewal.freePTSessions}</p>
+ </div>
+ )}
+ {((member as any).pendingRenewal.invitations > 0) && (
+ <div className="bg-white/10 rounded-lg px-3 py-2">
+ <p className="opacity-75 text-xs">{locale === 'ar' ? 'دعوات' : 'Invitations'}</p>
+ <p className="font-bold">{(member as any).pendingRenewal.invitations}</p>
+ </div>
+ )}
+ <div className="col-span-2 sm:col-span-4 text-xs opacity-80">
+ {locale === 'ar'
+ ? '⚠️ الباقي ده خاص باشتراك التجديد وهيتفعّل مع بدايته — مش الباقي القديم.'
+ : '⚠️ This remaining belongs to the scheduled renewal and activates when it starts — not the current balance.'}
+ </div>
+ </div>
+ )}
+ </div>
+ )}
  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-white">
  <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
  <p className="text-sm opacity-90">{t('memberDetails.status')}</p>
@@ -2309,9 +2598,18 @@ export default function MemberDetailPage() {
 
  </div>
  <p className="text-3xl font-bold text-primary-600 mb-1">{member.invitations ?? 0}</p>
+ {(() => {
+ const remaining = member.invitations ?? 0
+ //  إجمالي الدعوات من الباقة (الأصح). لو مفيش باقة، نرجع لعدد المستخدَم + المتبقّي.
+ const pkgInv = Number((member as any).offerBenefits?.invitations) || 0
+ const totalInv = pkgInv > 0 ? Math.max(pkgInv, remaining) : (invitationHistory.length + remaining)
+ const usedInv = Math.max(0, totalInv - remaining)
+ return (
  <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">
- {locale === 'ar' ? 'استخدم' : 'Used'} {invitationHistory.length} {locale === 'ar' ? 'من' : 'of'} {invitationHistory.length + (member.invitations ?? 0)}
+ {locale === 'ar' ? 'استخدم' : 'Used'} {usedInv} {locale === 'ar' ? 'من' : 'of'} {totalInv}
  </p>
+ )
+ })()}
  <button
  onClick={handleUseInvitation}
  disabled={(member.invitations ?? 0) <= 0 || loading}
@@ -2322,15 +2620,26 @@ export default function MemberDetailPage() {
  </div>
 
  {/* حصص الدخول المتبقية — تظهر بس لو الباقة محدودة الدخلات (remainingCheckIns != null) */}
- {(member as any).remainingCheckIns !== null && (member as any).remainingCheckIns !== undefined && (
+ {(member as any).remainingCheckIns !== null && (member as any).remainingCheckIns !== undefined && (() => {
+ const remainingCI = Number((member as any).remainingCheckIns) || 0
+ const totalCI = Number((member as any).offerBenefits?.maxCheckIns) || 0
+ const usedCI = totalCI > 0 ? Math.max(0, totalCI - remainingCI) : 0
+ return (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-orange-500`}>
  <div className="flex items-center justify-between mb-2">
  <p className="text-xs text-gray-600 dark:text-white font-semibold">{locale === 'ar' ? 'حصص الدخول المتبقية' : 'Remaining Check-ins'}</p>
  </div>
- <p className={`text-3xl font-bold mb-3 ${((member as any).remainingCheckIns ?? 0) <= 0 ? 'text-red-600' : 'text-orange-600'}`}>{(member as any).remainingCheckIns ?? 0}</p>
- <p className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'دخلة متبقية في الباقة' : 'entries left in package'}</p>
+ <p className={`text-3xl font-bold mb-3 ${remainingCI <= 0 ? 'text-red-600' : 'text-orange-600'}`}>
+ {remainingCI}{totalCI > 0 && <span className="text-lg text-gray-400 dark:text-gray-500"> / {totalCI}</span>}
+ </p>
+ <p className="text-[11px] text-gray-500 dark:text-gray-400">
+ {totalCI > 0
+ ? (locale === 'ar' ? `استخدم ${usedCI} من ${totalCI} دخلة` : `Used ${usedCI} of ${totalCI} entries`)
+ : (locale === 'ar' ? 'دخلة متبقية في الباقة' : 'entries left in package')}
+ </p>
  </div>
- )}
+ )
+ })()}
  </div>
  </div>
 
@@ -2411,6 +2720,12 @@ export default function MemberDetailPage() {
  
  </div>
  <p className="text-3xl font-bold text-lime-600 dark:text-lime-400 mb-1">{member.freeNutritionSessions ?? 0}</p>
+ {(() => {
+ const total = Number((member as any).offerBenefits?.freeNutritionSessions) || 0
+ const remaining = member.freeNutritionSessions ?? 0
+ if (total <= 0 || remaining > total) return null
+ return (<p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">{locale === 'ar' ? 'استخدم' : 'Used'} {total - remaining} {locale === 'ar' ? 'من' : 'of'} {total}</p>)
+ })()}
  {paidSessionCounts.nutrition > 0 && (
  <p className="text-xs text-lime-600 dark:text-lime-400 font-semibold mb-2">
  + {paidSessionCounts.nutrition} {locale === 'ar' ? 'مدفوعة' : 'paid'}
@@ -2444,6 +2759,12 @@ export default function MemberDetailPage() {
  
  </div>
  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">{member.freePhysioSessions ?? 0}</p>
+ {(() => {
+ const total = Number((member as any).offerBenefits?.freePhysioSessions) || 0
+ const remaining = member.freePhysioSessions ?? 0
+ if (total <= 0 || remaining > total) return null
+ return (<p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">{locale === 'ar' ? 'استخدم' : 'Used'} {total - remaining} {locale === 'ar' ? 'من' : 'of'} {total}</p>)
+ })()}
  {paidSessionCounts.physio > 0 && (
  <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mb-2">
  + {paidSessionCounts.physio} {locale === 'ar' ? 'مدفوعة' : 'paid'}
@@ -2477,6 +2798,12 @@ export default function MemberDetailPage() {
  
  </div>
  <p className="text-3xl font-bold text-fuchsia-600 dark:text-fuchsia-400 mb-1">{member.freeGroupClassSessions ?? 0}</p>
+ {(() => {
+ const total = Number((member as any).offerBenefits?.freeGroupClassSessions) || 0
+ const remaining = member.freeGroupClassSessions ?? 0
+ if (total <= 0 || remaining > total) return null
+ return (<p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">{locale === 'ar' ? 'استخدم' : 'Used'} {total - remaining} {locale === 'ar' ? 'من' : 'of'} {total}</p>)
+ })()}
  {paidSessionCounts.groupClass > 0 && (
  <p className="text-xs text-fuchsia-600 dark:text-fuchsia-400 font-semibold mb-2">
  + {paidSessionCounts.groupClass} {locale === 'ar' ? 'مدفوعة' : 'paid'}
@@ -2509,7 +2836,13 @@ export default function MemberDetailPage() {
  <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.poolSessions')}</p>
  
  </div>
- <p className="text-3xl font-bold text-teal-600 dark:text-teal-400 mb-3">{member.freePoolSessions ?? 0}</p>
+ <p className="text-3xl font-bold text-teal-600 dark:text-teal-400 mb-1">{member.freePoolSessions ?? 0}</p>
+ {(() => {
+ const total = Number((member as any).offerBenefits?.freePoolSessions) || 0
+ const remaining = member.freePoolSessions ?? 0
+ if (total <= 0 || remaining > total) return null
+ return (<p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'استخدم' : 'Used'} {total - remaining} {locale === 'ar' ? 'من' : 'of'} {total}</p>)
+ })()}
  <button
  onClick={handleUsePool}
  disabled={(member.freePoolSessions ?? 0) <= 0 || loading}
@@ -2526,7 +2859,13 @@ export default function MemberDetailPage() {
  <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.padelSessions')}</p>
  
  </div>
- <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mb-3">{member.freePadelSessions ?? 0}</p>
+ <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mb-1">{member.freePadelSessions ?? 0}</p>
+ {(() => {
+ const total = Number((member as any).offerBenefits?.freePadelSessions) || 0
+ const remaining = member.freePadelSessions ?? 0
+ if (total <= 0 || remaining > total) return null
+ return (<p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'استخدم' : 'Used'} {total - remaining} {locale === 'ar' ? 'من' : 'of'} {total}</p>)
+ })()}
  <button
  onClick={handleUsePadel}
  disabled={(member.freePadelSessions ?? 0) <= 0 || loading}
@@ -2543,7 +2882,13 @@ export default function MemberDetailPage() {
  <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.assessmentSessions')}</p>
  
  </div>
- <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-3">{member.freeAssessmentSessions ?? 0}</p>
+ <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-1">{member.freeAssessmentSessions ?? 0}</p>
+ {(() => {
+ const total = Number((member as any).offerBenefits?.freeAssessmentSessions) || 0
+ const remaining = member.freeAssessmentSessions ?? 0
+ if (total <= 0 || remaining > total) return null
+ return (<p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'استخدم' : 'Used'} {total - remaining} {locale === 'ar' ? 'من' : 'of'} {total}</p>)
+ })()}
  <button
  onClick={handleUseAssessment}
  disabled={(member.freeAssessmentSessions ?? 0) <= 0 || loading}
@@ -2561,10 +2906,15 @@ export default function MemberDetailPage() {
  </div>
  <p className="text-3xl font-bold text-cyan-600 mb-1">{member.remainingFreezeDays ?? 0}</p>
  {(() => {
- const usedFreezeDays = freezeHistory.reduce((s: number, f: any) => s + (Number(f?.days) || 0), 0)
+ const remaining = member.remainingFreezeDays ?? 0
+ //  إجمالي الفريز من الباقة (الأصح). لو مفيش باقة، نرجع لمجموع سجل الفريز + المتبقي.
+ const pkgFreeze = Number((member as any).offerBenefits?.freezeDays) || 0
+ const historyUsed = freezeHistory.reduce((s: number, f: any) => s + (Number(f?.days) || 0), 0)
+ const totalFreeze = pkgFreeze > 0 ? Math.max(pkgFreeze, remaining) : (historyUsed + remaining)
+ const usedFreezeDays = Math.max(0, totalFreeze - remaining)
  return (
  <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
- {locale === 'ar' ? 'خد' : 'Used'} {usedFreezeDays} {locale === 'ar' ? 'يوم من' : 'days of'} {usedFreezeDays + (member.remainingFreezeDays ?? 0)}
+ {locale === 'ar' ? 'خد' : 'Used'} {usedFreezeDays} {locale === 'ar' ? 'يوم من' : 'days of'} {totalFreeze}
  </p>
  )
  })()}
@@ -2651,13 +3001,23 @@ export default function MemberDetailPage() {
  </div>
  )}
 
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+ {hasPermission('canEditPT') && (
+ <button
+ onClick={openPTEdit}
+ className="bg-white/20 dark:bg-gray-800/30 text-white py-3 rounded-lg hover:bg-white/30 dark:hover:bg-gray-700/50 font-bold flex items-center justify-center gap-2 transition-colors duration-200 active:scale-95 ring-1 ring-white/40"
+ >
+ <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+ <span>{locale === 'ar' ? 'تعديل الـ PT / الكوتش' : 'Edit PT / Coach'}</span>
+ </button>
+ )}
  <button
  onClick={() => router.push('/pt')}
- className="w-full mt-4 bg-white dark:bg-gray-700 text-teal-600 dark:text-teal-400 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-bold flex items-center justify-center gap-2 transition-colors duration-200 active:scale-95"
+ className="bg-white dark:bg-gray-700 text-teal-600 dark:text-teal-400 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-bold flex items-center justify-center gap-2 transition-colors duration-200 active:scale-95"
  >
- 
  <span>عرض تفاصيل PT الكاملة</span>
  </button>
+ </div>
  </div>
  )}
 
@@ -2974,6 +3334,62 @@ export default function MemberDetailPage() {
  )}
 
  {/* Modal: تعديل البيانات الأساسية */}
+ {/* مودال محدود: تعديل الاسم/الموبايل بس (canEditMemberBasic) */}
+ {activeModal === 'edit-name-phone' && (
+ <div
+ className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center p-4 overflow-y-auto"
+ style={{ zIndex: 9999 }}
+ onClick={(e) => { if (e.target === e.currentTarget) setActiveModal(null) }}
+ >
+ <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-5 my-4" onClick={(e) => e.stopPropagation()} dir={direction}>
+ <div className="flex justify-between items-center mb-4 pb-2 border-b dark:border-gray-700">
+ <h3 className="text-base font-bold dark:text-gray-100">{locale === 'ar' ? 'تعديل الاسم / الموبايل' : 'Edit name / phone'}</h3>
+ <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" aria-label="close">
+ <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+ </button>
+ </div>
+ <div className="space-y-3">
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">{locale === 'ar' ? 'الاسم' : 'Name'}</label>
+ <input
+ type="text"
+ value={editBasicInfoData.name}
+ onChange={(e) => setEditBasicInfoData(prev => ({ ...prev, name: e.target.value }))}
+ className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+ placeholder={locale === 'ar' ? 'اسم العضو' : 'Member name'}
+ />
+ </div>
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">{locale === 'ar' ? 'رقم الموبايل' : 'Phone'}</label>
+ <input
+ type="tel"
+ value={editBasicInfoData.phone}
+ onChange={(e) => setEditBasicInfoData(prev => ({ ...prev, phone: e.target.value }))}
+ className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono focus:outline-none focus:ring-2 focus:ring-primary-500"
+ placeholder="010xxxxxxxx"
+ />
+ </div>
+ </div>
+ <div className="flex gap-2 mt-5">
+ <button
+ onClick={handleEditNamePhone}
+ disabled={loading}
+ className="flex-1 bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2.5 rounded-lg font-bold transition-colors disabled:opacity-60"
+ >
+ {loading ? (locale === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (locale === 'ar' ? 'حفظ' : 'Save')}
+ </button>
+ <button
+ onClick={() => setActiveModal(null)}
+ disabled={loading}
+ className="px-5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-60"
+ >
+ {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
+
  {activeModal === 'edit-basic-info' && (
  <div
  className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center p-4 overflow-y-auto"
@@ -3093,6 +3509,25 @@ export default function MemberDetailPage() {
  />
  </div>
 
+ {/* 🚻 الجنس — للجيم المكس فقط */}
+ {settings.mixedGymEnabled && (
+ <div>
+ <label className="block text-xs font-medium mb-1">
+ {direction === 'rtl' ? 'الجنس' : 'Gender'}
+ </label>
+ <select
+ value={editBasicInfoData.gender}
+ onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, gender: e.target.value })}
+ className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ >
+ <option value="">{direction === 'rtl' ? '— غير محدد —' : '— Not set —'}</option>
+ <option value="male">{direction === 'rtl' ? 'رجالي' : 'Male'}</option>
+ <option value="female">{direction === 'rtl' ? 'سيدات' : 'Female'}</option>
+ <option value="unknown">{direction === 'rtl' ? 'غير معروف' : 'Unknown'}</option>
+ </select>
+ </div>
+ )}
+
  <div>
  <label className="block text-xs font-medium mb-1">
  {t('memberDetails.editModal.fields.expiryDate')}
@@ -3101,6 +3536,19 @@ export default function MemberDetailPage() {
  type="date"
  value={editBasicInfoData.expiryDate}
  onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, expiryDate: e.target.value })}
+ className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ />
+ </div>
+
+ {/* 🎂 تاريخ الميلاد — تحت */}
+ <div>
+ <label className="block text-xs font-medium mb-1">
+ {direction === 'rtl' ? 'تاريخ الميلاد' : 'Birthdate'}
+ </label>
+ <input
+ type="date"
+ value={editBasicInfoData.birthDate}
+ onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, birthDate: e.target.value })}
  className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
  />
  </div>
@@ -3607,6 +4055,26 @@ export default function MemberDetailPage() {
  {t('memberDetails.freezeModal.canFreezeUpTo')} {member.remainingFreezeDays} {t('common.day')}
  </p>
  </div>
+
+ {/* 🥋 خيار تجميد الـ PT كمان — يظهر لو العضو مشترك PT وخاصية فريز الـ PT مفعّلة */}
+ {ptSubscription?.ptNumber && settings.ptFreezeEnabled && (
+ <label className="flex items-center gap-3 p-3 rounded-lg bg-teal-50 dark:bg-teal-900/20 ring-1 ring-teal-200 dark:ring-teal-800 cursor-pointer">
+ <input
+ type="checkbox"
+ checked={freezePTToo}
+ onChange={(e) => setFreezePTToo(e.target.checked)}
+ className="w-5 h-5 accent-teal-600"
+ />
+ <div>
+ <p className="text-sm font-bold text-teal-800 dark:text-teal-300">
+ {locale === 'ar' ? 'جمّد اشتراك الـ PT كمان' : 'Freeze the PT subscription too'}
+ </p>
+ <p className="text-xs text-teal-600 dark:text-teal-400">
+ {locale === 'ar' ? `PT #${ptSubscription.ptNumber} — نفس عدد الأيام` : `PT #${ptSubscription.ptNumber} — same number of days`}
+ </p>
+ </div>
+ </label>
+ )}
 
  {freezeData.days > 0 && member.expiryDate && (
  <div className="bg-green-50 dark:bg-green-900/30 ring-1 ring-green-300 dark:ring-green-700/60 rounded-lg p-4">
@@ -4699,6 +5167,84 @@ export default function MemberDetailPage() {
  />
  )}
 
+ {/*  🔁 موديل تأكيد إلغاء التجديد المجدول */}
+ {/*  🔁 موديل تعديل التجديد المجدول */}
+ {showEditRenewalModal && (
+ <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => { if (!editRenewalLoading) setShowEditRenewalModal(false) }}>
+ <div dir={locale === 'ar' ? 'rtl' : 'ltr'} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-md p-6 animate-modal-in" onClick={(e) => e.stopPropagation()}>
+ <h3 className="text-lg font-black text-gray-900 dark:text-gray-100 mb-1">{locale === 'ar' ? 'تعديل التجديد المجدول' : 'Edit scheduled renewal'}</h3>
+ <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{locale === 'ar' ? 'التعديل ده على تفاصيل التجديد بس — الإيصال المدفوع مبيتغيّرش.' : 'Edits the renewal details only — the paid receipt is unchanged.'}</p>
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">{locale === 'ar' ? 'تاريخ البداية' : 'Start'}</label>
+ <input type="date" value={editRenewalData.startDate} onChange={(e) => handleEditRenewalStartChange(e.target.value)} className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
+ </div>
+ <div>
+ <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">{locale === 'ar' ? 'تاريخ النهاية' : 'Expiry'}</label>
+ <input type="date" value={editRenewalData.expiryDate} onChange={(e) => setEditRenewalData({ ...editRenewalData, expiryDate: e.target.value })} className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
+ </div>
+ </div>
+ <div className="flex gap-2 justify-end mt-5">
+ <button onClick={() => setShowEditRenewalModal(false)} disabled={editRenewalLoading} className="px-4 py-2 rounded-lg font-bold text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50">{locale === 'ar' ? 'رجوع' : 'Back'}</button>
+ <button onClick={saveEditRenewal} disabled={editRenewalLoading} className="px-4 py-2 rounded-lg font-bold text-sm bg-primary-600 hover:bg-primary-700 text-primary-contrast disabled:opacity-50">{editRenewalLoading ? (locale === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (locale === 'ar' ? 'حفظ' : 'Save')}</button>
+ </div>
+ </div>
+ </div>
+ )}
+
+ {showCancelRenewalModal && (
+ <div
+ className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+ onClick={() => { if (!cancelRenewalLoading) setShowCancelRenewalModal(false) }}
+ >
+ <div
+ dir={locale === 'ar' ? 'rtl' : 'ltr'}
+ className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-md p-6 animate-modal-in"
+ onClick={(e) => e.stopPropagation()}
+ >
+ <div className="flex items-start gap-3 mb-4">
+ <div className="w-11 h-11 rounded-xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0">
+ <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+ <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+ </svg>
+ </div>
+ <div className="flex-1 min-w-0">
+ <h3 className="text-lg font-black text-gray-900 dark:text-gray-100 mb-1">
+ {locale === 'ar' ? 'إلغاء التجديد المجدول؟' : 'Cancel scheduled renewal?'}
+ </h3>
+ <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+ {locale === 'ar'
+ ? 'التجديد المجدول ده هيتلغي ومش هيتفعّل. ملاحظة: الفلوس اللي اتدفعت في الإيصال مش هترجع تلقائي.'
+ : 'The scheduled renewal will be cancelled and will not activate. Note: any paid amount will not be auto-refunded.'}
+ </p>
+ </div>
+ </div>
+ <div className="flex gap-2 justify-end">
+ <button
+ onClick={() => setShowCancelRenewalModal(false)}
+ disabled={cancelRenewalLoading}
+ className="px-4 py-2 rounded-lg font-bold text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50"
+ >
+ {locale === 'ar' ? 'رجوع' : 'Back'}
+ </button>
+ <button
+ onClick={confirmCancelPendingRenewal}
+ disabled={cancelRenewalLoading}
+ className="px-4 py-2 rounded-lg font-bold text-sm bg-red-600 hover:bg-red-700 text-white transition-colors duration-200 disabled:opacity-50 inline-flex items-center gap-2"
+ >
+ {cancelRenewalLoading && (
+ <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+ <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+ <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+ </svg>
+ )}
+ {locale === 'ar' ? 'تأكيد الإلغاء' : 'Confirm cancel'}
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
+
  {/* نموذج الترقية */}
  {showUpgradeForm && member && (
  <UpgradeForm
@@ -4835,6 +5381,7 @@ export default function MemberDetailPage() {
  {
  websiteUrl: settings?.websiteUrl,
  showWebsite: settings?.showWebsiteOnReceipts,
+ receiptTerms: settings?.receiptTerms || undefined,
  }
  )
  const cancelledNote = receipt.isCancelled
@@ -5412,6 +5959,7 @@ export default function MemberDetailPage() {
  {
  websiteUrl: settings?.websiteUrl,
  showWebsite: settings?.showWebsiteOnReceipts,
+ receiptTerms: settings?.receiptTerms || undefined,
  }
  )
 
@@ -5607,6 +6155,57 @@ export default function MemberDetailPage() {
  ))}
  </ol>
  )}
+ </div>
+ </div>
+ </div>
+ )}
+
+ {/* 🥋 مودال تعديل الـ PT / الكوتش */}
+ {showPTEdit && ptSubscription && (
+ <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" dir={direction} onClick={(e) => { if (e.target === e.currentTarget) setShowPTEdit(false) }}>
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 max-h-[85vh] overflow-y-auto">
+ <div className="flex justify-between items-center mb-5">
+ <h3 className="text-xl font-bold dark:text-white">{locale === 'ar' ? `تعديل PT #${ptSubscription.ptNumber}` : `Edit PT #${ptSubscription.ptNumber}`}</h3>
+ <button onClick={() => setShowPTEdit(false)} className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 flex items-center justify-center">
+ <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+ </button>
+ </div>
+ <div className="space-y-4">
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-200">{locale === 'ar' ? 'الكوتش' : 'Coach'}</label>
+ <select value={ptEditForm.coachName} onChange={(e) => setPtEditForm({ ...ptEditForm, coachName: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+ <option value="">{locale === 'ar' ? '— اختر الكوتش —' : '— Select coach —'}</option>
+ {ptEditForm.coachName && !ptCoaches.some((c: any) => c.name === ptEditForm.coachName) && (
+ <option value={ptEditForm.coachName}>{ptEditForm.coachName}</option>
+ )}
+ {ptCoaches.map((c: any) => (
+ <option key={c.id} value={c.name}>{c.name}</option>
+ ))}
+ </select>
+ </div>
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-200">{locale === 'ar' ? 'الحصص المشتراة' : 'Purchased'}</label>
+ <input type="number" min="0" value={ptEditForm.sessionsPurchased} onChange={(e) => setPtEditForm({ ...ptEditForm, sessionsPurchased: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" />
+ </div>
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-200">{locale === 'ar' ? 'الحصص المتبقية' : 'Remaining'}</label>
+ <input type="number" min="0" value={ptEditForm.sessionsRemaining} onChange={(e) => setPtEditForm({ ...ptEditForm, sessionsRemaining: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" />
+ </div>
+ </div>
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-200">{locale === 'ar' ? 'المبلغ المتبقي' : 'Remaining amount'}</label>
+ <input type="number" min="0" value={ptEditForm.remainingAmount} onChange={(e) => setPtEditForm({ ...ptEditForm, remainingAmount: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" />
+ </div>
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-200">{locale === 'ar' ? 'تاريخ الانتهاء' : 'Expiry'}</label>
+ <input type="date" value={ptEditForm.expiryDate} onChange={(e) => setPtEditForm({ ...ptEditForm, expiryDate: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" />
+ </div>
+ </div>
+ <button onClick={savePTEdit} disabled={ptEditSaving} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2.5 rounded-lg disabled:opacity-50 transition-colors">
+ {ptEditSaving ? (locale === 'ar' ? 'جارٍ الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ' : 'Save')}
+ </button>
  </div>
  </div>
  </div>

@@ -22,8 +22,10 @@ export async function GET(request: Request) {
         throw new Error('Unauthorized')
       }
 
-      // الكوتشات يمكنهم رؤية بياناتهم الخاصة فقط
-      if (user.role === 'COACH') {
+      //  المشرف والإدارة يشوفوا كل الموظفين بالدور — حتى من غير صلاحية canViewStaff
+      if (user.role === 'OWNER' || user.role === 'ADMIN' || user.role === 'MANAGER') {
+        // نكمل للقايمة الكاملة تحت (بره الـ catch)
+      } else if (user.role === 'COACH') {
         // جلب معلومات المستخدم مع staffId
         const userWithStaff = await prisma.user.findUnique({
           where: { id: user.userId },
@@ -68,10 +70,10 @@ export async function GET(request: Request) {
         // إرجاع بيانات الكوتش فقط في array (بدون المرتب)
         const { salary: _salary, ...staffWithoutSalary } = staffRecord as any
         return NextResponse.json([staffWithoutSalary])
+      } else {
+        // غير كده — نرمي الخطأ الأصلي
+        throw permError
       }
-
-      // إذا لم يكن كوتش، نرمي الخطأ الأصلي
-      throw permError
     }
 
     // ✅ إذا كان لديه صلاحية canViewStaff، نجلب كل الموظفين

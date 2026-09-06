@@ -382,6 +382,60 @@ export default function MorePage() {
     }
   }
 
+  //  🏊 باركود المزيد (فيه رقم التليفون) — زرار واحد يفتح مودال: معاينة الكود + زرار إرسال على الواتس
+  const [barcodeModal, setBarcodeModal] = useState<{ moreNumber: number; clientName: string; phone: string; barcode: string } | null>(null)
+  const [loadingBarcode, setLoadingBarcode] = useState<number | null>(null)  // اللي بيتولّد له الباركود دلوقتي
+  const [barcodeSending, setBarcodeSending] = useState(false)                //  جاري الإرسال من داخل المودال
+
+  //  خطوة ١: توليد الباركود وفتح المودال بالمعاينة
+  const handleShowBarcode = async (sub: { moreNumber: number; clientName: string; phone: string }) => {
+    if (!sub.phone) { toast.error(direction === 'rtl' ? 'مفيش رقم تليفون' : 'No phone number'); return }
+    setLoadingBarcode(sub.moreNumber)
+    try {
+      //  الباركود بيتعمل برقم التليفون (raw) عشان لما يتمسح يتعرف بالرقم
+      const bcRes = await fetch('/api/barcode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: sub.phone.replace(/\D/g, '') })
+      })
+      const bc = await bcRes.json()
+      if (!bc.barcode) { toast.error(direction === 'rtl' ? 'فشل توليد الباركود' : 'Barcode failed'); return }
+      setBarcodeModal({ moreNumber: sub.moreNumber, clientName: sub.clientName, phone: sub.phone, barcode: bc.barcode })
+    } catch {
+      toast.error(direction === 'rtl' ? 'فشل توليد الباركود' : 'Barcode failed')
+    } finally {
+      setLoadingBarcode(null)
+    }
+  }
+
+  //  خطوة ٢: إرسال الباركود المعروض على الواتس (بيستخدم نفس الصورة اللي ظهرت، مبيولّدش تاني)
+  const handleConfirmSendBarcode = async () => {
+    if (!barcodeModal) return
+    setBarcodeSending(true)
+    try {
+      const caption = direction === 'rtl'
+        ? `أهلاً ${barcodeModal.clientName}\nده باركود الدخول بتاعك — امسحه عند كل دخول.`
+        : `Hi ${barcodeModal.clientName}\nThis is your entry barcode — scan it at each entry.`
+
+      const res = await fetch('/api/whatsapp/send-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: barcodeModal.phone, imageBase64: barcodeModal.barcode, caption })
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success(direction === 'rtl' ? 'اتبعت الباركود على الواتس ✅' : 'Barcode sent ✅')
+        setBarcodeModal(null)
+      } else {
+        toast.error(data.error || (direction === 'rtl' ? 'فشل إرسال الواتساب' : 'WhatsApp send failed'))
+      }
+    } catch {
+      toast.error(direction === 'rtl' ? 'فشل الإرسال' : 'Send failed')
+    } finally {
+      setBarcodeSending(false)
+    }
+  }
+
   const handleRegisterSession = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -1194,6 +1248,15 @@ export default function MorePage() {
                         </span>
                       </button>
                     )}
+                    {/* 🏊 زرار واحد: يفتح مودال فيه الباركود + زرار إرسال على الواتس */}
+                    <button
+                      onClick={() => handleShowBarcode(sub)}
+                      disabled={loadingBarcode === sub.moreNumber || !sub.phone}
+                      className="col-span-2 inline-flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg text-sm transition-colors duration-200 font-bold disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875v14.25M6.75 4.875v14.25M10.5 4.875v14.25M14.25 4.875v14.25M17.25 4.875v14.25M20.25 4.875v14.25" /></svg>
+                      <span>{loadingBarcode === sub.moreNumber ? (locale === 'ar' ? 'جاري التحضير...' : 'Preparing...') : (locale === 'ar' ? 'إرسال الكود عبر الواتس' : 'Send code via WhatsApp')}</span>
+                    </button>
                     <button
                       onClick={() => handleOpenEdit(sub)}
                       className="inline-flex items-center justify-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2 rounded-lg text-sm transition-colors duration-200 font-bold"
@@ -1292,6 +1355,55 @@ export default function MorePage() {
               </button>
             </div>
             <img src={viewingSignature} alt="signature" className="w-full border border-gray-200 rounded bg-white" />
+          </div>
+        </div>
+      )}
+
+      {/* 🖼️ Barcode Modal — معاينة الكود + إرسال على الواتس (زرار واحد بيفتح ده) */}
+      {barcodeModal && (
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm" onClick={() => { if (!barcodeSending) setBarcodeModal(null) }}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full text-center ring-1 ring-gray-200 dark:ring-gray-700" onClick={(e) => e.stopPropagation()} dir={direction}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? 'باركود الدخول' : 'Entry Barcode'}</h3>
+              <button onClick={() => setBarcodeModal(null)} disabled={barcodeSending} aria-label={locale === 'ar' ? 'إغلاق' : 'Close'} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50">
+                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <p className="text-base font-bold text-gray-900 dark:text-gray-100 mb-4">{barcodeModal.clientName}</p>
+            <div className="bg-white rounded-xl p-3 ring-1 ring-gray-200 mb-4">
+              <img src={barcodeModal.barcode} alt="barcode" className="w-full h-auto" />
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{locale === 'ar' ? 'امسحه عند كل دخول' : 'Scan it at each entry'}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              {locale === 'ar' ? 'سيتم إرسال الباركود إلى' : 'Barcode will be sent to'}{' '}
+              <span className="font-bold text-gray-900 dark:text-gray-100 font-mono" dir="ltr">{barcodeModal.phone}</span>
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={handleConfirmSendBarcode}
+                disabled={barcodeSending}
+                className="w-full inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg transition-colors duration-200 font-bold disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {barcodeSending ? (
+                  <>
+                    <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+                    <span>{locale === 'ar' ? 'جاري الإرسال...' : 'Sending...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                    <span>{locale === 'ar' ? 'إرسال عبر واتساب' : 'Send via WhatsApp'}</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setBarcodeModal(null)}
+                disabled={barcodeSending}
+                className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 font-bold disabled:opacity-60"
+              >
+                {locale === 'ar' ? 'إغلاق' : 'Close'}
+              </button>
+            </div>
           </div>
         </div>
       )}

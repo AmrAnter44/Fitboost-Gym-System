@@ -44,7 +44,7 @@ export async function GET(request: Request) {
     // جلب isSales مباشرة من جدول User
     const dbUser = await prisma.user.findUnique({
       where: { id: user.userId },
-      select: { isSales: true, profileImage: true } as any
+      select: { isSales: true, profileImage: true, permissions: true } as any
     }) as any
     const isSales = dbUser?.isSales ?? false
     const profileImage = dbUser?.profileImage ?? null
@@ -66,8 +66,24 @@ export async function GET(request: Request) {
       }
     }
 
-    // ✅ استخدام DEFAULT_PERMISSIONS إذا لم تكن موجودة في JWT
-    const permissions = user.permissions || DEFAULT_PERMISSIONS[user.role]
+    // ✅ الصلاحيات من الداتابيز (محدّثة فورًا) — بدل التوكن اللي ممكن يكون قديم
+    //  فأي صلاحية بتتفعّل تشتغل من غير ما المستخدم يعمل logout/login.
+    //  fallback للتوكن ثم DEFAULT لو مفيش سجل صلاحيات (زي حساب المالك الاحتياطي).
+    let permissions: any = dbUser?.permissions || user.permissions || DEFAULT_PERMISSIONS[user.role]
+
+    //  🛡️ أعمدة صلاحيات جديدة ممكن الـ Prisma client يكون لسه outdated عنها — نقراها بـ raw SQL ونـ merge
+    //  (عشان تشتغل على الـ dev من غير ما نعيد توليد الـ client)
+    if (dbUser?.permissions) {
+      try {
+        const rows: any = await prisma.$queryRawUnsafe(
+          `SELECT canEditMemberBasic, hideFollowUpNumbers, hideMemberNumbers FROM Permission WHERE userId = ? LIMIT 1`,
+          user.userId
+        )
+        if (Array.isArray(rows) && rows.length) {
+          permissions = { ...permissions, canEditMemberBasic: !!rows[0].canEditMemberBasic, hideFollowUpNumbers: !!rows[0].hideFollowUpNumbers, hideMemberNumbers: !!rows[0].hideMemberNumbers }
+        }
+      } catch { /* الأعمدة ممكن تكون لسه مش موجودة — عادي */ }
+    }
 
     // 🔒 فحص الرخصة (cached — بدون Supabase call)
     let licenseValid = true

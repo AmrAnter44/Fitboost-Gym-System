@@ -11,31 +11,42 @@ export async function GET(request: Request) {
     const staffId = searchParams.get('staffId')
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
+    //  includeActive: كمان يرجّع السجلات المفتوحة (اللي لسه جوه) حتى لو الحضور كان
+    //  في يوم سابق — عشان الشيفت الليلي اللي بيعدّي منتصف الليل ميختفيش من «حضور اليوم».
+    const includeActive = searchParams.get('includeActive') === 'true'
 
-    let whereClause: any = {}
-
-    if (staffId) {
-      whereClause.staffId = staffId
-    }
-
-    // فلترة حسب التاريخ
+    // بناء فلتر التاريخ على checkIn
+    let dateFilter: any = undefined
     if (dateFrom) {
       const fromDate = new Date(dateFrom)
       if (!isNaN(fromDate.getTime())) {
         fromDate.setHours(0, 0, 0, 0)
-        whereClause.checkIn = { gte: fromDate }
+        dateFilter = { gte: fromDate }
       }
     }
-
     if (dateTo) {
       const toDate = new Date(dateTo)
       if (!isNaN(toDate.getTime())) {
         toDate.setHours(23, 59, 59, 999)
-        whereClause.checkIn = {
-          ...whereClause.checkIn,
-          lte: toDate,
-        }
+        dateFilter = { ...(dateFilter || {}), lte: toDate }
       }
+    }
+
+    let whereClause: any = {}
+    if (staffId) {
+      whereClause.staffId = staffId
+    }
+
+    if (includeActive) {
+      //  نافذة السجلات المفتوحة النشطة: آخر 18 ساعة (تغطّي أطول شيفت ليلي + buffer)
+      const activeCutoff = new Date()
+      activeCutoff.setHours(activeCutoff.getHours() - 18)
+      whereClause.OR = [
+        ...(dateFilter ? [{ checkIn: dateFilter }] : []),
+        { checkOut: null, checkIn: { gte: activeCutoff } },
+      ]
+    } else if (dateFilter) {
+      whereClause.checkIn = dateFilter
     }
 
     const attendance = await prisma.attendance.findMany({

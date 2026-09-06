@@ -326,12 +326,23 @@ function migrateDatabase(dbPath) {
       'canCreateDeduction',
       'canEditDeduction',
       'canDeleteDeduction',
-      'canManageBannedMembers'
+      'canManageBannedMembers',
+      'canEditReceiptBasic',
+      'canEditMemberBasic',
+      'hideFollowUpNumbers',
+      'hideMemberNumbers'
     ];
 
     for (const permission of morePermissions) {
       if (!columnExists(db, 'Permission', permission)) {
         db.prepare(`ALTER TABLE Permission ADD COLUMN ${permission} INTEGER NOT NULL DEFAULT 0`).run();
+        //  canEditMemberBasic: الإدارة (OWNER/ADMIN/MANAGER) عندها التعديل الكامل أصلاً،
+        //  فنخليها on عشان التوافق بعد التحديث (الموظفين off لحد ما الأدمن يفعّلها)
+        if (permission === 'canEditMemberBasic') {
+          try {
+            db.prepare(`UPDATE Permission SET canEditMemberBasic = 1 WHERE userId IN (SELECT id FROM User WHERE role IN ('OWNER','ADMIN','MANAGER'))`).run();
+          } catch (e) { /* الجدول ممكن يكون فاضي — عادي */ }
+        }
       } else {
       }
     }
@@ -481,6 +492,9 @@ function migrateDatabase(dbPath) {
       { col: 'monthlyVacationDays', def: 'INTEGER' },
       { col: 'shiftStartTime',      def: 'TEXT' },
       { col: 'shiftEndTime',        def: 'TEXT' },
+      //  تارجت الكوتش اليومي (عدد الحصص) — رينج من/إلى
+      { col: 'dailySessionTargetMin', def: 'INTEGER' },
+      { col: 'dailySessionTargetMax', def: 'INTEGER' },
     ];
     for (const { col, def } of staffHrCols) {
       if (!columnExists(db, 'Staff', col)) {
@@ -514,6 +528,10 @@ function migrateDatabase(dbPath) {
       { col: 'transferredFromMemberId', def: 'TEXT' },     //  📤 نقل العضوية: العضو اللي نقل للعضو ده
       { col: 'transferredFromAt',       def: 'DATETIME' },
       { col: 'transferredFromPhone',    def: 'TEXT' },      //  📤 الرقم القديم اللي اتنقلت منه العضوية
+      { col: 'noCoachWanted',           def: 'INTEGER NOT NULL DEFAULT 0' }, //  العضو مش عايز كابتن
+      { col: 'pendingRenewalStartDate',  def: 'DATETIME' }, //  🔁 تجديد مجدول: تاريخ بداية التجديد المؤجل
+      { col: 'pendingRenewalExpiryDate', def: 'DATETIME' }, //  🔁 تاريخ نهاية التجديد المؤجل
+      { col: 'pendingRenewalData',       def: 'TEXT' },     //  🔁 JSON بتفاصيل التجديد المؤجل
     ];
     for (const { col, def } of memberCols) {
       if (!columnExists(db, 'Member', col)) {
@@ -531,6 +549,16 @@ function migrateDatabase(dbPath) {
       if (!columnExists(db, 'User', col)) {
         db.prepare(`ALTER TABLE User ADD COLUMN ${col} ${def}`).run();
       } else {
+      }
+    }
+
+    // ✅ Visitor new fields — حقول الزوار الجديدة
+    const visitorCols = [
+      { col: 'gender', def: 'TEXT' }, // 🚻 male/female/null — لتوزيع السيلز بالجندر
+    ];
+    for (const { col, def } of visitorCols) {
+      if (!columnExists(db, 'Visitor', col)) {
+        db.prepare(`ALTER TABLE Visitor ADD COLUMN ${col} ${def}`).run();
       }
     }
 
@@ -576,6 +604,9 @@ function migrateDatabase(dbPath) {
       { col: 'payrollLateGraceMinutes',    def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'payrollMonthEndDay',         def: 'INTEGER NOT NULL DEFAULT 1' },
       { col: 'payrollSuggestedLatePerMinute', def: 'REAL DEFAULT 0' },
+      // 💪 مميزات اشتراك PT (فريز/ترقية) — غيابها بيفشّل قراءة الإعدادات وترقية الـ PT
+      { col: 'ptFreezeEnabled',            def: 'INTEGER NOT NULL DEFAULT 0' },
+      { col: 'ptUpgradeEnabled',           def: 'INTEGER NOT NULL DEFAULT 0' },
     ];
     for (const { col, def } of settingsCols) {
       if (!columnExists(db, 'SystemSettings', col)) {

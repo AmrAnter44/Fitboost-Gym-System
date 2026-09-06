@@ -27,7 +27,26 @@ export async function GET(request: Request) {
       const { password, ...userWithoutPassword } = user
       return userWithoutPassword
     })
-    
+
+    //  🛡️ أعمدة صلاحيات جديدة ممكن الـ Prisma client يكون لسه outdated عنها (include بيرجّعها ناقصة)
+    //  — نقراها بـ raw SQL ونـ merge عشان الـ UI يعرضها صح بعد الحفظ (مش ترجع false).
+    try {
+      const rows: any[] = await prisma.$queryRawUnsafe(
+        `SELECT userId, canEditMemberBasic, hideFollowUpNumbers, hideMemberNumbers FROM Permission`
+      )
+      const map = new Map(rows.map(r => [r.userId, r]))
+      for (const u of usersWithoutPassword as any[]) {
+        if (u.permissions) {
+          const r = map.get(u.id)
+          if (r) {
+            u.permissions.canEditMemberBasic = !!r.canEditMemberBasic
+            u.permissions.hideFollowUpNumbers = !!r.hideFollowUpNumbers
+            u.permissions.hideMemberNumbers = !!r.hideMemberNumbers
+          }
+        }
+      }
+    } catch { /* الأعمدة ممكن تكون لسه مش موجودة — عادي */ }
+
     return NextResponse.json(usersWithoutPassword)
     
   } catch (error: any) {
@@ -49,17 +68,18 @@ export async function GET(request: Request) {
 
 // ✅ الحقول المسموحة في جدول Permission - لتصفية أي حقول غير معروفة
 const VALID_PERMISSION_FIELDS = [
-  'canViewMembers', 'canCreateMembers', 'canEditMembers', 'canDeleteMembers',
+  'canViewMembers', 'canCreateMembers', 'canEditMembers', 'canEditMemberBasic', 'canDeleteMembers',
   'canViewPT', 'canCreatePT', 'canEditPT', 'canDeletePT', 'canRegisterPTAttendance',
   'canViewNutrition', 'canCreateNutrition', 'canEditNutrition', 'canDeleteNutrition', 'canRegisterNutritionAttendance',
   'canViewPhysiotherapy', 'canCreatePhysiotherapy', 'canEditPhysiotherapy', 'canDeletePhysiotherapy', 'canRegisterPhysioAttendance',
   'canViewGroupClass', 'canCreateGroupClass', 'canEditGroupClass', 'canDeleteGroupClass', 'canRegisterClassAttendance',
   'canViewMore', 'canRegisterMoreAttendance', 'canDeleteMore', 'canAccessMoreCommission',
   'canViewStaff', 'canAccessHR', 'canCreateStaff', 'canEditStaff', 'canDeleteStaff',
-  'canViewReceipts', 'canEditReceipts', 'canDeleteReceipts',
+  'canViewReceipts', 'canEditReceipts', 'canEditReceiptBasic', 'canDeleteReceipts',
   'canViewExpenses', 'canCreateExpense', 'canEditExpense', 'canDeleteExpense',
   'canViewVisitors', 'canCreateVisitor', 'canEditVisitor', 'canDeleteVisitor',
-  'canViewFollowUps', 'canCreateFollowUp', 'canEditFollowUp', 'canDeleteFollowUp', 'canManageSales',
+  'hideMemberNumbers',
+  'canViewFollowUps', 'hideFollowUpNumbers', 'canCreateFollowUp', 'canEditFollowUp', 'canDeleteFollowUp', 'canManageSales',
   'canViewDayUse', 'canCreateDayUse', 'canEditDayUse', 'canDeleteDayUse',
   'canViewReports', 'canViewFinancials', 'canViewAttendance', 'canAccessClosing', 'canCloseDayOnly', 'canAccessPTCommission', 'canViewAllPT', 'canAccessSettings', 'canAccessAdmin',
   'canViewSpaBookings', 'canCreateSpaBooking', 'canEditSpaBooking', 'canCancelSpaBooking', 'canViewSpaReports',
@@ -206,9 +226,19 @@ export async function POST(request: Request) {
     }
 
     // ✅ استخدام الصلاحيات المخصصة إذا تم إرسالها، وإلا استخدام الافتراضية
-    const permData = permissions && Object.keys(permissions).length > 0
+    const permData: Record<string, any> = permissions && Object.keys(permissions).length > 0
       ? filterPermissions(permissions)
       : defaultPermissions
+
+    //  🛡️ نشيل الحقول الجديدة (canEditMemberBasic) من الـ create ونطبّقها بـ raw SQL بعده،
+    //  عشان لو الـ Prisma client لسه outdated الإنشاء ما يفشلش
+    const rawFallback: Record<string, boolean> = {}
+    for (const f of ['canEditMemberBasic', 'hideFollowUpNumbers', 'hideMemberNumbers']) {
+      if (f in permData) {
+        rawFallback[f] = permData[f]
+        delete permData[f]
+      }
+    }
 
     await prisma.permission.create({
       data: {
@@ -216,6 +246,18 @@ export async function POST(request: Request) {
         ...permData
       }
     })
+
+    for (const [field, value] of Object.entries(rawFallback)) {
+      try {
+        await prisma.$executeRawUnsafe(
+          `UPDATE Permission SET ${field} = ? WHERE userId = ?`,
+          value ? 1 : 0,
+          user.id
+        )
+      } catch (rawErr) {
+        console.error(`⚠️ Raw SQL fallback for ${field} failed:`, rawErr)
+      }
+    }
     
     createAuditLog({
       userId: adminUser.userId, userEmail: adminUser.email, userName: adminUser.name, userRole: adminUser.role,

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
-import { requirePermission, verifyAuth } from '../../../../lib/auth'
+import { requirePermission, requireAnyPermission, verifyAuth } from '../../../../lib/auth'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 // تحديث إيصال موجود
@@ -100,10 +100,12 @@ function mergeSubscriptionIntoDetails(
 
 export async function PUT(request: Request) {
   try {
-    // ✅ التحقق من صلاحية تعديل الإيصالات
-    const user = await requirePermission(request, 'canEditReceipts')
+    // ✅ التحقق من صلاحية تعديل الإيصالات — كاملة أو محدودة
+    const user = await requireAnyPermission(request, ['canEditReceipts', 'canEditReceiptBasic'])
+    //  الكاملة = OWNER/ADMIN أو canEditReceipts. المحدودة = canEditReceiptBasic بس.
+    const isFullEdit = user.role === 'OWNER' || user.role === 'ADMIN' || !!user.permissions?.canEditReceipts
 
-    const {
+    let {
       receiptId,
       receiptNumber,
       amount,
@@ -129,6 +131,20 @@ export async function PUT(request: Request) {
 
     if (!receiptId) {
       return NextResponse.json({ error: 'معرف الإيصال مطلوب' }, { status: 400 })
+    }
+
+    //  🔒 الصلاحية المحدودة (canEditReceiptBasic): يُسمح فقط بتعديل طريقة الدفع.
+    //  الاسم/التليفون بقى يتعدّل من بروفايل العضو (canEditMemberBasic) مش من الإيصال.
+    //  نعقّم أي حقل تاني عشان مايتغيّرش.
+    if (!isFullEdit) {
+      receiptNumber = undefined
+      amount = undefined
+      itemDetails = undefined
+      staffName = undefined
+      createdAt = undefined
+      salesStaffId = undefined
+      subscription = undefined // مفيش تعديل اسم/تليفون من الإيصال
+      cascade = false
     }
 
     // التحقق من وجود الإيصال

@@ -116,7 +116,7 @@ export async function GET(request: Request) {
         })
       : []
 
-    // بناء map للتحصيل لكل عضو
+    // بناء map للتحصيل لكل عضو — بيشمل كل الأعضاء المسنّدين (بما فيهم walk-in)
     const memberRevenueMap: Record<string, number> = {}
     for (const receipt of thisMonthReceipts) {
       if (receipt.memberId) {

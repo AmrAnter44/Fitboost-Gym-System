@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { verifyAuth } from '../../../../lib/auth'
+import { activatePendingRenewalForMember, readPendingRenewal } from '../../../../lib/pendingRenewal'
 
 // GET - جلب بيانات عضو واحد (متاح للكوتش بدون صلاحيات خاصة)
 
@@ -27,6 +28,9 @@ export async function GET(
         { status: 400 }
       )
     }
+
+    //  🔁 فعّل التجديد المجدول لو وصل ميعاده قبل ما نجيب بيانات العضو
+    try { await activatePendingRenewalForMember(memberId) } catch { /* ignore */ }
 
     const member = await prisma.member.findUnique({
       where: { id: memberId },
@@ -120,6 +124,9 @@ export async function GET(
         where: { id: (member as any).offerId },
         select: {
           inBodyScans: true,
+          invitations: true,
+          freezeDays: true,
+          maxCheckIns: true,
           freeNutritionSessions: true,
           freePhysioSessions: true,
           freeGroupClassSessions: true,
@@ -127,7 +134,7 @@ export async function GET(
           freePadelSessions: true,
           freeAssessmentSessions: true,
           freeMoreSessions: true,
-        }
+        } as any
       })
     }
 
@@ -142,6 +149,24 @@ export async function GET(
       if (src) transferredFrom = src
     }
 
+    //  🔁 التجديد المجدول (لو لسه موجود وما اتفعّلش) — للعرض في بوكس الحالة + تفاصيله (باقي/سعر)
+    let pendingRenewal: any = null
+    try {
+      const p = await readPendingRenewal(memberId)
+      if (p) pendingRenewal = {
+        startDate: p.startDate.toISOString(),
+        expiryDate: p.expiryDate ? p.expiryDate.toISOString() : null,
+        subscriptionPrice: p.data.subscriptionPrice || 0,
+        remainingAmount: p.data.remainingAmount || 0,
+        remainingDueDate: p.data.remainingDueDate || null,
+        freePTSessions: p.data.additionalFreePT || 0,
+        inBodyScans: p.data.additionalInBody || 0,
+        invitations: p.data.additionalInvitations || 0,
+        freezeDays: p.data.additionalFreezeDays || 0,
+        offerName: p.data.offerName || null,
+      }
+    } catch { /* ignore */ }
+
     return NextResponse.json({
       ...member,
       referrerInfo,
@@ -150,6 +175,7 @@ export async function GET(
       freePTSessionsUsed,
       offerBenefits,
       transferredFrom,
+      pendingRenewal,
     }, { status: 200 })
   } catch (error: any) {
     console.error('❌ Error fetching member:', error)

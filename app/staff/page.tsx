@@ -248,7 +248,9 @@ export default function StaffPage() {
   const fetchTodayAttendance = async () => {
     try {
       const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
-      const response = await fetch(`/api/attendance?dateFrom=${today}&dateTo=${today}`)
+      //  includeActive: يضمّ الشيفت الليلي اللي دخل امبارح ولسه جوه (checkOut=null)
+      //  عشان ميختفيش من «حضور اليوم» بعد منتصف الليل
+      const response = await fetch(`/api/attendance?dateFrom=${today}&dateTo=${today}&includeActive=true`)
       const data = await response.json()
       setTodayAttendance(data)
     } catch (error) {

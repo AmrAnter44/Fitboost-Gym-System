@@ -68,6 +68,13 @@ export async function POST(request: Request) {
       itemDetails = JSON.parse(receipt.itemDetails)
     } catch {}
 
+    //  📜 الشروط والأحكام المخصصة من الإعدادات (رسالة نصية فمفيش حد للطول)
+    let receiptTerms = ''
+    try {
+      const s = await prisma.systemSettings.findFirst({ select: { receiptTerms: true } as any })
+      receiptTerms = ((s as any)?.receiptTerms || '').trim()
+    } catch { /* ignore */ }
+
     const gymName = '💪 Fitboost Gym System'
     const date = new Date(receipt.createdAt).toLocaleDateString('ar-EG', {
       day: 'numeric',
@@ -148,6 +155,7 @@ ${receipt.staffName ? `👨‍💼 *الموظف:* ${receipt.staffName}` : ''}
 ━━━━━━━━━━━━━━━━━━━━━
 ✅ *شكراً لثقتكم بنا!*
 نتمنى لكم تجربة رائعة 💪
+${receiptTerms ? `\n━━━━━━━━━━━━━━━━━━━━━\n📜 *شروط وأحكام*\n━━━━━━━━━━━━━━━━━━━━━\n${receiptTerms}` : ''}
 `.trim()
 
     // إرسال الرسالة

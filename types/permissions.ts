@@ -13,6 +13,7 @@ export interface Permissions {
   canViewMembers: boolean
   canCreateMembers: boolean
   canEditMembers: boolean
+  canEditMemberBasic: boolean  // تعديل محدود: اسم ورقم موبايل العضو بس (من البروفايل)
   canDeleteMembers: boolean
 
   // صلاحيات التدريب الشخصي
@@ -59,6 +60,7 @@ export interface Permissions {
   // صلاحيات الإيصالات
   canViewReceipts: boolean
   canEditReceipts: boolean
+  canEditReceiptBasic: boolean  // تعديل محدود: طريقة الدفع في الإيصال بس
   canDeleteReceipts: boolean
 
   // صلاحيات المصروفات
@@ -75,6 +77,8 @@ export interface Permissions {
 
   // صلاحيات المتابعات
   canViewFollowUps: boolean
+  hideFollowUpNumbers: boolean  // إخفاء أرقام المتابعات (قيد) — تتكشف جوّه نافذة المتابعة بس
+  hideMemberNumbers: boolean  // إخفاء أرقام الأعضاء في القوائم (قيد) — تتكشف جوّه بروفايل العضو
   canCreateFollowUp: boolean
   canEditFollowUp: boolean
   canDeleteFollowUp: boolean
@@ -197,6 +201,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewMembers: true,
     canCreateMembers: true,
     canEditMembers: true,
+    canEditMemberBasic: true,
     canDeleteMembers: true,
     canViewPT: true,
     canCreatePT: true,
@@ -229,6 +234,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteStaff: true,
     canViewReceipts: true,
     canEditReceipts: true,
+    canEditReceiptBasic: true,
     canDeleteReceipts: true,
     canViewExpenses: true,
     canCreateExpense: true,
@@ -239,6 +245,8 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditVisitor: true,
     canDeleteVisitor: true,
     canViewFollowUps: true,
+    hideFollowUpNumbers: false,
+    hideMemberNumbers: false,
     canCreateFollowUp: true,
     canEditFollowUp: true,
     canDeleteFollowUp: true,
@@ -282,6 +290,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewMembers: true,
     canCreateMembers: true,
     canEditMembers: true,
+    canEditMemberBasic: true,
     canDeleteMembers: true,
     canViewPT: true,
     canCreatePT: true,
@@ -314,6 +323,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteStaff: true,
     canViewReceipts: true,
     canEditReceipts: true,
+    canEditReceiptBasic: true,
     canDeleteReceipts: true,
     canViewExpenses: true,
     canCreateExpense: true,
@@ -324,6 +334,8 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditVisitor: true,
     canDeleteVisitor: true,
     canViewFollowUps: true,
+    hideFollowUpNumbers: false,
+    hideMemberNumbers: false,
     canCreateFollowUp: true,
     canEditFollowUp: true,
     canDeleteFollowUp: true,
@@ -367,6 +379,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewMembers: true,
     canCreateMembers: true,
     canEditMembers: true,
+    canEditMemberBasic: true,
     canDeleteMembers: false,
     canViewPT: true,
     canCreatePT: true,
@@ -399,6 +412,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteStaff: false,
     canViewReceipts: true,
     canEditReceipts: true,
+    canEditReceiptBasic: true,
     canDeleteReceipts: false,
     canViewExpenses: true,
     canCreateExpense: true,
@@ -409,6 +423,8 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditVisitor: true,
     canDeleteVisitor: false,
     canViewFollowUps: true,
+    hideFollowUpNumbers: false,
+    hideMemberNumbers: false,
     canCreateFollowUp: true,
     canEditFollowUp: true,
     canDeleteFollowUp: false,
@@ -452,6 +468,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewMembers: true,
     canCreateMembers: false,
     canEditMembers: false,
+    canEditMemberBasic: false,
     canDeleteMembers: false,
     canViewPT: true,
     canCreatePT: false,
@@ -484,6 +501,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteStaff: false,
     canViewReceipts: true,
     canEditReceipts: false,
+    canEditReceiptBasic: false,
     canDeleteReceipts: false,
     canViewExpenses: false,
     canCreateExpense: false,
@@ -494,6 +512,8 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditVisitor: false,
     canDeleteVisitor: false,
     canViewFollowUps: false,
+    hideFollowUpNumbers: false,
+    hideMemberNumbers: false,
     canCreateFollowUp: false,
     canEditFollowUp: false,
     canDeleteFollowUp: false,
@@ -538,6 +558,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewMembers: false,
     canCreateMembers: false,
     canEditMembers: false,
+    canEditMemberBasic: false,
     canDeleteMembers: false,
     canViewPT: true, // يرى حصصه فقط
     canCreatePT: false,
@@ -570,6 +591,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canDeleteStaff: false,
     canViewReceipts: false,
     canEditReceipts: false,
+    canEditReceiptBasic: false,
     canDeleteReceipts: false,
     canViewExpenses: false,
     canCreateExpense: false,
@@ -580,6 +602,8 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditVisitor: false,
     canDeleteVisitor: false,
     canViewFollowUps: false,
+    hideFollowUpNumbers: false,
+    hideMemberNumbers: false,
     canCreateFollowUp: false,
     canEditFollowUp: false,
     canDeleteFollowUp: false,
@@ -628,6 +652,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canViewMembers: 'عرض الأعضاء',
   canCreateMembers: 'إضافة عضو',
   canEditMembers: 'تعديل عضو',
+  canEditMemberBasic: 'تعديل اسم/موبايل العضو بس (من البروفايل)',
   canDeleteMembers: 'حذف عضو',
   canViewPT: 'عرض التدريب الشخصي',
   canCreatePT: 'إنشاء جلسة PT',
@@ -660,6 +685,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canDeleteStaff: 'حذف موظف',
   canViewReceipts: 'عرض الإيصالات',
   canEditReceipts: 'تعديل إيصال',
+  canEditReceiptBasic: 'تعديل طريقة الدفع في الإيصال بس',
   canDeleteReceipts: 'حذف إيصال',
   canViewExpenses: 'عرض المصروفات',
   canCreateExpense: 'إضافة مصروف',
@@ -670,6 +696,8 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canEditVisitor: 'تعديل زائر',
   canDeleteVisitor: 'حذف زائر',
   canViewFollowUps: 'عرض المتابعات',
+  hideFollowUpNumbers: 'إخفاء أرقام المتابعات (تظهر جوّه نافذة المتابعة بس)',
+  hideMemberNumbers: 'إخفاء أرقام الأعضاء (تظهر جوّه بروفايل العضو بس)',
   canCreateFollowUp: 'إضافة متابعة',
   canEditFollowUp: 'تعديل متابعة',
   canDeleteFollowUp: 'حذف متابعة',
@@ -718,8 +746,10 @@ export const PERMISSION_GROUPS = {
     label: '👥 الأعضاء',
     permissions: [
       'canViewMembers',
+      'hideMemberNumbers',
       'canCreateMembers',
       'canEditMembers',
+      'canEditMemberBasic',
       'canDeleteMembers',
     ] as Array<keyof Permissions>,
   },
@@ -731,7 +761,7 @@ export const PERMISSION_GROUPS = {
       'canEditPT',
       'canDeletePT',
       'canRegisterPTAttendance',
-      'canViewAllPT',
+      // canViewAllPT اتشالت من قايمة الصلاحيات — بقت للمشرف (MANAGER) تلقائيًا حسب الدور
     ] as Array<keyof Permissions>,
   },
   groupClass: {
@@ -788,6 +818,7 @@ export const PERMISSION_GROUPS = {
     permissions: [
       'canViewReceipts',
       'canEditReceipts',
+      'canEditReceiptBasic',
       'canDeleteReceipts',
     ] as Array<keyof Permissions>,
   },
@@ -813,6 +844,7 @@ export const PERMISSION_GROUPS = {
     label: '📝 المتابعات',
     permissions: [
       'canViewFollowUps',
+      'hideFollowUpNumbers',
       'canCreateFollowUp',
       'canEditFollowUp',
       'canDeleteFollowUp',
@@ -911,6 +943,7 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canViewMembers: '👁️',
   canCreateMembers: '➕',
   canEditMembers: '✏️',
+  canEditMemberBasic: '📝',
   canDeleteMembers: '🗑️',
   canViewPT: '👁️',
   canCreatePT: '➕',
@@ -943,6 +976,7 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canDeleteStaff: '🗑️',
   canViewReceipts: '👁️',
   canEditReceipts: '✏️',
+  canEditReceiptBasic: '📝',
   canDeleteReceipts: '🗑️',
   canViewExpenses: '👁️',
   canCreateExpense: '➕',
@@ -953,6 +987,8 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canEditVisitor: '✏️',
   canDeleteVisitor: '🗑️',
   canViewFollowUps: '👁️',
+  hideFollowUpNumbers: '🔒',
+  hideMemberNumbers: '🔒',
   canCreateFollowUp: '➕',
   canEditFollowUp: '✏️',
   canDeleteFollowUp: '🗑️',

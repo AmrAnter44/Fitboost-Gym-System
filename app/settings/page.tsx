@@ -11,6 +11,8 @@ import { LoadingScreen } from '../../components/Spinner'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import CloudBackupCard from '../../components/settings/CloudBackupCard'
 import ImageUpload from '../../components/ImageUpload'
+import ImportSheetSection from '../../components/ImportSheetSection'
+import PWAInstallButton from '../../components/PWAInstallButton'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -1342,7 +1344,8 @@ export default function SettingsPage() {
       { id: 'license', label: t('settingsPage.navigation.license') },
       { id: 'database', label: t('settingsPage.navigation.database') },
       { id: 'tunnel', label: 'تانل' },
-      { id: 'apply-features', label: 'تطبيق مميزات الباقات' }
+      { id: 'apply-features', label: 'تطبيق مميزات الباقات' },
+      { id: 'import-sheet', label: 'استيراد شيت' }
     ] : []),
     ...(typeof window !== 'undefined' && (window as any).electron?.isElectron ? [{ id: 'updates', label: t('settingsPage.navigation.updates') }] : []),
     { id: 'support', label: t('settingsPage.navigation.support') }
@@ -1358,7 +1361,9 @@ export default function SettingsPage() {
     { id: 'padel', name: t('settingsPage.services.padel.name'), desc: t('settingsPage.services.padel.desc') },
     { id: 'assessment', name: t('settingsPage.services.assessment.name'), desc: t('settingsPage.services.assessment.desc') },
     { id: 'lostFound', name: locale === 'ar' ? 'المتعلقات المفقودة' : 'Lost & Found', desc: locale === 'ar' ? 'تسجيل الحاجات المفقودة اللي بتتلاقى في الجيم' : 'Track items found in the gym' },
-    { id: 'mixedGym', name: locale === 'ar' ? 'جيم مكس (رجالة وسيدات)' : 'Mixed Gym', desc: locale === 'ar' ? 'يفعّل اختيار الجنس عند تسجيل العضو + تقرير إيرادات الرجالة والسيدات' : 'Gender field on sign-up + male/female revenue report' }
+    { id: 'mixedGym', name: locale === 'ar' ? 'جيم مكس (رجالة وسيدات)' : 'Mixed Gym', desc: locale === 'ar' ? 'يفعّل اختيار الجنس عند تسجيل العضو + تقرير إيرادات الرجالة والسيدات' : 'Gender field on sign-up + male/female revenue report' },
+    { id: 'ptFreeze', name: locale === 'ar' ? 'فريز اشتراك PT' : 'PT Freeze', desc: locale === 'ar' ? 'السماح بتجميد اشتراك الـ PT لعدد أيام محدد ومدّ تاريخ الانتهاء.' : 'Freeze a PT subscription for a set number of days and extend expiry.' },
+    { id: 'ptUpgrade', name: locale === 'ar' ? 'ترقية باقة PT' : 'PT Upgrade', desc: locale === 'ar' ? 'السماح بترقية باقة الـ PT لباقة أعلى مع حساب فرق السعر وإصدار إيصال.' : 'Upgrade a PT package with price difference and a receipt.' }
   ]
 
   if (!user) {
@@ -2317,6 +2322,8 @@ export default function SettingsPage() {
 
           {activeSection === 'display' && (
             <div className="space-y-4 sm:space-y-6">
+              {/*  📲 زرار تحميل/تثبيت الـ PWA السريع */}
+              <PWAInstallButton />
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
@@ -3410,6 +3417,10 @@ export default function SettingsPage() {
             </div>
           )}
 
+          {activeSection === 'import-sheet' && user?.role === 'OWNER' && (
+            <ImportSheetSection />
+          )}
+
           {activeSection === 'apply-features' && user?.role === 'OWNER' && (
             <div className="space-y-6">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
@@ -3425,73 +3436,6 @@ export default function SettingsPage() {
                       السكريبت بيمشي على كل الأعضاء اللي عندهم باقة محفوظة، ويطبق عليهم الحصص + الفريز + الدعوات + InBody.
                     </p>
                   </div>
-                </div>
-              </div>
-
-              {/* مميزات اشتراك PT */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
-                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                  <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.115 5.19l.319 1.913A6 6 0 0 0 8.11 10.36L9.75 12l-.387.775c-.217.433-.132.956.21 1.298l1.348 1.348c.21.21.329.497.329.795v1.089c0 .426.24.815.622 1.006l.153.076c.433.217.956.132 1.298-.21l.723-.723a8.7 8.7 0 0 0 2.288-4.042 1.087 1.087 0 0 0-.358-1.099l-1.33-1.108c-.32-.267-.526-.65-.578-1.064l-.111-.857a.972.972 0 0 0-.575-.766 1.21 1.21 0 0 1-.518-.396l-.394-.522a1.13 1.13 0 0 0-1.299-.38l-1.328.475a4.5 4.5 0 0 1-1.679.215 11.21 11.21 0 0 1-.45-2.069M3.75 12C3.75 6.96 7.96 2.75 13 2.75c5.04 0 9.25 4.21 9.25 9.25 0 5.04-4.21 9.25-9.25 9.25-5.04 0-9.25-4.21-9.25-9.25Z" />
-                  </svg>
-                  <span>مميزات اشتراك PT</span>
-                </h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
-                  تفعيل مميزات إضافية على اشتراكات الـ PT (الفريز والترقية). الزرارين بيظهروا في كروت الـ PT بعد التفعيل.
-                </p>
-                <div className="grid gap-3">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center flex-shrink-0">
-                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18m9-9H3M5.636 5.636l12.728 12.728M18.364 5.636L5.636 18.364" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-gray-900 dark:text-gray-100">فريز اشتراك PT</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">السماح بتجميد اشتراك الـ PT لعدد أيام محدد ومدّ تاريخ الانتهاء.</p>
-                      </div>
-                    </div>
-                    <label className="toggle-switch toggle-green">
-                      <input
-                        type="checkbox"
-                        checked={!!serviceSettings.ptFreezeEnabled}
-                        onChange={() => updateSetting('ptFreezeEnabled', !serviceSettings.ptFreezeEnabled)}
-                      />
-                      <span className="toggle-track"><span className="toggle-thumb"></span></span>
-                    </label>
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
-                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-gray-900 dark:text-gray-100">ترقية باقة PT</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">السماح بترقية باقة الـ PT لباقة أعلى مع حساب فرق السعر وإصدار إيصال.</p>
-                      </div>
-                    </div>
-                    <label className="toggle-switch toggle-green">
-                      <input
-                        type="checkbox"
-                        checked={!!serviceSettings.ptUpgradeEnabled}
-                        onChange={() => updateSetting('ptUpgradeEnabled', !serviceSettings.ptUpgradeEnabled)}
-                      />
-                      <span className="toggle-track"><span className="toggle-thumb"></span></span>
-                    </label>
-                  </div>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <button
-                    onClick={saveServiceSettings}
-                    disabled={isSaving}
-                    className="bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed text-sm"
-                  >
-                    {isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}
-                  </button>
                 </div>
               </div>
 

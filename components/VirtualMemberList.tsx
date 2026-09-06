@@ -3,7 +3,7 @@
 import { useRef, useEffect, CSSProperties, useCallback } from 'react'
 import { List, useDynamicRowHeight, DynamicRowHeight } from 'react-window'
 import { useQueryClient } from '@tanstack/react-query'
-import { formatDateYMD, calculateRemainingDays } from '@/lib/dateFormatter'
+import { formatDateYMD, calculateRemainingDays, calculateDaysBetween } from '@/lib/dateFormatter'
 import { getPackageName } from '@/lib/memberUtils'
 import LazyAvatar from './LazyAvatar'
 
@@ -26,6 +26,17 @@ interface Member {
   expiryDate?: string
   salesStaff?: { id: string; name: string } | null
   coach?: { id: string; name: string } | null
+  noCoachWanted?: boolean
+  pendingRenewalStartDate?: string | null
+  pendingRenewalExpiryDate?: string | null
+}
+
+//  إخفاء الرقم: أول 3 وآخر 2 والباقي نقط
+function maskMemberPhone(p?: string | null): string {
+  const s = (p || '').replace(/\s/g, '')
+  if (!s) return ''
+  if (s.length <= 5) return '•'.repeat(s.length)
+  return s.slice(0, 3) + '•'.repeat(Math.max(4, s.length - 5)) + s.slice(-2)
 }
 
 interface MemberCardRowProps {
@@ -37,6 +48,7 @@ interface MemberCardRowProps {
   t: (key: string, params?: Record<string, string>) => string
   locale: string
   direction: string
+  hideNumbers?: boolean
   dynamicRowHeight: DynamicRowHeight
 }
 
@@ -53,6 +65,7 @@ const MemberCardRow = ({
   t,
   locale,
   direction,
+  hideNumbers,
   dynamicRowHeight,
 }: { index: number; style: CSSProperties; ariaAttributes: any } & MemberCardRowProps) => {
   const ref = useRef<HTMLDivElement>(null)
@@ -70,7 +83,16 @@ const MemberCardRow = ({
   const expiryDateNorm = member.expiryDate ? (() => { const d = new Date(member.expiryDate); d.setHours(0, 0, 0, 0); return d })() : null
   const startDate = member.startDate ? (() => { const d = new Date(member.startDate); d.setHours(0, 0, 0, 0); return d })() : null
   const isExpired = expiryDateNorm ? expiryDateNorm < todayCheck : false
-  const daysRemaining = calculateRemainingDays(member.expiryDate)
+  //  🧊 لو مجمّد، نعدّ الأيام المتبقية من بعد نهاية الفريز (الأيام المجمّدة مش متبقية للاستخدام)
+  const daysRemaining = (() => {
+    if (!expiryDateNorm) return null
+    let base = todayCheck
+    if (member.isFrozen && member.freezeUntil) {
+      const fe = new Date(member.freezeUntil); fe.setHours(0, 0, 0, 0)
+      if (fe.getTime() > base.getTime()) base = fe
+    }
+    return calculateDaysBetween(base, expiryDateNorm)
+  })()
   const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
   const isBanned = member.isBanned
   const isNotStartedYet = !!(member.isActive && startDate && startDate > todayCheck)
@@ -207,15 +229,22 @@ const MemberCardRow = ({
                 <span className="text-gray-500 dark:text-gray-400 text-xs">{locale === 'ar' ? 'بدون عضوية' : 'Non-Member'}</span>
               )}
               <span className="text-gray-300 dark:text-gray-600">|</span>
-              <a
-                href={`https://wa.me/+20${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 text-sm font-medium font-mono transition-colors duration-200"
-              >
-                {member.phone}
-              </a>
+              {hideNumbers ? (
+                //  🙈 رقم مخفي — يتكشف جوّه بروفايل العضو
+                <span className="text-gray-500 dark:text-gray-400 text-sm font-medium font-mono select-none tracking-widest" dir="ltr">
+                  {maskMemberPhone(member.phone)}
+                </span>
+              ) : (
+                <a
+                  href={`https://wa.me/+20${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 text-sm font-medium font-mono transition-colors duration-200"
+                >
+                  {member.phone}
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -240,6 +269,15 @@ const MemberCardRow = ({
                 🎟️ {member.remainingCheckIns} {locale === 'ar' ? 'دخلة' : 'entries'}
               </span>
             )}
+            {/*  🔁 تجديد مجدول — العضو جدّد واشتراكه القديم لسه شغّال */}
+            {member.pendingRenewalStartDate && (
+              <span
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 ring-1 ring-blue-300 dark:ring-blue-700"
+                title={locale === 'ar' ? `يبدأ ${formatDateYMD(member.pendingRenewalStartDate)}` : `Starts ${formatDateYMD(member.pendingRenewalStartDate)}`}
+              >
+                🔁 {locale === 'ar' ? 'تجديد مجدول' : 'Scheduled renewal'}
+              </span>
+            )}
             </div>
             <span className="text-primary-700 dark:text-primary-400 font-bold text-xs">
               {getPackageName(member.startDate, member.expiryDate, locale)}
@@ -261,8 +299,15 @@ const MemberCardRow = ({
           </div>
 
           {/* Sales / Coach tags */}
-          {(member.salesStaff?.name || member.coach?.name) && (
+          {(member.salesStaff?.name || member.coach?.name || member.noCoachWanted) && (
             <div className="flex flex-wrap gap-1.5">
+              {/*  مش عايز كابتن — يظهر لو مفيش كوتش متعيّن */}
+              {!member.coach?.name && member.noCoachWanted && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-800">
+                  <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 1 1-12.728 0M12 3v9" /></svg>
+                  {locale === 'ar' ? 'مش عايز كابتن' : 'No coach wanted'}
+                </span>
+              )}
               {member.salesStaff?.name && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">
                   <svg className="w-3 h-3" {...stroke}>
@@ -337,6 +382,7 @@ interface VirtualMemberListProps {
   t: (key: string, params?: Record<string, string>) => string
   locale: string
   direction: string
+  hideNumbers?: boolean
 }
 
 export default function VirtualMemberList({
@@ -347,6 +393,7 @@ export default function VirtualMemberList({
   t,
   locale,
   direction,
+  hideNumbers = false,
 }: VirtualMemberListProps) {
   const dynamicRowHeight = useDynamicRowHeight({ defaultRowHeight: 250 })
   const queryClient = useQueryClient()
@@ -371,6 +418,7 @@ export default function VirtualMemberList({
         t,
         locale,
         direction,
+        hideNumbers,
         dynamicRowHeight,
       } as any}
       rowCount={members.length}

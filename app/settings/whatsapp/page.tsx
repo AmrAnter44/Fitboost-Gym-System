@@ -209,6 +209,7 @@ export default function WhatsAppPage() {
               qrCode: remote.qrCode,
               hasClient: remote.hasClient,
               phoneNumber: remote.phoneNumber,
+              reconnecting: (remote as any).reconnecting,
             }
 
             // Preserve existing QR if new data has no QR and isn't ready
@@ -331,6 +332,7 @@ export default function WhatsAppPage() {
               qrCode: remote.qrCode,
               hasClient: remote.hasClient,
               phoneNumber: remote.phoneNumber,
+              reconnecting: (remote as any).reconnecting,
             },
           }
         })
@@ -458,6 +460,8 @@ export default function WhatsAppPage() {
     if (s.op === 'init') return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.initializing'), sub: 'جاري التهيئة...' }
     if (s.op === 'reconnect') return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.reconnecting'), sub: 'جاري إعادة الاتصال...' }
     if (s.op === 'reset') return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.resetting'), sub: 'جاري إعادة التعيين...' }
+    //  إعادة اتصال تلقائية (طبيعي بعد أول مسح — كود 515) → نعرض «جاري الاتصال» مش «غير متصل»
+    if (s.status?.reconnecting) return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.reconnecting'), sub: 'جاري إعادة الاتصال تلقائياً... انتظر لحظات' }
     return { bg: 'from-gray-500 to-gray-600', icon: '', label: t('settings.whatsapp.disconnected'), sub: t('settings.whatsapp.mustBeConnected') }
   })()
 

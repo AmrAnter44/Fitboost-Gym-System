@@ -490,7 +490,17 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
     })
   }, [ptList, dateFrom, dateTo, coachFilter])
 
+  //  🔗 خريطة رقم الـ PT → الكوتش الحقيقي (من سجل الـ PT) — أدق من اسم الكوتش في الإيصال
+  //  لأن إيصال ممكن يتدفع قبل ما الكوتش يتحدد نهائيًا فيتخزّن اسم ناقص/مختلف
+  const ptNumToCoach = useMemo(() => {
+    const m = new Map<number, string>()
+    ;(ptList || []).forEach((p: any) => { if (p.ptNumber != null) m.set(p.ptNumber, (p.coachName || '').trim()) })
+    return m
+  }, [ptList])
+  const normNm = (s: any) => String(s ?? '').trim().toLowerCase()
+
   //  إيصالات PT في النطاق (نفس قاعدة التقفيل الشهري) — منها نحسب الإجمالي والمرتجعات والصافي
+  //  ملاحظة: الفلترة بتاريخ **دفع الإيصال** (createdAt) — مش تاريخ بداية الـ PT
   const ptReceiptsInRange = useMemo(() => {
     const from = new Date(dateFrom); from.setHours(0, 0, 0, 0)
     const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
@@ -502,14 +512,18 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
         return d >= from && d <= to
       })
       .filter((r: any) => {
-        //  لو في فلتر كوتش، نحسب بس إيصالات الكوتش ده (اسمه مخزّن في itemDetails)
         if (!coachFilter) return true
+        //  رقم الـ PT هو الحَكَم: لو الإيصال مربوط بـ PT معروف يُنسب لكوتشه الحقيقي
+        if (r.ptNumber != null && ptNumToCoach.has(r.ptNumber)) {
+          return normNm(ptNumToCoach.get(r.ptNumber)) === normNm(coachFilter)
+        }
+        //  fallback: اسم الكوتش المكتوب في الإيصال (بعد تطبيع المسافات وحالة الأحرف)
         try {
           const details = typeof r.itemDetails === 'string' ? JSON.parse(r.itemDetails) : (r.itemDetails || {})
-          return (details.coachName || '').trim() === coachFilter
+          return normNm(details.coachName) === normNm(coachFilter)
         } catch { return false }
       })
-  }, [receipts, dateFrom, dateTo, coachFilter])
+  }, [receipts, dateFrom, dateTo, coachFilter, ptNumToCoach])
 
   const isRefunded = (r: any) => !!r.isCancelled && !!r.refundMethod
   const totalRevenue = useMemo(() => ptReceiptsInRange.reduce((s: number, r: any) => s + (r.amount || 0), 0), [ptReceiptsInRange]) // إجمالي

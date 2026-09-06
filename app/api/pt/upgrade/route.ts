@@ -66,6 +66,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'اشتراك PT غير موجود' }, { status: 404 })
     }
 
+    //  🚫 مفيش ترقية للاشتراك المنتهي — لازم يجدّد
+    if (pt.expiryDate && new Date(pt.expiryDate) < new Date()) {
+      return NextResponse.json({ error: 'الاشتراك منتهي — لا يمكن الترقية، برجاء التجديد' }, { status: 422 })
+    }
+
     const newPackage = await prisma.servicePackage.findUnique({
       where: { id: newPackageId }
     })
@@ -73,11 +78,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'الباقة الجديدة غير صالحة' }, { status: 400 })
     }
 
-    // 💰 حساب فرق السعر
+    // 💰 حساب المطلوب دفعه — نموذج «سعر بسعر» (زي ترقية الاشتراك):
+    //  المطلوب = سعر الباقة الجديدة − سعر الباقة الحالية (فرق السعر بس، مش السعر كامل).
+    //  سعر الباقة الحالية للـ PT = سعر الحصة × عدد الحصص المشتراة.
     const currentPricePerSession = pt.pricePerSession || 0
+    const originalPurchased = pt.sessionsPurchased || 0
     const remainingSessions = pt.sessionsRemaining || 0
-    const currentRemainingValue = currentPricePerSession * remainingSessions
-    const computedUpgradeFee = Math.max(0, Math.round(newPackage.price - currentRemainingValue))
+    const currentPackagePrice = Math.round(currentPricePerSession * originalPurchased)
+    const computedUpgradeFee = Math.max(0, Math.round(newPackage.price - currentPackagePrice))
     const finalUpgradeFee = typeof customPrice === 'number' && !isNaN(customPrice) && customPrice >= 0
       ? Math.round(customPrice)
       : computedUpgradeFee
@@ -88,6 +96,9 @@ export async function POST(request: Request) {
     const newExpiry = new Date(today)
     newExpiry.setDate(newExpiry.getDate() + (newPackage.durationDays || 30))
 
+    //  📊 استبدال + خصم المستهلك: الحصص تتبدل بحصص الباقة الجديدة،
+    //  والحصص اللي اتسحبت قبل كده تتخصم من الباقة الجديدة. سعر الحصة = سعر الباقة ÷ عدد حصصها.
+    const sessionsUsed = Math.max(0, originalPurchased - remainingSessions)
     const newPricePerSession = newPackage.sessions > 0
       ? Math.round((newPackage.price / newPackage.sessions) * 100) / 100
       : 0
@@ -109,10 +120,9 @@ export async function POST(request: Request) {
     let receipt: any
     let updatedPT: any
 
-    //  carry-over: الحصص المتبقية من الباقة القديمة بتنضاف للجديدة بدل ما تتلغي
-    const carriedOverSessions = remainingSessions
-    const newSessionsPurchased = newPackage.sessions + carriedOverSessions
-    const newSessionsRemaining = newPackage.sessions + carriedOverSessions
+    //  استبدال: المشترى = حصص الباقة الجديدة، والمتبقي = حصص الجديدة − المستهلك
+    const newSessionsPurchased = newPackage.sessions                        // 15
+    const newSessionsRemaining = Math.max(0, newPackage.sessions - sessionsUsed) // 15 − 2 = 13
 
     try {
       const result = await prisma.$transaction(async (tx) => {
@@ -151,7 +161,7 @@ export async function POST(request: Request) {
                 sessionsPurchased: pt.sessionsPurchased,
                 sessionsRemaining: pt.sessionsRemaining,
                 pricePerSession: currentPricePerSession,
-                remainingValue: currentRemainingValue,
+                currentPackagePrice,
                 startDate: pt.startDate,
                 expiryDate: pt.expiryDate,
               },
@@ -162,13 +172,14 @@ export async function POST(request: Request) {
                 price: newPackage.price,
                 durationDays: newPackage.durationDays,
               },
-              //  معلومات الترحيل (carry-over)
-              carriedOverSessions,
+              //  استبدال + خصم المستهلك
+              sessionsUsed,
               finalSessionsPurchased: newSessionsPurchased,
               finalSessionsRemaining: newSessionsRemaining,
               newPricePerSession,
               newStartDate: today,
               newExpiryDate: newExpiry,
+              currentPackagePrice,
               computedUpgradeFee,
               upgradeFee: finalUpgradeFee,
               customPriceUsed: typeof customPrice === 'number' && customPrice !== computedUpgradeFee,
@@ -225,7 +236,7 @@ export async function POST(request: Request) {
       pt: updatedPT,
       upgradeFee: finalUpgradeFee,
       computedUpgradeFee,
-      remainingValueFromPrevious: currentRemainingValue,
+      currentPackagePrice,
       receipt: {
         id: receipt.id,
         receiptNumber: receipt.receiptNumber,

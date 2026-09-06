@@ -34,6 +34,8 @@ interface AssignedMember {
   startDate: string | null
   expiryDate: string | null
   freePTSessions: number
+  inBodyScans: number
+  freeAssessmentSessions: number
   subscriptionPrice: number
   remainingAmount: number | null
   //  حقول جديدة
@@ -57,6 +59,15 @@ export default function CoachMyMembers() {
     message: string
     notes: string //  نوت التمرين بتاع الكوتش
   }>({ show: false, member: null, step: 'confirm', message: '', notes: '' })
+  //  مودال خصم خدمة (InBody / Assessment) لكلاينت الكوتش
+  const [servicePopup, setServicePopup] = useState<{
+    show: boolean
+    member: AssignedMember | null
+    service: 'inBody' | 'assessment' | 'paidPT'
+    step: 'confirm' | 'loading' | 'success' | 'error'
+    message: string
+    notes: string
+  }>({ show: false, member: null, service: 'inBody', step: 'confirm', message: '', notes: '' })
   //  مودال تسجيل عدم حضور العميل (بدون خصم حصة)
   const [noShowPopup, setNoShowPopup] = useState<{
     show: boolean
@@ -162,6 +173,48 @@ export default function CoachMyMembers() {
         step: 'error',
         message: locale === 'ar' ? 'حدث خطأ في الاتصال' : 'Connection error'
       }))
+    }
+  }
+
+  //  خصم خدمة (InBody / Assessment)
+  const openServicePopup = (member: AssignedMember, service: 'inBody' | 'assessment' | 'paidPT') => {
+    setServicePopup({ show: true, member, service, step: 'confirm', message: '', notes: '' })
+  }
+  const closeServicePopup = () => {
+    setServicePopup({ show: false, member: null, service: 'inBody', step: 'confirm', message: '', notes: '' })
+  }
+  const confirmServiceDeduct = async () => {
+    if (!servicePopup.member) return
+    setServicePopup(prev => ({ ...prev, step: 'loading', message: '' }))
+    try {
+      const isPaidPT = servicePopup.service === 'paidPT'
+      const res = await fetch(isPaidPT ? '/api/coach/deduct-pt-paid' : '/api/coach/deduct-service', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          isPaidPT
+            ? {
+                memberId: servicePopup.member.id,
+                ptNumber: servicePopup.member.activePT?.ptNumber,
+                notes: servicePopup.notes.trim() || undefined,
+              }
+            : {
+                memberId: servicePopup.member.id,
+                serviceType: servicePopup.service,
+                notes: servicePopup.notes.trim() || undefined,
+              }
+        ),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setServicePopup(prev => ({ ...prev, step: 'error', message: data.error || (locale === 'ar' ? 'فشل الخصم' : 'Failed') }))
+        return
+      }
+      fetchMembers()
+      setServicePopup(prev => ({ ...prev, step: 'success', message: data.message || (locale === 'ar' ? 'تم الخصم' : 'Done') }))
+      setTimeout(() => closeServicePopup(), 1600)
+    } catch {
+      setServicePopup(prev => ({ ...prev, step: 'error', message: locale === 'ar' ? 'حدث خطأ في الاتصال' : 'Connection error' }))
     }
   }
 
@@ -450,6 +503,76 @@ export default function CoachMyMembers() {
                         </button>
                       )}
                     </div>
+
+                    {/*  خصم InBody + التقييم لكلاينت الكوتش */}
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {/* InBody */}
+                      <div className="bg-cyan-50 dark:bg-cyan-900/20 rounded-lg px-3 py-2.5">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-cyan-700 dark:text-cyan-300">InBody</span>
+                          <span className={`text-base font-black ${member.inBodyScans > 0 ? 'text-cyan-700 dark:text-cyan-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                            {member.inBodyScans ?? 0}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => openServicePopup(member, 'inBody')}
+                          disabled={(member.inBodyScans ?? 0) <= 0 || !isActive}
+                          className={`w-full py-1.5 rounded-lg text-xs font-bold transition-colors duration-200 ${
+                            (member.inBodyScans ?? 0) > 0 && isActive
+                              ? 'bg-cyan-500 hover:bg-cyan-600 text-white'
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          {locale === 'ar' ? 'خصم InBody' : 'Deduct InBody'}
+                        </button>
+                      </div>
+                      {/* Assessment */}
+                      <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg px-3 py-2.5">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-teal-700 dark:text-teal-300">{locale === 'ar' ? 'تقييم' : 'Assessment'}</span>
+                          <span className={`text-base font-black ${member.freeAssessmentSessions > 0 ? 'text-teal-700 dark:text-teal-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                            {member.freeAssessmentSessions ?? 0}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => openServicePopup(member, 'assessment')}
+                          disabled={(member.freeAssessmentSessions ?? 0) <= 0 || !isActive}
+                          className={`w-full py-1.5 rounded-lg text-xs font-bold transition-colors duration-200 ${
+                            (member.freeAssessmentSessions ?? 0) > 0 && isActive
+                              ? 'bg-teal-500 hover:bg-teal-600 text-white'
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          {locale === 'ar' ? 'خصم تقييم' : 'Deduct Assessment'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/*  خصم من الـ PT المدفوع — يظهر لو عنده باقة PT مدفوعة فيها رصيد */}
+                    {member.activePT && (member.activePT.sessionsRemaining ?? 0) > 0 && (
+                      <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg px-4 py-3 mt-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                            {locale === 'ar' ? `PT مدفوع #${member.activePT.ptNumber}` : `Paid PT #${member.activePT.ptNumber}`}
+                          </span>
+                          <span className="text-lg font-black text-emerald-700 dark:text-emerald-400">
+                            {member.activePT.sessionsRemaining} / {member.activePT.sessionsPurchased}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => openServicePopup(member, 'paidPT')}
+                          disabled={!isActive}
+                          className={`w-full py-2 rounded-lg text-sm font-bold transition-colors duration-200 inline-flex items-center justify-center gap-1.5 ${
+                            isActive
+                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                          {locale === 'ar' ? 'حضر (حصة مدفوعة)' : 'Attended (paid)'}
+                        </button>
+                      </div>
+                    )}
 
                     {/*  بعد ما خلصت حصصه المجانية — إما اشترك في PT أو لازم نسجل سبب عدم الاشتراك */}
                     {member.freePTSessions === 0 && (
@@ -905,6 +1028,77 @@ export default function CoachMyMembers() {
           </div>
         )
       })()}
+
+      {/*  مودال خصم InBody / التقييم */}
+      {servicePopup.show && servicePopup.member && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700">
+            {servicePopup.step === 'success' ? (
+              <div className="text-center py-4">
+                <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+                  <svg {...stroke} className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                </div>
+                <p className="font-bold text-gray-900 dark:text-gray-100">{servicePopup.message}</p>
+              </div>
+            ) : (
+              <>
+                <div className="text-center mb-4">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 flex items-center justify-center">
+                    <svg {...stroke} className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5 9 8.25l3 3 3.75-3.75M3.75 13.5V21h16.5V8.25" /></svg>
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                    {servicePopup.service === 'inBody'
+                      ? (locale === 'ar' ? 'خصم حصة InBody' : 'Deduct InBody')
+                      : servicePopup.service === 'assessment'
+                      ? (locale === 'ar' ? 'خصم حصة تقييم' : 'Deduct Assessment')
+                      : (locale === 'ar' ? 'خصم حصة PT مدفوعة' : 'Deduct paid PT session')}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{servicePopup.member.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {locale === 'ar' ? 'المتبقي حالياً:' : 'Currently remaining:'}{' '}
+                    {servicePopup.service === 'inBody'
+                      ? servicePopup.member.inBodyScans
+                      : servicePopup.service === 'assessment'
+                      ? servicePopup.member.freeAssessmentSessions
+                      : (servicePopup.member.activePT?.sessionsRemaining ?? 0)}
+                  </p>
+                </div>
+
+                <textarea
+                  value={servicePopup.notes}
+                  onChange={(e) => setServicePopup(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder={locale === 'ar' ? 'ملاحظات (اختياري)' : 'Notes (optional)'}
+                  rows={2}
+                  className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
+                />
+
+                {servicePopup.step === 'error' && (
+                  <p className="text-sm text-red-600 dark:text-red-400 mb-3 text-center font-bold">{servicePopup.message}</p>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={confirmServiceDeduct}
+                    disabled={servicePopup.step === 'loading'}
+                    className="flex-1 py-2.5 rounded-lg font-bold text-white bg-cyan-600 hover:bg-cyan-700 transition-colors disabled:opacity-60"
+                  >
+                    {servicePopup.step === 'loading'
+                      ? (locale === 'ar' ? 'جاري...' : 'Saving...')
+                      : (locale === 'ar' ? 'تأكيد الخصم' : 'Confirm')}
+                  </button>
+                  <button
+                    onClick={closeServicePopup}
+                    disabled={servicePopup.step === 'loading'}
+                    className="px-5 py-2.5 rounded-lg font-bold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-60"
+                  >
+                    {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/*  مودال تسجيل عدم الحضور (بدون خصم حصة) */}
       {noShowPopup.show && noShowPopup.member && (

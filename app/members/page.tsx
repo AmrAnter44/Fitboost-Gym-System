@@ -5,7 +5,7 @@ import { Suspense, useEffect, useState, useMemo, useCallback, useRef } from 'rea
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import nextDynamic from 'next/dynamic'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
 import { useAdminDate } from '../../contexts/AdminDateContext'
@@ -62,6 +62,10 @@ interface Member {
   startDate?: string
   expiryDate?: string
   createdAt: string
+  coachId?: string | null
+  noCoachWanted?: boolean
+  salesStaff?: { id: string; name: string } | null
+  coach?: { id: string; name: string } | null
 }
 
 // Fuzzy search helper
@@ -108,11 +112,58 @@ function isMemberActiveNow(member: Member): boolean {
 function MembersPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { hasPermission, loading: permissionsLoading, user } = usePermissions()
+  const { hasPermission, loading: permissionsLoading, user, permissions } = usePermissions()
+  //  قيد إخفاء الأرقام: نتشيّك على القيمة الخام (مش hasPermission اللي بيتخطّى للأونر/الأدمن)
+  //  عشان الأدمن/الأونر يشوفوا الأرقام عادي، والموظف اللي عليه القيد بس هو اللي تتخفي عنه.
+  const hideMemberNumbers = permissions?.hideMemberNumbers === true
+  //  تشفير الرقم: أول 3 وآخر 2 والباقي نقط
+  const maskPhoneNum = (p?: string | null) => {
+    const s = (p || '').replace(/\s/g, '')
+    if (!s) return ''
+    if (s.length <= 5) return '•'.repeat(s.length)
+    return s.slice(0, 3) + '•'.repeat(Math.max(4, s.length - 5)) + s.slice(-2)
+  }
   const { customCreatedAt } = useAdminDate()
   const { t, locale, direction } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
+  const queryClient = useQueryClient()
+
+  //  🚻 الأعضاء بدون جنس (للجيم المكس) — بانر + بوب أب تصنيف سريع
+  const [noGenderCount, setNoGenderCount] = useState(0)
+  const [noGenderList, setNoGenderList] = useState<any[]>([])
+  const [showGenderModal, setShowGenderModal] = useState(false)
+  const [genderBusyId, setGenderBusyId] = useState<string | null>(null)
+  const loadNoGender = useCallback(async () => {
+    if (!settings.mixedGymEnabled) return
+    try {
+      const r = await fetch('/api/members/no-gender')
+      if (!r.ok) return
+      const d = await r.json()
+      setNoGenderCount(d.count || 0)
+      setNoGenderList(Array.isArray(d.members) ? d.members : [])
+    } catch { /* silent */ }
+  }, [settings.mixedGymEnabled])
+  useEffect(() => { loadNoGender() }, [loadNoGender])
+  const assignGender = useCallback(async (id: string, gender: string) => {
+    setGenderBusyId(id)
+    try {
+      const r = await fetch('/api/members', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, gender }),
+      })
+      if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'فشل الحفظ'); return }
+      //  نشيل العضو من القائمة وننقص العدّاد
+      setNoGenderList(prev => {
+        const next = prev.filter(m => m.id !== id)
+        if (next.length === 0 && noGenderCount > prev.length) loadNoGender() // هات الدفعة اللي بعدها
+        return next
+      })
+      setNoGenderCount(c => Math.max(0, c - 1))
+      //  🔄 نحدّث كاش تقرير الرجالة/السيدات عشان العضو يتحسب فيه فورًا
+      queryClient.invalidateQueries({ queryKey: ['revenue-by-gender'] })
+    } finally { setGenderBusyId(null) }
+  }, [toast, noGenderCount, loadNoGender, queryClient])
 
   // Pagination + Streaming — بنحمّل الأعضاء على دفعات بدل ما نستنى كلهم مع بعض
   // - أول دفعة (200 عضو) بتظهر فوراً → الـ skeleton يختفي بعد ثانية تقريباً
@@ -171,6 +222,14 @@ function MembersPageContent() {
       // نظّف الـ URL بعد ما نقرأ القيم — عشان لو رفرش الصفحة ميـ re-open الفورم
       router.replace('/members', { scroll: false })
     }
+
+    //  🔁 فلتر جاي من بار تذكيرات السيلز: ?status=expired|expiring-today|expiring-tomorrow|expiring-soon
+    const statusParam = searchParams.get('status')
+    const allowed = ['expired', 'expiring-today', 'expiring-tomorrow', 'expiring-soon', 'active', 'has-remaining', 'no-coach']
+    if (statusParam && allowed.includes(statusParam)) {
+      setFilterStatus(statusParam as any)
+      router.replace('/members', { scroll: false })
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -194,7 +253,7 @@ function MembersPageContent() {
   const debouncedSearch = useDebounce(search, 300)
   const debouncedSearchId = useDebounce(searchId, 300)
 
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'has-remaining' | 'other' | 'analytics' | 'banned' | 'no-coach'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'expiring-today' | 'expiring-tomorrow' | 'has-remaining' | 'other' | 'analytics' | 'banned' | 'no-coach'>('all')
   const [filterPackage, setFilterPackage] = useState<'all' | 'month' | '3-months' | '6-months' | 'year'>('all')
   const [filterSalesId, setFilterSalesId] = useState<string>('all') // فلتر السيلز ('all' / '__none__' / staff.id)
   const [filterCoachId, setFilterCoachId] = useState<string>('all') // ‍ فلتر الكوتش ('all' / '__none__' / staff.id)
@@ -318,6 +377,12 @@ function MembersPageContent() {
           return !isActiveNow && !notStartedYet
         } else if (filterStatus === 'expiring-soon') {
           return isExpiringSoon && isActiveNow
+        } else if (filterStatus === 'expiring-today' || filterStatus === 'expiring-tomorrow') {
+          //  🔁 بيخلص النهاردة / بكره بالظبط (مقارنة بتاريخ الانتهاء)
+          if (!member.expiryDate) return false
+          const t0 = new Date(); t0.setHours(0, 0, 0, 0)
+          if (filterStatus === 'expiring-tomorrow') t0.setDate(t0.getDate() + 1)
+          return formatDateYMD(new Date(member.expiryDate)) === formatDateYMD(t0) && !member.isBanned && !(member as any).isFrozen
         } else if (filterStatus === 'active') {
           return isActiveNow
         } else if (filterStatus === 'has-remaining') {
@@ -625,6 +690,12 @@ function MembersPageContent() {
       return !isActiveNow && !notStartedYet
     }
     if (filterStatus === 'expiring-soon') return isExpiringSoon && isActiveNow
+    if (filterStatus === 'expiring-today' || filterStatus === 'expiring-tomorrow') {
+      if (!member.expiryDate) return false
+      const t0 = new Date(); t0.setHours(0, 0, 0, 0)
+      if (filterStatus === 'expiring-tomorrow') t0.setDate(t0.getDate() + 1)
+      return formatDateYMD(new Date(member.expiryDate)) === formatDateYMD(t0) && !member.isBanned && !(member as any).isFrozen
+    }
     if (filterStatus === 'active') return isActiveNow
     if (filterStatus === 'has-remaining') return member.remainingAmount > 0
     if (filterStatus === 'other') return member.memberNumber === null
@@ -953,6 +1024,22 @@ function MembersPageContent() {
           </div>
         </div>
       </div>
+
+      {/* 🚻 بانر الأعضاء بدون جنس (للجيم المكس) */}
+      {settings.mixedGymEnabled && noGenderCount > 0 && (
+        <button
+          onClick={() => setShowGenderModal(true)}
+          className="w-full mb-4 flex items-center justify-between gap-3 bg-amber-50 dark:bg-amber-900/25 ring-1 ring-amber-200 dark:ring-amber-800 rounded-xl px-4 py-3 text-start hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+        >
+          <span className="flex items-center gap-2 text-sm font-bold text-amber-800 dark:text-amber-200">
+            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+            {locale === 'ar' ? `فيه ${noGenderCount} عضو لسه جنسهم مش متحدد` : `${noGenderCount} members without gender set`}
+          </span>
+          <span className="text-xs font-bold text-amber-700 dark:text-amber-300 whitespace-nowrap">
+            {locale === 'ar' ? 'اضغط للتحديد ←' : 'Click to set →'}
+          </span>
+        </button>
+      )}
 
       {/* ============ Desktop header (≥ md) ============ */}
       <div className="hidden md:flex flex-col gap-3 mb-5 sm:mb-6 sm:flex-row sm:justify-between sm:items-center">
@@ -2069,15 +2156,21 @@ function MembersPageContent() {
                             <span className="text-gray-500 text-xs">{locale === 'ar' ? 'بدون عضوية' : 'Non-Member'}</span>
                           )}
                           <span className="text-gray-400 dark:text-gray-500">|</span>
-                          <a
-                            href={`https://wa.me/+20${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-green-600 hover:text-green-700 text-sm font-medium"
-                          >
-                            {member.phone}
-                          </a>
+                          {hideMemberNumbers ? (
+                            <span className="text-gray-500 dark:text-gray-400 text-sm font-medium font-mono select-none tracking-widest" dir="ltr">
+                              {maskPhoneNum(member.phone)}
+                            </span>
+                          ) : (
+                            <a
+                              href={`https://wa.me/+20${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-green-600 hover:text-green-700 text-sm font-medium"
+                            >
+                              {member.phone}
+                            </a>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -2128,8 +2221,13 @@ function MembersPageContent() {
                       </div>
 
                       {/* سيلز / ‍ كوتش tags — تظهر فقط لو في تخصيص */}
-                      {(member.salesStaff?.name || member.coach?.name) && (
+                      {(member.salesStaff?.name || member.coach?.name || member.noCoachWanted) && (
                         <div className="flex flex-wrap gap-1.5">
+                          {!member.coach?.name && member.noCoachWanted && (
+                            <span className="inline-flex items-center gap-1 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 rounded-full px-2 py-0.5 text-[11px] font-bold">
+                              {locale === 'ar' ? 'مش عايز كابتن' : 'No coach wanted'}
+                            </span>
+                          )}
                           {member.salesStaff?.name && (
                             <span className="inline-flex items-center gap-1 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-700 rounded-full px-2 py-0.5 text-[11px] font-medium">
                                {member.salesStaff.name}
@@ -2171,6 +2269,7 @@ function MembersPageContent() {
               t={t}
               locale={locale}
               direction={direction}
+              hideNumbers={hideMemberNumbers}
             />
           </div>
         </>
@@ -2672,6 +2771,65 @@ function MembersPageContent() {
         onCancel={() => setConfirmState(s => ({ ...s, open: false }))}
         onConfirm={() => { confirmState.onConfirm(); setConfirmState(s => ({ ...s, open: false })) }}
       />
+
+      {/* 🚻 بوب أب تصنيف جنس الأعضاء */}
+      {showGenderModal && (
+        <div
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          dir={direction}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowGenderModal(false) }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                {locale === 'ar' ? `تحديد الجنس (${noGenderCount})` : `Set Gender (${noGenderCount})`}
+              </h3>
+              <button onClick={() => setShowGenderModal(false)} className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 flex items-center justify-center">
+                <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-3 overflow-y-auto space-y-2">
+              {noGenderList.length === 0 ? (
+                <div className="py-12 text-center text-gray-500 dark:text-gray-400">
+                  {locale === 'ar' ? 'خلصت! كل الأعضاء اتحدد جنسهم 🎉' : 'Done! All members have gender set 🎉'}
+                </div>
+              ) : (
+                noGenderList.map((m) => (
+                  <div key={m.id} className="flex items-center gap-3 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5">
+                    <div className="w-11 h-11 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                      {m.profileImage ? (
+                        <img src={m.profileImage} alt={m.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{m.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">#{m.memberNumber || '—'} · {m.phone}</p>
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
+                      {[
+                        { value: 'male', label: locale === 'ar' ? 'رجالي' : 'M', cls: 'bg-blue-500 hover:bg-blue-600' },
+                        { value: 'female', label: locale === 'ar' ? 'سيدات' : 'F', cls: 'bg-pink-500 hover:bg-pink-600' },
+                        { value: 'unknown', label: locale === 'ar' ? '؟' : '?', cls: 'bg-gray-400 hover:bg-gray-500' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => assignGender(m.id, opt.value)}
+                          disabled={genderBusyId === m.id}
+                          className={`px-2.5 py-2 rounded-lg text-white text-xs font-bold whitespace-nowrap disabled:opacity-50 transition-colors ${opt.cls}`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

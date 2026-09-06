@@ -30,6 +30,9 @@ interface PTData {
   remainingAmount: number | null
   sessions: PTSessionData[]
   profileImage?: string | null //  صورة العميل من جدول Member
+  memberId?: string | null      //  id العضو (لو الكلاينت عضو في الجيم) — للخصم من مميزاته
+  inBodyScans?: number          //  رصيد InBody من عضوية الكلاينت
+  freeAssessmentSessions?: number //  رصيد التقييم من عضوية الكلاينت
 }
 
 interface PTSessionData {
@@ -127,6 +130,40 @@ export default function CoachDashboard() {
   const [useSeparateCoachTarget, setUseSeparateCoachTarget] = useState<boolean | null>(null)
   //  تكبير صورة العميل عند الضغط عليها
   const [enlargedImage, setEnlargedImage] = useState<{ url: string; name: string } | null>(null)
+  //  مودال خصم InBody / التقييم لكلاينت الـ PT من عضويته
+  const [ptServicePopup, setPtServicePopup] = useState<{
+    show: boolean
+    pt: PTData | null
+    service: 'inBody' | 'assessment'
+    step: 'confirm' | 'loading'
+  }>({ show: false, pt: null, service: 'inBody', step: 'confirm' })
+
+  const confirmPtServiceDeduct = async () => {
+    if (!ptServicePopup.pt?.memberId) return
+    setPtServicePopup(prev => ({ ...prev, step: 'loading' }))
+    try {
+      const res = await fetch('/api/coach/deduct-service', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: ptServicePopup.pt.memberId, serviceType: ptServicePopup.service }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setSessionMessage({ type: 'error', text: data.error || 'فشل الخصم' })
+      } else {
+        setSessionMessage({ type: 'success', text: data.message || 'تم الخصم' })
+        //  حدّث الرصيد محليًا
+        setMyPTs(prev => prev.map(p => p.ptNumber === ptServicePopup.pt!.ptNumber
+          ? { ...p, inBodyScans: data.inBodyScans ?? p.inBodyScans, freeAssessmentSessions: data.freeAssessmentSessions ?? p.freeAssessmentSessions }
+          : p))
+      }
+    } catch {
+      setSessionMessage({ type: 'error', text: 'حدث خطأ في الاتصال' })
+    } finally {
+      setPtServicePopup({ show: false, pt: null, service: 'inBody', step: 'confirm' })
+      setTimeout(() => setSessionMessage(null), 3000)
+    }
+  }
   //  Esc يقفل مودال الصورة
   useEffect(() => {
     if (!enlargedImage) return
@@ -1047,6 +1084,9 @@ export default function CoachDashboard() {
                          بحيث الـ progress bar اللي بعده ما يتداخلش مع الصورة */}
                     <div className="flex items-start justify-between mb-3 min-h-24">
                       <div className={`flex-1 min-w-0 ${locale === 'ar' ? 'ps-24' : 'ps-12'}`}>
+                        <span className="inline-flex items-center px-2 py-0.5 mb-1 rounded-full text-[10px] font-bold bg-primary-600 text-primary-contrast shadow-sm">
+                          {locale === 'ar' ? 'حصص مخصصة' : 'PT'}
+                        </span>
                         <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 truncate">{pt.clientName}</h3>
                         <p className="text-gray-600 dark:text-gray-400 text-sm">{t('coachDashboard.ptNumber')}: #{pt.ptNumber}</p>
                         {pt.phone && (
@@ -1152,6 +1192,34 @@ export default function CoachDashboard() {
                       )}
                     </div>
 
+                    {/*  خصم InBody / التقييم من عضوية الكلاينت (لو هو عضو وعنده رصيد) */}
+                    {pt.memberId && (((pt.inBodyScans ?? 0) > 0) || ((pt.freeAssessmentSessions ?? 0) > 0)) && (
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <button
+                          onClick={() => setPtServicePopup({ show: true, pt, service: 'inBody', step: 'confirm' })}
+                          disabled={(pt.inBodyScans ?? 0) <= 0}
+                          className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-bold text-xs transition-colors duration-200 ${
+                            (pt.inBodyScans ?? 0) > 0
+                              ? 'bg-cyan-500 hover:bg-cyan-600 text-white'
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          InBody ({pt.inBodyScans ?? 0})
+                        </button>
+                        <button
+                          onClick={() => setPtServicePopup({ show: true, pt, service: 'assessment', step: 'confirm' })}
+                          disabled={(pt.freeAssessmentSessions ?? 0) <= 0}
+                          className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-bold text-xs transition-colors duration-200 ${
+                            (pt.freeAssessmentSessions ?? 0) > 0
+                              ? 'bg-teal-500 hover:bg-teal-600 text-white'
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          {locale === 'ar' ? 'تقييم' : 'Assessment'} ({pt.freeAssessmentSessions ?? 0})
+                        </button>
+                      </div>
+                    )}
+
                     {/* Sessions History */}
                     {pt.sessions && pt.sessions.length > 0 && (
                       <div className="border-t dark:border-gray-600 pt-3 mt-3">
@@ -1186,10 +1254,6 @@ export default function CoachDashboard() {
                       </div>
                     )}
 
-                    {/* Service-type badge */}
-                    <span className="absolute top-2 start-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-600 text-primary-contrast shadow-sm">
-                      {locale === 'ar' ? 'حصص مخصصة' : 'PT'}
-                    </span>
                   </div>
                 )
               })}
@@ -1327,6 +1391,43 @@ export default function CoachDashboard() {
           )}
         </div>
       </div>
+
+      {/*  مودال تأكيد خصم InBody / التقييم لكلاينت الـ PT */}
+      {ptServicePopup.show && ptServicePopup.pt && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700 text-center">
+            <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 flex items-center justify-center">
+              <svg {...stroke} className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5 9 8.25l3 3 3.75-3.75M3.75 13.5V21h16.5V8.25" /></svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
+              {ptServicePopup.service === 'inBody'
+                ? (locale === 'ar' ? 'خصم حصة InBody' : 'Deduct InBody')
+                : (locale === 'ar' ? 'خصم حصة تقييم' : 'Deduct Assessment')}
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{ptServicePopup.pt.clientName}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+              {locale === 'ar' ? 'المتبقي حالياً:' : 'Currently remaining:'}{' '}
+              {ptServicePopup.service === 'inBody' ? (ptServicePopup.pt.inBodyScans ?? 0) : (ptServicePopup.pt.freeAssessmentSessions ?? 0)}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={confirmPtServiceDeduct}
+                disabled={ptServicePopup.step === 'loading'}
+                className="flex-1 py-2.5 rounded-lg font-bold text-white bg-cyan-600 hover:bg-cyan-700 transition-colors disabled:opacity-60"
+              >
+                {ptServicePopup.step === 'loading' ? (locale === 'ar' ? 'جاري...' : 'Saving...') : (locale === 'ar' ? 'تأكيد الخصم' : 'Confirm')}
+              </button>
+              <button
+                onClick={() => setPtServicePopup({ show: false, pt: null, service: 'inBody', step: 'confirm' })}
+                disabled={ptServicePopup.step === 'loading'}
+                className="px-5 py-2.5 rounded-lg font-bold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-60"
+              >
+                {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SignaturePad Modal */}
       {showSignatureModal && (selectedPTForSession || selectedMoreForSession) && (

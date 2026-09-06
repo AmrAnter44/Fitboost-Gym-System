@@ -191,6 +191,7 @@ export default function VisitorsPage() {
     notes: '',
     source: 'walk-in',
     interestedIn: '',
+    gender: '', // 🚻 male/female/'' = غير معروف — لتوزيع السيلز بالجندر
     salesStaffId: '',
     referrerMemberNumber: '', // 👥 رقم العضو اللي جاب الزائر (اختياري)
   })
@@ -313,7 +314,7 @@ export default function VisitorsPage() {
 
       if (response.ok) {
         const leastLoadedId = salesStaff.length > 0 ? salesStaff[0].id : ''
-        setFormData({ name: '', phone: '', notes: '', source: 'walk-in', interestedIn: '', salesStaffId: leastLoadedId, referrerMemberNumber: '' })
+        setFormData({ name: '', phone: '', notes: '', source: 'walk-in', interestedIn: '', gender: '', salesStaffId: leastLoadedId, referrerMemberNumber: '' })
         toast.success(t('visitors.messages.addSuccess'))
 
         // تحديث جميع الصفحات المرتبطة بالزوار والمتابعات
@@ -675,9 +676,10 @@ export default function VisitorsPage() {
                     <option value="instagram">{t('visitors.sources.instagram')}</option>
                     <option value="tiktok">{t('visitors.sources.tiktok')}</option>
                     <option value="chatgpt">{t('visitors.sources.chatgpt')}</option>
+                    <option value="google_maps">{direction === 'rtl' ? 'جوجل ماب / Google Maps' : 'Google Maps'}</option>
                     <option value="website">{t('visitors.sources.website')}</option>
                     <option value="friend_referral">{t('visitors.sources.friendReferral')}</option>
-                    {formData.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','chatgpt','website','friend_referral'].includes(formData.source) && (
+                    {formData.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','chatgpt','google_maps','website','friend_referral'].includes(formData.source) && (
                       <option value={formData.source}>{formData.source === 'friend' ? t('visitors.sources.friend') : formData.source === 'other' ? t('visitors.sources.other') : formData.source}</option>
                     )}
                   </select>
@@ -715,6 +717,20 @@ export default function VisitorsPage() {
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   placeholder={t('visitors.form.interestedInPlaceholder')}
                 />
+              </div>
+
+              {/* 🚻 الجندر — لتوزيع السيلز بالجندر */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{direction === 'rtl' ? 'الجندر' : 'Gender'}</label>
+                <select
+                  value={formData.gender}
+                  onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                >
+                  <option value="">{direction === 'rtl' ? 'غير معروف' : 'Unknown'}</option>
+                  <option value="male">{direction === 'rtl' ? 'رجالة' : 'Male'}</option>
+                  <option value="female">{direction === 'rtl' ? 'ستات' : 'Female'}</option>
+                </select>
               </div>
 
               {salesStaff.length > 0 && (

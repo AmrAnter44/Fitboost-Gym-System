@@ -101,6 +101,11 @@ export default function Navbar() {
   const toast = useToast()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
+  //  📱 واتساب ويب يظهر في نسخة الإلكترون فقط — مش على الموقع (الويب)
+  const [isElectronApp, setIsElectronApp] = useState(false)
+  useEffect(() => {
+    setIsElectronApp(!!(window as any).electron?.isElectron || navigator.userAgent.toLowerCase().includes('electron'))
+  }, [])
   const [drawerClosing, setDrawerClosing] = useState(false)
 
   //  صورة البروفايل (self-service)
@@ -209,7 +214,7 @@ export default function Navbar() {
       { href: '/visitors', label: t('nav.visitors'), icon: Icon.walker, permission: 'canViewVisitors' as keyof Permissions, roleRequired: null },
       { href: '/followups', label: t('nav.followups'), icon: Icon.pencil, permission: 'canViewFollowUps' as keyof Permissions, roleRequired: null },
       { href: '/spa-bookings', label: t('nav.spaBookings'), icon: Icon.spa, permission: 'canViewSpaBookings' as keyof Permissions, roleRequired: null, enabled: settings.spaEnabled },
-      { href: '/whatsapp-web', label: 'WhatsApp Web', icon: Icon.whatsapp, permission: 'canViewWhatsAppInbox' as keyof Permissions, roleRequired: null },
+      { href: '/whatsapp-web', label: 'WhatsApp Web', icon: Icon.whatsapp, permission: 'canViewWhatsAppInbox' as keyof Permissions, roleRequired: null, enabled: isElectronApp },
       { href: '/closing', label: t('nav.closing'), icon: Icon.cash, permission: 'canAccessClosing' as keyof Permissions, roleRequired: null },
       { href: '/settings', label: t('nav.settings'), icon: Icon.cog, permission: 'canAccessSettings' as keyof Permissions, roleRequired: null },
     ]
@@ -230,7 +235,7 @@ export default function Navbar() {
       if (link.roleRequired && user?.role !== link.roleRequired) return false
       return true
     })
-  }, [t, locale, settings.nutritionEnabled, settings.physiotherapyEnabled, settings.groupClassEnabled, settings.spaEnabled, hasPermission, user?.role])
+  }, [t, locale, settings.nutritionEnabled, settings.physiotherapyEnabled, settings.groupClassEnabled, settings.spaEnabled, hasPermission, user?.role, isElectronApp])
 
   const handleLogout = async () => {
     try {

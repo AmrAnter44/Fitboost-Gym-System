@@ -29,21 +29,8 @@ export async function GET(request: Request) {
     // فلترة البيانات حسب الدور
     let whereClause: any = {}
 
-    //  لو الـ user عنده canViewAllPT (الفتنس مانجر)، يبص على كل PT حتى لو كوتش
-    //  cast to any عشان الـ Prisma client مش متعمل regenerate لسه (dev server شغّال)
-    //  ⚠️ متغطّى بـ try/catch: عمود canViewAllPT ممكن يكون لسه مش موجود في DB الإنتاج
-    //  بعد رفع ابديت جديد قبل ما الـ schema يتحدّث — في الحالة دي نتعامل معاه كـ false
-    //  بدل ما الـ endpoint كله يرجّع 500 ومايظهرش أي اشتراك.
-    let canViewAll = false
-    try {
-      const permission = await (prisma.permission as any).findUnique({
-        where: { userId: user.userId },
-        select: { canViewAllPT: true }
-      })
-      canViewAll = !!permission?.canViewAllPT
-    } catch (e) {
-      canViewAll = false
-    }
+    //  «رؤية كل الـ PT» بقت للمشرف (MANAGER) والإدارة بالدور — مش صلاحية منفصلة.
+    const canViewAll = user.role === 'OWNER' || user.role === 'ADMIN' || user.role === 'MANAGER'
 
     if (user.role === 'COACH' && !canViewAll) {
       // الكوتش يرى عملائه فقط (إلا لو عنده canViewAllPT)
@@ -109,7 +96,7 @@ export async function GET(request: Request) {
       const membersByPhone = phones.length > 0
         ? await prisma.member.findMany({
             where: { phone: { in: phones } },
-            select: { id: true, phone: true, profileImage: true, memberNumber: true }
+            select: { id: true, phone: true, profileImage: true, memberNumber: true, inBodyScans: true, freeAssessmentSessions: true }
           })
         : []
       for (const m of membersByPhone) phoneToMember.set(m.phone, m)
@@ -123,7 +110,10 @@ export async function GET(request: Request) {
         ...s,
         profileImage: mem?.profileImage || null,
         memberNumber: mem?.memberNumber ?? null,
-        memberId: mem?.id ?? null
+        memberId: mem?.id ?? null,
+        //  رصيد الـ InBody/التقييم من عضوية الكلاينت (للكوتش يخصم منها من لوحته)
+        inBodyScans: mem?.inBodyScans ?? 0,
+        freeAssessmentSessions: mem?.freeAssessmentSessions ?? 0
       }
     })
 

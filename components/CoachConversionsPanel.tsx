@@ -57,6 +57,9 @@ interface CoachGroup {
     id: string
     name: string
     staffCode: string
+    dailyTargetMin?: number | null
+    dailyTargetMax?: number | null
+    todaySessions?: number
   }
   stats: {
     total: number
@@ -80,6 +83,10 @@ export default function CoachConversionsPanel() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'subscribed' | 'didnt_subscribe' | 'pending_decision' | 'still_has_free'>('all')
   const [search, setSearch] = useState('')
   const [selectedMember, setSelectedMember] = useState<MemberRow | null>(null)
+  //  محرّر تارجت الكوتش اليومي
+  const [targetEditor, setTargetEditor] = useState<{ coachId: string; coachName: string; min: string; max: string; saving: boolean } | null>(null)
+  //  فتح/قفل خانة تارجت اليوم
+  const [targetsOpen, setTargetsOpen] = useState(false)
   //  فلتر الفترة الزمنية للمبلغ — الافتراضي: الشهر الحالي
   const [dateFrom, setDateFrom] = useState(() => {
     const n = new Date(); return toLocalISO(new Date(n.getFullYear(), n.getMonth(), 1))
@@ -111,6 +118,29 @@ export default function CoachConversionsPanel() {
     } catch (e: any) {
       setError(e?.message || (locale === 'ar' ? 'خطأ في الاتصال' : 'Connection error'))
       setLoading(false)
+    }
+  }
+
+  const saveTarget = async () => {
+    if (!targetEditor) return
+    setTargetEditor(prev => prev ? { ...prev, saving: true } : prev)
+    try {
+      const res = await fetch('/api/manager/coach-daily-target', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coachId: targetEditor.coachId, min: targetEditor.min, max: targetEditor.max }),
+      })
+      if (res.ok) {
+        const d = await res.json()
+        setData(prev => prev.map(g => g.coach.id === targetEditor.coachId
+          ? { ...g, coach: { ...g.coach, dailyTargetMin: d.dailyTargetMin, dailyTargetMax: d.dailyTargetMax } }
+          : g))
+        setTargetEditor(null)
+      } else {
+        setTargetEditor(prev => prev ? { ...prev, saving: false } : prev)
+      }
+    } catch {
+      setTargetEditor(prev => prev ? { ...prev, saving: false } : prev)
     }
   }
 
@@ -244,6 +274,96 @@ export default function CoachConversionsPanel() {
           </span>
         </div>
       </div>
+
+      {/*  🎯 خانة تارجت اليوم — الدوائر + الكباتن (قابلة للفتح/القفل بسهم) */}
+      {data.length > 0 && (
+        <div className="mb-6 rounded-xl bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
+          <button
+            onClick={() => setTargetsOpen(v => !v)}
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
+          >
+            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+              <svg {...stroke} className="w-5 h-5 text-indigo-600 dark:text-indigo-400"><path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312" /></svg>
+              {locale === 'ar' ? 'تارجت اليوم' : "Today's target"}
+              <span className="text-xs font-normal text-gray-400 dark:text-gray-500">({data.length})</span>
+            </h3>
+            <svg {...stroke} className={`w-5 h-5 text-gray-400 transition-transform ${targetsOpen ? 'rotate-180' : ''}`}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+          </button>
+          {targetsOpen && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 px-4 pb-4">
+            {data.map(group => {
+              const c = group.coach
+              const hasTarget = !!(c.dailyTargetMin || c.dailyTargetMax)
+              const isEditing = targetEditor?.coachId === c.id
+              return (
+                <div key={c.id} className="rounded-xl ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-50 dark:bg-gray-900/40 p-3">
+                  {isEditing ? (
+                    <div>
+                      <p className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-2 truncate">{c.name}</p>
+                      <div className="flex items-end gap-2 flex-wrap">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 mb-1">{locale === 'ar' ? 'من' : 'Min'}</label>
+                          <input type="number" min="0" value={targetEditor!.min}
+                            onChange={e => setTargetEditor(prev => prev ? { ...prev, min: e.target.value } : prev)}
+                            className="w-16 px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm text-center" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 mb-1">{locale === 'ar' ? 'إلى' : 'Max'}</label>
+                          <input type="number" min="0" value={targetEditor!.max}
+                            onChange={e => setTargetEditor(prev => prev ? { ...prev, max: e.target.value } : prev)}
+                            className="w-16 px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm text-center" />
+                        </div>
+                        <button onClick={saveTarget} disabled={targetEditor!.saving}
+                          className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold disabled:opacity-60">
+                          {locale === 'ar' ? 'حفظ' : 'Save'}
+                        </button>
+                        <button onClick={() => setTargetEditor(null)} disabled={targetEditor!.saving}
+                          className="px-2.5 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold">
+                          {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      {hasTarget ? (
+                        <DailyTargetRing today={c.todaySessions || 0} min={c.dailyTargetMin} max={c.dailyTargetMax} size={52} />
+                      ) : (
+                        <div className="w-[52px] h-[52px] rounded-full ring-2 ring-dashed ring-gray-300 dark:ring-gray-600 flex items-center justify-center flex-shrink-0 text-gray-300 dark:text-gray-600">
+                          <svg {...stroke} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-gray-900 dark:text-gray-100 text-sm truncate">{c.name}</p>
+                        {hasTarget ? (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                            {locale === 'ar' ? 'النهاردة' : 'Today'} <span className="font-bold text-gray-800 dark:text-gray-100">{c.todaySessions || 0}</span> / {c.dailyTargetMin ?? c.dailyTargetMax}{c.dailyTargetMin && c.dailyTargetMax && c.dailyTargetMin !== c.dailyTargetMax ? `-${c.dailyTargetMax}` : ''}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{locale === 'ar' ? 'مفيش تارجت' : 'No target'}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setTargetEditor({
+                          coachId: c.id, coachName: c.name,
+                          min: c.dailyTargetMin != null ? String(c.dailyTargetMin) : '',
+                          max: c.dailyTargetMax != null ? String(c.dailyTargetMax) : '',
+                          saving: false,
+                        })}
+                        className="px-2.5 py-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition-colors flex-shrink-0"
+                      >
+                        {hasTarget ? (locale === 'ar' ? 'تعديل' : 'Edit') : (locale === 'ar' ? 'تحديد' : 'Set')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          )}
+        </div>
+      )}
 
       {/* Search */}
       <div className="mb-4">
@@ -531,6 +651,30 @@ export default function CoachConversionsPanel() {
 }
 
 // Helper components
+
+//  دائرة تقدّم التارجت اليومي — النسبة على الحد الأدنى
+function DailyTargetRing({ today, min, max, size = 46 }: { today: number; min?: number | null; max?: number | null; size?: number }) {
+  const target = (min && min > 0) ? min : ((max && max > 0) ? max : 0)
+  if (!target) return null
+  const pct = Math.min(100, Math.round((today / target) * 100))
+  const done = today >= target
+  const r = (size - 8) / 2
+  const c = 2 * Math.PI * r
+  const offset = c - (pct / 100) * c
+  const color = done ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444'
+  return (
+    <div className="relative flex-shrink-0" style={{ width: size, height: size }} title={`${today}/${target}`}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={4} className="stroke-gray-200 dark:stroke-gray-700" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={4} stroke={color} strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round" />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-black" style={{ color }}>
+        {pct}%
+      </span>
+    </div>
+  )
+}
+
 function StatIcon({ type }: { type?: 'check' | 'x' | 'clock' | 'sparkles' }) {
   if (!type) return null
   const paths: Record<string, string> = {

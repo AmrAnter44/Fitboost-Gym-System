@@ -11,6 +11,14 @@ import type { MessageTemplate } from './MessageTemplateManager'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
+//  إخفاء الرقم: نسيب أول 3 وآخر 2 والباقي نقط
+function maskPhone(p?: string | null): string {
+  const s = (p || '').replace(/\s/g, '')
+  if (!s) return ''
+  if (s.length <= 5) return '•'.repeat(s.length)
+  return s.slice(0, 3) + '•'.repeat(Math.max(4, s.length - 5)) + s.slice(-2)
+}
+
 //  Dynamic imports - تحميل عند الحاجة فقط
 const FollowUpForm = nextDynamic(() => import('./FollowUpForm'), { ssr: false })
 const SalesDashboard = nextDynamic(() => import('./SalesDashboard'), {
@@ -107,9 +115,12 @@ interface Member {
 }
 
 function FollowUpsPageContent() {
-  const { hasPermission, loading: permissionsLoading, user } = usePermissions()
+  const { hasPermission, loading: permissionsLoading, user, permissions } = usePermissions()
   // 💼 صلاحية مسؤول السيلز — مخصصة لإدارة كل حاجة في تاب إدارة السيلز
   const canManageSales = hasPermission('canManageSales')
+  //  إخفاء أرقام المتابعات في القوائم (تتكشف جوّه نافذة المتابعة بس)
+  //  قيد إخفاء الأرقام: قيمة خام (مش hasPermission اللي بيتخطّى للأونر/الأدمن) — الأدمن يشوف عادي
+  const hideNumbers = permissions?.hideFollowUpNumbers === true
   const { t, direction, locale } = useLanguage()
   const toast = useToast()
   const router = useRouter()
@@ -154,8 +165,11 @@ function FollowUpsPageContent() {
   const [bulkScriptDelayMin, setBulkScriptDelayMin] = useState(15)
   const [bulkScriptDelayMax, setBulkScriptDelayMax] = useState(30)
   const [bulkScriptSkipDays, setBulkScriptSkipDays] = useState(7)
+  //  نص الإدخال منفصل عن القيمة الرقمية — عشان الكتابة تفضل سلسة ومتتأثرش بإعادة الرندر (refetch)
+  const [bulkScriptSkipDaysText, setBulkScriptSkipDaysText] = useState('7')
   //  ⏰ ريمايندر: بعد كام يوم أرجع أكلم الناس دول تاني (0 = بدون ريمايندر)
   const [bulkScriptReminderDays, setBulkScriptReminderDays] = useState(0)
+  const [bulkScriptReminderDaysText, setBulkScriptReminderDaysText] = useState('0')
   const [bulkScriptTestPhone, setBulkScriptTestPhone] = useState('')
   //  نظام التشغيل (running/paused/progress/report) اتنقل لـ BulkSenderContext على مستوى التطبيق
   //  عشان الإرسال يفضل شغّال والكرة/المودالات تفضل ظاهرة حتى بعد الخروج من الصفحة.
@@ -493,10 +507,11 @@ function FollowUpsPageContent() {
         expiryDate.setHours(0, 0, 0, 0)
         //  منتهي = تاريخ الانتهاء فات (سواء اتعطل يدوي أو لا)
         if (!(expiryDate < today)) return false
-        //  لو سيلز  بيشوف أعضاءه اللي assigned ليه بس
-        //  استثناء: مسؤول السيلز (canManageSales) بيشوف الكل حتى لو هو نفسه isSales
+        //  السيلز بيشوف أعضاءه المسنّدين له + الأعضاء غير المسنّدين (عشان يتابعهم)
+        //  استثناء: مسؤول السيلز (canManageSales) بيشوف الكل
         if (user?.isSales && !canManageSales) {
-          return user.staffId ? (m as any).salesStaffId === user.staffId : false
+          if (!user.staffId) return false
+          return (m as any).salesStaffId === user.staffId || !(m as any).salesStaffId
         }
         return true
       })
@@ -527,10 +542,11 @@ function FollowUpsPageContent() {
         expiryDate.setHours(0, 0, 0, 0)
         // الأعضاء النشطين اللي اشتراكهم هينتهي في خلال الأيام المحددة
         if (!(expiryDate >= today && expiryDate <= futureDate)) return false
-        //  لو سيلز  بيشوف أعضاءه اللي assigned ليه بس
+        //  السيلز بيشوف أعضاءه المسنّدين له + الأعضاء غير المسنّدين (عشان يتابعهم)
         //  استثناء: مسؤول السيلز (canManageSales) بيشوف الكل
         if (user?.isSales && !canManageSales) {
-          return user.staffId ? (m as any).salesStaffId === user.staffId : false
+          if (!user.staffId) return false
+          return (m as any).salesStaffId === user.staffId || !(m as any).salesStaffId
         }
         return true
       })
@@ -718,6 +734,8 @@ function FollowUpsPageContent() {
       return merged.filter(fu => {
         if (fu.assignedTo === user.staffId) return true
         if (fu.visitor?.source === 'member-invitation' && !fu.assignedTo) return true
+        //  الأعضاء المنتهيين/قرب ينتهي غير المسنّدين يظهروا للسيلز عشان يتابعهم
+        if ((fu.visitor?.source === 'expired-member' || fu.visitor?.source === 'expiring-member') && !fu.assignedTo) return true
         return false
       })
     }
@@ -1107,6 +1125,12 @@ function FollowUpsPageContent() {
       setViewMode('list')
       router.replace('/followups', { scroll: false })
     }
+    //  🔁 جاي من بار تذكيرات السيلز: ?due=today → فلتر «متابعاتي المستحقة النهاردة»
+    if (searchParams.get('due') === 'today') {
+      setViewMode('list')
+      setSalesFilter('my-due')
+      router.replace('/followups', { scroll: false })
+    }
   }, [searchParams, router])
 
   //  Deep-link من الـ Dashboard smart search — يفتح modal الزائر فور التحميل
@@ -1304,6 +1328,9 @@ function FollowUpsPageContent() {
           matchesSales = isMyFollowUp(fu) && priority === 'overdue'
         } else if (salesFilter === 'today') {
           matchesSales = priority === 'today'
+        } else if (salesFilter === 'my-due') {
+          //  🔁 متابعاتي المستحقة النهاردة (متأخرة + النهاردة) — يطابق عدّاد بار التذكيرات
+          matchesSales = isMyFollowUp(fu) && (priority === 'overdue' || priority === 'today')
         }
 
         //  فلترة حسب المصدر
@@ -1657,6 +1684,11 @@ function FollowUpsPageContent() {
       'expiring-member': t('followups.sources.expiringMember'),
       'facebook': t('followups.sources.facebook'),
       'instagram': t('followups.sources.instagram'),
+      'tiktok': locale === 'ar' ? 'تيك توك' : 'TikTok',
+      'chatgpt': 'ChatGPT',
+      'google_maps': locale === 'ar' ? 'جوجل ماب / Google Maps' : 'Google Maps',
+      'suggestion': locale === 'ar' ? 'اقتراح' : 'Suggestion',
+      'friend_referral': locale === 'ar' ? 'إحالة من صديق' : 'Friend Referral',
       'friend': t('followups.sources.friend'),
       'other': t('followups.sources.other'),
       'website': locale === 'ar' ? 'موقع الويب' : 'Website',
@@ -1736,6 +1768,7 @@ function FollowUpsPageContent() {
       if (salesFilter === 'my-followups' && !isMyFollowUp(fu)) continue
       if (salesFilter === 'my-overdue' && (!isMyFollowUp(fu) || priority !== 'overdue')) continue
       if (salesFilter === 'today' && priority !== 'today') continue
+      if (salesFilter === 'my-due' && (!isMyFollowUp(fu) || (priority !== 'overdue' && priority !== 'today'))) continue
 
       //  assigned staff
       if (assignedStaffFilter !== 'all') {
@@ -1805,6 +1838,8 @@ function FollowUpsPageContent() {
         matchesSales = isMyFollowUp(fu) && priority === 'overdue'
       } else if (salesFilter === 'today') {
         matchesSales = priority === 'today'
+      } else if (salesFilter === 'my-due') {
+        matchesSales = isMyFollowUp(fu) && (priority === 'overdue' || priority === 'today')
       }
 
       const matchesAssignedStaff = assignedStaffFilter === 'all'
@@ -2147,12 +2182,12 @@ function FollowUpsPageContent() {
             </h3>
             <div className="flex flex-wrap gap-3">
               {birthdayMembers.map(m => (
-                <a
+                <button
                   key={m.id}
-                  href={createWhatsAppUrl(m.phone, direction === 'rtl' ? `كل سنة وانت طيب ${m.name}!` : `Happy Birthday ${m.name}!`)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-white dark:bg-gray-800 ring-1 ring-pink-200 dark:ring-pink-900/50 rounded-xl px-3 py-2 hover:shadow-md transition-shadow duration-200"
+                  type="button"
+                  onClick={() => router.push(`/members/${m.id}`)}
+                  title={direction === 'rtl' ? 'فتح البروفايل' : 'Open profile'}
+                  className="flex items-center gap-2 bg-white dark:bg-gray-800 ring-1 ring-pink-200 dark:ring-pink-900/50 rounded-xl px-3 py-2 hover:shadow-md transition-shadow duration-200 text-start cursor-pointer"
                 >
                   <div className="w-9 h-9 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                     {m.name.charAt(0)}
@@ -2163,8 +2198,9 @@ function FollowUpsPageContent() {
                       {direction === 'rtl' ? `${m.age} سنة` : `${m.age} years old`}
                     </p>
                   </div>
-                  <svg className="w-4 h-4 text-green-500 ms-1" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 20l1.5-4.5A8 8 0 1112 20H7l-4 0z"/></svg>
-                </a>
+                  {/*  أيقونة فتح البروفايل */}
+                  <svg className={`w-4 h-4 text-gray-400 ms-1 ${direction === 'rtl' ? 'rotate-180' : ''}`} {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                </button>
               ))}
             </div>
           </div>
@@ -2394,8 +2430,13 @@ function FollowUpsPageContent() {
                     <input
                       type="number"
                       min={0}
-                      value={bulkScriptSkipDays}
-                      onChange={e => setBulkScriptSkipDays(parseInt(e.target.value) || 0)}
+                      value={bulkScriptSkipDaysText}
+                      onChange={e => {
+                        const raw = e.target.value
+                        setBulkScriptSkipDaysText(raw)
+                        const n = parseInt(raw, 10)
+                        setBulkScriptSkipDays(isNaN(n) || n < 0 ? 0 : n)
+                      }}
                       className="w-16 px-2 py-1 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-700 text-center font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors duration-200"
                     />
                     {t('followups.bulkScript.day')}
@@ -2411,8 +2452,13 @@ function FollowUpsPageContent() {
                   <input
                     type="number"
                     min={0}
-                    value={bulkScriptReminderDays}
-                    onChange={e => setBulkScriptReminderDays(parseInt(e.target.value) || 0)}
+                    value={bulkScriptReminderDaysText}
+                    onChange={e => {
+                      const raw = e.target.value
+                      setBulkScriptReminderDaysText(raw)
+                      const n = parseInt(raw, 10)
+                      setBulkScriptReminderDays(isNaN(n) || n < 0 ? 0 : n)
+                    }}
                     className="w-16 px-2 py-1 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-700 text-center font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
                   />
                   {locale === 'ar' ? 'يوم' : 'days'}
@@ -2778,7 +2824,7 @@ function FollowUpsPageContent() {
       )}
 
       {/* Unified Filters Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 mb-6 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 mb-6 overflow-visible">
 
         {/* Row 1: Personal quick filters + sort toggle */}
         {user?.name && (
@@ -3260,9 +3306,20 @@ function FollowUpsPageContent() {
                           <div className="flex-1">
                             <div className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{t('followups.table.phoneNumber')}</div>
                             <div className="flex gap-2 items-center">
-                              <span className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200" dir="ltr">
-                                {followUp.visitor.phone}
+                              <span className={`font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200 ${hideNumbers ? 'select-none tracking-widest' : ''}`} dir="ltr">
+                                {hideNumbers ? maskPhone(followUp.visitor.phone) : followUp.visitor.phone}
                               </span>
+                              {/*  📞 زرار اتصال سريع — بيظهر على الموبايل ويرن على الرقم على طول (tel:) */}
+                              {!hideNumbers && (
+                                <a
+                                  href={`tel:${followUp.visitor.phone.replace(/[^\d+]/g, '')}`}
+                                  className="sm:hidden bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm transition-colors duration-200 inline-flex items-center gap-1"
+                                  title={locale === 'ar' ? 'اتصال' : 'Call'}
+                                >
+                                  <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
+                                  {locale === 'ar' ? 'اتصال' : 'Call'}
+                                </a>
+                              )}
                               <button
                                 onClick={() => openTemplateModal(followUp.visitor)}
                                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm transition-colors duration-200 inline-flex items-center gap-1"
@@ -3589,7 +3646,7 @@ function FollowUpsPageContent() {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <p className="font-bold text-gray-900 dark:text-gray-100 text-sm sm:text-base">{fu.visitor.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{fu.visitor.phone}</p>
+                        <p className={`text-xs text-gray-500 dark:text-gray-400 ${hideNumbers ? 'select-none tracking-widest' : ''}`} dir="ltr">{hideNumbers ? maskPhone(fu.visitor.phone) : fu.visitor.phone}</p>
                         {isRenewal && (
                           <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 text-[10px] font-bold rounded-full">
                             <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -3861,10 +3918,11 @@ function FollowUpsPageContent() {
                         <option value="instagram">Instagram</option>
                         <option value="tiktok">TikTok</option>
                         <option value="chatgpt">{locale === 'ar' ? 'شات جي بي تي / ChatGPT' : 'ChatGPT'}</option>
+                        <option value="google_maps">{locale === 'ar' ? 'جوجل ماب / Google Maps' : 'Google Maps'}</option>
                         <option value="website">{locale === 'ar' ? 'الموقع / Website' : 'Website'}</option>
                         <option value="friend_referral">{locale === 'ar' ? 'إحالة من صديق / Friend Referral' : 'Friend Referral'}</option>
                         {/* احتفاظ بالقيمة القديمة لو الزائر متسجّل بمصدر مش في القائمة */}
-                        {editTarget.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','website','friend_referral'].includes(editTarget.source) && (
+                        {editTarget.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','chatgpt','google_maps','website','friend_referral'].includes(editTarget.source) && (
                           <option value={editTarget.source}>{editTarget.source}</option>
                         )}
                       </select>

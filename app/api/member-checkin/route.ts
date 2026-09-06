@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { addPoints } from '../../../lib/points'
+import { activatePendingRenewalForMember } from '../../../lib/pendingRenewal'
 
 // POST: تسجيل دخول عضو
 
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
     }
 
     // التحقق من وجود العضو وأن اشتراكه نشط
-    const member = await prisma.member.findUnique({
+    let member = await prisma.member.findUnique({
       where: { id: memberId },
     })
 
@@ -28,6 +29,15 @@ export async function POST(request: Request) {
         { status: 404 }
       )
     }
+
+    //  🔁 تفعيل التجديد المجدول لو وصل ميعاده — قبل ما نحكم على الحالة (عشان يعرف يدخل)
+    try {
+      const activated = await activatePendingRenewalForMember(memberId)
+      if (activated) {
+        const fresh = await prisma.member.findUnique({ where: { id: memberId } })
+        if (fresh) member = fresh
+      }
+    } catch { /* ignore */ }
 
     // التحقق من أن العضو غير محظور
     if (member.isBanned) {

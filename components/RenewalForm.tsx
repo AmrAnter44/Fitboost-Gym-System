@@ -72,7 +72,21 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const [inBodyScans, setInBodyScans] = useState('0')
   const [invitations, setInvitations] = useState('0')
   const [freezeDays, setFreezeDays] = useState('0')
-  const [startDate, setStartDate] = useState(formatDateYMD(new Date()))
+  //  🔁 لو الاشتراك الحالي لسه ساري → التجديد يتجدول ويبدأ افتراضيًا اليوم اللي بعد انتهاء القديم
+  //  (الريسيبشن يقدر يغيّر التاريخ). لو منتهي → يبدأ النهاردة (تجديد فوري).
+  const [startDate, setStartDate] = useState(() => {
+    if (member.expiryDate) {
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      const oldExp = new Date(member.expiryDate); oldExp.setHours(0, 0, 0, 0)
+      //  بس لو لسه فاضل أيام بعد النهاردة (expiry > today) نجدول من بعد ما يخلص.
+      //  لو خلص النهاردة أو منتهي → تجديد فوري يبدأ النهاردة (مايستناش 24 ساعة).
+      if (oldExp.getTime() > today.getTime()) {
+        const next = new Date(oldExp); next.setDate(next.getDate() + 1)
+        return formatDateYMD(next)
+      }
+    }
+    return formatDateYMD(new Date())
+  })
   const [expiryDate, setExpiryDate] = useState('')
   const [notes, setNotes] = useState(member.notes || '')
   const [source, setSource] = useState((member as any).source || '') // مصدر العضو (يتحدّث عند التجديد)
@@ -87,8 +101,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const [createdReceipt, setCreatedReceipt] = useState<any>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null)
-  //  وضع المزايا: false = تجميع (افتراضي، عادل للعميل) | true = ريست (يبتدي من الصفر)
-  const [resetBenefits, setResetBenefits] = useState(false)
+  //  وضع المزايا: دايمًا ريست — الاشتراك الجديد بينزّل مزايا الباقة الجديدة من الصفر (من غير تجميع)
+  const resetBenefits = true
 
   //  حساب الأيام المتبقية في الاشتراك القديم (لو لسه فيه)
   // لما العضو يجدد قبل ما اشتراكه ينتهي، الأيام دي بتتضاف على مدة الاشتراك الجديد
@@ -98,6 +112,26 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
     const oldExpiry = new Date(member.expiryDate); oldExpiry.setHours(0, 0, 0, 0)
     const diff = Math.ceil((oldExpiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
     return Math.max(0, diff)
+  })()
+
+  //  🔁 الأيام اللي تتضاف على مدة الاشتراك الجديد:
+  //   - لو التجديد هيبدأ في المستقبل (مجدول) → متتالي بعد القديم، فمفيش أيام تتضاف (0).
+  //   - لو فوري (بيبدأ النهاردة/قبل) والقديم لسه ساري → نضيف المتبقي (يتحسب overlap زي الأول).
+  const scheduleExtraDays = (startStr: string) => {
+    if (!startStr) return remainingDaysFromOldSub
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const s = new Date(startStr); s.setHours(0, 0, 0, 0)
+    return s.getTime() > today.getTime() ? 0 : remainingDaysFromOldSub
+  }
+
+  //  هل التجديد الحالي مجدول؟ (الاشتراك القديم ساري + تاريخ البداية في المستقبل)
+  const isScheduledRenewal = (() => {
+    if (!member.expiryDate || !startDate) return false
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const oldExp = new Date(member.expiryDate); oldExp.setHours(0, 0, 0, 0)
+    const s = new Date(startDate); s.setHours(0, 0, 0, 0)
+    //  مجدول بس لو لسه فاضل أيام بعد النهاردة (مش لو خلص النهاردة)
+    return oldExp.getTime() > today.getTime() && s.getTime() > today.getTime()
   })()
 
   useEffect(() => {
@@ -130,15 +164,30 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
     return calculateDaysBetween(start, end)
   }
 
+  //  🔁 لما الريسيبشن يعدّل تاريخ البداية → تاريخ النهاية يتعدّل تلقائي بنفس مدة الاشتراك
+  const handleStartDateChange = (value: string) => {
+    if (startDate && expiryDate && value) {
+      const oldStart = new Date(startDate)
+      const oldExpiry = new Date(expiryDate)
+      const newStart = new Date(value)
+      const durationMs = oldExpiry.getTime() - oldStart.getTime()
+      if (!isNaN(newStart.getTime()) && durationMs > 0) {
+        setExpiryDate(formatDateYMD(new Date(newStart.getTime() + durationMs)))
+      }
+    }
+    setStartDate(value)
+  }
+
   const calculateExpiryFromMonths = (months: number) => {
     if (!startDate) return
 
     const start = new Date(startDate)
     const expiry = new Date(start)
     expiry.setMonth(expiry.getMonth() + months)
-    //  ضيف الأيام المتبقية من الاشتراك القديم
-    if (remainingDaysFromOldSub > 0) {
-      expiry.setDate(expiry.getDate() + remainingDaysFromOldSub)
+    //  ضيف الأيام المتبقية من الاشتراك القديم (بس لو التجديد فوري — المجدول متتالي)
+    const extra = scheduleExtraDays(startDate)
+    if (extra > 0) {
+      expiry.setDate(expiry.getDate() + extra)
     }
 
     setExpiryDate(formatDateYMD(expiry))
@@ -146,9 +195,9 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
 
   const applyOffer = (offer: any) => {
     const start = startDate || formatDateYMD(new Date())
+    //  ضيف مدة الباقة (+ المتبقي من القديم لو تجديد فوري بس — المجدول متتالي)
     const expiry = new Date(start)
-    //  ضيف مدة الباقة + الأيام المتبقية من الاشتراك القديم
-    expiry.setDate(expiry.getDate() + offer.duration + remainingDaysFromOldSub)
+    expiry.setDate(expiry.getDate() + offer.duration + scheduleExtraDays(start))
 
     setSubscriptionPrice(offer.price.toString())
     setFreePTSessions(offer.freePTSessions.toString())
@@ -208,6 +257,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
           source: source || null,
           paymentMethod,
           staffName: user?.name || '',
+          //  ملاحظة: مبنبعتش salesStaffId عند التجديد — موظف السيلز الحالي للعضو مبيتغيرش
           offerId: selectedOfferId,
           //  وضع المزايا: لو true → الـ API يـ reset، لو false → بيجمع القديم + الجديد
           resetBenefits,
@@ -390,42 +440,6 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
           </div>
         )}
 
-        {/*  Toggle: وضع المزايا (تجميع / ريست) */}
-        <div className="mt-3 p-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-200 dark:ring-indigo-700">
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={resetBenefits}
-              onChange={(e) => setResetBenefits(e.target.checked)}
-              className="mt-0.5 w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-            />
-            <div className="flex-1 text-sm">
-              <div className="font-bold text-indigo-900 dark:text-indigo-100 flex items-center gap-2 flex-wrap">
-                🔁 {direction === 'rtl' ? 'ريست للمزايا (ابدأ من جديد)' : 'Reset benefits (start fresh)'}
-                {!resetBenefits && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
-                    {direction === 'rtl' ? 'تجميع مفعّل' : 'Accumulating'}
-                  </span>
-                )}
-                {resetBenefits && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
-                    {direction === 'rtl' ? 'ريست مفعّل' : 'Reset on'}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
-                {direction === 'rtl'
-                  ? resetBenefits
-                    ? '⚠️ المزايا القديمة (حصص PT، تغذية، علاج طبيعي، جروب كلاس، InBody، دعوات، أيام التجميد) هتتمسح ويبتدي العضو بالمزايا الجديدة من الباقة فقط.'
-                    : '✅ المزايا الفاضلة من الاشتراك القديم هتتجمع مع مزايا الباقة الجديدة (عادل للعميل اللي دفع ولم يستخدم).'
-                  : resetBenefits
-                    ? '⚠️ Old benefits (PT/Nutrition/Physio/Group Class sessions, InBody scans, invitations, freeze days) will be wiped. Member starts with only the new package benefits.'
-                    : '✅ Unused benefits from the old subscription will be added to the new package benefits (fair to the member who paid).'}
-              </div>
-            </div>
-          </label>
-        </div>
-
         {error && (
           <div className={`bg-red-50 dark:bg-red-900/20 ${direction === 'rtl' ? 'border-e-4' : 'border-s-4'} border-red-500 dark:border-red-700 p-3 rounded-lg mb-3`}>
             <p className="text-red-700 dark:text-red-300 font-medium text-sm flex items-center gap-2">
@@ -538,7 +552,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                   id="renewal-start-date"
                   type="text"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e) => handleStartDateChange(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 font-mono"
                   placeholder={t('renewal.startDatePlaceholder')}
                   pattern="\d{4}-\d{2}-\d{2}"
@@ -562,6 +576,20 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                 />
               </div>
             </div>
+
+            {/*  🔁 تنبيه التجديد المجدول — الاشتراك الحالي لسه ساري */}
+            {isScheduledRenewal && member.expiryDate && (
+              <div className="mb-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 px-3 py-2.5 flex items-start gap-2">
+                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+                  {direction === 'rtl'
+                    ? `التجديد ده هيتجدول — الاشتراك الحالي هيفضل شغّال لحد ${formatDateYMD(new Date(member.expiryDate))}، والتجديد الجديد هيبدأ ${startDate}${expiryDate ? ` وينتهي ${expiryDate}` : ''} ويتفعّل تلقائي في ميعاده.`
+                    : `This renewal will be scheduled — the current subscription stays active until ${formatDateYMD(new Date(member.expiryDate))}, and the new one starts ${startDate}${expiryDate ? ` and ends ${expiryDate}` : ''}, activating automatically on its start date.`}
+                </p>
+              </div>
+            )}
 
             <div className="mb-3">
               <p className="text-xs font-bold mb-2 text-gray-700 dark:text-gray-300">{t('renewal.quickAdd')}:</p>
@@ -637,10 +665,11 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
               <option value="instagram">{t('members.form.sourceInstagram')}</option>
               <option value="tiktok">{t('members.form.sourceTiktok')}</option>
               <option value="chatgpt">{t('members.form.sourceChatGPT')}</option>
+              <option value="google_maps">{direction === 'rtl' ? 'جوجل ماب / Google Maps' : 'Google Maps'}</option>
               <option value="website">{t('members.form.sourceWebsite')}</option>
               <option value="friend_referral">{t('members.form.sourceFriendReferral')}</option>
               <option value="renewal_no_followup">{t('members.form.sourceRenewalNoFollowup')}</option>
-              {source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','chatgpt','website','friend_referral','renewal_no_followup'].includes(source) && (
+              {source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','chatgpt','google_maps','website','friend_referral','renewal_no_followup'].includes(source) && (
                 <option value={source}>{source}</option>
               )}
             </select>

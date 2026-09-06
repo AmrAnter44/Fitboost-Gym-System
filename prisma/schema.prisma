@@ -49,10 +49,16 @@ model Member {
   isBanned          Boolean      @default(false)
   startDate         DateTime?
   expiryDate        DateTime?
+  //  🔁 تجديد مجدول: العضو جدّد واشتراكه القديم لسه شغّال — نخزّن التجديد هنا
+  //  ويتفعّل تلقائي أول ما نوصل لـ pendingRenewalStartDate. pendingRenewalData = JSON بكل تفاصيل التجديد.
+  pendingRenewalStartDate  DateTime?
+  pendingRenewalExpiryDate DateTime?
+  pendingRenewalData       String?
   // 🕐 ساعات الدخول المسموح بها (اختياري) - مثلاً "07:00" إلى "15:00"
   allowedCheckInStart String?    // HH:MM format
   allowedCheckInEnd   String?    // HH:MM format
   coachId           String?
+  noCoachWanted     Boolean      @default(false)  //  العضو مش عايز كابتن (اختيار صريح)
   //  تاريخ آخر تعيين/تغيير كوتش — يستخدم لإشعار الكوتش بـ "عضو جديد اتأسند ليك"
   // حتى لو العضو نفسه قديم (re-assignment) لأن createdAt مش بيتغير
   coachAssignedAt   DateTime?
@@ -216,6 +222,7 @@ model Visitor {
   notes                String?
   source               String     @default("walk-in")
   interestedIn         String?
+  gender               String?    // 🚻 'male' | 'female' | null = غير معروف — لتوزيع السيلز بالجندر
   status               String     @default("pending")
   referrerMemberNumber String?    // 👥 رقم العضو اللي جاب الزائر (للـ tracking لما النقاط معطلة)
   isDeleted            Boolean    @default(false)
@@ -367,6 +374,8 @@ model Staff {
   salesCommissionRate  Float?                // نسبة ثابتة (fixed mode)
   salesCommissionTiers String?               // JSON: [{target:5000,rate:3},{target:10000,rate:5}]
   coachTarget          Float?   @default(0)   //  التارجت الشهري بالجنيه للكوتش
+  dailySessionTargetMin Int?    //  تارجت الكوتش اليومي (عدد الحصص) — الحد الأدنى
+  dailySessionTargetMax Int?    //  تارجت الكوتش اليومي (عدد الحصص) — الحد الأعلى
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   attendance          Attendance[]
@@ -612,6 +621,9 @@ model Permission {
   canViewMembers          Boolean @default(false)
   canCreateMembers        Boolean @default(false)
   canEditMembers          Boolean @default(false)
+  canEditMemberBasic      Boolean @default(false)  // تعديل محدود: اسم/موبايل العضو بس
+  hideFollowUpNumbers     Boolean @default(false)  // إخفاء أرقام المتابعات (تتكشف جوّه نافذة المتابعة بس)
+  hideMemberNumbers       Boolean @default(false)  // إخفاء أرقام الأعضاء في القوائم (تتكشف جوّه بروفايل العضو)
   canDeleteMembers        Boolean @default(false)
   canViewPT               Boolean @default(false)
   canCreatePT             Boolean @default(false)
@@ -639,6 +651,7 @@ model Permission {
   canDeleteStaff          Boolean @default(false)
   canViewReceipts         Boolean @default(false)
   canEditReceipts         Boolean @default(false)
+  canEditReceiptBasic     Boolean @default(false)  // تعديل محدود: اسم/تليفون + طريقة الدفع بس
   canDeleteReceipts       Boolean @default(false)
   canViewExpenses         Boolean @default(false)
   canCreateExpense        Boolean @default(false)

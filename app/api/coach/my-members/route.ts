@@ -42,6 +42,8 @@ export async function GET(request: Request) {
         startDate: true,
         expiryDate: true,
         freePTSessions: true,
+        inBodyScans: true,
+        freeAssessmentSessions: true,
         subscriptionPrice: true,
         remainingAmount: true,
         coachConversionNote: true,

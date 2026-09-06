@@ -48,6 +48,7 @@ export default function PTSessionHistoryPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [filterPTNumber, setFilterPTNumber] = useState('')
+  const [filterCoach, setFilterCoach] = useState('')  // فلتر بالمدرب (اسم الكوتش)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   // 🎁 فلتر نوع الجلسة: all / paid (مش مجانية) / free (مجانية)
@@ -111,6 +112,11 @@ export default function PTSessionHistoryPage() {
     }
   }
 
+  //  قائمة الكباتن الفريدة (من الجلسات) لفلتر المدرب
+  const coachOptions = Array.from(
+    new Set(sessions.map(s => (s.coachName || '').trim()).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b, 'ar'))
+
   // الجلسات اللي بتطابق كل الفلاتر ما عدا فلتر نوع الجلسة — عشان نحسب الـ counts الصحيحة للأزرار
   const sessionsMatchingOtherFilters = sessions.filter(session => {
     const term = debouncedSearchTerm.toLowerCase()
@@ -122,10 +128,11 @@ export default function PTSessionHistoryPage() {
       (session.member?.memberNumber && session.member.memberNumber.toString().includes(term))
 
     const matchesPTNumber = !filterPTNumber || (session.ptNumber && session.ptNumber.toString() === filterPTNumber)
+    const matchesCoach = !filterCoach || (session.coachName || '').trim() === filterCoach
 
     const sessionDate = session.sessionDate ? new Date(session.sessionDate) : null
     if (!sessionDate || isNaN(sessionDate.getTime())) {
-      return matchesSearch && matchesPTNumber && !dateFrom && !dateTo
+      return matchesSearch && matchesPTNumber && matchesCoach && !dateFrom && !dateTo
     }
 
     let matchesDateFrom = true
@@ -138,7 +145,7 @@ export default function PTSessionHistoryPage() {
       const toDate = new Date(dateTo); toDate.setHours(23, 59, 59, 999)
       matchesDateTo = sessionDate <= toDate
     }
-    return matchesSearch && matchesPTNumber && matchesDateFrom && matchesDateTo
+    return matchesSearch && matchesPTNumber && matchesCoach && matchesDateFrom && matchesDateTo
   })
 
   const paidCount = sessionsMatchingOtherFilters.filter(s => !s.isFreeSession).length
@@ -155,6 +162,7 @@ export default function PTSessionHistoryPage() {
       (session.member?.memberNumber && session.member.memberNumber.toString().includes(term))
 
     const matchesPTNumber = !filterPTNumber || (session.ptNumber && session.ptNumber.toString() === filterPTNumber)
+    const matchesCoach = !filterCoach || (session.coachName || '').trim() === filterCoach
 
     // 🎁 فلتر نوع الجلسة (مجانية / مدفوعة)
     let matchesSessionType = true
@@ -163,7 +171,7 @@ export default function PTSessionHistoryPage() {
 
     const sessionDate = session.sessionDate ? new Date(session.sessionDate) : null
     if (!sessionDate || isNaN(sessionDate.getTime())) {
-      return matchesSearch && matchesPTNumber && matchesSessionType && !dateFrom && !dateTo
+      return matchesSearch && matchesPTNumber && matchesCoach && matchesSessionType && !dateFrom && !dateTo
     }
 
     let matchesDateFrom = true
@@ -180,7 +188,7 @@ export default function PTSessionHistoryPage() {
       matchesDateTo = sessionDate <= toDate
     }
 
-    return matchesSearch && matchesPTNumber && matchesSessionType && matchesDateFrom && matchesDateTo
+    return matchesSearch && matchesPTNumber && matchesCoach && matchesSessionType && matchesDateFrom && matchesDateTo
   })
 
   const totalSessions = filteredSessions.length
@@ -308,7 +316,7 @@ export default function PTSessionHistoryPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('pt.sessionHistory.generalSearch')}</label>
             <input
@@ -318,6 +326,20 @@ export default function PTSessionHistoryPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">المدرب</label>
+            <select
+              value={filterCoach}
+              onChange={(e) => setFilterCoach(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+            >
+              <option value="">كل المدربين</option>
+              {coachOptions.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -352,11 +374,12 @@ export default function PTSessionHistoryPage() {
           </div>
         </div>
 
-        {(searchTerm || filterPTNumber || dateFrom || dateTo || sessionTypeFilter !== 'all') && (
+        {(searchTerm || filterPTNumber || filterCoach || dateFrom || dateTo || sessionTypeFilter !== 'all') && (
           <button
             onClick={() => {
               setSearchTerm('')
               setFilterPTNumber('')
+              setFilterCoach('')
               setDateFrom('')
               setDateTo('')
               setSessionTypeFilter('all')

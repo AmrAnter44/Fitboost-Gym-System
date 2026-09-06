@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useToast } from '../../../contexts/ToastContext'
 import { useServiceSettings } from '../../../contexts/ServiceSettingsContext'
@@ -120,6 +120,12 @@ export default function CoachCommissionPage() {
   const { hasPermission, loading: permissionsLoading, user: permUser } = usePermissions()
   const [coaches, setCoaches] = useState<Staff[]>([])
   const [ptSessions, setPtSessions] = useState<PTSession[]>([])
+  //  🔗 خريطة رقم الـ PT → الكوتش الحقيقي (من سجل الـ PT). المصدر الموثوق لنسب الإيصالات.
+  const ptNumberToCoach = useMemo(() => {
+    const m = new Map<number, string>()
+    ptSessions.forEach((p) => { if (p.ptNumber != null) m.set(p.ptNumber, p.coachName) })
+    return m
+  }, [ptSessions])
   const [ptAttendanceRecords, setPtAttendanceRecords] = useState<any[]>([]) // سجلات الحضور الفعلية
   const [receipts, setReceipts] = useState<Receipt[]>([])
   const [selectedCoach, setSelectedCoach] = useState<string>('')
@@ -581,7 +587,14 @@ export default function CoachCommissionPage() {
       if (response.ok) {
         const data = await response.json()
         setCurrentUser(data.user)
-        const isAdminUser = data.user.role === 'ADMIN' || data.user.role === 'OWNER'
+        //  «يشوف كل الكباتن» = OWNER/ADMIN/MANAGER، أو أي حساب (حتى لو كوتش) عنده صلاحية
+        //  تقفيل الـ PT / عرض كل الـ PT — ده اللي بيخلي الكوتش-الفتنس-مانجر يشوف الكل.
+        //  الكوتش العادي (من غير الصلاحية) بيشوف نفسه بس.
+        const role = data.user.role
+        const perms = data.user.permissions || {}
+        const isAdminUser =
+          role === 'ADMIN' || role === 'OWNER' || role === 'MANAGER' ||
+          !!perms.canAccessPTCommission
         setIsAdmin(isAdminUser)
       }
     } catch (error) {
@@ -865,10 +878,6 @@ export default function CoachCommissionPage() {
     // حساب الإيرادات من إيصالات PT (جميع الأنواع)
 
     //  🔗 أرقام الـ PT الخاصة بالكوتش (من سجلات الـ PT) — مطابقة موثوقة بدل نص الإيصال
-    const coachPtNumbers = new Set(
-      ptSessions.filter((p) => p.coachName === coachName).map((p) => p.ptNumber)
-    )
-
     const ptReceipts = receipts.filter((receipt) => {
       //  استبعاد الإيصالات الملغية — مطابق للتقفيل
       if ((receipt as any).isCancelled) return false
@@ -884,11 +893,14 @@ export default function CoachCommissionPage() {
         return false
       }
 
-      //  الأولوية: مطابقة برقم الـ PT (موثوق حتى لو اسم الكوتش في الإيصال ناقص/مختلف)
+      //  رقم الـ PT هو الحَكَم: لو الإيصال مربوط بـ PT معروف يُنسب لكوتشه الحقيقي فقط
+      //  (بدون رجوع للاسم — عشان ما يتحسبش مرتين لو الـ PT اتنقل لكوتش تاني)
       const rptNum = (receipt as any).ptNumber
-      if (rptNum != null && coachPtNumbers.has(rptNum)) return true
+      if (rptNum != null && ptNumberToCoach.has(rptNum)) {
+        return normName(ptNumberToCoach.get(rptNum)) === normName(coachName)
+      }
 
-      //  fallback: اسم الكوتش المكتوب في الإيصال (للإيصالات القديمة بدون ptNumber)
+      //  fallback: اسم الكوتش في الإيصال (للإيصالات بدون ptNumber أو PT محذوف)
       try {
         const details = JSON.parse(receipt.itemDetails)
         return normName(details.coachName) === normName(coachName)
@@ -1125,9 +1137,6 @@ export default function CoachCommissionPage() {
     const end = new Date(dateTo)
     end.setHours(23, 59, 59, 999)
 
-    const coachPtNumbersSel = new Set(
-      ptSessions.filter((p) => p.coachName === selectedCoach).map((p) => p.ptNumber)
-    )
     const coachPTReceipts = receipts.filter((receipt) => {
       //  استبعاد الإيصالات الملغية — مطابق للتقفيل
       if ((receipt as any).isCancelled) return false
@@ -1135,7 +1144,9 @@ export default function CoachCommissionPage() {
       const receiptDate = new Date(receipt.createdAt)
       if (receiptDate < start || receiptDate > end) return false
       const rptNum = (receipt as any).ptNumber
-      if (rptNum != null && coachPtNumbersSel.has(rptNum)) return true
+      if (rptNum != null && ptNumberToCoach.has(rptNum)) {
+        return normName(ptNumberToCoach.get(rptNum)) === normName(selectedCoach)
+      }
       try {
         const details = JSON.parse(receipt.itemDetails)
         return normName(details.coachName) === normName(selectedCoach)
@@ -1754,9 +1765,6 @@ export default function CoachCommissionPage() {
                 const end = new Date(dateTo)
                 end.setHours(23, 59, 59, 999)
 
-                const coachPtNums = new Set(
-                  ptSessions.filter((p) => p.coachName === result.coachName).map((p) => p.ptNumber)
-                )
                 const coachPTReceipts = receipts.filter((receipt) => {
                   //  استبعاد الإيصالات الملغية — مطابق للتقفيل
                   if ((receipt as any).isCancelled) return false
@@ -1766,9 +1774,11 @@ export default function CoachCommissionPage() {
                   const isInDateRange = receiptDate >= start && receiptDate <= end
                   if (!isInDateRange) return false
 
-                  //  الأولوية: مطابقة برقم الـ PT (موثوق)
+                  //  رقم الـ PT هو الحَكَم (بدون رجوع للاسم لو الـ PT معروف)
                   const rptNum = (receipt as any).ptNumber
-                  if (rptNum != null && coachPtNums.has(rptNum)) return true
+                  if (rptNum != null && ptNumberToCoach.has(rptNum)) {
+                    return normName(ptNumberToCoach.get(rptNum)) === normName(result.coachName)
+                  }
 
                   try {
                     const details = JSON.parse(receipt.itemDetails)
@@ -2020,9 +2030,6 @@ export default function CoachCommissionPage() {
                     const end = new Date(dateTo)
                     end.setHours(23, 59, 59, 999)
 
-                    const coachPtNums2 = new Set(
-                      ptSessions.filter((p) => p.coachName === result.coachName).map((p) => p.ptNumber)
-                    )
                     const coachPTReceipts = receipts.filter((receipt) => {
                       //  استبعاد الإيصالات الملغية — مطابق للتقفيل
                       if ((receipt as any).isCancelled) return false
@@ -2030,7 +2037,9 @@ export default function CoachCommissionPage() {
                       const receiptDate = new Date(receipt.createdAt)
                       if (receiptDate < start || receiptDate > end) return false
                       const rptNum = (receipt as any).ptNumber
-                      if (rptNum != null && coachPtNums2.has(rptNum)) return true
+                      if (rptNum != null && ptNumberToCoach.has(rptNum)) {
+                        return normName(ptNumberToCoach.get(rptNum)) === normName(result.coachName)
+                      }
                       try {
                         const details = JSON.parse(receipt.itemDetails)
                         return normName(details.coachName) === normName(result.coachName)

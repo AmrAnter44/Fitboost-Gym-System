@@ -123,6 +123,12 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
 
+  //  📱 واتساب ويب يظهر في نسخة الإلكترون فقط — مش على الموقع (الويب)
+  const [isElectronApp, setIsElectronApp] = useState(false)
+  useEffect(() => {
+    setIsElectronApp(!!(window as any).electron?.isElectron || navigator.userAgent.toLowerCase().includes('electron'))
+  }, [])
+
   //  بادجات: رسائل الوارد غير المقروءة + المهام المفتوحة
   const [inboxUnread, setInboxUnread] = useState(0)
   const [tasksPending, setTasksPending] = useState(0)
@@ -183,6 +189,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       links: [
         { href: '/members', label: t('nav.members'), icon: NavIcons.members, permission: 'canViewMembers' as keyof Permissions },
         { href: '/followups', label: t('nav.followups'), icon: NavIcons.followups, permission: 'canViewFollowUps' as keyof Permissions },
+        { href: '/sales-management', label: locale === 'ar' ? 'إدارة السيلز' : 'Sales Management', icon: NavIcons.staff, permission: null },
       ]
     },
     {
@@ -213,7 +220,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
         ...(user?.staffId && user?.role !== 'OWNER' && user?.role !== 'ADMIN' ? [
           { href: '/my-payslips', label: locale === 'ar' ? 'مرتباتي' : 'My Payslips', icon: NavIcons.myPayslips, permission: null },
         ] : []),
-        ...(!isCoach ? [{ href: '/whatsapp-web', label: 'WhatsApp Web', icon: NavIcons.whatsapp, permission: 'canViewWhatsAppInbox' as keyof Permissions }] : []),
+        ...(!isCoach && isElectronApp ? [{ href: '/whatsapp-web', label: 'WhatsApp Web', icon: NavIcons.whatsapp, permission: 'canViewWhatsAppInbox' as keyof Permissions }] : []),
         { href: '/settings', label: t('nav.settings'), icon: NavIcons.settings, permission: null },
       ]
     },
@@ -236,6 +243,11 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
           hasPermission('canCreateExpense') ||
           hasPermission('canEditExpense') ||
           hasPermission('canDeleteExpense')
+      }
+      //  استثناء: إدارة السيلز — للإدارة (OWNER/ADMIN/MANAGER) أو اللي عنده إدارة السيلز/تعديل الأعضاء
+      if (link.href === '/sales-management') {
+        return user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'MANAGER'
+          || hasPermission('canManageSales') || hasPermission('canEditMembers')
       }
       if (link.permission && !hasPermission(link.permission)) return false
       return true

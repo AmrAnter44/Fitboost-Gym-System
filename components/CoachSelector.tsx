@@ -20,6 +20,9 @@ interface CoachSelectorProps {
   value: string | null
   onChange: (coachId: string | null) => void
   required?: boolean
+  //  العضو مش عايز كابتن (اختيار صريح)
+  noCoach?: boolean
+  onNoCoachChange?: (v: boolean) => void
 }
 
 function CoachIcon({ className = 'w-7 h-7' }: { className?: string }) {
@@ -31,7 +34,7 @@ function CoachIcon({ className = 'w-7 h-7' }: { className?: string }) {
   )
 }
 
-export default function CoachSelector({ value, onChange, required = false }: CoachSelectorProps) {
+export default function CoachSelector({ value, onChange, required = false, noCoach = false, onNoCoachChange }: CoachSelectorProps) {
   const { t } = useLanguage()
   const [coaches, setCoaches] = useState<Coach[]>([])
   const [loading, setLoading] = useState(true)
@@ -91,12 +94,38 @@ export default function CoachSelector({ value, onChange, required = false }: Coa
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-3">
+            {/*  كارت: مش عايز كابتن */}
+            {onNoCoachChange && (
+              <button
+                type="button"
+                onClick={() => { onNoCoachChange(true); onChange(null) }}
+                aria-pressed={noCoach}
+                className={`relative p-3 rounded-lg ring-1 transition-colors duration-200 ${
+                  noCoach
+                    ? 'bg-red-100 dark:bg-red-900/40 ring-red-400 dark:ring-red-500 shadow-sm'
+                    : 'bg-white dark:bg-gray-800 ring-gray-200 dark:ring-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="flex justify-center mb-1 text-red-500 dark:text-red-400">
+                    <svg {...stroke} className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 1 1-12.728 0M12 3v9" /></svg>
+                  </div>
+                  <div className="font-bold text-sm text-gray-900 dark:text-gray-100 mb-1">
+                    {t('members.form.noCoachWanted') || 'مش عايز كابتن'}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {t('members.form.noCoachWantedHint') || 'بدون تعيين مدرب'}
+                  </div>
+                </div>
+              </button>
+            )}
             {coaches.map(coach => (
               <button
                 key={coach.id}
                 type="button"
                 onClick={() => {
                   onChange(coach.id)
+                  onNoCoachChange?.(false)
                 }}
                 aria-pressed={value === coach.id}
                 className={`

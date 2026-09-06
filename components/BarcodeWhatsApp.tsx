@@ -23,6 +23,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [showWebsite, setShowWebsite] = useState(false)
+  const [receiptTerms, setReceiptTerms] = useState('')
 
   // Progress popup state
   const [sendStep, setSendStep] = useState<SendStep>('idle')
@@ -42,6 +43,9 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
           }
           if (typeof data.showWebsiteOnReceipts === 'boolean') {
             setShowWebsite(data.showWebsiteOnReceipts)
+          }
+          if (data.receiptTerms) {
+            setReceiptTerms(data.receiptTerms)
           }
         }
       } catch (error) {
@@ -86,10 +90,12 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
   // بناء رسالة الواتساب
   const buildCaption = useCallback(() => {
     const baseMessage = t('barcode.whatsappMessage', { memberNumber: memberNumber.toString(), memberName })
-    const termsAndConditions = `\n\n━━━━━━━━━━━━━━━━━━━━\n*شروط وأحكام*\n━━━━━━━━━━━━━━━━━━━━\nالساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه`
+    //  الشروط المخصصة من الإعدادات، ولو فاضية نستخدم النص الافتراضي
+    const termsBody = receiptTerms || 'الساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه'
+    const termsAndConditions = `\n\n━━━━━━━━━━━━━━━━━━━━\n*شروط وأحكام*\n━━━━━━━━━━━━━━━━━━━━\n${termsBody}`
     const websiteSection = showWebsite && websiteUrl ? `\n\n🌐 *الموقع الإلكتروني:*\n${websiteUrl}` : ''
     return baseMessage + termsAndConditions + websiteSection
-  }, [t, memberNumber, memberName, showWebsite, websiteUrl])
+  }, [t, memberNumber, memberName, showWebsite, websiteUrl, receiptTerms])
 
   // عرض الباركود فقط (بدون إرسال)
   const handleGenerateBarcode = async () => {
