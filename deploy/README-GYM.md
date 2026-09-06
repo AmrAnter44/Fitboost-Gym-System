@@ -90,12 +90,38 @@ PORT=4011 WHATSAPP_PORT=4012 OWNER_EMAIL=owner@gym.com \
 السكربت بيوقف من أول خطوة لو أي بورت مشغول، فمش هيبني ساعة وبعدين يفشل.
 
 **بيعمل إيه:** حزم النظام + swap → Node 20 + PM2 + Caddy → يجيب الكود →
-`.env` بأسرار عشوائية → `npm ci` → داتابيز فاضية + حساب أونر → build →
-Caddy + العمليتين → كرون نسخة احتياطية + جدار ناري.
+`.env` بأسرار عشوائية → `npm ci` → الداتابيز → build → Caddy + العمليتين →
+كرون نسخة احتياطية + جدار ناري.
 
-في الآخر بيطبع باسورد الأونر ويحطه في
+في حالة الداتابيز الفاضية بيطبع باسورد الأونر ويحطه في
 `<APP_DIR>/logs/owner-credentials.txt` (صلاحيات 600). **غيّره من الإعدادات
 بعد أول دخول وامسح الملف.**
+
+### رفع داتا جيم موجودة بدل ما تبدأ فاضي
+
+⚠️ **متنسخش ملف SQLite بـ `cp` وهو في وضع WAL** — ممكن تضيع آخر معاملات.
+اعمل نسخة متسقة الأول:
+
+```bash
+# على جهازك
+sqlite3 prisma/helmyapoint.db ".backup '/tmp/helmyapoint-upload.db'"
+scp /tmp/helmyapoint-upload.db root@<SERVER_IP>:/root/
+```
+
+وبعدين مرّر `SEED_DB` للتنصيب:
+
+```bash
+SEED_DB=/root/helmyapoint-upload.db \
+PORT=4011 WHATSAPP_PORT=4012 DB_FILE=helmyapoint.db \
+  bash deploy/setup-gym.sh helmyapoint.example.com "اسم الجيم"
+```
+
+السكربت بيتأكد إن الملف سليم (`quick_check`) قبل ما ينقله، وبيتخطى إنشاء
+حساب الأونر — الدخول بيبقى بالحسابات اللي جوّه الداتابيز.
+
+بعدها بيشغّل `prisma db push` عشان يزامن السكيما. **العملية دي بتخلّي
+الداتابيز تطابق السكيما، فأي عمود أو جدول زيادة فيها بيتشال** — عشان كده
+بياخد نسخة `<DB_FILE>.bak-before-schema-sync` قبلها.
 
 ### Caddy على سيرفر مشترك
 

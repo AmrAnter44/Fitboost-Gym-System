@@ -10,6 +10,8 @@
 #     PORT=4011              بورت التطبيق
 #     WHATSAPP_PORT=4012     بورت خدمة الواتساب
 #     DB_FILE=helmyapoint.db اسم ملف الداتابيز (الافتراضي <slug>.db)
+#     SEED_DB=/root/x.db     داتابيز جاهزة تتنقل بدل ما نبدأ فاضي
+#                            (ارفعها بـ scp الأول — شوف README-GYM.md)
 #     OWNER_EMAIL=owner@gym.com
 #     BRANCH=main
 #
@@ -146,14 +148,28 @@ ELECTRON_SKIP_BINARY_DOWNLOAD=1 PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 NEXT_TELEMETR
 step "9/11 تجهيز الداتابيز + البناء"
 # الداتا الأول: `next build` ممكن يلمس الداتابيز أثناء توليد الصفحات
 npx prisma generate
+
+# لو في داتابيز جاهزة اترفعت للسيرفر، ننقلها قبل أي حاجة
+if [ ! -f "$APP_DIR/prisma/$DB_FILE" ] && [ -n "${SEED_DB:-}" ]; then
+  [ -f "$SEED_DB" ] || fail "SEED_DB=$SEED_DB مش موجود على السيرفر — ارفعه بـ scp الأول"
+  [ "$(sqlite3 "$SEED_DB" 'PRAGMA quick_check;' 2>&1)" = "ok" ] \
+    || fail "الداتابيز اللي في SEED_DB تالفة — مانقلتش حاجة"
+  cp "$SEED_DB" "$APP_DIR/prisma/$DB_FILE"
+  echo "✓ اتنقلت داتا الجيم من $SEED_DB ($(du -h "$SEED_DB" | cut -f1))"
+fi
+
 if [ ! -f "$APP_DIR/prisma/$DB_FILE" ]; then
   npx prisma db push --skip-generate --accept-data-loss
   node scripts/bootstrap-gym.js --gym="$GYM_NAME" --email="$OWNER_EMAIL" \
     | tee "$APP_DIR/logs/owner-credentials.txt"
   chmod 600 "$APP_DIR/logs/owner-credentials.txt"
 else
-  echo "✓ في داتابيز موجودة — سايبها زي ما هي"
+  # ⚠️ `db push --accept-data-loss` بيخلّي الداتابيز تطابق السكيما، فأي عمود
+  #    أو جدول زيادة فيها بيتشال. بناخد نسخة قبلها — الاسترجاع أرخص من الندم.
+  echo "✓ في داتابيز — بنزامن السكيما عليها"
+  cp "$APP_DIR/prisma/$DB_FILE" "$APP_DIR/prisma/$DB_FILE.bak-before-schema-sync"
   npx prisma db push --skip-generate --accept-data-loss
+  echo "  (نسخة قبل المزامنة: prisma/$DB_FILE.bak-before-schema-sync)"
 fi
 NODE_OPTIONS="--max-old-space-size=2048" npm run build
 
