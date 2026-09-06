@@ -45,6 +45,7 @@ WHATSAPP_PORT="${WHATSAPP_PORT:-4012}"
 OWNER_EMAIL="${OWNER_EMAIL:-owner@$DOMAIN}"
 # اسم ملف الداتابيز — باسم الجيم عشان ماتلخبطش مع نسخة تانية على نفس السيرفر
 DB_FILE="${DB_FILE:-$SLUG.db}"
+MADE_OWNER=0   # بيبقى 1 بس لو عملنا داتابيز فاضية وحساب أونر جديد
 
 echo "النسخة   : $APP_NAME"
 echo "المجلد   : $APP_DIR"
@@ -163,6 +164,7 @@ if [ ! -f "$APP_DIR/prisma/$DB_FILE" ]; then
   node scripts/bootstrap-gym.js --gym="$GYM_NAME" --email="$OWNER_EMAIL" \
     | tee "$APP_DIR/logs/owner-credentials.txt"
   chmod 600 "$APP_DIR/logs/owner-credentials.txt"
+  MADE_OWNER=1
 else
   # ⚠️ `db push --accept-data-loss` بيخلّي الداتابيز تطابق السكيما، فأي عمود
   #    أو جدول زيادة فيها بيتشال. بناخد نسخة قبلها — الاسترجاع أرخص من الندم.
@@ -216,9 +218,16 @@ cat <<EOF
 ✅ خلص التنصيب.
 
    🔗 الرابط:     https://$DOMAIN
+$(if [ "$MADE_OWNER" = "1" ]; then cat <<OWNER
    👤 الأونر:     $OWNER_EMAIL
    🔑 الباسورد:   في $APP_DIR/logs/owner-credentials.txt
                   (احفظه وغيّره من الإعدادات، وبعدين امسح الملف)
+OWNER
+else cat <<KEPT
+   👤 الدخول:     بحسابات الجيم اللي كانت في الداتابيز المرفوعة
+                  (مااتعملش حساب جديد ومااتغيّرش أي باسورد)
+KEPT
+fi)
 
    📱 الواتساب:   $([ "$WA_STATUS" = "200" ] && echo "شغال ✓ على البورت $WHATSAPP_PORT" || echo "لسه بيقوم (كود $WA_STATUS) — شوف: pm2 logs $APP_NAME-whatsapp")
                   للربط: ادخل بحساب الأونر → الإعدادات → واتساب → اربط رقم
