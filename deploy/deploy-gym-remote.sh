@@ -124,7 +124,9 @@ if [ "$NOW" -ge 45 ] && [ "$NOW" -le 150 ]; then
   # لو اتأكدت إن الديمو مش بيبني فعلاً، SKIP_TIME_CHECK=1 بيعدّيك.
   if [ "${SKIP_TIME_CHECK:-0}" = "1" ]; then
     echo -e "  \033[1;33m⚠️\033[0m  وقت السيرفر $SRV_TIME (جوه النافذة) — بتتخطى الحارس"
-    if sh_ 'pgrep -f "next build" >/dev/null'; then
+    # الأقواس بتمنع pgrep إنه يلاقي الـ shell اللي بينفّذه: النمط
+    # next[ ]build بيطابق "next build" لكن مش بيطابق سطر الأمر نفسه.
+    if sh_ 'pgrep -f "next[ ]build" >/dev/null'; then
       fail "في بناء شغال فعلاً على السيرفر — مش هكمّل مهما كان SKIP_TIME_CHECK."
     fi
     ok "مفيش بناء شغال — كمّل"
