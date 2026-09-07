@@ -532,6 +532,7 @@ function migrateDatabase(dbPath) {
       { col: 'pendingRenewalStartDate',  def: 'DATETIME' }, //  🔁 تجديد مجدول: تاريخ بداية التجديد المؤجل
       { col: 'pendingRenewalExpiryDate', def: 'DATETIME' }, //  🔁 تاريخ نهاية التجديد المؤجل
       { col: 'pendingRenewalData',       def: 'TEXT' },     //  🔁 JSON بتفاصيل التجديد المؤجل
+      { col: 'termsAcceptedAt',          def: 'DATETIME' },  //  📜 وقت موافقة العضو على شروط التطبيق
     ];
     for (const { col, def } of memberCols) {
       if (!columnExists(db, 'Member', col)) {
@@ -566,6 +567,7 @@ function migrateDatabase(dbPath) {
     const settingsCols = [
       { col: 'mixedGymEnabled',            def: 'INTEGER NOT NULL DEFAULT 0' }, // 🚻 جيم مكس
       { col: 'gymName',                    def: 'TEXT' },
+      { col: 'appTerms',                   def: 'TEXT' },      // 📜 شروط وأحكام تطبيق الأعضاء
       { col: 'gymLogo',                    def: 'TEXT' },
       { col: 'primaryColor',               def: 'TEXT' },
       { col: 'primaryTextColor',           def: 'TEXT' },

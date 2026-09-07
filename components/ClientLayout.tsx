@@ -22,7 +22,6 @@ import ToastContainer from './ToastContainer'
 import SearchModal from './SearchModal'
 import BarcodeInputDetector from './BarcodeInputDetector'
 import FloatingSearchButton from './FloatingSearchButton'
-import FloatingScanButton from './FloatingScanButton'
 import UpdateNotification from './UpdateNotification'
 import InstallPrompt from './InstallPrompt'
 import KeyboardShortcuts from './KeyboardShortcuts'
@@ -119,9 +118,8 @@ function LayoutContent({ children }: { children: ReactNode }) {
                 </div>
               </main>
 
-              {/* Floating Search + Scan Buttons */}
+              {/* Floating Search Button */}
               <FloatingSearchButton />
-              <FloatingScanButton />
 
               {/* Back to Top Button */}
               <BackToTop />

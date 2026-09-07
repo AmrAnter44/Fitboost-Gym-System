@@ -11,6 +11,7 @@ import { formatDateYMD, calculateDaysBetween } from '@/lib/dateFormatter'
 import PaymentMethodSelector from '@/components/Paymentmethodselector'
 import type { PaymentMethod as PaymentMethodType } from '@/lib/paymentHelpers'
 import { LoadingScreen } from '@/components/Spinner'
+import MoreScanPanel from '@/components/MoreScanPanel'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -855,6 +856,13 @@ export default function MorePage() {
 
       {/* Search & Filters card */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 mb-6" dir={direction}>
+        {/* 🔦 لوحة سكان المزيد — ظاهرة على طول جوّه الكارت فوق خانة البحث، 50% في النص */}
+        {hasPermission('canRegisterMoreAttendance') && (
+          <div className="mb-4 w-1/2 mx-auto">
+            <MoreScanPanel autoFocus />
+          </div>
+        )}
+
         <div className="mb-5">
           <div className="relative">
             <span className="pointer-events-none absolute inset-y-0 start-0 ps-3 flex items-center text-gray-400">

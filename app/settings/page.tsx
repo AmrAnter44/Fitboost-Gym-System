@@ -354,6 +354,7 @@ export default function SettingsPage() {
     websiteUrl: 'https://www.xgym.website',
     showWebsiteOnReceipts: true,
     receiptTerms: '',
+    appTerms: '',
     pointsEnabled: false,
     pointsPerCheckIn: 0,
     pointsPerInvitation: 0,
@@ -2009,6 +2010,13 @@ export default function SettingsPage() {
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.receipts.termsLabel')}</label>
                 <textarea value={serviceSettings.receiptTerms} onChange={(e) => updateSetting('receiptTerms', e.target.value)} rows={12} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 resize-none" placeholder={t('settingsPage.receipts.termsPlaceholder')} />
                 <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{t('settingsPage.receipts.termsDesc')}</p>
+
+                <div className="mt-6 pt-5 border-t border-gray-200 dark:border-gray-700">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.receipts.appTerms')}</label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{t('settingsPage.receipts.appTermsLabel')}</p>
+                  <textarea value={serviceSettings.appTerms} onChange={(e) => updateSetting('appTerms', e.target.value)} rows={10} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 resize-none" placeholder={t('settingsPage.receipts.appTermsPlaceholder')} />
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{t('settingsPage.receipts.appTermsDesc')}</p>
+                </div>
                 <div className="mt-6 flex justify-end">
                   <button
                     onClick={saveServiceSettings}

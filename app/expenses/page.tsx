@@ -675,10 +675,11 @@ export default function ExpensesPage() {
               {/* طريقة الدفع — البنك اللي اتخصم منه المصروف (يدخل في صافي كل بنك في الإقفال) */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{direction === 'rtl' ? 'مدفوع من' : 'Paid from'}</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {([
                     { key: 'cash', label: direction === 'rtl' ? 'نقدي 💵' : 'Cash 💵' },
                     { key: 'instapay', label: direction === 'rtl' ? 'انستا باي 📱' : 'InstaPay 📱' },
+                    { key: 'wallet', label: direction === 'rtl' ? 'محفظة 💰' : 'Wallet 💰' },
                   ] as const).map(m => (
                     <button
                       key={m.key}

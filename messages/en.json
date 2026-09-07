@@ -4917,7 +4917,11 @@
       "terms": "Receipt Terms and Conditions",
       "termsLabel": "Text displayed at the bottom of each receipt",
       "termsPlaceholder": "Enter receipt terms and conditions...",
-      "termsDesc": "This text will be displayed at the bottom of all printed receipts"
+      "termsDesc": "This text will be displayed at the bottom of all printed receipts",
+      "appTerms": "App terms & conditions",
+      "appTermsLabel": "Shown to the member on their first login to the app",
+      "appTermsPlaceholder": "Write the terms members must accept...",
+      "appTermsDesc": "Members must accept it once before entering the app. Leave it empty and the acceptance screen never appears."
     },
     "quickLinks": {
       "title": "Quick Links",

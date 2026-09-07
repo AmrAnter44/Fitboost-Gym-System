@@ -89,7 +89,7 @@ async function updateSettings(request: Request) {
       'mixedGymEnabled',
       'pointsPerCheckIn', 'pointsPerInvitation', 'pointsPerReferral',
       'pointsValueInEGP', 'pointsPerEGPSpent',
-      'websiteUrl', 'showWebsiteOnReceipts', 'receiptTerms',
+      'websiteUrl', 'showWebsiteOnReceipts', 'receiptTerms', 'appTerms',
       'androidAppUrl', 'iosAppUrl', 'showAppLinksOnReceipts',
       'trackFreeSessionsCost', 'freePTSessionPrice',
       'freeNutritionSessionPrice', 'freePhysioSessionPrice',

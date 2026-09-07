@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
         name: true,
         profileImage: true,
         isActive: true,
+        termsAcceptedAt: true,
       },
     });
 
@@ -64,6 +65,8 @@ export async function POST(request: NextRequest) {
         memberNumber: member.memberNumber,
         name: member.name,
         profileImage: member.profileImage,
+        // 📜 null = العضو لسه ماوافقش على الشروط — التطبيق بيعرضها له بعد اللوجن
+        termsAcceptedAt: member.termsAcceptedAt,
       },
     });
   } catch (error) {

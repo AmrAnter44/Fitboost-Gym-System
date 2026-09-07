@@ -148,59 +148,82 @@ export async function POST(request: Request) {
 
     const now = new Date()
 
-    // البحث عن سجل حضور نشط (لم يتم تسجيل انصراف له)
-    const activeRecord = await prisma.attendance.findFirst({
-      where: {
-        staffId: staff.id,
-        checkOut: null,
-      },
-      orderBy: {
-        checkIn: 'desc',
-      },
+    //  Window ديناميكي: max(workingHours + 4h buffer, 12h)
+    //  بيدعم الشيفت الليلي/الطويل، ولو الموظف نسي يخرج ورجع تاني يوم لسه ممكن يتسجّل انصراف.
+    const baseHours = staff.workingHours && staff.workingHours > 0 ? staff.workingHours : 8
+    const checkOutWindow = Math.max(baseHours + 4, 12)
+
+    //  كل السجلات المفتوحة للموظف (اللي لسه ملهاش انصراف) — مرتّبة من الأحدث
+    const openRecords = await prisma.attendance.findMany({
+      where: { staffId: staff.id, checkOut: null },
+      orderBy: { checkIn: 'desc' },
     })
 
-    // حساب الفرق بالساعات إذا كان هناك سجل نشط
-    if (activeRecord) {
-      const hoursSinceCheckIn = (now.getTime() - activeRecord.checkIn.getTime()) / (1000 * 60 * 60)
-
-      //  Window ديناميكي: max(workingHours + 4h buffer, 12h)
-      // ده بيدعم الشيفت الليلي والشيفت الطويل، ولو الموظف نسي يخرج
-      // ورجع تاني يوم لسه ممكن يتسجّل انصراف للسجل القديم
-      const baseHours = staff.workingHours && staff.workingHours > 0 ? staff.workingHours : 8
-      const checkOutWindow = Math.max(baseHours + 4, 12)
-
-      // إذا كان السجل النشط خلال الـ window -> تسجيل انصراف
-      if (hoursSinceCheckIn <= checkOutWindow) {
-        const durationMinutes = Math.round((now.getTime() - activeRecord.checkIn.getTime()) / (1000 * 60))
-
-        const updatedAttendance = await prisma.attendance.update({
-          where: { id: activeRecord.id },
+    //  🧹 أقفل تلقائياً أي سجل مفتوح أقدم من الـ window (الموظف نسي الانصراف)
+    //  عشان مايفضلش "داخل" للأبد ويزوّد عداد الموجودين. المدة = ساعات شيفته المتوقعة.
+    for (const r of openRecords) {
+      const hrs = (now.getTime() - r.checkIn.getTime()) / (1000 * 60 * 60)
+      if (hrs > checkOutWindow) {
+        const estimatedMinutes = Math.round(baseHours * 60)
+        await prisma.attendance.update({
+          where: { id: r.id },
           data: {
-            checkOut: now,
-            duration: durationMinutes,
+            checkOut: new Date(r.checkIn.getTime() + estimatedMinutes * 60 * 1000),
+            duration: estimatedMinutes,
+            notes: [r.notes, 'انصراف تلقائي — الموظف نسي تسجيل الانصراف'].filter(Boolean).join(' | '),
           },
-          include: {
-            staff: true,
-          },
-        })
-
-        // تنسيق مدة العمل
-        const hours = Math.floor(durationMinutes / 60)
-        const minutes = durationMinutes % 60
-        const durationText = hours > 0 ? `${hours} ساعة و ${minutes} دقيقة` : `${minutes} دقيقة`
-
-        return NextResponse.json({
-          action: 'check-out',
-          message: `👋 مع السلامة ${staff.name}!\nمدة العمل: ${durationText}`,
-          staffCode: staff.staffCode,
-          staffName: staff.name,
-          attendance: updatedAttendance,
-          duration: durationMinutes,
-          durationText,
         })
       }
-      // إذا كان السجل أكبر من 12 ساعة -> اعتباره سجل قديم وإنشاء سجل جديد
-      // (لا نحدثه، بل نتركه كما هو ونفتح سجل جديد)
+    }
+
+    //  السجل النشط الحقيقي = أحدث سجل مفتوح لسه في النافذة (بعد ما قفلنا القديم)
+    const activeRecord = openRecords.find(
+      r => (now.getTime() - r.checkIn.getTime()) / (1000 * 60 * 60) <= checkOutWindow
+    ) || null
+
+    // في سجل نشط -> تسجيل انصراف
+    if (activeRecord) {
+      //  لازم تعدّي دقيقة على الأقل بين الحضور والانصراف (منع الـ accidental double-scan)
+      const minutesSinceCheckIn = (now.getTime() - activeRecord.checkIn.getTime()) / (1000 * 60)
+      if (minutesSinceCheckIn < 1) {
+        const remainingSeconds = Math.ceil(60 - minutesSinceCheckIn * 60)
+        return NextResponse.json(
+          {
+            error: `⏳ يجب الانتظار ${remainingSeconds} ثانية قبل تسجيل الانصراف`,
+            action: 'error',
+            remainingSeconds,
+          },
+          { status: 400 }
+        )
+      }
+
+      const durationMinutes = Math.round((now.getTime() - activeRecord.checkIn.getTime()) / (1000 * 60))
+
+      const updatedAttendance = await prisma.attendance.update({
+        where: { id: activeRecord.id },
+        data: {
+          checkOut: now,
+          duration: durationMinutes,
+        },
+        include: {
+          staff: true,
+        },
+      })
+
+      // تنسيق مدة العمل
+      const hours = Math.floor(durationMinutes / 60)
+      const minutes = durationMinutes % 60
+      const durationText = hours > 0 ? `${hours} ساعة و ${minutes} دقيقة` : `${minutes} دقيقة`
+
+      return NextResponse.json({
+        action: 'check-out',
+        message: `👋 مع السلامة ${staff.name}!\nمدة العمل: ${durationText}`,
+        staffCode: staff.staffCode,
+        staffName: staff.name,
+        attendance: updatedAttendance,
+        duration: durationMinutes,
+        durationText,
+      })
     }
 
     // التحقق من آخر سجل انصراف (حتى لو تم تسجيل الانصراف)

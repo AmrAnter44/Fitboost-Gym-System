@@ -120,23 +120,28 @@ export default function MoreScanPanel({ autoFocus = true, title, onClose }: { au
           </div>
         )}
         {/*  تنبيه: الاسكان بيخصم مرة واحدة */}
-        <div className="mb-3 inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-800 rounded-lg px-3 py-1.5">
-          <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <div className="mb-3 flex items-center justify-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-800 rounded-lg px-3 py-1.5">
+          <svg className="w-4 h-4 flex-shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           {ar ? 'الاسكان بيخصم حصة مرة واحدة في اليوم' : 'Scan deducts one session per day'}
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); submit(phone) }}>
-          <input
-            ref={inputRef} type="text" inputMode="numeric" value={phone}
-            onChange={(e) => setPhone(e.target.value)} disabled={busy}
-            placeholder={ar ? 'امسح الباركود هنا...' : 'Scan barcode here...'}
-            className="w-full h-14 px-4 rounded-lg border-2 border-primary-300 dark:border-primary-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-lg text-center font-mono focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            dir="ltr"
-          />
-          <button type="submit" disabled={busy || !phone}
-            className="mt-3 w-full h-12 bg-primary-600 hover:bg-primary-700 text-primary-contrast font-bold rounded-lg transition-colors disabled:opacity-60">
-            {busy ? (ar ? 'جاري...' : 'Working...') : (ar ? 'تسجيل الحضور' : 'Record attendance')}
-          </button>
+          <div className="relative">
+            <input
+              ref={inputRef} type="text" inputMode="numeric" value={phone}
+              onChange={(e) => setPhone(e.target.value)} disabled={busy}
+              placeholder=""
+              className="w-full h-20 px-5 rounded-xl border-2 border-primary-300 dark:border-primary-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-2xl font-mono focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              dir="ltr"
+              style={{ textAlign: 'center' }}
+            />
+            {/*  علامة الباركود بدل كلمة «امسح الباركود» — بتظهر لما الانبوت فاضي */}
+            {!phone && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <svg className="w-12 h-12 text-gray-400 dark:text-gray-500" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875v14.25M6.75 4.875v14.25M10.5 4.875v14.25M14.25 4.875v14.25M17.25 4.875v14.25M20.25 4.875v14.25" /></svg>
+              </div>
+            )}
+          </div>
         </form>
       </div>
 

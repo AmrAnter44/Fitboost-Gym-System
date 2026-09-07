@@ -1282,9 +1282,24 @@ export default function SearchModal() {
                                     </div>
 
                                     <div>
-                                      <span className="bg-primary-500 text-primary-contrast px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-bold">
-                                         {t('search.member')}
-                                      </span>
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="bg-primary-500 text-primary-contrast px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-bold">
+                                           {t('search.member')}
+                                        </span>
+                                        {/*  🚻 بادج الجندر — يظهر بس لو خاصية الجيم المكس مفعّلة */}
+                                        {settings.mixedGymEnabled && (() => {
+                                          const g = (result.data as any).gender as string | null
+                                          const label = g === 'male' ? (locale === 'ar' ? 'ذكر' : 'Male')
+                                            : g === 'female' ? (locale === 'ar' ? 'أنثى' : 'Female')
+                                            : (locale === 'ar' ? 'غير معروف' : 'Unknown')
+                                          const cls = g === 'male' ? 'bg-blue-500' : g === 'female' ? 'bg-pink-500' : 'bg-gray-400 dark:bg-gray-600'
+                                          return (
+                                            <span className={`${cls} text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-bold`}>
+                                              {label}
+                                            </span>
+                                          )
+                                        })()}
+                                      </div>
                                       <h3 className="text-sm sm:text-base md:text-lg font-bold mt-0.5 sm:mt-1 text-gray-800 dark:text-gray-100">{result.data.name}</h3>
                                     </div>
                                   </div>

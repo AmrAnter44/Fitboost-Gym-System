@@ -44,6 +44,7 @@ model Member {
   points            Int          @default(0)
   notes             String?
   pushToken         String?      // Expo push notification token
+  termsAcceptedAt   DateTime?    // 📜 وقت موافقة العضو على الشروط والأحكام في التطبيق
   isActive          Boolean      @default(true)
   isFrozen          Boolean      @default(false)
   isBanned          Boolean      @default(false)
@@ -1197,6 +1198,7 @@ model SystemSettings {
   iosAppUrl             String?  // رابط تطبيق الـ iOS
   showAppLinksOnReceipts Boolean @default(false)  // عرض روابط التطبيق في الإيصالات
   receiptTerms          String?  @default("الساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه")  // شروط وأحكام الإيصال
+  appTerms              String?  // 📜 الشروط والأحكام اللي بتظهر في تطبيق الأعضاء (فاضي = بيستخدم receiptTerms)
 
   // لوجو واسم الجيم المخصص
   gymName               String?  // اسم الجيم (يظهر في الإيصالات والسايدبار)

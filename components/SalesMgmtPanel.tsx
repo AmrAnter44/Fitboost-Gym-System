@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
+import SalesDistributionPanel from './SalesDistributionPanel'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -75,7 +76,7 @@ export default function SalesMgmtPanel() {
   const [staff, setStaff] = useState<SalesStaff[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Unassigned state
+  // Unassigned state (توزيع حسب نوع الداتا + تعيين لموظف محدد)
   const [unassigned, setUnassigned] = useState({ membersCount: 0, followUpsCount: 0, dayUseCount: 0, invitationCount: 0 })
   const [assignMode, setAssignMode] = useState<'distribute' | 'single'>('distribute')
   const [assignStaffId, setAssignStaffId] = useState('')
@@ -174,7 +175,7 @@ export default function SalesMgmtPanel() {
       if (data.assignedFollowUps) parts.push(`${data.assignedFollowUps} ${ar ? 'متابعة' : 'follow-ups'}`)
       if (data.assignedDayUse) parts.push(`${data.assignedDayUse} ${ar ? 'داي يوز' : 'day use'}`)
       if (data.assignedInvitations) parts.push(`${data.assignedInvitations} ${ar ? 'انفيتيشن' : 'invitation'}`)
-      toast.success(ar ? `تم تعيين ${parts.join(' و ')}` : `Assigned ${parts.join(' and ')}`)
+      toast.success(parts.length ? (ar ? `تم تعيين ${parts.join(' و ')}` : `Assigned ${parts.join(' and ')}`) : (ar ? 'لا يوجد بيانات للتوزيع' : 'Nothing to assign'))
       setConfirmAssign(false)
       setAssignStaffId('')
       fetchStaff()
@@ -214,7 +215,7 @@ export default function SalesMgmtPanel() {
   return (
     <div className="space-y-8">
 
-      {/* ── قسم توزيع الغير مُسنَّدين ── */}
+      {/* ── قسم توزيع الغير مُسنَّدين (حسب نوع الداتا + توزيع بالتساوي أو لموظف محدد) ── */}
       <div>
         <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
           <span className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center">
@@ -355,10 +356,17 @@ export default function SalesMgmtPanel() {
           </div>
         ) : (
           <div className="text-center py-6 text-gray-400 dark:text-gray-500">
-            
             <p className="text-sm">{ar ? 'كل الأعضاء والمتابعات والزوار مُسنَّدين' : 'All members, follow-ups & visitors are assigned'}</p>
           </div>
         )}
+      </div>
+
+      {/* ── قسم توزيع الليدز الكاستوم (مصدر + فترة + نسب) ── */}
+      <div>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+          {ar ? 'توزيع متقدّم بالمصدر والفترة' : 'Advanced distribution (by source & period)'}
+        </h2>
+        <SalesDistributionPanel showHeader={false} />
       </div>
 
       {/* ── قسم نقل البيانات بين السيلز ── */}
