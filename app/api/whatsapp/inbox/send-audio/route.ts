@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../../lib/prisma'
 import { toWhatsAppNumber } from '../../../../../lib/phoneNormalize'
 import { verifyAuth } from '../../../../../lib/auth'
+import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 export async function POST(req: Request) {
   // 🔒 Auth
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
     const idx = sessionIndex ?? 0
 
     // Send audio via sidecar
-    const res = await fetch('http://127.0.0.1:4002/send-audio-multi', {
+    const res = await fetch(`${WHATSAPP_SIDECAR}/send-audio-multi`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionIndex: idx, phone, audioBase64 }),

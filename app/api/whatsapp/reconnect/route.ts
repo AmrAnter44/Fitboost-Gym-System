@@ -4,6 +4,7 @@
 
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '../../../../lib/auth';
+import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 export async function POST(request: Request) {
   // 🔒 Auth
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const res = await fetch('http://127.0.0.1:4002/reconnect', { method: 'POST', cache: 'no-store' });
+    const res = await fetch(`${WHATSAPP_SIDECAR}/reconnect`, { method: 'POST', cache: 'no-store' });
     const data = await res.json();
     return NextResponse.json(data, { status: res.ok ? 200 : 400 });
   } catch {

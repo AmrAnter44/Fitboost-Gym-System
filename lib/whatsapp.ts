@@ -1,13 +1,12 @@
+import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 /**
  * WhatsApp Backend Proxy
  * Multi-session with auto-fallback: tries all connected sessions.
  */
 
-const SIDECAR = 'http://127.0.0.1:4002';
-
 async function getConnectedSessions(): Promise<number[]> {
   try {
-    const res = await fetch(`${SIDECAR}/status/all`, { cache: 'no-store' });
+    const res = await fetch(`${WHATSAPP_SIDECAR}/status/all`, { cache: 'no-store' });
     const sessions = await res.json() as { sessionIndex: number; isReady: boolean }[];
     return sessions.filter(s => s.isReady).map(s => s.sessionIndex);
   } catch {
@@ -21,7 +20,7 @@ export async function sendWhatsAppMessage(phone: string, message: string): Promi
 
     if (connectedSessions.length === 0) {
       // Fallback: try legacy /send (session 0)
-      const res = await fetch(`${SIDECAR}/send`, {
+      const res = await fetch(`${WHATSAPP_SIDECAR}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, message }),
@@ -34,7 +33,7 @@ export async function sendWhatsAppMessage(phone: string, message: string): Promi
     // Try each connected session until one succeeds
     for (const sessionIdx of connectedSessions) {
       try {
-        const res = await fetch(`${SIDECAR}/send-multi`, {
+        const res = await fetch(`${WHATSAPP_SIDECAR}/send-multi`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionIndex: sessionIdx, phone, message }),

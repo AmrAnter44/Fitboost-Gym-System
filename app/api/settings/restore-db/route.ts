@@ -5,6 +5,7 @@ import fs from 'fs'
 import path from 'path'
 import { execSync } from 'child_process'
 import { gunzipSync } from 'zlib'
+import { resolveDbPath } from '@/lib/dbPath'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +16,7 @@ function getDbPath(): string {
   if (match) {
     return match[1]
   }
-  return path.join(process.cwd(), 'prisma', 'gym.db')
+  return resolveDbPath()
 }
 
 // رفع وتحديث قاعدة البيانات

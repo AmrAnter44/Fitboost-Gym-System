@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
+import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 export async function POST(req: Request) {
   try {
     const { phone } = await req.json()
-    const res = await fetch('http://127.0.0.1:4002/check-number', {
+    const res = await fetch(`${WHATSAPP_SIDECAR}/check-number`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone }),

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
+import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 export async function POST(_req: Request, { params }: { params: { idx: string } }) {
   try {
-    const res = await fetch('http://127.0.0.1:4002/sync-history', {
+    const res = await fetch(`${WHATSAPP_SIDECAR}/sync-history`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionIndex: parseInt(params.idx) }),

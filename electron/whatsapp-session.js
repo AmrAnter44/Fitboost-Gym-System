@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const { toWhatsAppNumber } = require('./phoneFormat');
 
-const API_BASE = 'http://127.0.0.1:4001';
+const { API_BASE } = require('./service-ports');
 
 function internalHeaders() {
   const tok = process.env.INTERNAL_API_TOKEN;

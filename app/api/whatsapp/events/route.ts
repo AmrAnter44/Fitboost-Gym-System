@@ -3,12 +3,13 @@
  */
 
 import { NextRequest } from 'next/server';
+import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const res = await fetch('http://127.0.0.1:4002/events', {
+    const res = await fetch(`${WHATSAPP_SIDECAR}/events`, {
       cache: 'no-store',
       signal: request.signal,
       headers: { Accept: 'text/event-stream' }

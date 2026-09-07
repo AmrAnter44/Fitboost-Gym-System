@@ -1,0 +1,52 @@
+# Caddy config لسيرفر جيم حقيقي — HTTPS تلقائي + كاش للملفات الثابتة.
+# ضعه في /etc/caddy/Caddyfile وغيّر الدومين، ثم: systemctl reload caddy
+#
+# ملحوظة أمان: خدمة الواتساب على 4002 مش معروضة هنا ولا في الجدار الناري —
+# هي سامعة على 127.0.0.1 بس، والتطبيق هو اللي بيكلّمها من جوه السيرفر.
+
+gym.example.com {
+    encode zstd gzip
+
+    # ملفات Next الثابتة اسمها فيه hash — كاش سنة كاملة في متصفح الزائر.
+    @next_static path /_next/static/*
+    header @next_static Cache-Control "public, max-age=31536000, immutable"
+
+    @assets path /icons/* /images/* /fonts/* *.woff2 *.png *.jpg *.svg *.ico
+    header @assets Cache-Control "public, max-age=604800"
+
+    header {
+        -Server
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        # لوحة إدارة جيم — مالهاش لازمة في محركات البحث
+        X-Robots-Tag "noindex, nofollow"
+    }
+
+    # ── بث QR الواتساب (SSE) ────────────────────────────────────────────
+    # /api/whatsapp/events بيفضل مفتوح وبيبعت الأحداث أول بأول. من غير
+    # flush_interval -1 الـ proxy بيخزّن الرد في بافر، فالـ QR مايظهرش
+    # في صفحة الإعدادات وتفضل مستنية على الفاضي.
+    @sse path /api/whatsapp/events
+    reverse_proxy @sse 127.0.0.1:4001 {
+        flush_interval -1
+    }
+
+    reverse_proxy 127.0.0.1:4001 {
+        transport http {
+            keepalive 2m
+            keepalive_idle_conns 32
+        }
+    }
+
+    # رفع صور الأعضاء والملفات ممكن يعدّي 10MB الافتراضية
+    request_body {
+        max_size 25MB
+    }
+
+    log {
+        output file /var/log/caddy/gym-access.log
+        format json
+    }
+}

@@ -4,6 +4,7 @@ import path from 'path';
 import { requireAdmin } from '../../../../../lib/auth';
 import { prisma } from '../../../../../lib/prisma';
 import { resolveDbPath } from '../../../../../lib/dbPath';
+import { resolveDbName } from '@/lib/dbPath'
 
 /**
  * 💾 API لإنشاء نسخة احتياطية من الداتابيز
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
 
     // اسم النسخة الاحتياطية
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('.')[0];
-    const backupFilename = `gym.db.backup.manual-${timestamp}.bak`;
+    const backupFilename = `${resolveDbName()}.backup.manual-${timestamp}.bak`;
     const backupPath = path.join(backupDir, backupFilename);
 
     // نسخة متسقة عبر VACUUM INTO (يستخدم اتصال Prisma الحالي — مفيش موديول إضافي)

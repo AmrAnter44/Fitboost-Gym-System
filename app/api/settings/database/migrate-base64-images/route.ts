@@ -2,7 +2,7 @@
 //
 // One-time migration: extracts base64 profile images stored inside Member.profileImage
 // and writes them as real files in the uploads dir, replacing the column with a
-// short URL/path. Then VACUUMs gym.db to reclaim the freed space.
+// short URL/path. Then VACUUMs the live DB to reclaim the freed space.
 //
 // Idempotent: re-running finds no candidates and no-ops.
 // Atomic per-row: writes the file FIRST, verifies it, only then updates the DB.
@@ -16,6 +16,7 @@ import { requireAdmin } from '../../../../../lib/auth'
 import { prisma } from '../../../../../lib/prisma'
 import { getMembersUploadsDir, MEMBERS_UPLOADS_URL_PREFIX } from '../../../../../lib/uploadsPath'
 import { clearReadonlyOnWindows } from '../../../../../lib/dbFilePermissions'
+import { resolveDbPath, resolveDbName } from '@/lib/dbPath'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,7 +44,7 @@ interface PreflightInfo {
 }
 
 function dbPath(): string {
-  return path.join(process.cwd(), 'prisma', 'gym.db')
+  return resolveDbPath()
 }
 
 function fileSizeBytes(filePath: string): number {
@@ -115,10 +116,10 @@ export async function POST(request: Request) {
     // 2. Backup before doing anything destructive
     const live = dbPath()
     if (!existsSync(live)) {
-      return NextResponse.json({ success: false, error: 'gym.db غير موجود' }, { status: 404 })
+      return NextResponse.json({ success: false, error: `${resolveDbName()} غير موجود` }, { status: 404 })
     }
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('.')[0]
-    const backupName = `gym.db.pre-migrate-${timestamp}.bak`
+    const backupName = `${resolveDbName()}.pre-migrate-${timestamp}.bak`
     const backupPath = path.join(process.cwd(), 'prisma', backupName)
     await copyFile(live, backupPath)
 

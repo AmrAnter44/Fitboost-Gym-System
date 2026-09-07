@@ -5,6 +5,7 @@ import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { requireAdmin } from '../../../../../lib/auth';
+import { resolveDbName } from '@/lib/dbPath'
 
 const execAsync = promisify(exec);
 
@@ -186,8 +187,9 @@ export async function POST(request: NextRequest) {
     // الخطوة 9: اختيار الإجراء
     if (action === 'upgrade-and-replace') {
       // استبدال الداتابيز الحالية بالمحدثة
-      const currentDbPath = path.join(prismaDir, 'gym.db');
-      const backupPath = path.join(prismaDir, `gym.db.backup.replaced-${timestamp}`);
+      const dbName = resolveDbName();
+      const currentDbPath = path.join(prismaDir, dbName);
+      const backupPath = path.join(prismaDir, `${dbName}.backup.replaced-${timestamp}`);
 
       // نسخ احتياطي للداتابيز الحالية
       if (existsSync(currentDbPath)) {

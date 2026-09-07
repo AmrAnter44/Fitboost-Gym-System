@@ -1,3 +1,4 @@
+import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 /**
  * Merged SSE stream for all WhatsApp sessions – proxy to sidecar
  */
@@ -6,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const upstreamRes = await fetch('http://127.0.0.1:4002/events/all', {
+    const upstreamRes = await fetch(`${WHATSAPP_SIDECAR}/events/all`, {
       cache: 'no-store',
       headers: { Accept: 'text/event-stream' },
     })

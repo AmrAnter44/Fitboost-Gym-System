@@ -13,19 +13,16 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 const WhatsAppSession = require('./whatsapp-session');
+const { WA_PORT, API_BASE, AUTH_BASE } = require('./service-ports');
 
-const PORT = 4002;
+const PORT = WA_PORT;
 const MAX_SESSIONS = 4;
-const AUTH_BASE = path.join(os.homedir(), '.fitboost-whatsapp');
 
 // ── State ──────────────────────────────────────────────────────────────────
 const sessions = new Map(); // sessionIndex -> WhatsAppSession
 const sseClients = new Set();
 let httpServer = null;
-
-const API_BASE = 'http://127.0.0.1:4001';
 
 function internalHeaders() {
   const tok = process.env.INTERNAL_API_TOKEN;
@@ -117,7 +114,7 @@ function matchRoute(method, url, expectedMethod, pattern) {
 
 // ── HTTP Request Handler ───────────────────────────────────────────────────
 async function handleRequest(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:4001');
+  res.setHeader('Access-Control-Allow-Origin', API_BASE);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -396,7 +393,14 @@ function startWhatsAppService() {
 
     httpServer.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
-        httpServer.listen(PORT + 1, '127.0.0.1');
+        // كان بيحاول PORT+1 هنا — وده كان بيخبّي المشكلة بدل ما يحلّها:
+        // مسارات /api/whatsapp بتنادي على PORT دايماً، فالسماع على بورت
+        // تاني معناه واتساب مقفول من غير أي رسالة خطأ. نفشل بصوت عالي.
+        reject(new Error(
+          `WhatsApp sidecar: البورت ${PORT} مشغول بالفعل. ` +
+          `لو في نسخة تانية شغالة على نفس السيرفر، حدّد WHATSAPP_PORT مختلف ` +
+          `للنسختين (ولازم نفس القيمة توصل لعملية Next كمان).`
+        ));
       } else {
         reject(err);
       }

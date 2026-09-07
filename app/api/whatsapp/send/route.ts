@@ -17,12 +17,11 @@ import {
   WHATSAPP_MAX_MESSAGE_LENGTH,
   WHATSAPP_PHONE_REGEX
 } from '../../../../lib/constants';
-
-const SIDECAR = 'http://127.0.0.1:4002';
+import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 async function getConnectedSessions(): Promise<number[]> {
   try {
-    const res = await fetch(`${SIDECAR}/status/all`, { cache: 'no-store' });
+    const res = await fetch(`${WHATSAPP_SIDECAR}/status/all`, { cache: 'no-store' });
     const sessions = await res.json() as { sessionIndex: number; isReady: boolean }[];
     return sessions.filter(s => s.isReady).map(s => s.sessionIndex);
   } catch {
@@ -88,7 +87,7 @@ export async function POST(request: Request) {
 
     if (connectedSessions.length === 0) {
       try {
-        const res = await fetch(`${SIDECAR}/send`, {
+        const res = await fetch(`${WHATSAPP_SIDECAR}/send`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phone: normalizedPhone, message }),
@@ -112,7 +111,7 @@ export async function POST(request: Request) {
     let lastError = '';
     for (const sessionIdx of sessionsToTry) {
       try {
-        const res = await fetch(`${SIDECAR}/send-multi`, {
+        const res = await fetch(`${WHATSAPP_SIDECAR}/send-multi`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionIndex: sessionIdx, phone: normalizedPhone, message }),

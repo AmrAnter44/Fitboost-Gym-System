@@ -5,6 +5,7 @@ import { promisify } from 'util'
 import { requirePermission } from '../../../../lib/auth'
 import path from 'path'
 import fs from 'fs'
+import { resolveDbPath } from '@/lib/dbPath'
 
 const execAsync = promisify(exec)
 
@@ -18,20 +19,10 @@ export async function POST(request: Request) {
 
 
     // تحديد مسار قاعدة البيانات (Development أو Production)
-    let dbPath = path.join(process.cwd(), 'prisma', 'gym.db')
-    let isProduction = false
-
-    // في Production (Electron)، قاعدة البيانات في AppData
-    if (process.env.NODE_ENV === 'production' || !fs.existsSync(dbPath)) {
-      const appData = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share")
-      const productionDbPath = path.join(appData, 'gym-management', 'gym.db')
-
-      if (fs.existsSync(productionDbPath)) {
-        dbPath = productionDbPath
-        isProduction = true
-      } else {
-      }
-    }
+    // resolveDbPath بيشتق المسار من DATABASE_URL، فبيشتغل مع أي اسم ملف
+    // (helmyapoint.db …) ومع مكان الـ DB في نسخة Electron المعبّأة.
+    const dbPath = resolveDbPath()
+    const isProduction = !dbPath.startsWith(path.join(process.cwd(), 'prisma') + path.sep)
 
     // إنشاء DATABASE_URL المناسب
     const databaseUrl = `file:${dbPath}`
