@@ -271,12 +271,20 @@ export default function MorePage() {
     let filtered = moreSubscriptions.filter(sub => sub.isActive !== false)
 
     if (searchTerm) {
-      filtered = filtered.filter(sub =>
-        sub.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sub.phone.includes(searchTerm) ||
-        sub.moreNumber.toString().includes(searchTerm) ||
-        sub.coachName.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      const term = searchTerm.trim()
+      const isNumeric = /^\d+$/.test(term)
+      filtered = filtered.filter(sub => {
+        if (isNumeric) {
+          //  رقم: رقم الاشتراك **بالظبط** (مش substring عشان ماتجيبش أرقام مشابهة)،
+          //  والتليفون بالبحث الجزئي بس لو الرقم طويل (7 أرقام+) عشان يبقى تليفون فعلاً.
+          if (sub.moreNumber.toString() === term) return true
+          if (term.length >= 7 && sub.phone.includes(term)) return true
+          return false
+        }
+        //  نص: اسم العميل أو الكوتش
+        return sub.clientName.toLowerCase().includes(term.toLowerCase()) ||
+          sub.coachName.toLowerCase().includes(term.toLowerCase())
+      })
     }
 
     const now = new Date()
