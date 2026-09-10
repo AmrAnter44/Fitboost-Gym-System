@@ -104,20 +104,27 @@ export async function GET(request: Request) {
       }
     })
 
-    //  💰 مصادر عمولة السيلز المفعّلة (من الإعدادات). null/فاضي = كل المصادر تتحسب.
+    //  💰 عمولة السيلز حسب المصدر — تشتغل بس لو الميزة مفعّلة (salesCommissionBySourceEnabled).
+    //  لو مقفولة (الافتراضي) → كل المصادر تتحسب زي الأول (enabledCommissionSources = null).
     let enabledCommissionSources: Set<string> | null = null
+    let commissionEnabledAt: Date | null = null //  الفلتر يطبّق بس على الإيصالات بعد التاريخ ده
     try {
-      const s = await prisma.systemSettings.findUnique({ where: { id: 'singleton' }, select: { salesCommissionSources: true } as any })
+      const s = await prisma.systemSettings.findUnique({ where: { id: 'singleton' }, select: { salesCommissionBySourceEnabled: true, salesCommissionBySourceEnabledAt: true, salesCommissionSources: true } as any })
+      const featureOn = (s as any)?.salesCommissionBySourceEnabled === true
       const raw = (s as any)?.salesCommissionSources
-      if (raw) {
+      if (featureOn && raw) {
         const arr = JSON.parse(raw)
         if (Array.isArray(arr)) enabledCommissionSources = new Set(arr.map((x: any) => String(x)))
+        const at = (s as any)?.salesCommissionBySourceEnabledAt
+        if (at) commissionEnabledAt = new Date(at)
       }
     } catch { /* عمود ممكن يكون لسه مش موجود — نعتبر الكل مفعّل */ }
     //  خريطة العضو → مصدره (عشان نفلتر تحصيله حسب المصادر المفعّلة)
     const memberSourceMap = new Map(salesMembers.map(m => [m.id, (m as any).source || null]))
-    const sourceCounts = (memberId: string): boolean => {
-      if (!enabledCommissionSources) return true // الكل مفعّل
+    //  الإيصال بيتحسب لو: الميزة مقفولة، أو الإيصال قديم (قبل تاريخ التفعيل)، أو مصدر العضو مفعّل.
+    const receiptCounts = (memberId: string, receiptDate: Date): boolean => {
+      if (!enabledCommissionSources) return true // الميزة مقفولة → كله يتحسب
+      if (commissionEnabledAt && receiptDate < commissionEnabledAt) return true // إيصال قبل التفعيل → مايتأثرش
       const src = memberSourceMap.get(memberId)
       return enabledCommissionSources.has(String(src || ''))
     }
@@ -131,14 +138,14 @@ export async function GET(request: Request) {
             isCancelled: false,
             createdAt: { gte: startOfMonth, lte: endOfMonth }
           },
-          select: { memberId: true, amount: true }
+          select: { memberId: true, amount: true, createdAt: true }
         })
       : []
 
-    // بناء map للتحصيل لكل عضو — بس للأعضاء اللي مصدرهم مفعّل في عمولة السيلز
+    // بناء map للتحصيل لكل عضو — الإيصالات بعد التفعيل بتتفلتر بالمصدر، واللي قبله بتتحسب عادي
     const memberRevenueMap: Record<string, number> = {}
     for (const receipt of thisMonthReceipts) {
-      if (receipt.memberId && sourceCounts(receipt.memberId)) {
+      if (receipt.memberId && receiptCounts(receipt.memberId, receipt.createdAt as Date)) {
         memberRevenueMap[receipt.memberId] = (memberRevenueMap[receipt.memberId] || 0) + receipt.amount
       }
     }

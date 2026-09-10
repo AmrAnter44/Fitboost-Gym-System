@@ -311,18 +311,17 @@ export default function MorePage() {
     }
 
     //  فلتر بمدى التاريخ (على تاريخ بداية الاشتراك، وإلا تاريخ الإنشاء)
+    //  مقارنة بالـ YMD المحلي (نفس أسلوب فلتر الـ PT) — مضمون ومتجنّب لخبطة التوقيت
     if (dateFrom || dateTo) {
+      const toYMD = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
       filtered = filtered.filter(sub => {
-        const d = new Date(sub.startDate || sub.createdAt)
+        const raw = sub.startDate || sub.createdAt
+        if (!raw) return false
+        const d = new Date(raw)
         if (isNaN(d.getTime())) return false
-        if (dateFrom) {
-          const [y, m, dd] = dateFrom.split('-').map(Number)
-          if (d < new Date(y, m - 1, dd, 0, 0, 0, 0)) return false
-        }
-        if (dateTo) {
-          const [y, m, dd] = dateTo.split('-').map(Number)
-          if (d > new Date(y, m - 1, dd, 23, 59, 59, 999)) return false
-        }
+        const ymd = toYMD(d)
+        if (dateFrom && ymd < dateFrom) return false
+        if (dateTo && ymd > dateTo) return false
         return true
       })
     }
@@ -785,6 +784,14 @@ export default function MorePage() {
       expiryDate: calculatedExpiry || renewFormData.expiryDate
     })
     toast.success(locale === 'ar' ? `تم تطبيق باقة: ${pkg.name} (${pkg.durationDays} يوم)` : `Package applied: ${pkg.name} (${pkg.durationDays} days)`)
+  }
+
+  //  ⏩ اختصار: تاريخ الانتهاء = تاريخ البداية + عدد شهور (لتجديد المزيد بسرعة)
+  const calculateRenewExpiryFromMonths = (months: number) => {
+    const base = renewFormData.startDate || formatDateYMD(new Date())
+    const expiry = new Date(base)
+    expiry.setMonth(expiry.getMonth() + months)
+    setRenewFormData(prev => ({ ...prev, startDate: base, expiryDate: formatDateYMD(expiry) }))
   }
 
   const calculateExpiryFromMonths = (months: number) => {
@@ -2145,6 +2152,19 @@ export default function MorePage() {
                     onChange={(e) => setRenewFormData({ ...renewFormData, expiryDate: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   />
+                  {/*  ⏩ اختصارات سريعة للمدة */}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {[1, 2, 3].map(m => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => calculateRenewExpiryFromMonths(m)}
+                        className="px-2.5 py-1 bg-primary-100 dark:bg-primary-900/30 hover:bg-primary-200 dark:hover:bg-primary-800/40 text-primary-800 dark:text-primary-300 rounded-lg text-xs font-bold transition-colors duration-200"
+                      >
+                        + {m} {locale === 'ar' ? (m === 1 ? 'شهر' : 'شهور') : (m === 1 ? 'month' : 'months')}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('more.paymentMethod')}</label>

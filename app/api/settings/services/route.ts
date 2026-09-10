@@ -108,6 +108,7 @@ async function updateSettings(request: Request) {
       'payrollMonthEndDay',
       'payrollSuggestedLatePerMinute',
       'requireSelfieOnCheckIn', //  Anti buddy-punching
+      'salesCommissionBySourceEnabled', // 💰 تفعيل ميزة عمولة السيلز بالمصدر
       'salesCommissionSources', // 💰 مصادر عمولة السيلز (JSON)
     ]
 
@@ -116,6 +117,23 @@ async function updateSettings(request: Request) {
         updateData[field] = body[field]
       }
     })
+
+    //  💰 إدارة تاريخ تفعيل «عمولة السيلز بالمصدر» تلقائيًا — عشان الفلتر مايأثرش بأثر رجعي
+    //  على الشهور اللي فاتت. بيتسجّل وقت أول تفعيل، ويتمسح لما تتقفل.
+    if ('salesCommissionBySourceEnabled' in body) {
+      if (body.salesCommissionBySourceEnabled === true) {
+        const cur = await prisma.systemSettings.findUnique({
+          where: { id: 'singleton' },
+          select: { salesCommissionBySourceEnabledAt: true } as any,
+        })
+        //  نسجّل التاريخ بس لو مكانش متسجّل قبل كده (أول تفعيل)
+        if (!(cur as any)?.salesCommissionBySourceEnabledAt) {
+          updateData.salesCommissionBySourceEnabledAt = new Date()
+        }
+      } else {
+        updateData.salesCommissionBySourceEnabledAt = null
+      }
+    }
 
     updateData.updatedBy = user.userId
 

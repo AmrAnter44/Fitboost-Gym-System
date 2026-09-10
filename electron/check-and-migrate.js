@@ -600,6 +600,8 @@ function migrateDatabase(dbPath) {
       { col: 'pointsPerBirthday',          def: 'INTEGER NOT NULL DEFAULT 10' },
       { col: 'pointsValueInEGP',           def: 'REAL DEFAULT 0.1' },
       { col: 'salesDailyCallTarget',       def: 'INTEGER NOT NULL DEFAULT 30' },
+      { col: 'salesCommissionBySourceEnabled', def: 'INTEGER NOT NULL DEFAULT 0' }, // 💰 تفعيل ميزة عمولة السيلز بالمصدر
+      { col: 'salesCommissionBySourceEnabledAt', def: 'DATETIME' }, // 💰 تاريخ التفعيل (الفلتر يطبّق بعده بس)
       { col: 'salesCommissionSources',     def: 'TEXT' }, // 💰 مصادر عمولة السيلز (JSON، null = الكل)
       { col: 'updatedBy',                  def: 'TEXT' },
       // ☁️ أعمدة النسخ الاحتياطي السحابي (إصدار 6.10.0) — غيابها كان بيفشّل أي قراءة للإعدادات (إضافة عضو/PT)

@@ -1193,7 +1193,9 @@ model SystemSettings {
   pointsPerBirthday     Int      @default(10)   // نقاط عيد الميلاد للأعضاء النشطين
   pointsValueInEGP      Float    @default(0.1)
   salesDailyCallTarget  Int      @default(30)   //  تارجت المكالمات اليومي لكل موظف سيلز
-  salesCommissionSources String? //  💰 JSON بمصادر الأعضاء اللي تحصيلها يتحسب في عمولة السيلز (null = كل المصادر)
+  salesCommissionBySourceEnabled Boolean @default(false) //  💰 تفعيل ميزة عمولة السيلز حسب المصدر (off = كل المصادر تتحسب زي الأول)
+  salesCommissionBySourceEnabledAt DateTime? //  💰 تاريخ تفعيل الميزة — الفلتر بيطبّق بس على الإيصالات بعده (مايأثرش على الشهور اللي فاتت)
+  salesCommissionSources String? //  💰 JSON بمصادر الأعضاء اللي تحصيلها يتحسب في عمولة السيلز (تشتغل بس لو الميزة مفعّلة)
   websiteUrl            String?  @default("https://www.xgym.website")  // رابط الموقع الإلكتروني
   showWebsiteOnReceipts Boolean  @default(false)  // عرض رابط الموقع في الإيصالات
   androidAppUrl         String?  // رابط تطبيق الأندرويد

@@ -1,5 +1,5 @@
 // app/api/more/scan/route.ts
-//  سكان السباحة/المزيد بالتليفون — بيلاقي اشتراك More بالرقم، بيعرض كارت العضو، ويخصم حصة مرة واحدة في اليوم.
+//  سكان المزيد بالتليفون — بيلاقي اشتراك More بالرقم، بيعرض كارت العضو، ويخصم حصة مرة واحدة في اليوم.
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const matches = candidates.filter(m => (m.phone || '').replace(/\D/g, '') === rawPhone)
 
     if (matches.length === 0) {
-      return NextResponse.json({ found: false, error: 'مفيش اشتراك سباحة/مزيد نشط بالرقم ده' }, { status: 404 })
+      return NextResponse.json({ found: false, error: 'مفيش اشتراك مزيد نشط بالرقم ده' }, { status: 404 })
     }
 
     const today = new Date(); today.setHours(0, 0, 0, 0)

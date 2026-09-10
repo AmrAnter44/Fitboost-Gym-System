@@ -124,16 +124,11 @@ export async function POST(request: Request) {
       }
 
       const newMore = await prisma.$transaction(async (tx) => {
-        // ✅ إنشاء اشتراك More جديد
-        const newMore = await tx.more.create({
-          data: newMoreData,
-        })
-
-        //  تعطيل الاشتراك القديم عشان مايتكررش الكارت بعد التجديد
-        // (الكوتش كان بيشوف القديم + الجديد كاتنين كروت)
-        await tx.more.update({
+        //  🔄 تجديد بنفس الرقم: نحدّث نفس سجل الاشتراك (مش بنعمل رقم جديد) عشان الـ ID مايتغيّرش
+        //  الحصص والتواريخ والسعر بيترسِتوا للاشتراك الجديد، والاشتراك يفضل نشط بنفس رقمه.
+        const newMore = await tx.more.update({
           where: { moreNumber: oldMore.moreNumber },
-          data: { isActive: false },
+          data: { ...newMoreData, isActive: true },
         })
 
         // ✅ الحصول على رقم الإيصال التالي

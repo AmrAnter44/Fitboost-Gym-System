@@ -717,6 +717,8 @@ export default function SettingsPage() {
     { v: 'suggestion', ar: 'اقتراح', en: 'Suggestion' },
     { v: 'renewal_no_followup', ar: 'تجديد بدون متابعة', en: 'Renewal (no follow-up)' },
   ]
+  //  تفعيل ميزة عمولة السيلز بالمصدر
+  const salesCommissionBySourceEnabled = (serviceSettings as any).salesCommissionBySourceEnabled === true
   //  المصادر المفعّلة حاليًا. null/فاضي في الإعداد = الكل مفعّل.
   const enabledCommissionSources = (() => {
     const raw = (serviceSettings as any).salesCommissionSources
@@ -1835,12 +1837,27 @@ export default function SettingsPage() {
                     <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? 'عمولة السيلز حسب المصدر' : 'Sales Commission by Source'}</h2>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                       {locale === 'ar'
-                        ? 'فعّل المصادر اللي تحصيل أعضائها يتحسب في عمولة السيلز، واقفل اللي مش عايزها. (لو كله مفعّل = كل المصادر بتتحسب)'
-                        : "Enable the sources whose members' revenue counts toward sales commission; disable the rest."}
+                        ? 'ميزة اختيارية: لو مقفولة، كل المصادر بتتحسب في العمولة زي الأصل. لو فعّلتها، بس المصادر اللي تختارها هي اللي تتحسب.'
+                        : "Optional: when off, all sources count in commission (default). When on, only the sources you pick count."}
                     </p>
                   </div>
                 </div>
 
+                {/*  🔘 زرار تفعيل/تقفيل الميزة كلها */}
+                <div className={`flex items-center justify-between gap-3 p-4 rounded-lg ring-1 mb-4 ${salesCommissionBySourceEnabled ? 'bg-primary-50 dark:bg-primary-900/20 ring-primary-200 dark:ring-primary-800' : 'bg-gray-50 dark:bg-gray-900/40 ring-gray-200 dark:ring-gray-700'}`}>
+                  <div>
+                    <h4 className="font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? 'تفعيل الميزة' : 'Enable feature'}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{locale === 'ar' ? 'لو مقفولة، العمولات بترجع زي ما كانت (كل المصادر).' : 'When off, commissions work as before (all sources).'}</p>
+                  </div>
+                  <label className="toggle-switch toggle-green flex-shrink-0">
+                    <input type="checkbox" checked={salesCommissionBySourceEnabled} onChange={() => updateSetting('salesCommissionBySourceEnabled', !salesCommissionBySourceEnabled)} />
+                    <span className="toggle-track">
+                      <span className="toggle-thumb"></span>
+                    </span>
+                  </label>
+                </div>
+
+                {salesCommissionBySourceEnabled && (
                 <div className="grid gap-3">
                   {COMMISSION_SOURCE_OPTIONS.map(opt => {
                     const on = enabledCommissionSources.has(opt.v)
@@ -1865,6 +1882,7 @@ export default function SettingsPage() {
                     )
                   })}
                 </div>
+                )}
 
                 <div className="flex justify-end mt-5">
                   <button
