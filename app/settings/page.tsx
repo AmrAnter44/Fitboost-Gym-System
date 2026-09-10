@@ -1841,19 +1841,27 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="grid gap-3">
                   {COMMISSION_SOURCE_OPTIONS.map(opt => {
                     const on = enabledCommissionSources.has(opt.v)
                     return (
-                      <label key={opt.v} className={`flex items-center justify-between gap-3 rounded-lg px-4 py-3 ring-1 cursor-pointer transition-colors ${on ? 'bg-primary-50 dark:bg-primary-900/20 ring-primary-200 dark:ring-primary-800' : 'ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40'}`}>
-                        <span className="text-sm font-bold text-gray-800 dark:text-gray-100">{locale === 'ar' ? opt.ar : opt.en}</span>
-                        <input
-                          type="checkbox"
-                          checked={on}
-                          onChange={() => toggleCommissionSource(opt.v)}
-                          className="w-5 h-5 accent-primary-600 flex-shrink-0"
-                        />
-                      </label>
+                      <div
+                        key={opt.v}
+                        onClick={() => toggleCommissionSource(opt.v)}
+                        className={`flex items-center justify-between gap-3 p-4 rounded-lg ring-1 cursor-pointer transition-colors duration-200 ${
+                          on
+                            ? 'bg-primary-50 dark:bg-primary-900/20 ring-primary-200 dark:ring-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900/30'
+                            : 'bg-gray-50 dark:bg-gray-900/40 ring-gray-200 dark:ring-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:ring-primary-300 dark:hover:ring-primary-700'
+                        }`}
+                      >
+                        <span className="font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? opt.ar : opt.en}</span>
+                        <label className="toggle-switch toggle-green flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <input type="checkbox" checked={on} onChange={() => toggleCommissionSource(opt.v)} />
+                          <span className="toggle-track">
+                            <span className="toggle-thumb"></span>
+                          </span>
+                        </label>
+                      </div>
                     )
                   })}
                 </div>

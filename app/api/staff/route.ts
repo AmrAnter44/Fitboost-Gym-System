@@ -282,10 +282,15 @@ export async function PUT(request: Request) {
       updateData.staffCode = staffCode
     }
 
-    const staff = await prisma.staff.update({
-      where: { id },
-      data: updateData,
-    })
+    //  لو مفيش حقول Prisma عادية للتحديث (مثلاً حفظ العمولة بس) — منعملش update فاضي،
+    //  نجيب الموظف عشان الـ response/audit. الحفظ الفعلي للعمولة بيتم بـ raw SQL تحت.
+    const staff = Object.keys(updateData).length > 0
+      ? await prisma.staff.update({ where: { id }, data: updateData })
+      : await prisma.staff.findUnique({ where: { id } })
+
+    if (!staff) {
+      return NextResponse.json({ error: 'الموظف غير موجود' }, { status: 404 })
+    }
 
     //  💼 كتابة حقول العمولة بـ raw SQL (drift-safe) — كل عمود اتبعت بس
     try {
