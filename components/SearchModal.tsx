@@ -244,6 +244,7 @@ export default function SearchModal() {
   const [attendanceMessage, setAttendanceMessage] = useState<{type: 'success' | 'error', text: string, staff?: any} | null>(null)
   const memberIdRef = useRef<HTMLInputElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
+  const searchSeqRef = useRef(0) //  🛡️ حارس تسلسل — يمنع رد سكان قديم يكتب فوق سكان أحدث
   const audioContextRef = useRef<AudioContext | null>(null)
 
   const [invitationModal, setInvitationModal] = useState<{isOpen: boolean, memberId: string, memberName: string, memberSalesStaffId?: string | null}>({ isOpen: false, memberId: '', memberName: '' })
@@ -657,12 +658,16 @@ export default function SearchModal() {
     const foundResults: SearchResult[] = []
 
     try {
-      const membersRes = await fetch('/api/members')
+      //  🚀 استعلام مباشر بالرقم (indexed) بدل ما نجيب كل الأعضاء ونفلتر في المتصفح
+      //  ده أسرع بكتير ويمنع الداتا الغلط الناتجة عن الحِمل/الردود المتأخرة مع السكان السريع
+      const seq = ++searchSeqRef.current
+      const membersRes = await fetch(`/api/members?memberNumber=${encodeURIComponent(inputValue)}`)
       const members = await membersRes.json()
+      //  لو اتعمل سكان أحدث وإحنا مستنيين الرد ده — نتجاهل الرد القديم (منع الداتا الغلط)
+      if (seq !== searchSeqRef.current) return
 
-      // مطابقة صارمة (string-exact) — "0122" مش = "122"
-      // لأن الأصفار في الأول جزء من رقم العضوية ومش بنتجاهلها
-      const filteredMembers = members.filter((m: any) => {
+      // الـ API بيرجّع مطابقة صارمة بالرقم بالظبط (بما فيها الأصفار في الأول)
+      const filteredMembers = (Array.isArray(members) ? members : []).filter((m: any) => {
         if (m.memberNumber == null) return false
         return m.memberNumber.toString() === inputValue
       })

@@ -703,6 +703,33 @@ export default function SettingsPage() {
     setServiceSettings(prev => ({ ...prev, [key]: value }))
   }
 
+  //  💰 مصادر عمولة السيلز — القائمة الكاملة
+  const COMMISSION_SOURCE_OPTIONS: { v: string; ar: string; en: string }[] = [
+    { v: 'walk-in', ar: 'زيارة مباشرة (Walk-in)', en: 'Walk-in' },
+    { v: 'call-in', ar: 'اتصال (Call-in)', en: 'Call-in' },
+    { v: 'facebook', ar: 'فيسبوك', en: 'Facebook' },
+    { v: 'instagram', ar: 'انستجرام', en: 'Instagram' },
+    { v: 'tiktok', ar: 'تيك توك', en: 'TikTok' },
+    { v: 'google_maps', ar: 'جوجل ماب', en: 'Google Maps' },
+    { v: 'chatgpt', ar: 'ChatGPT', en: 'ChatGPT' },
+    { v: 'website', ar: 'الموقع الإلكتروني', en: 'Website' },
+    { v: 'friend_referral', ar: 'إحالة صديق', en: 'Friend referral' },
+    { v: 'suggestion', ar: 'اقتراح', en: 'Suggestion' },
+    { v: 'renewal_no_followup', ar: 'تجديد بدون متابعة', en: 'Renewal (no follow-up)' },
+  ]
+  //  المصادر المفعّلة حاليًا. null/فاضي في الإعداد = الكل مفعّل.
+  const enabledCommissionSources = (() => {
+    const raw = (serviceSettings as any).salesCommissionSources
+    if (!raw) return new Set(COMMISSION_SOURCE_OPTIONS.map(o => o.v)) // الكل
+    try { const arr = JSON.parse(raw); return new Set(Array.isArray(arr) ? arr.map((x: any) => String(x)) : COMMISSION_SOURCE_OPTIONS.map(o => o.v)) }
+    catch { return new Set(COMMISSION_SOURCE_OPTIONS.map(o => o.v)) }
+  })()
+  const toggleCommissionSource = (key: string) => {
+    const next = new Set(enabledCommissionSources)
+    if (next.has(key)) next.delete(key); else next.add(key)
+    updateSetting('salesCommissionSources', JSON.stringify(Array.from(next)))
+  }
+
   const handleLanguageChange = (newLocale: string) => {
     setLanguage(newLocale as 'ar' | 'en')
   }
@@ -1335,6 +1362,7 @@ export default function SettingsPage() {
       { id: 'services', label: t('settingsPage.navigation.services') },
       { id: 'points', label: t('settingsPage.navigation.points') },
       { id: 'referral', label: t('settingsPage.navigation.referral') },
+      { id: 'sales-commission', label: locale === 'ar' ? 'عمولة السيلز' : 'Sales Commission' },
       { id: 'free-sessions', label: t('settingsPage.navigation.freeSessions') },
       { id: 'receipts', label: t('settingsPage.navigation.receipts') },
       { id: 'port-forwarding', label: t('settingsPage.navigation.portForwarding') }
@@ -1782,6 +1810,55 @@ export default function SettingsPage() {
                   )}
                 </div>
                 <div className="flex justify-end">
+                  <button
+                    onClick={saveServiceSettings}
+                    disabled={isSaving}
+                    className="bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'sales-commission' && (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? 'عمولة السيلز حسب المصدر' : 'Sales Commission by Source'}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {locale === 'ar'
+                        ? 'فعّل المصادر اللي تحصيل أعضائها يتحسب في عمولة السيلز، واقفل اللي مش عايزها. (لو كله مفعّل = كل المصادر بتتحسب)'
+                        : "Enable the sources whose members' revenue counts toward sales commission; disable the rest."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {COMMISSION_SOURCE_OPTIONS.map(opt => {
+                    const on = enabledCommissionSources.has(opt.v)
+                    return (
+                      <label key={opt.v} className={`flex items-center justify-between gap-3 rounded-lg px-4 py-3 ring-1 cursor-pointer transition-colors ${on ? 'bg-primary-50 dark:bg-primary-900/20 ring-primary-200 dark:ring-primary-800' : 'ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40'}`}>
+                        <span className="text-sm font-bold text-gray-800 dark:text-gray-100">{locale === 'ar' ? opt.ar : opt.en}</span>
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          onChange={() => toggleCommissionSource(opt.v)}
+                          className="w-5 h-5 accent-primary-600 flex-shrink-0"
+                        />
+                      </label>
+                    )
+                  })}
+                </div>
+
+                <div className="flex justify-end mt-5">
                   <button
                     onClick={saveServiceSettings}
                     disabled={isSaving}

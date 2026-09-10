@@ -46,6 +46,7 @@ const VisitorsPanel = nextDynamic(() => import('../visitors/page'), {
 })
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
+import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   fetchFollowUpsPage,
@@ -123,6 +124,7 @@ function FollowUpsPageContent() {
   const hideNumbers = permissions?.hideFollowUpNumbers === true
   const { t, direction, locale } = useLanguage()
   const toast = useToast()
+  const { settings } = useServiceSettings()
   const router = useRouter()
   const searchParams = useSearchParams()
   const queryClient = useQueryClient()
@@ -195,20 +197,36 @@ function FollowUpsPageContent() {
     const v = Number(localStorage.getItem('wa-bulk-batchBreakMax'))
     return Number.isFinite(v) && v > 0 ? v : 300
   })
-  const [bulkScriptSessionIndex, setBulkScriptSessionIndex] = useState<number | 'auto'>(() => {
-    if (typeof window === 'undefined') return 'auto'
-    const v = localStorage.getItem('wa-bulk-sessionIndex')
-    if (v === null || v === 'auto') return 'auto'
-    const n = Number(v)
-    return Number.isFinite(n) ? n : 'auto'
-  })
+  //  📱 الرقم الافتراضي للإرسال — بقى محفوظ في الأكونت (الداتابيز) مش المتصفح
+  const [bulkScriptSessionIndex, setBulkScriptSessionIndex] = useState<number | 'auto'>('auto')
+  const waSessionLoadedRef = useRef(false)
 
   //  Persist bulk script settings whenever they change
   useEffect(() => { localStorage.setItem('wa-bulk-dailyLimit', String(bulkScriptDailyLimit)) }, [bulkScriptDailyLimit])
   useEffect(() => { localStorage.setItem('wa-bulk-batchSize', String(bulkScriptBatchSize)) }, [bulkScriptBatchSize])
   useEffect(() => { localStorage.setItem('wa-bulk-batchBreakMin', String(bulkScriptBatchBreakMin)) }, [bulkScriptBatchBreakMin])
   useEffect(() => { localStorage.setItem('wa-bulk-batchBreakMax', String(bulkScriptBatchBreakMax)) }, [bulkScriptBatchBreakMax])
-  useEffect(() => { localStorage.setItem('wa-bulk-sessionIndex', String(bulkScriptSessionIndex)) }, [bulkScriptSessionIndex])
+
+  //  حمّل الرقم الافتراضي المحفوظ للأكونت مرة واحدة عند الفتح
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/whatsapp/my-session').then(r => r.ok ? r.json() : null).then(d => {
+      if (cancelled || !d) return
+      setBulkScriptSessionIndex(d.mySessionIndex === null || d.mySessionIndex === undefined ? 'auto' : Number(d.mySessionIndex))
+      waSessionLoadedRef.current = true
+    }).catch(() => { waSessionLoadedRef.current = true })
+    return () => { cancelled = true }
+  }, [])
+
+  //  احفظ الرقم الافتراضي في الأكونت لما يتغيّر (بعد ما يتحمّل الأول عشان مانكتبش auto بالغلط)
+  useEffect(() => {
+    if (!waSessionLoadedRef.current) return
+    fetch('/api/whatsapp/my-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionIndex: bulkScriptSessionIndex === 'auto' ? null : bulkScriptSessionIndex }),
+    }).catch(() => {})
+  }, [bulkScriptSessionIndex])
   const [availableWaSessions, setAvailableWaSessions] = useState<{sessionIndex: number, phoneNumber?: string, isReady: boolean}[]>([])
 
   //  ثبات الـ stale/refetch لكل المتابعات (تقليل الـ network traffic)
@@ -458,6 +476,7 @@ function FollowUpsPageContent() {
   const [contactedFilter, setContactedFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [sourceFilter, setSourceFilter] = useState('all') //  فلتر المصدر
+  const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female' | 'unknown'>('all') // 🚻 فلتر الجندر
   const [socialFilter, setSocialFilter] = useState<string[]>([]) //  فلتر السوشيال ميديا (بوب-أب)
   const [salesFilter, setSalesFilter] = useState('all') //  فلتر السيلز (all, my-followups, my-overdue, today)
   const [assignedStaffFilter, setAssignedStaffFilter] = useState('all') //  فلتر بموظف سيلز محدد
@@ -521,6 +540,7 @@ function FollowUpsPageContent() {
         phone: m.phone,
         source: 'expired-member',
         status: 'expired',
+        gender: (m as any).gender || null,
         salesStaffId: (m as any).salesStaffId || undefined
       }))
   }, [allMembersData, user, permissionsLoading, canManageSales])
@@ -560,6 +580,7 @@ function FollowUpsPageContent() {
           source: 'expiring-member',
           status: 'expiring',
           daysLeft,
+          gender: (m as any).gender || null,
           salesStaffId: (m as any).salesStaffId || undefined
         }
       })
@@ -1352,6 +1373,13 @@ function FollowUpsPageContent() {
           }
         }
 
+        //  🚻 فلتر الجندر — 'unknown' = مش متحدد (null أو غير male/female)
+        let matchesGender = true
+        if (genderFilter !== 'all') {
+          const g = (fu.visitor as any).gender
+          matchesGender = genderFilter === 'unknown' ? (g !== 'male' && g !== 'female') : g === genderFilter
+        }
+
         //  فلتر السوشيال ميديا (بوب-أب) — لو فيه منصّات مختارة، اعرض بس اللي مصدرها منهم
         const matchesSocial = socialFilter.length === 0 || socialFilter.includes(fu.visitor.source)
 
@@ -1375,7 +1403,7 @@ function FollowUpsPageContent() {
           }
         }
 
-        return matchesSearch && matchesResult && matchesContacted && matchesPriority && matchesSource && matchesSocial && matchesSales && matchesAssignedStaff && matchesDateRange
+        return matchesSearch && matchesResult && matchesContacted && matchesPriority && matchesSource && matchesGender && matchesSocial && matchesSales && matchesAssignedStaff && matchesDateRange
       })
       .sort((a, b) => {
         if (sortByPriority) {
@@ -1392,12 +1420,12 @@ function FollowUpsPageContent() {
         //  ترتيب حسب تاريخ الإضافة: الأحدث أولاً
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       })
-  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority, getFollowUpPriority, user, isMyFollowUp])
+  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, genderFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority, getFollowUpPriority, user, isMyFollowUp])
 
   // إعادة تعيين الصفحة للأولى عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority])
+  }, [debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, genderFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredFollowUps.length / itemsPerPage)
@@ -2992,6 +3020,25 @@ function FollowUpsPageContent() {
               <option value="upcoming">{t('followups.priority.upcoming')}</option>
             </select>
           </div>
+          {/* 🚻 فلتر الجندر — يظهر بس لو الجيم مكس */}
+          {settings.mixedGymEnabled && (
+            <div className="min-w-[130px]">
+              <label className="block text-xs font-bold mb-1 text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM4.5 20.25a7.5 7.5 0 0 1 15 0"/></svg>
+                {locale === 'ar' ? 'الجندر' : 'Gender'}
+              </label>
+              <select
+                value={genderFilter}
+                onChange={(e) => setGenderFilter(e.target.value as any)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
+              >
+                <option value="all">{locale === 'ar' ? 'الكل' : 'All'}</option>
+                <option value="male">{locale === 'ar' ? 'ذكر' : 'Male'}</option>
+                <option value="female">{locale === 'ar' ? 'أنثى' : 'Female'}</option>
+                <option value="unknown">{locale === 'ar' ? 'غير محدد' : 'Unknown'}</option>
+              </select>
+            </div>
+          )}
           <div className="min-w-[130px]">
             <label className="block text-xs font-bold mb-1 text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>

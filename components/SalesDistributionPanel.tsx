@@ -48,6 +48,7 @@ export default function SalesDistributionPanel({ showHeader = true }: { showHead
   const [endDate, setEndDate] = useState('')
   const [gender, setGender] = useState<Gender>('all')
   const [source, setSource] = useState('all')
+  const [distType, setDistType] = useState<'visitors' | 'dayuse' | 'invitations'>('visitors') // 🗂️ نوع البيانات المطلوب توزيعها
   const [selectedMonth, setSelectedMonth] = useState('')  //  'YYYY-MM'
   const [limitCount, setLimitCount] = useState('')  //  عدد محدد للتوزيع (فاضي = الكل)
   const [stats, setStats] = useState<RepStat[]>([])
@@ -70,7 +71,9 @@ export default function SalesDistributionPanel({ showHeader = true }: { showHead
       if (startDate) qs.set('startDate', startDate)
       if (endDate) qs.set('endDate', endDate)
       qs.set('gender', gender)
-      if (source && source !== 'all') qs.set('source', source)
+      qs.set('type', distType)
+      //  المصدر بيتطبّق على الزوار بس (الداي يوز/الانفيتيشن مصدرهم ثابت)
+      if (distType === 'visitors' && source && source !== 'all') qs.set('source', source)
       const res = await fetch(`/api/sales/distribute?${qs.toString()}`)
       const data = await res.json()
       if (res.ok) {
@@ -91,7 +94,7 @@ export default function SalesDistributionPanel({ showHeader = true }: { showHead
     } finally {
       setLoadingPreview(false)
     }
-  }, [canAccess, startDate, endDate, gender, source, toast, ar])
+  }, [canAccess, startDate, endDate, gender, source, distType, toast, ar])
 
   useEffect(() => { fetchPreview() }, [fetchPreview])
 
@@ -151,7 +154,7 @@ export default function SalesDistributionPanel({ showHeader = true }: { showHead
       const res = await fetch('/api/sales/distribute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startDate: startDate || null, endDate: endDate || null, gender, source: source === 'all' ? null : source, limit: parseInt(limitCount) || 0, reps }),
+        body: JSON.stringify({ startDate: startDate || null, endDate: endDate || null, gender, source: distType === 'visitors' && source !== 'all' ? source : null, type: distType, limit: parseInt(limitCount) || 0, reps }),
       })
       const data = await res.json()
       if (res.ok) {
@@ -244,11 +247,23 @@ export default function SalesDistributionPanel({ showHeader = true }: { showHead
             </select>
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{ar ? 'المصدر' : 'Source'}</label>
-            <select value={source} onChange={(e) => setSource(e.target.value)}
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{ar ? 'النوع' : 'Type'}</label>
+            <select value={distType} onChange={(e) => setDistType(e.target.value as any)}
               className="w-full h-11 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+              <option value="visitors">{ar ? 'الزوار' : 'Visitors'}</option>
+              <option value="dayuse">{ar ? 'الداي يوز' : 'Day Use'}</option>
+              <option value="invitations">{ar ? 'الانفيتيشن' : 'Invitations'}</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{ar ? 'المصدر' : 'Source'}</label>
+            <select value={source} onChange={(e) => setSource(e.target.value)} disabled={distType !== 'visitors'}
+              className="w-full h-11 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
               {SOURCE_OPTIONS.map(o => <option key={o.v} value={o.v}>{ar ? o.ar : o.en}</option>)}
             </select>
+            {distType !== 'visitors' && (
+              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{ar ? 'المصدر بيتطبّق على الزوار بس' : 'Source applies to visitors only'}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{ar ? 'وزّع عدد محدد (اختياري)' : 'Distribute count (optional)'}</label>

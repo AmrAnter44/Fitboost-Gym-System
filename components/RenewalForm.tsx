@@ -65,6 +65,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
   const [subscriptionPrice, setSubscriptionPrice] = useState('')
+  const [discount, setDiscount] = useState('0') // 💸 خصم على سعر الباقة
   const [freePTSessions, setFreePTSessions] = useState('0')
   const [freeNutritionSessions, setFreeNutritionSessions] = useState('0')
   const [freePhysioSessions, setFreePhysioSessions] = useState('0')
@@ -103,6 +104,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null)
   //  وضع المزايا: دايمًا ريست — الاشتراك الجديد بينزّل مزايا الباقة الجديدة من الصفر (من غير تجميع)
   const resetBenefits = true
+  //  💰 الأدمن/الأونر يقدروا يعدّلوا السعر يدوي؛ باقي الموظفين السعر مقفول على الباقة
+  const isPrivilegedUser = user?.role === 'OWNER' || user?.role === 'ADMIN'
 
   //  حساب الأيام المتبقية في الاشتراك القديم (لو لسه فيه)
   // لما العضو يجدد قبل ما اشتراكه ينتهي، الأيام دي بتتضاف على مدة الاشتراك الجديد
@@ -241,7 +244,9 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           memberId: member.id,
-          subscriptionPrice: parseInt(subscriptionPrice),
+          //  💸 السعر المرسل = سعر الباقة بعد الخصم
+          subscriptionPrice: Math.max(0, (parseInt(subscriptionPrice) || 0) - Math.max(0, parseInt(discount) || 0)),
+          discount: Math.max(0, parseInt(discount) || 0),
           remainingAmount: parseInt(remainingAmount) || 0,
           remainingDueDate: remainingDueDate || null,
           freePTSessions: parseInt(freePTSessions) || 0,
@@ -299,7 +304,11 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   }
 
   const duration = calculateDays(startDate, expiryDate)
-  const totalAmount = subscriptionPrice ? parseInt(subscriptionPrice) : 0
+  //  💸 السعر بعد الخصم = سعر الباقة − الخصم (مش بيقل عن صفر)
+  const basePrice = parseInt(subscriptionPrice) || 0
+  const discountValue = Math.max(0, parseInt(discount) || 0)
+  const finalPrice = Math.max(0, basePrice - discountValue)
+  const totalAmount = finalPrice
   //  لو resetBenefits ON، الـ total = اللي بيجي مع الباقة فقط
   //  لو OFF (default)، الـ total = القديم + اللي بيجي مع الباقة
   const totalSessions = resetBenefits
@@ -467,17 +476,49 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
               <div>
                 <label htmlFor="renewal-subscription-price" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   {t('renewal.subscriptionPrice')} <span className="text-red-600">*</span>
+                  {!isPrivilegedUser && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-normal ms-1">
+                      ({direction === 'rtl' ? 'بيتحدد من الباقة' : 'set by the package'})
+                    </span>
+                  )}
                 </label>
                 <input
                   id="renewal-subscription-price"
                   type="number"
                   value={subscriptionPrice}
-                  onChange={(e) => setSubscriptionPrice(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-                  placeholder={t('renewal.subscriptionPricePlaceholder')}
+                  readOnly={!isPrivilegedUser}
+                  onChange={isPrivilegedUser ? (e) => setSubscriptionPrice(e.target.value) : undefined}
+                  className={`w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 transition-colors duration-200 ${
+                    isPrivilegedUser
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 cursor-not-allowed focus:outline-none'
+                  }`}
+                  placeholder={direction === 'rtl' ? 'اختر باقة لتحديد السعر' : 'Pick a package to set the price'}
                   min="0"
                   required
                 />
+              </div>
+
+              {/*  💸 خصم على سعر الباقة */}
+              <div>
+                <label htmlFor="renewal-discount" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                  {direction === 'rtl' ? 'الخصم (جنيه)' : 'Discount (EGP)'}
+                </label>
+                <input
+                  id="renewal-discount"
+                  type="number"
+                  value={discount}
+                  onChange={(e) => setDiscount(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                  placeholder="0"
+                  min="0"
+                  max={basePrice || undefined}
+                />
+                {discountValue > 0 && (
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-bold">
+                    {direction === 'rtl' ? 'السعر بعد الخصم:' : 'Price after discount:'} {finalPrice} {direction === 'rtl' ? 'جنيه' : 'EGP'}
+                  </p>
+                )}
               </div>
 
               {settings.remainingEnabled && (
@@ -496,7 +537,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                   />
                   {parseInt(remainingAmount) > 0 && (
                     <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                      {direction === 'rtl' ? 'المدفوع:' : 'Paid:'} {(parseInt(subscriptionPrice) || 0) - (parseInt(remainingAmount) || 0)} {direction === 'rtl' ? 'جنيه' : 'EGP'}
+                      {direction === 'rtl' ? 'المدفوع:' : 'Paid:'} {finalPrice - (parseInt(remainingAmount) || 0)} {direction === 'rtl' ? 'جنيه' : 'EGP'}
                     </p>
                   )}
                 </div>
@@ -562,14 +603,17 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
 
               <div>
                 <label htmlFor="renewal-expiry-date" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                  {t('renewal.expiryDate')} <span className="text-red-600">*</span> <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">{t('renewal.dateFormat')}</span>
+                  {t('renewal.expiryDate')} <span className="text-red-600">*</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 font-normal ms-1">
+                    ({direction === 'rtl' ? 'بيتحسب تلقائي من البداية والباقة' : 'auto from start & package'})
+                  </span>
                 </label>
                 <input
                   id="renewal-expiry-date"
                   type="text"
                   value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 font-mono"
+                  readOnly
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 cursor-not-allowed focus:outline-none font-mono"
                   placeholder={t('renewal.expiryDatePlaceholder')}
                   pattern="\d{4}-\d{2}-\d{2}"
                   required
@@ -637,7 +681,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
               value={paymentMethod}
               onChange={setPaymentMethod}
               allowMultiple={true}
-              totalAmount={Math.max((parseInt(subscriptionPrice) || 0) - (parseInt(remainingAmount) || 0), 0)}
+              totalAmount={Math.max(finalPrice - (parseInt(remainingAmount) || 0), 0)}
               memberPoints={member.points || 0}
               pointsValueInEGP={settings.pointsValueInEGP}
               pointsEnabled={settings.pointsEnabled}
@@ -716,7 +760,10 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
               </div>
               <div className="text-center bg-green-50 dark:bg-green-900/20 rounded-lg p-2">
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t('renewal.subscriptionPrice')}</p>
-                <p className="font-bold text-lg text-green-600 dark:text-green-400">{subscriptionPrice || 0} {t('renewal.currency')}</p>
+                <p className="font-bold text-lg text-green-600 dark:text-green-400">{finalPrice} {t('renewal.currency')}</p>
+                {discountValue > 0 && (
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 line-through">{basePrice} {t('renewal.currency')}</p>
+                )}
               </div>
             </div>
           </div>

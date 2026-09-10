@@ -257,6 +257,7 @@ function MembersPageContent() {
   const [filterPackage, setFilterPackage] = useState<'all' | 'month' | '3-months' | '6-months' | 'year'>('all')
   const [filterSalesId, setFilterSalesId] = useState<string>('all') // فلتر السيلز ('all' / '__none__' / staff.id)
   const [filterCoachId, setFilterCoachId] = useState<string>('all') // ‍ فلتر الكوتش ('all' / '__none__' / staff.id)
+  const [filterGender, setFilterGender] = useState<'all' | 'male' | 'female' | 'unknown'>('all') // 🚻 فلتر الجندر (جيم مكس)
   const [socialFilter, setSocialFilter] = useState<string[]>([]) //  فلتر السوشيال ميديا (المصدر)
   const [filtersOpen, setFiltersOpen] = useState(false) //  دراج الفلاتر المجمّع (الباقة/السيلز/الكوتش/المصدر/التاريخ)
   // فلتر تاريخ الاشتراك — مدى (من/إلى) يحدده المستخدم (YYYY-MM-DD)
@@ -434,7 +435,16 @@ function MembersPageContent() {
       })
     }
 
-    //  فلتر السوشيال ميديا (بوب-أب) — لو فيه منصّات مختارة، اعرض بس الأعضاء اللي مصدرهم منهم
+    // 🚻 فلتر الجندر (جيم مكس) — 'unknown' = مش متحدد (null أو غير male/female)
+    if (filterGender !== 'all') {
+      filtered = filtered.filter((member) => {
+        const g = (member as any).gender
+        if (filterGender === 'unknown') return g !== 'male' && g !== 'female'
+        return g === filterGender
+      })
+    }
+
+    //  فلتر السوشيال ميديا (بوب-أب) — لو فيه منصّات مختارة, اعرض بس الأعضاء اللي مصدرهم منهم
     if (socialFilter.length > 0) {
       filtered = filtered.filter((member) => socialFilter.includes(member.source))
     }
@@ -480,7 +490,7 @@ function MembersPageContent() {
     })
 
     return sorted
-  }, [debouncedSearch, debouncedSearchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterSubFrom, filterSubTo, socialFilter, membersData])
+  }, [debouncedSearch, debouncedSearchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, socialFilter, membersData])
 
   // جلب المحظورين عند التحميل (لو عنده صلاحية)
   useEffect(() => {
@@ -611,7 +621,7 @@ function MembersPageContent() {
   // إعادة تعيين الصفحة عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, searchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterSubFrom, filterSubTo, socialFilter])
+  }, [search, searchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, socialFilter])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
@@ -640,6 +650,7 @@ function MembersPageContent() {
     setFilterPackage('all')
     setFilterSalesId('all')
     setFilterCoachId('all')
+    setFilterGender('all')
     setFilterSubFrom('')
     setFilterSubTo('')
     setSocialFilter([])
@@ -651,6 +662,7 @@ function MembersPageContent() {
     (filterPackage !== 'all' ? 1 : 0) +
     (filterSalesId !== 'all' ? 1 : 0) +
     (filterCoachId !== 'all' ? 1 : 0) +
+    (filterGender !== 'all' ? 1 : 0) +
     (socialFilter.length > 0 ? 1 : 0)
 
   //  عدد الفلاتر النشطة جوّه الدراج (الباقة/السيلز/الكوتش/المصدر/التاريخ)
@@ -1333,6 +1345,25 @@ function MembersPageContent() {
             </select>
           </div>
 
+          {/* 🚻 فلتر الجندر — يظهر بس لو الجيم مكس */}
+          {settings.mixedGymEnabled && (
+            <div className="flex-1 min-w-0">
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                {locale === 'ar' ? 'الجندر' : 'Gender'}
+              </label>
+              <select
+                value={filterGender}
+                onChange={(e) => setFilterGender(e.target.value as any)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+              >
+                <option value="all">{locale === 'ar' ? '— الكل —' : '— All —'}</option>
+                <option value="male">{locale === 'ar' ? 'ذكر' : 'Male'}</option>
+                <option value="female">{locale === 'ar' ? 'أنثى' : 'Female'}</option>
+                <option value="unknown">{locale === 'ar' ? 'غير محدد' : 'Unknown'}</option>
+              </select>
+            </div>
+          )}
+
           {/*  فلتر السوشيال ميديا — dropdown ثابت زي الباقة/السيلز/الكوتش */}
           <div className="flex-1 min-w-0">
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
@@ -1580,6 +1611,23 @@ function MembersPageContent() {
                     ))}
                 </select>
               </section>
+
+              {/* 🚻 Gender — يظهر بس لو الجيم مكس */}
+              {settings.mixedGymEnabled && (
+                <section>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'الجندر' : 'Gender'}</label>
+                  <select
+                    value={filterGender}
+                    onChange={(e) => setFilterGender(e.target.value as any)}
+                    className="w-full min-h-[44px] px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                  >
+                    <option value="all">{locale === 'ar' ? '— الكل —' : '— All —'}</option>
+                    <option value="male">{locale === 'ar' ? 'ذكر' : 'Male'}</option>
+                    <option value="female">{locale === 'ar' ? 'أنثى' : 'Female'}</option>
+                    <option value="unknown">{locale === 'ar' ? 'غير محدد' : 'Unknown'}</option>
+                  </select>
+                </section>
+              )}
             </div>
 
             {/* Footer actions */}

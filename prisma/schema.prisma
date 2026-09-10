@@ -607,6 +607,7 @@ model User {
   locale       String        @default("ar")   // 🌐 إعدادات اللغة (ar/en)
   isSales      Boolean       @default(false)  // 🏷️ حساب سيلز - يشوف متابعاته بس
   profileImage String?       //  صورة بروفايل الموظف (يضيفها بنفسه)
+  whatsappSessionIndex Int?  // 📱 رقم الواتساب الافتراضي للأكونت (index الجلسة) — null = تلقائي
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   staffId      String?       @unique
@@ -1192,6 +1193,7 @@ model SystemSettings {
   pointsPerBirthday     Int      @default(10)   // نقاط عيد الميلاد للأعضاء النشطين
   pointsValueInEGP      Float    @default(0.1)
   salesDailyCallTarget  Int      @default(30)   //  تارجت المكالمات اليومي لكل موظف سيلز
+  salesCommissionSources String? //  💰 JSON بمصادر الأعضاء اللي تحصيلها يتحسب في عمولة السيلز (null = كل المصادر)
   websiteUrl            String?  @default("https://www.xgym.website")  // رابط الموقع الإلكتروني
   showWebsiteOnReceipts Boolean  @default(false)  // عرض رابط الموقع في الإيصالات
   androidAppUrl         String?  // رابط تطبيق الأندرويد

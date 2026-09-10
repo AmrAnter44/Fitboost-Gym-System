@@ -249,9 +249,12 @@ export async function PUT(request: Request) {
     if (salesTarget !== undefined) {
       updateData.salesTarget = salesTarget !== null && salesTarget !== '' ? parseFloat(salesTarget) : 0
     }
-    if (salesCommissionType !== undefined) updateData.salesCommissionType = salesCommissionType || null
-    if (salesCommissionRate !== undefined) updateData.salesCommissionRate = salesCommissionRate !== null && salesCommissionRate !== '' ? parseFloat(salesCommissionRate) : null
-    if (salesCommissionTiers !== undefined) updateData.salesCommissionTiers = salesCommissionTiers || null
+    //  💼 حقول العمولة — بنكتبها بـ raw SQL بعد الـ update (مش عن طريق Prisma) عشان تشتغل
+    //  حتى لو الـ Prisma client لسه قديم على النسخة المتبّتة (drift-safe).
+    const commissionRaw: { type?: string | null; rate?: number | null; tiers?: string | null } = {}
+    if (salesCommissionType !== undefined) commissionRaw.type = salesCommissionType || null
+    if (salesCommissionRate !== undefined) commissionRaw.rate = (salesCommissionRate !== null && salesCommissionRate !== '') ? parseFloat(salesCommissionRate) : null
+    if (salesCommissionTiers !== undefined) commissionRaw.tiers = salesCommissionTiers || null
 
     //  تارجت الكوتش — مسموح لـ canEditStaff (نفس صلاحيات السيلز)
     if (coachTarget !== undefined) {
@@ -284,6 +287,21 @@ export async function PUT(request: Request) {
       data: updateData,
     })
 
+    //  💼 كتابة حقول العمولة بـ raw SQL (drift-safe) — كل عمود اتبعت بس
+    try {
+      const sets: string[] = []
+      const vals: any[] = []
+      if (commissionRaw.type !== undefined) { sets.push('salesCommissionType = ?'); vals.push(commissionRaw.type) }
+      if (commissionRaw.rate !== undefined) { sets.push('salesCommissionRate = ?'); vals.push(commissionRaw.rate) }
+      if (commissionRaw.tiers !== undefined) { sets.push('salesCommissionTiers = ?'); vals.push(commissionRaw.tiers) }
+      if (sets.length > 0) {
+        await prisma.$executeRawUnsafe(`UPDATE Staff SET ${sets.join(', ')} WHERE id = ?`, ...vals, id)
+      }
+    } catch (e) {
+      console.error('commission raw update failed:', e)
+      return NextResponse.json({ error: 'فشل حفظ إعدادات العمولة' }, { status: 500 })
+    }
+
     // Salary change log — if salary changed, record it for HR audit
     if (salary !== undefined && (user.role === 'OWNER' || user.role === 'ADMIN') && salary !== prevSalary) {
       await prisma.salaryChangeLog.create({
@@ -304,7 +322,13 @@ export async function PUT(request: Request) {
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 
-    return NextResponse.json(staff)
+    //  نعكس قيم العمولة اللي اتكتبت بـ raw على الـ response (لأن staff جاي من قبل الـ raw update)
+    const staffOut: any = { ...staff }
+    if (commissionRaw.type !== undefined) staffOut.salesCommissionType = commissionRaw.type
+    if (commissionRaw.rate !== undefined) staffOut.salesCommissionRate = commissionRaw.rate
+    if (commissionRaw.tiers !== undefined) staffOut.salesCommissionTiers = commissionRaw.tiers
+
+    return NextResponse.json(staffOut)
   } catch (error: any) {
     console.error('Error updating staff:', error)
 

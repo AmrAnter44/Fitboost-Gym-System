@@ -223,6 +223,11 @@ export default function MemberDetailPage() {
  const [showEditRenewalModal, setShowEditRenewalModal] = useState(false)
  const [editRenewalLoading, setEditRenewalLoading] = useState(false)
  const [editRenewalData, setEditRenewalData] = useState({ startDate: '', expiryDate: '', freePTSessions: 0, inBodyScans: 0, invitations: 0, freezeDays: 0 })
+ //  💰 دفع باقي التجديد المجدول قبل ما يبدأ
+ const [showPayRenewalModal, setShowPayRenewalModal] = useState(false)
+ const [payRenewalLoading, setPayRenewalLoading] = useState(false)
+ const [payRenewalAmount, setPayRenewalAmount] = useState('')
+ const [payRenewalMethod, setPayRenewalMethod] = useState<'cash' | 'instapay' | 'wallet' | 'visa'>('cash')
  //  متابعة سريعة على العضو
  const [showQuickFollowUp, setShowQuickFollowUp] = useState(false)
  const [followUpHistory, setFollowUpHistory] = useState<any[]>([])
@@ -622,6 +627,38 @@ export default function MemberDetailPage() {
  } catch {
  toast.error(locale === 'ar' ? 'فشل التعديل' : 'Failed')
  } finally { setEditRenewalLoading(false) }
+ }
+
+ //  💰 فتح موديل دفع باقي التجديد المجدول (مملوء بالباقي كامل افتراضياً)
+ const openPayRenewal = () => {
+ const rem = (member as any)?.pendingRenewal?.remainingAmount || 0
+ setPayRenewalAmount(rem > 0 ? String(rem) : '')
+ setPayRenewalMethod('cash')
+ setShowPayRenewalModal(true)
+ }
+
+ const savePayRenewal = async () => {
+ if (!member?.id) return
+ const amt = parseFloat(payRenewalAmount)
+ const rem = (member as any)?.pendingRenewal?.remainingAmount || 0
+ if (!amt || amt <= 0) { toast.error(locale === 'ar' ? 'اكتب مبلغ صحيح' : 'Enter a valid amount'); return }
+ if (amt > rem) { toast.error(locale === 'ar' ? 'المبلغ أكبر من باقي التجديد' : 'Amount exceeds renewal remaining'); return }
+ setPayRenewalLoading(true)
+ try {
+ const res = await fetch('/api/members/pay-pending-renewal', {
+ method: 'POST', headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ memberId: member.id, amount: amt, paymentMethod: payRenewalMethod })
+ })
+ const data = await res.json()
+ if (!res.ok) { toast.error(data?.error || (locale === 'ar' ? 'فشل التحصيل' : 'Failed')); return }
+ toast.success(data.newRemaining > 0
+ ? (locale === 'ar' ? `تم تحصيل ${amt} — باقي ${data.newRemaining}` : `Collected ${amt} — ${data.newRemaining} left`)
+ : (locale === 'ar' ? 'تم تحصيل باقي التجديد بالكامل ✅' : 'Renewal remaining fully collected ✅'))
+ setShowPayRenewalModal(false)
+ await fetchMember()
+ } catch {
+ toast.error(locale === 'ar' ? 'فشل التحصيل' : 'Failed')
+ } finally { setPayRenewalLoading(false) }
  }
 
  // رفع صورة ناقصة (شخصية أو بطاقة) — يعمل لأي مستخدم مسجل دخول طالما الحقل فاضي
@@ -2424,6 +2461,15 @@ export default function MemberDetailPage() {
  <div className="bg-white/10 rounded-lg px-3 py-2">
  <p className="opacity-75 text-xs">{locale === 'ar' ? 'باقي على التجديد' : 'Renewal remaining'}</p>
  <p className="font-bold text-amber-200">{(member as any).pendingRenewal.remainingAmount || 0} {locale === 'ar' ? 'ج.م' : 'EGP'}</p>
+ {((member as any).pendingRenewal.remainingAmount || 0) > 0 && (
+ <button
+ onClick={openPayRenewal}
+ className="mt-1.5 w-full bg-white/90 hover:bg-white text-emerald-700 font-bold text-xs px-2 py-1 rounded-md transition-colors duration-200 inline-flex items-center justify-center gap-1"
+ >
+ <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" /></svg>
+ {locale === 'ar' ? 'دفع الباقي' : 'Pay'}
+ </button>
+ )}
  </div>
  {((member as any).pendingRenewal.freePTSessions > 0) && (
  <div className="bg-white/10 rounded-lg px-3 py-2">
@@ -5187,6 +5233,55 @@ export default function MemberDetailPage() {
  <div className="flex gap-2 justify-end mt-5">
  <button onClick={() => setShowEditRenewalModal(false)} disabled={editRenewalLoading} className="px-4 py-2 rounded-lg font-bold text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50">{locale === 'ar' ? 'رجوع' : 'Back'}</button>
  <button onClick={saveEditRenewal} disabled={editRenewalLoading} className="px-4 py-2 rounded-lg font-bold text-sm bg-primary-600 hover:bg-primary-700 text-primary-contrast disabled:opacity-50">{editRenewalLoading ? (locale === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (locale === 'ar' ? 'حفظ' : 'Save')}</button>
+ </div>
+ </div>
+ </div>
+ )}
+
+ {/*  💰 موديل دفع باقي التجديد المجدول قبل ما يبدأ */}
+ {showPayRenewalModal && (member as any).pendingRenewal && (
+ <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => { if (!payRenewalLoading) setShowPayRenewalModal(false) }}>
+ <div dir={locale === 'ar' ? 'rtl' : 'ltr'} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-sm p-6 animate-modal-in" onClick={(e) => e.stopPropagation()}>
+ <h3 className="text-lg font-black text-gray-900 dark:text-gray-100 mb-1">{locale === 'ar' ? 'دفع باقي التجديد' : 'Pay renewal remaining'}</h3>
+ <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+ {locale === 'ar'
+ ? `الباقي على التجديد المجدول: ${(member as any).pendingRenewal.remainingAmount || 0} ج.م — تقدر تحصّله قبل ما التجديد يبدأ.`
+ : `Scheduled renewal remaining: ${(member as any).pendingRenewal.remainingAmount || 0} EGP — collect it before the renewal starts.`}
+ </p>
+
+ <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">{locale === 'ar' ? 'المبلغ المدفوع' : 'Amount'}</label>
+ <input
+ type="number" min="0" max={(member as any).pendingRenewal.remainingAmount || 0}
+ value={payRenewalAmount}
+ onChange={(e) => setPayRenewalAmount(e.target.value)}
+ className="w-full px-3 py-2 border rounded-lg text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white mb-3"
+ placeholder="0"
+ />
+
+ <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5">{locale === 'ar' ? 'طريقة الدفع' : 'Payment method'}</label>
+ <div className="grid grid-cols-2 gap-2 mb-4">
+ {([
+ { key: 'cash', label: locale === 'ar' ? 'نقدي 💵' : 'Cash 💵' },
+ { key: 'instapay', label: locale === 'ar' ? 'انستا باي 📱' : 'InstaPay 📱' },
+ { key: 'wallet', label: locale === 'ar' ? 'محفظة 💰' : 'Wallet 💰' },
+ { key: 'visa', label: locale === 'ar' ? 'فيزا 💳' : 'Visa 💳' },
+ ] as const).map(m => (
+ <button key={m.key} type="button" onClick={() => setPayRenewalMethod(m.key)}
+ className={`px-2 py-2 rounded-lg text-sm font-bold ring-1 transition-colors duration-200 ${payRenewalMethod === m.key ? 'bg-primary-500 text-primary-contrast ring-primary-500' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}>
+ {m.label}
+ </button>
+ ))}
+ </div>
+
+ {parseFloat(payRenewalAmount) > 0 && (
+ <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+ {locale === 'ar' ? 'الباقي بعد الدفع:' : 'Remaining after:'} <span className="font-bold">{Math.max(0, ((member as any).pendingRenewal.remainingAmount || 0) - (parseFloat(payRenewalAmount) || 0))}</span> {locale === 'ar' ? 'ج.م' : 'EGP'}
+ </p>
+ )}
+
+ <div className="flex gap-2 justify-end">
+ <button onClick={() => setShowPayRenewalModal(false)} disabled={payRenewalLoading} className="px-4 py-2 rounded-lg font-bold text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50">{locale === 'ar' ? 'رجوع' : 'Back'}</button>
+ <button onClick={savePayRenewal} disabled={payRenewalLoading} className="px-4 py-2 rounded-lg font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50">{payRenewalLoading ? (locale === 'ar' ? 'جاري التحصيل...' : 'Collecting...') : (locale === 'ar' ? 'تحصيل' : 'Collect')}</button>
  </div>
  </div>
  </div>

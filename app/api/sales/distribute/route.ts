@@ -20,15 +20,25 @@ async function requireSalesManager(request: Request) {
   return { error: null, status: 200 as const, user }
 }
 
+//  نوع البيانات المطلوب توزيعها. الداي يوز والانفيتيشن بيتخزّنوا كـ Visitor بمصدر مخصّص.
+type DistType = 'visitors' | 'dayuse' | 'invitations'
+
 //  يرجّع IDs الليدز غير المُسنّين المطابقين للفلتر
-async function getUnassignedLeadIds(startDate?: string | null, endDate?: string | null, gender?: Gender, source?: string | null): Promise<string[]> {
+async function getUnassignedLeadIds(startDate?: string | null, endDate?: string | null, gender?: Gender, source?: string | null, type?: DistType): Promise<string[]> {
   const where: any = {
     isDeleted: false,
     status: { notIn: ['subscribed', 'rejected'] },
     //  غير مُسنّد = مفيش أي متابعة ليها assignedTo
     followUps: { none: { assignedTo: { not: null } } },
   }
-  if (source && source !== 'all') where.source = source
+  //  النوع بيحدّد مصدر الزوار: داي يوز = 'invitation'، انفيتيشن = 'member-invitation'
+  if (type === 'dayuse') {
+    where.source = 'invitation'
+  } else if (type === 'invitations') {
+    where.source = 'member-invitation'
+  } else if (source && source !== 'all') {
+    where.source = source
+  }
   if (startDate || endDate) {
     where.createdAt = {}
     if (startDate) where.createdAt.gte = new Date(startDate)
@@ -66,9 +76,10 @@ export async function GET(request: Request) {
   const endDate = searchParams.get('endDate')
   const gender = (searchParams.get('gender') || 'all') as Gender
   const source = searchParams.get('source')
+  const type = (searchParams.get('type') || 'visitors') as DistType
 
   try {
-    const ids = await getUnassignedLeadIds(startDate, endDate, gender, source)
+    const ids = await getUnassignedLeadIds(startDate, endDate, gender, source, type)
     const salesStaff = await prisma.staff.findMany({
       where: { isActive: true, position: { contains: 'sales' } },
       select: { id: true, name: true, staffCode: true },
@@ -104,6 +115,7 @@ export async function POST(request: Request) {
     const endDate: string | null = body.endDate || null
     const gender: Gender = body.gender || 'all'
     const source: string | null = body.source || null
+    const type: DistType = (body.type || 'visitors') as DistType
     const limit: number = Number(body.limit) > 0 ? Math.floor(Number(body.limit)) : 0
     const reps: Array<{ staffId: string; percentage: number }> = Array.isArray(body.reps) ? body.reps : []
 
@@ -116,9 +128,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'مجموع النسب لازم يكون أكبر من صفر' }, { status: 400 })
     }
 
-    let ids = await getUnassignedLeadIds(startDate, endDate, gender, source)
+    let ids = await getUnassignedLeadIds(startDate, endDate, gender, source, type)
     if (ids.length === 0) {
-      return NextResponse.json({ error: 'مفيش ليدز غير مُسنّين مطابقين للفلتر' }, { status: 400 })
+      return NextResponse.json({ error: 'مفيش بيانات غير مُسنّة مطابقة للفلتر' }, { status: 400 })
     }
 
     //  خلط عشوائي عشان التوزيع يبقى عادل (مش مرتّب بالتاريخ)

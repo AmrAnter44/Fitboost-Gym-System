@@ -695,7 +695,7 @@ export default function PTPage() {
     if (subTo && ymd > subTo) return false
     return true
   }
-  const subDateCount = sessions.filter(s => inSubRange(s.createdAt)).length
+  const subDateCount = sessions.filter(s => inSubRange(s.startDate)).length
 
   const filteredSessions = sessions.filter((session) => {
     // البحث النصي
@@ -732,8 +732,8 @@ export default function PTPage() {
     if (filterType === 'regular') matchesType = session.ptNumber >= 0
     else if (filterType === 'dayuse') matchesType = session.ptNumber < 0
 
-    // فلتر فترة الاشتراك
-    const matchesSubDate = inSubRange(session.createdAt)
+    // فلتر فترة الاشتراك — على تاريخ بداية الاشتراك (اشترك في الفترة)
+    const matchesSubDate = inSubRange(session.startDate)
 
     return matchesSearch && matchesCoach && matchesStatus && matchesSessions && matchesType && matchesSubDate
   })

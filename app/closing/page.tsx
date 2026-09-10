@@ -1744,6 +1744,10 @@ export default function ClosingPage() {
                           <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-orange-200 dark:ring-orange-900/50">
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">{IconWallet}<span>{t('closing.paymentMethods.wallet')}</span></p>
                             <p className="text-lg font-bold text-orange-700 dark:text-orange-400 mt-1">{day.wallet > 0 ? day.wallet.toFixed(0) : '0'}</p>
+                            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{direction === 'rtl' ? 'صافي المحفظة' : 'Net Wallet'}</p>
+                              <p className="text-sm font-bold text-orange-600 dark:text-orange-400">{(day.wallet - day.expensesWallet).toFixed(0)} {t('closing.currency')}</p>
+                            </div>
                           </div>
                           <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-amber-200 dark:ring-amber-900/50">
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">{IconTrophy}<span>{t('closing.paymentMethods.points')}</span></p>

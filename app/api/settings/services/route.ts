@@ -108,6 +108,7 @@ async function updateSettings(request: Request) {
       'payrollMonthEndDay',
       'payrollSuggestedLatePerMinute',
       'requireSelfieOnCheckIn', //  Anti buddy-punching
+      'salesCommissionSources', // 💰 مصادر عمولة السيلز (JSON)
     ]
 
     validFields.forEach(field => {

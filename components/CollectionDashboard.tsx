@@ -225,8 +225,12 @@ export default function CollectionDashboard() {
         } : s))
         setEditingCommission(null)
         toast.success(ar ? 'تم حفظ إعدادات العمولة' : 'Commission saved')
+      } else {
+        //  نعرض رسالة الخطأ الحقيقية من السيرفر بدل ما الحفظ يفشل بصمت
+        const d = await res.json().catch(() => ({} as any))
+        toast.error(d?.error || (ar ? `فشل الحفظ (${res.status})` : `Save failed (${res.status})`))
       }
-    } catch { toast.error(ar ? 'فشل الحفظ' : 'Failed') }
+    } catch { toast.error(ar ? 'فشل الحفظ — تأكد من الاتصال' : 'Save failed — check connection') }
     finally { setSavingComm(false) }
   }
 

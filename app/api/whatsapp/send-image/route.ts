@@ -75,8 +75,22 @@ export async function POST(request: Request) {
       }
     }
 
+    //  رتّب الأرقام بحيث الرقم الافتراضي المحفوظ لأكونت المستخدم يتجرّب الأول
+    let orderedSessions = [...connectedSessions]
+    try {
+      const { prisma } = await import('../../../../lib/prisma')
+      const rows: any[] = await prisma.$queryRawUnsafe(
+        `SELECT whatsappSessionIndex AS v FROM User WHERE id = ? LIMIT 1`, user.userId
+      )
+      const v = rows?.[0]?.v
+      if (v !== null && v !== undefined) {
+        const pref = Number(v)
+        if (connectedSessions.includes(pref)) orderedSessions = [pref, ...connectedSessions.filter(s => s !== pref)]
+      }
+    } catch { /* عمود ممكن يكون لسه مش موجود */ }
+
     let lastError = '';
-    for (const sessionIdx of connectedSessions) {
+    for (const sessionIdx of orderedSessions) {
       try {
         const res = await fetch(`${WHATSAPP_SIDECAR}/send-image-multi`, {
           method: 'POST',

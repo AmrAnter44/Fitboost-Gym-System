@@ -373,6 +373,11 @@ function migrateDatabase(dbPath) {
       db.prepare('ALTER TABLE User ADD COLUMN profileImage TEXT').run();
     }
 
+    // ✅ User.whatsappSessionIndex — رقم الواتساب الافتراضي للأكونت
+    if (!columnExists(db, 'User', 'whatsappSessionIndex')) {
+      db.prepare('ALTER TABLE User ADD COLUMN whatsappSessionIndex INTEGER').run();
+    }
+
     // ✅ Staff.salesTarget — تارجت السيلز الشهري
     if (!columnExists(db, 'Staff', 'salesTarget')) {
       db.prepare('ALTER TABLE Staff ADD COLUMN salesTarget REAL DEFAULT 0').run();
@@ -595,6 +600,7 @@ function migrateDatabase(dbPath) {
       { col: 'pointsPerBirthday',          def: 'INTEGER NOT NULL DEFAULT 10' },
       { col: 'pointsValueInEGP',           def: 'REAL DEFAULT 0.1' },
       { col: 'salesDailyCallTarget',       def: 'INTEGER NOT NULL DEFAULT 30' },
+      { col: 'salesCommissionSources',     def: 'TEXT' }, // 💰 مصادر عمولة السيلز (JSON، null = الكل)
       { col: 'updatedBy',                  def: 'TEXT' },
       // ☁️ أعمدة النسخ الاحتياطي السحابي (إصدار 6.10.0) — غيابها كان بيفشّل أي قراءة للإعدادات (إضافة عضو/PT)
       { col: 'cloudBackupEnabled',         def: 'INTEGER NOT NULL DEFAULT 0' },

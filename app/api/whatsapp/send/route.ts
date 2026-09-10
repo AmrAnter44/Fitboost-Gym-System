@@ -100,12 +100,26 @@ export async function POST(request: Request) {
       }
     }
 
+    //  الرقم المفضّل: اللي اتبعت في الطلب، وإلا الرقم الافتراضي المحفوظ لأكونت المستخدم
+    let preferredIndex: number | null = null
+    if (sessionIndex !== undefined && sessionIndex !== null && sessionIndex !== '') {
+      const idx = parseInt(sessionIndex.toString())
+      if (!Number.isNaN(idx)) preferredIndex = idx
+    } else {
+      //  اقرأ الرقم الافتراضي المحفوظ للأكونت (raw SQL — آمن مع أي حالة للـ client)
+      try {
+        const { prisma } = await import('../../../../lib/prisma')
+        const rows: any[] = await prisma.$queryRawUnsafe(
+          `SELECT whatsappSessionIndex AS v FROM User WHERE id = ? LIMIT 1`, user.userId
+        )
+        const v = rows?.[0]?.v
+        if (v !== null && v !== undefined) preferredIndex = Number(v)
+      } catch { /* عمود ممكن يكون لسه مش موجود — نكمّل تلقائي */ }
+    }
+
     let sessionsToTry = [...connectedSessions];
-    if (sessionIndex !== undefined && sessionIndex !== null) {
-      const idx = parseInt(sessionIndex.toString());
-      if (!Number.isNaN(idx) && connectedSessions.includes(idx)) {
-        sessionsToTry = [idx, ...connectedSessions.filter(s => s !== idx)];
-      }
+    if (preferredIndex !== null && connectedSessions.includes(preferredIndex)) {
+      sessionsToTry = [preferredIndex, ...connectedSessions.filter(s => s !== preferredIndex)];
     }
 
     let lastError = '';

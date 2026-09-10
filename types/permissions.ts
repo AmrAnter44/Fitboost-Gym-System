@@ -702,10 +702,10 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canEditFollowUp: 'تعديل متابعة',
   canDeleteFollowUp: 'حذف متابعة',
   canManageSales: 'مسؤول السيلز (إدارة كاملة)',
-  canViewDayUse: 'عرض يوم الاستخدام',
-  canCreateDayUse: 'إضافة يوم استخدام',
-  canEditDayUse: 'تعديل يوم استخدام',
-  canDeleteDayUse: 'حذف يوم استخدام',
+  canViewDayUse: 'عرض الاستخدامات الأخرى',
+  canCreateDayUse: 'إضافة استخدامات أخرى',
+  canEditDayUse: 'تعديل استخدامات أخرى',
+  canDeleteDayUse: 'حذف استخدامات أخرى',
   canViewReports: 'عرض التقارير',
   canViewFinancials: 'عرض الماليات',
   canViewAttendance: 'عرض الحضور',
@@ -852,7 +852,7 @@ export const PERMISSION_GROUPS = {
     ] as Array<keyof Permissions>,
   },
   dayuse: {
-    label: '📅 يوم الاستخدام',
+    label: '📅 استخدامات أخرى',
     permissions: [
       'canViewDayUse',
       'canCreateDayUse',

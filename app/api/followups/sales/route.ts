@@ -100,8 +100,27 @@ export async function GET(request: Request) {
         expiryDate: true,
         salesStaffId: true,
         subscriptionPrice: true,
+        source: true,
       }
     })
+
+    //  💰 مصادر عمولة السيلز المفعّلة (من الإعدادات). null/فاضي = كل المصادر تتحسب.
+    let enabledCommissionSources: Set<string> | null = null
+    try {
+      const s = await prisma.systemSettings.findUnique({ where: { id: 'singleton' }, select: { salesCommissionSources: true } as any })
+      const raw = (s as any)?.salesCommissionSources
+      if (raw) {
+        const arr = JSON.parse(raw)
+        if (Array.isArray(arr)) enabledCommissionSources = new Set(arr.map((x: any) => String(x)))
+      }
+    } catch { /* عمود ممكن يكون لسه مش موجود — نعتبر الكل مفعّل */ }
+    //  خريطة العضو → مصدره (عشان نفلتر تحصيله حسب المصادر المفعّلة)
+    const memberSourceMap = new Map(salesMembers.map(m => [m.id, (m as any).source || null]))
+    const sourceCounts = (memberId: string): boolean => {
+      if (!enabledCommissionSources) return true // الكل مفعّل
+      const src = memberSourceMap.get(memberId)
+      return enabledCommissionSources.has(String(src || ''))
+    }
 
     // جلب إيصالات الشهر الحالي لأعضاء السيلز
     const salesMemberIds = salesMembers.map(m => m.id)
@@ -116,10 +135,10 @@ export async function GET(request: Request) {
         })
       : []
 
-    // بناء map للتحصيل لكل عضو — بيشمل كل الأعضاء المسنّدين (بما فيهم walk-in)
+    // بناء map للتحصيل لكل عضو — بس للأعضاء اللي مصدرهم مفعّل في عمولة السيلز
     const memberRevenueMap: Record<string, number> = {}
     for (const receipt of thisMonthReceipts) {
-      if (receipt.memberId) {
+      if (receipt.memberId && sourceCounts(receipt.memberId)) {
         memberRevenueMap[receipt.memberId] = (memberRevenueMap[receipt.memberId] || 0) + receipt.amount
       }
     }

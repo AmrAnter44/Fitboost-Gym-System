@@ -544,6 +544,17 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
 
   const totalRemaining = useMemo(() => filtered.reduce((s: number, p: any) => s + (p.remainingAmount || 0), 0), [filtered])
 
+  //  💰 المحصّل الفعلي لكل رقم PT من الإيصالات في النطاق (بدل حصص × سعر السجل) — يطابق التحصيل/التقفيل
+  const ptCollectedByNumber = useMemo(() => {
+    const m = new Map<number, number>()
+    for (const r of ptReceiptsInRange) {
+      if (r.ptNumber == null) continue
+      m.set(r.ptNumber, (m.get(r.ptNumber) || 0) + (r.amount || 0))
+    }
+    return m
+  }, [ptReceiptsInRange])
+  const collectedFor = (p: any) => (p.ptNumber != null ? (ptCollectedByNumber.get(p.ptNumber) || 0) : 0)
+
   const exportExcel = async () => {
     try {
       const wb = new ExcelJS.Workbook(); wb.creator = 'Fitboost'
@@ -555,7 +566,7 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
       hdr.alignment = { horizontal: 'center', vertical: 'middle' }; hdr.height = 28
 
       filtered.forEach((p: any, i: number) => {
-        const row = ws.addRow([p.ptNumber || '-', p.clientName || '-', p.phone || '-', p.coachName || '-', p.sessionsPurchased || 0, p.sessionsRemaining || 0, p.pricePerSession || 0, (p.sessionsPurchased || 0) * (p.pricePerSession || 0), p.remainingAmount || 0, formatDate(p.startDate), formatDate(p.expiryDate)])
+        const row = ws.addRow([p.ptNumber || '-', p.clientName || '-', p.phone || '-', p.coachName || '-', p.sessionsPurchased || 0, p.sessionsRemaining || 0, p.pricePerSession || 0, collectedFor(p), p.remainingAmount || 0, formatDate(p.startDate), formatDate(p.expiryDate)])
         if (i % 2 === 0) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } }
         row.alignment = { horizontal: 'center', vertical: 'middle' }
       })
@@ -653,7 +664,7 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
                   <td className={`${tableTdCls} text-center`}>{p.sessionsPurchased || 0}</td>
                   <td className={`${tableTdCls} text-center`}>{p.sessionsRemaining || 0}</td>
                   <td className={tableTdCls}>{formatCurrency(p.pricePerSession || 0)}</td>
-                  <td className={`${tableTdCls} font-bold ${cancelled ? 'text-red-500 dark:text-red-400 line-through' : 'text-green-600 dark:text-green-400'}`}>{formatCurrency((p.sessionsPurchased || 0) * (p.pricePerSession || 0))}</td>
+                  <td className={`${tableTdCls} font-bold ${cancelled ? 'text-red-500 dark:text-red-400 line-through' : 'text-green-600 dark:text-green-400'}`}>{formatCurrency(collectedFor(p))}</td>
                   <td className={`${tableTdCls} text-orange-600 dark:text-orange-400`}>{formatCurrency(p.remainingAmount || 0)}</td>
                 </tr>
                 )
