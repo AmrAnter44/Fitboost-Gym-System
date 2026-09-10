@@ -188,10 +188,12 @@ export async function GET(request: Request) {
       //    عشان لما المستخدم يغيّر التاريخ، عدد الأعضاء وقائمتهم تتحدّث برضو
       const allAssignedMembers = salesMembers.filter(m => m.salesStaffId === staff.id)
       const members = allAssignedMembers.filter(m => (memberRevenueMap[m.id] || 0) > 0)
-      //  collectedThisMonth = إيصالات أعضائه + إيصالات DayUse المُسنَّدة له
+      //  collectedThisMonth = تحصيل أعضائه فقط (زي النسخة الأصلية الصح).
+      //  ملاحظة: الـ DayUse مبيتحسبش في عمولة/تحصيل السيلز — إضافته كانت بتضخّم الرقم
+      //  (وبتعمل double-count لإيصالات الداي-يوز المربوطة بعضو). بنسيبه في الـ breakdown للعرض بس.
       const fromMembers = members.reduce((sum, m) => sum + (memberRevenueMap[m.id] || 0), 0)
       const fromDayUse = dayUseRevenueByStaff[staff.id] || 0
-      const collectedThisMonth = fromMembers + fromDayUse
+      const collectedThisMonth = fromMembers
 
       return {
         staffId: staff.id,
