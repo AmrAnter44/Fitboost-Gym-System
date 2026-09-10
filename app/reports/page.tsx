@@ -482,13 +482,24 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
   const filtered = useMemo(() => {
     const from = new Date(dateFrom); from.setHours(0, 0, 0, 0)
     const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
+    //  أرقام الـ PT اللي ليها إيصال (دفعة) في الفترة — نفس منطق التحصيل بالظبط
+    //  عشان اشتراك إيصاله في الفترة يظهر حتى لو تاريخ بدايته/إنشائه بره الفترة
+    const paidPtNumbers = new Set<number>(
+      (receipts || [])
+        .filter((r: any) => countsAsRevenue(r) && isPTReceipt(r.type) && r.ptNumber != null)
+        .filter((r: any) => { const d = new Date(r.createdAt); return d >= from && d <= to })
+        .map((r: any) => r.ptNumber as number)
+    )
     return ptList.filter((p: any) => {
-      const d = new Date(p.createdAt || p.startDate)
-      if (!(d >= from && d <= to)) return false
+      //  يظهر لو بدأ اشتراكه في الفترة، أو ليه دفعة (إيصال) في الفترة
+      const d = new Date(p.startDate || p.createdAt)
+      const startedInRange = d >= from && d <= to
+      const paidInRange = p.ptNumber != null && paidPtNumbers.has(p.ptNumber)
+      if (!startedInRange && !paidInRange) return false
       if (coachFilter && (p.coachName || '').trim() !== coachFilter) return false
       return true
     })
-  }, [ptList, dateFrom, dateTo, coachFilter])
+  }, [ptList, receipts, dateFrom, dateTo, coachFilter])
 
   //  🔗 خريطة رقم الـ PT → الكوتش الحقيقي (من سجل الـ PT) — أدق من اسم الكوتش في الإيصال
   //  لأن إيصال ممكن يتدفع قبل ما الكوتش يتحدد نهائيًا فيتخزّن اسم ناقص/مختلف
