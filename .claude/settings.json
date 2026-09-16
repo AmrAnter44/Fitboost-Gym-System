@@ -97,7 +97,12 @@
       "Read(//Users/amranter200444/**)",
       "Read(//Users/amranter250444/Desktop/Gyms/More/Fitboost-System/messages/**)",
       "Bash(npx asar *)",
-      "Bash(git -C /Users/amranter200444/Desktop/Gyms/More/Fitboost-System checkout HEAD -- package.json)"
+      "Bash(git -C /Users/amranter200444/Desktop/Gyms/More/Fitboost-System checkout HEAD -- package.json)",
+      "Bash(node --experimental-strip-types __TRACKED_VAR__/client.test.mts)",
+      "Bash(mv \"app/api/gates/[id]/sync/route.ts\" app/api/gates/sync/route.ts)",
+      "Bash(rmdir \"app/api/gates/[id]/sync\")",
+      "Bash(rm -rf .next)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" NEXT_TELEMETRY_DISABLED=1 npm run build)"
     ],
     "additionalDirectories": [
       "/Users/amranter200444/Downloads/Gyms/Xgym/sys-Xgym/.next",
