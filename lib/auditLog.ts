@@ -41,6 +41,7 @@ export type AuditResource =
   | 'Physiotherapy'
   | 'More'
   | 'Invitation'
+  | 'Gate'
 
 export type AuditStatus = 'success' | 'failure' | 'warning'
 

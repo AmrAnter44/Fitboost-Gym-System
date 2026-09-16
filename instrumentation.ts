@@ -74,5 +74,35 @@ export async function register() {
     }
     setTimeout(backupTick, 60_000)
     setInterval(backupTick, 6 * 60 * 60 * 1000)
+
+    // 🚪 مُصالِح البوابات — بيوصّل الأجهزة لحالة الأعضاء الصح.
+    //
+    //    ليه دوري مش hooks بس؟ في ~٢٢ مكان بيعدّلوا الـ Member، وتلاتة
+    //    منهم مخفيين: كنس الانتهاء جوّه GET، وخصم رصيد الدخول، وإلغاء
+    //    الإيصال. على داتا حقيقية لقينا ٣٠ عضو isActive=true وتاريخهم عدّى
+    //    — دول كانوا هيفضلوا مفتوحين على البوابة.
+    //
+    //    كل ١٥ دقيقة: أقل من ثانية لما مفيش تغييرات (بيقارن بالمخزّن الأول)،
+    //    وبيخرج فورًا لو مفيش بوابات مضافة أصلاً.
+    const gatesTick = async () => {
+      try {
+        const { reconcileAll } = await import('./lib/gates/sync')
+        const reports = await reconcileAll()
+        for (const r of reports) {
+          const changed = r.added + r.modified + r.deleted
+          if (changed > 0 || r.failed > 0) {
+            console.log(
+              `[gates] ${r.gateName}: +${r.added} ~${r.modified} -${r.deleted}` +
+              ` (${r.onDevice}/${r.capacity})` + (r.failed ? ` ⚠️ فشل ${r.failed}` : '')
+            )
+          }
+          if (r.errors.length) console.error('[gates]', r.gateName, r.errors.join(' · '))
+        }
+      } catch (err: any) {
+        console.error('[gates] reconcile error:', err?.message || err)
+      }
+    }
+    setTimeout(gatesTick, 90_000)
+    setInterval(gatesTick, 15 * 60 * 1000)
   }
 }

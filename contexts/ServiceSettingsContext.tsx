@@ -16,6 +16,7 @@ interface ServiceSettings {
   lostFoundEnabled: boolean
   pointsEnabled: boolean
   mixedGymEnabled: boolean  // 🚻 جيم مكس — يفعّل حقل الجنس
+  gatesEnabled: boolean     // 🚪 بوابات التعرّف على الوش
   pointsPerCheckIn: number
   pointsPerInvitation: number
   pointsPerReferral: number
@@ -56,6 +57,7 @@ const ServiceSettingsContext = createContext<ServiceSettingsContextType | undefi
 
 function parseSettings(data: any): ServiceSettings {
   return {
+    gatesEnabled: data.gatesEnabled ?? false,
     nutritionEnabled: data.nutritionEnabled,
     physiotherapyEnabled: data.physiotherapyEnabled,
     groupClassEnabled: data.groupClassEnabled,
@@ -155,6 +157,7 @@ function getDefaultSettings(): ServiceSettings {
     lostFoundEnabled: true,
     pointsEnabled: true,
     mixedGymEnabled: false,
+    gatesEnabled: false,
     pointsPerCheckIn: 1,
     pointsPerInvitation: 2,
     pointsPerReferral: 0,

@@ -6,6 +6,8 @@ import { InvitationModal, SimpleServiceModal } from '../../components/ServiceDed
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useServiceSettings } from '@/contexts/ServiceSettingsContext'
 import { LoadingScreen } from '@/components/Spinner'
+import { useGateEvents } from '@/hooks/useGateEvents'
+import GateDeniedModal from '@/components/gates/GateDeniedModal'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -20,6 +22,10 @@ export default function SearchPage() {
   const router = useRouter()
   const { t, direction, locale } = useLanguage()
   const { settings } = useServiceSettings()
+
+  //  🚪 محاولات الدخول المرفوضة على البوابة — بتظهر كبوب-أب هنا عشان
+  //     الريسبشن يعرف فورًا إن في حد واقف برّه واترفض وليه
+  const { events: gateEvents, dismiss: dismissGateEvent } = useGateEvents(!!settings?.gatesEnabled)
 
   const getPositionLabel = (position: string | null | undefined): string => {
     if (!position) return '-'
@@ -1246,6 +1252,12 @@ export default function SearchPage() {
       )}
 
       {/* Modals */}
+      <GateDeniedModal
+        event={gateEvents[0] || null}
+        onClose={() => gateEvents[0] && dismissGateEvent(gateEvents[0].id)}
+        onOpenMember={(id) => router.push(`/members/${id}`)}
+      />
+
       <InvitationModal
         isOpen={invitationModal.isOpen}
         memberId={invitationModal.memberId}

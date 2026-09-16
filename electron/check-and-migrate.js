@@ -436,6 +436,13 @@ function migrateDatabase(dbPath) {
     } else {
     }
 
+    // ✅ SystemSettings.gatesEnabled — 🚪 بوابات التعرّف على الوش
+    //    افتراضي مقفول: الجيمات اللي مالهاش بوابة مش هتحس بأي فرق
+    if (!columnExists(db, 'SystemSettings', 'gatesEnabled')) {
+      db.prepare('ALTER TABLE SystemSettings ADD COLUMN gatesEnabled INTEGER NOT NULL DEFAULT 0').run();
+    } else {
+    }
+
     // ✅ Member.remainingDueDate — موعد سداد الباقي
     if (!columnExists(db, 'Member', 'remainingDueDate')) {
       db.prepare('ALTER TABLE Member ADD COLUMN remainingDueDate DATETIME').run();
@@ -678,6 +685,69 @@ function migrateDatabase(dbPath) {
         db.prepare(`ALTER TABLE Offer ADD COLUMN ${col} ${def}`).run();
       } else {
       }
+    }
+
+    // ✅ 🚪 جداول البوابات (Hikvision)
+    //    الجهاز بيتخزّن فيه باسورد مشفّر — الداتابيز بتتنسخ في باكابات كتير
+    if (!tableExists(db, 'Gate')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS Gate (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          host TEXT NOT NULL,
+          port INTEGER NOT NULL DEFAULT 80,
+          useHttps INTEGER NOT NULL DEFAULT 0,
+          username TEXT NOT NULL DEFAULT 'admin',
+          passwordEnc TEXT NOT NULL,
+          doorNo INTEGER NOT NULL DEFAULT 1,
+          planTemplateNo TEXT NOT NULL DEFAULT '1',
+          capacity INTEGER NOT NULL DEFAULT 1500,
+          isEnabled INTEGER NOT NULL DEFAULT 1,
+          lastSeenAt DATETIME,
+          lastError TEXT,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS Gate_isEnabled_idx ON Gate(isEnabled);
+      `);
+    }
+
+    if (!tableExists(db, 'GateMemberSync')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS GateMemberSync (
+          id TEXT PRIMARY KEY,
+          gateId TEXT NOT NULL,
+          memberId TEXT NOT NULL,
+          employeeNo TEXT NOT NULL,
+          isAllowed INTEGER NOT NULL,
+          validUntil DATETIME,
+          syncedAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          lastError TEXT
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS GateMemberSync_gateId_memberId_key ON GateMemberSync(gateId, memberId);
+        CREATE INDEX IF NOT EXISTS GateMemberSync_gateId_idx ON GateMemberSync(gateId);
+        CREATE INDEX IF NOT EXISTS GateMemberSync_memberId_idx ON GateMemberSync(memberId);
+      `);
+    }
+
+    if (!tableExists(db, 'GateEvent')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS GateEvent (
+          id TEXT PRIMARY KEY,
+          gateId TEXT,
+          memberId TEXT,
+          employeeNo TEXT,
+          eventTime DATETIME NOT NULL DEFAULT (datetime('now')),
+          allowed INTEGER NOT NULL DEFAULT 0,
+          reason TEXT,
+          rawPayload TEXT,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS GateEvent_eventTime_idx ON GateEvent(eventTime);
+        CREATE INDEX IF NOT EXISTS GateEvent_memberId_idx ON GateEvent(memberId);
+        CREATE INDEX IF NOT EXISTS GateEvent_gateId_idx ON GateEvent(gateId);
+        CREATE INDEX IF NOT EXISTS GateEvent_allowed_idx ON GateEvent(allowed);
+      `);
     }
 
     // ✅ إنشاء الجداول الجديدة إذا لم تكن موجودة

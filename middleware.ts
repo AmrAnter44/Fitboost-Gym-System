@@ -7,6 +7,10 @@ const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 const CSRF_EXEMPT_PATHS: string[] = [
   '/api/public/', // Public endpoints used by mobile app (no browser origin)
   '/api/whatsapp/internal/', // Server-to-server sidecar calls (protected by requireInternalToken)
+  // 🚪 أجهزة البوابات بتبعت الأحداث من غير Origin ولا كوكيز (HTTP Listening).
+  //    المسار محمي بسر عشوائي جوّه الـ URL + rate limit — شوف
+  //    app/api/gates/event/[secret]/route.ts
+  '/api/gates/event/',
 ]
 
 function isAllowedOrigin(origin: string | null, host: string | null): boolean {

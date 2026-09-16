@@ -1186,6 +1186,7 @@ model SystemSettings {
   lostFoundEnabled      Boolean  @default(true)
   pointsEnabled         Boolean  @default(true)
   mixedGymEnabled       Boolean  @default(false)  // 🚻 جيم مكس — يفعّل حقل الجنس عند تسجيل العضو
+  gatesEnabled          Boolean  @default(false)  // 🚪 بوابات التعرّف على الوش — يظهر زرار المسح في صفحة العضو والبوب-أب في التشيك
   pointsPerCheckIn      Int      @default(1)
   pointsPerInvitation   Int      @default(2)
   pointsPerReferral     Int      @default(0)    // نقاط إحالة عضو جديد
@@ -1648,4 +1649,67 @@ model TaskAssignment {
 
   @@index([userId, status])
   @@index([taskId])
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 🚪 بوابات التعرّف على الوش (Hikvision ISAPI)
+//
+// الجهاز على نفس شبكة كمبيوتر الريسبشن. السيستم بيدفع للجهاز بيانات
+// العضو وتاريخ صلاحيته، والجهاز هو اللي بيقرر يفتح ولا لأ — فالبوابة
+// شغالة حتى لو الكمبيوتر مقفول. الوش بيتسجّل على الجهاز نفسه.
+// ═══════════════════════════════════════════════════════════════════
+
+//  جهاز بوابة واحد = باب واحد
+model Gate {
+  id             String    @id @default(cuid())
+  name           String                              // "البوابة الرئيسية"
+  host           String                              // 192.168.1.64
+  port           Int       @default(80)
+  useHttps       Boolean   @default(false)           // الجهاز بشهادة ذاتية — التحقق بيتعطّل للجهاز ده بس
+  username       String    @default("admin")
+  passwordEnc    String                              // ⚠️ مشفّر AES-256-GCM — الداتابيز بتتنسخ في باكابات كتير
+  doorNo         Int       @default(1)
+  planTemplateNo String    @default("1")             // جدول الصلاحية على الجهاز
+  capacity       Int       @default(1500)            // سعة الأوشاش — من الداتاشيت
+  isEnabled      Boolean   @default(true)
+  lastSeenAt     DateTime?                           // آخر مرة رد فيها
+  lastError      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([isEnabled])
+}
+
+//  حالة المزامنة لكل (بوابة، عضو) — المُصالِح بيقارن بيها ويبعت الفرق بس
+model GateMemberSync {
+  id         String    @id @default(cuid())
+  gateId     String
+  memberId   String
+  employeeNo String                                  // = Member.memberNumber
+  isAllowed  Boolean                                 // آخر حالة اتبعتت فعلاً للجهاز
+  validUntil DateTime?                               // آخر Valid.endTime اتبعت
+  syncedAt   DateTime  @default(now())
+  lastError  String?
+
+  @@unique([gateId, memberId])
+  @@index([gateId])
+  @@index([memberId])
+}
+
+//  سجل كل محاولة دخول — مسموحة أو مرفوضة. المرفوضة بتطلع بوب-أب في صفحة التشيك
+model GateEvent {
+  id         String   @id @default(cuid())
+  gateId     String?
+  memberId   String?                                 // null لو الرقم مش معروف عندنا
+  employeeNo String?
+  eventTime  DateTime @default(now())
+  allowed    Boolean  @default(false)
+  reason     String?                                 // ok | expired | frozen | banned | noCheckInsLeft | outOfAllowedHours | unknownMember | unparsed
+  rawPayload String?                                 // الحمولة الخام زي ما وصلت — صيغة الجهاز اتأكدت منها بالتجربة
+  createdAt  DateTime @default(now())
+
+  @@index([eventTime])
+  @@index([memberId])
+  @@index([gateId])
+  @@index([allowed])
 }

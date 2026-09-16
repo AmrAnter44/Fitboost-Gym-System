@@ -17,6 +17,7 @@ import { formatDateYMD, calculateRemainingDays, calculateDaysBetween } from '../
 import { prepareReceiptMessage } from '../../../lib/whatsappReceiptMessage'
 import { usePermissions } from '../../../hooks/usePermissions'
 import PermissionDenied from '../../../components/PermissionDenied'
+import MemberGateCard from '../../../components/gates/MemberGateCard'
 import type { PaymentMethod } from '../../../lib/paymentHelpers'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useToast } from '../../../contexts/ToastContext'
@@ -2586,6 +2587,15 @@ export default function MemberDetailPage() {
  </div>
  )
  })()}
+
+ {/* 🚪 حالة العضو على البوابات — بيظهر بس لما الميزة مفعّلة */}
+ <div className="mt-6">
+ <MemberGateCard
+ memberId={member.id}
+ enabled={!!settings?.gatesEnabled}
+ canEdit={hasPermission('canEditMembers')}
+ />
+ </div>
 
  {/* عرض الملاحظات — بعد تنظيفها من سطور النقل التلقائية (شكلها وحش) */}
  {(() => {

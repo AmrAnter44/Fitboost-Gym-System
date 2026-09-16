@@ -26,6 +26,25 @@ async function fireExpenseSync(result: any, operation: 'upsert' | 'delete') {
   }
 }
 
+// 🚪 مزامنة العضو مع أجهزة البوابات بعد أي تعديل عليه.
+//
+//    بنعلّقها هنا مش في مسارات الـ API لأن في ~٢٢ مكان بيعدّلوا الـ Member،
+//    وتلاتة منهم مخفيين تمامًا: كنس الانتهاء جوّه GET /api/members، وخصم
+//    رصيد الدخول في member-checkin، وإلغاء الإيصال. نقطة واحدة هنا بتمسكهم
+//    كلهم بدل ما نلاحق كل مسار.
+//
+//    ده مسار السرعة بس — المُصالِح في instrumentation.ts هو ضمان الصحة،
+//    وبيمسك كمان اللي بيعدّي من raw SQL (اللي مابيعدّيش من هنا أصلاً).
+async function fireGateSync(memberId: string | undefined) {
+  if (!memberId) return
+  try {
+    const { syncMemberInBackground } = await import('./gates/sync')
+    syncMemberInBackground(memberId)
+  } catch (err: any) {
+    console.error('[gates] sync enqueue failed:', err?.message || err)
+  }
+}
+
 async function setupPragmas(client: PrismaClient) {
   try {
     await client.$executeRaw`PRAGMA busy_timeout = 10000`     // 10s wait on lock instead of immediate fail
@@ -71,6 +90,11 @@ function createPrismaClient() {
         void fireReceiptSync(result, 'upsert')
       } else if (params.action === 'delete') {
         void fireReceiptSync(result, 'delete')
+      }
+    } else if (params.model === 'Member') {
+      // updateMany/deleteMany مابيرجّعوش صفوف، فبيتسابوا للمُصالِح
+      if (params.action === 'create' || params.action === 'update' || params.action === 'upsert') {
+        void fireGateSync(result?.id)
       }
     } else if (params.model === 'Expense') {
       if (params.action === 'create' || params.action === 'update' || params.action === 'upsert') {
