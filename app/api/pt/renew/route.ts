@@ -86,11 +86,10 @@ export async function POST(request: Request) {
     // حفظ المبلغ المتبقي القديم قبل التحديث
     const oldRemainingAmount = existingPT.remainingAmount || 0
 
-    //  ترحيل الحصص المتبقية من الباقة القديمة بدل ما تتلغي (نفس سلوك /api/pt/upgrade)
-    //  بنضيفها للـ purchased والـ remaining مع بعض عشان remaining ما يبقاش أكبر من purchased
-    //  (اللي كان هيخلي completedSessions = purchased - remaining رقم سالب)
-    const carriedOverSessions = Math.max(0, existingPT.sessionsRemaining || 0)
-    const totalSessionsAfterRenew = Number(sessionsPurchased) + carriedOverSessions
+    //  التجديد = باقة جديدة كاملة — مفيش ترحيل للحصص القديمة ولا إضافة على السعر.
+    //  (الترحيل كان بيضخّم الحصص والإجمالي؛ التجديد بينزّل حصص وسعر الباقة الجديدة بس)
+    const carriedOverSessions = 0
+    const totalSessionsAfterRenew = Number(sessionsPurchased)
 
     // إنشاء إيصال للتجديد باستخدام Transaction
     // ملاحظة: تحديث الـ PT اتنقل جوّه الـ transaction عشان لو الإيصال فشل يترجع

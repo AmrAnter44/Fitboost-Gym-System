@@ -60,7 +60,7 @@ export interface MessageTemplate {
 
 interface MessageTemplateManagerProps {
   onClose: () => void
-  onSelect: (template: MessageTemplate) => void
+  onSelect: (template: MessageTemplate, sessionIndex?: number) => void
   visitorName: string
   salesName?: string
   visitorPhone: string
@@ -116,11 +116,33 @@ export default function MessageTemplateManager({
     icon: '',
     message: ''
   })
+  //  📱 رقم الواتساب اللي هيتبعت منه — بيتحفظ كافتراضي بالأكونت
+  const [waSessions, setWaSessions] = useState<{ sessionIndex: number; phoneNumber?: string; isReady: boolean }[]>([])
+  const [mySession, setMySession] = useState<number | 'auto'>('auto')
 
   // تحميل القوالب من قاعدة البيانات
   useEffect(() => {
     fetchTemplates()
   }, [])
+
+  //  تحميل الأرقام المتاحة + الرقم الافتراضي المحفوظ للأكونت
+  useEffect(() => {
+    fetch('/api/whatsapp/my-session').then(r => r.ok ? r.json() : null).then(d => {
+      if (!d) return
+      setWaSessions(Array.isArray(d.sessions) ? d.sessions : [])
+      setMySession(d.mySessionIndex === null || d.mySessionIndex === undefined ? 'auto' : Number(d.mySessionIndex))
+    }).catch(() => {})
+  }, [])
+
+  //  اختيار رقم + حفظه كافتراضي بالأكونت
+  const chooseSession = (val: number | 'auto') => {
+    setMySession(val)
+    fetch('/api/whatsapp/my-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionIndex: val === 'auto' ? null : val }),
+    }).catch(() => {})
+  }
 
   const fetchTemplates = async () => {
     try {
@@ -352,6 +374,49 @@ export default function MessageTemplateManager({
             <LoadingScreen />
           ) : !showForm ? (
             <>
+              {/*  📱 اختيار رقم الواتساب اللي هيتبعت منه — بيتحفظ كافتراضي بالأكونت */}
+              {waSessions.length > 0 && (
+                <div className="bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg p-3 mb-4">
+                  <p className="text-sm font-bold text-green-900 dark:text-green-100 mb-2 flex items-center gap-1.5">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                    <span>{direction === 'rtl' ? 'يتبعت من رقم:' : 'Send from:'}</span>
+                    <span className="text-xs font-normal text-green-700 dark:text-green-300">{direction === 'rtl' ? '(بيتحفظ كافتراضي)' : '(saved as default)'}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => chooseSession('auto')}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-bold ring-1 transition-colors ${
+                        mySession === 'auto'
+                          ? 'bg-green-600 text-white ring-green-600'
+                          : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 ring-gray-300 dark:ring-gray-600 hover:ring-green-400'
+                      }`}
+                    >
+                      {direction === 'rtl' ? 'تلقائي' : 'Auto'}
+                    </button>
+                    {waSessions.map(s => (
+                      <button
+                        key={s.sessionIndex}
+                        type="button"
+                        onClick={() => chooseSession(s.sessionIndex)}
+                        disabled={!s.isReady}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-bold ring-1 transition-colors inline-flex items-center gap-1.5 ${
+                          mySession === s.sessionIndex
+                            ? 'bg-green-600 text-white ring-green-600'
+                            : s.isReady
+                              ? 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 ring-gray-300 dark:ring-gray-600 hover:ring-green-400'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-400 ring-gray-200 dark:ring-gray-700 opacity-50 cursor-not-allowed'
+                        }`}
+                      >
+                        <span>{direction === 'rtl' ? `رقم ${s.sessionIndex + 1}` : `Line ${s.sessionIndex + 1}`}</span>
+                        {s.phoneNumber && <span className="font-mono text-xs opacity-80" dir="ltr">{s.phoneNumber}</span>}
+                        {!s.isReady && <span className="text-[10px]">{direction === 'rtl' ? '(غير متصل)' : '(offline)'}</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Available variables */}
               <div className="bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-900/50 rounded-lg p-3 mb-4">
                 <p className="text-sm font-bold text-primary-900 dark:text-primary-100 mb-2 flex items-center gap-1">
@@ -410,7 +475,7 @@ export default function MessageTemplateManager({
                         <span>{t('common.delete')}</span>
                       </button>
                       <button
-                        onClick={() => onSelect(template)}
+                        onClick={() => onSelect(template, mySession === 'auto' ? undefined : mySession)}
                         type="button"
                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors duration-200 flex items-center justify-center gap-1.5"
                       >

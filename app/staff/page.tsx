@@ -217,8 +217,9 @@ export default function StaffPage() {
       .catch(() => {})
   }, [])
 
-  // المؤشر النهائي لإظهار قسم تارجت الكوتش
-  const showCoachTargetSection = commissionConfig.useSeparateCoachTarget && commissionConfig.method === 'revenue'
+  // المؤشر النهائي لإظهار قسم تارجت الكوتش — عام: بيظهر عند كل كوتش دايمًا (من غير شرط إعدادات العمولة)
+  const showCoachTargetSection = true
+  void commissionConfig //  لسه بنجيبه لأغراض تانية بس مش شرط لإظهار خانة التارجت
 
   useEffect(() => {
     // توليد رقم عشوائي فقط عند فتح النموذج لإضافة موظف جديد
