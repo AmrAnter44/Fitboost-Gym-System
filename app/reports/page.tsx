@@ -1,21 +1,27 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
+import nextDynamic from 'next/dynamic'
 import { useQuery } from '@tanstack/react-query'
 import ExcelJS from 'exceljs'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { fetchReceiptsByDateRange } from '../../lib/api/receipts'
-import { fetchFollowUpsByDateRange } from '../../lib/api/followups'
+import { fetchFollowUpsByDateRange, fetchMembersData } from '../../lib/api/followups'
 import { fetchPTSessions } from '../../lib/api/pt'
 import { fetchStaff } from '../../lib/api/staff'
 import { useToast } from '../../contexts/ToastContext'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { LoadingScreen } from '../../components/Spinner'
-import { isPTReceipt } from '../../lib/translateReceiptType'
+import { isPTReceipt, isFloorReceipt } from '../../lib/translateReceiptType'
 import { countsAsRevenue } from '../../lib/revenueFilters'
 
 export const dynamic = 'force-dynamic'
+
+const MembersAnalytics = nextDynamic(() => import('../../components/MembersAnalytics'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-xl mt-4" />,
+})
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -64,11 +70,18 @@ const IconInbox = (p: { className?: string }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z" />
   </svg>
 )
+const IconTrendUp = (p: { className?: string }) => (
+  <svg {...stroke} className={p.className} aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
+  </svg>
+)
 
-type TabType = 'revenue' | 'followups' | 'pt' | 'staff'
+type TabType = 'revenue' | 'subscriptions' | 'forecast' | 'followups' | 'pt' | 'staff'
 
 const TAB_ICONS: Record<TabType, (p: { className?: string }) => JSX.Element> = {
   revenue: IconMoney,
+  subscriptions: IconReceipt,
+  forecast: IconTrendUp,
   followups: IconNote,
   pt: IconDumbbell,
   staff: IconUsers,
@@ -114,6 +127,8 @@ export default function ReportsPage() {
 
   const tabs: { id: TabType; label: string }[] = [
     { id: 'revenue', label: t('reports.tabs.revenue' as any) },
+    { id: 'subscriptions', label: locale === 'ar' ? 'الاشتراكات' : 'Subscriptions' },
+    { id: 'forecast', label: locale === 'ar' ? 'التحليلات' : 'Analytics' },
     { id: 'followups', label: t('reports.tabs.followups' as any) },
     { id: 'pt', label: t('reports.tabs.pt' as any) },
     { id: 'staff', label: t('reports.tabs.staff' as any) },
@@ -171,6 +186,8 @@ export default function ReportsPage() {
       {/* Tab Content */}
       {activeTab === 'revenue' && <RevenueTab dateFrom={dateFrom} dateTo={dateTo} paymentFilter={paymentFilter} setPaymentFilter={setPaymentFilter} typeFilter={typeFilter} setTypeFilter={setTypeFilter} formatDate={formatDate} formatCurrency={formatCurrency} direction={direction} locale={locale} t={t} />}
       {activeTab === 'revenue' && settings.mixedGymEnabled && <RevenueByGenderCard dateFrom={dateFrom} dateTo={dateTo} formatCurrency={formatCurrency} direction={direction} />}
+      {activeTab === 'subscriptions' && <SubscriptionsTab dateFrom={dateFrom} dateTo={dateTo} formatDate={formatDate} direction={direction} locale={locale} />}
+      {activeTab === 'forecast' && <ForecastTab direction={direction} locale={locale} />}
       {activeTab === 'followups' && <FollowupsTab dateFrom={dateFrom} dateTo={dateTo} formatDate={formatDate} direction={direction} locale={locale} t={t} />}
       {activeTab === 'pt' && <PTTab dateFrom={dateFrom} dateTo={dateTo} formatDate={formatDate} formatCurrency={formatCurrency} direction={direction} locale={locale} t={t} />}
       {activeTab === 'staff' && <StaffTab dateFrom={dateFrom} dateTo={dateTo} formatDate={formatDate} formatCurrency={formatCurrency} direction={direction} locale={locale} t={t} isAdmin={isAdmin} />}
@@ -934,6 +951,206 @@ function RevenueByGenderCard({ dateFrom, dateTo, formatCurrency, direction }: {
           <p className="text-[11px] text-gray-400">{ar ? '* إيرادات الأعضاء فقط (مش شاملة الاستخدامات بدون عضو).' : '* Member-linked revenue only (excludes non-member uses).'}</p>
         </div>
       )}
+    </div>
+  )
+}
+
+// =========== FORECAST TAB — تحليلات: المتوقع (الأعضاء المنتهين + الإيراد المتوقع لو جدّدوا) ===========
+function ForecastTab({ direction, locale }: any) {
+  const ar = locale === 'ar'
+  const { data: members = [], isLoading } = useQuery({
+    queryKey: ['forecast-members'],
+    queryFn: () => fetchMembersData(),
+  })
+
+  return (
+    <div className="space-y-6" dir={direction}>
+      {/*  نوت توضيحي: ده المتوقع حدوثه (مش أرقام محقّقة) */}
+      <div className="flex items-start gap-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-800 p-3 text-sm text-amber-800 dark:text-amber-300">
+        <svg {...stroke} className="w-5 h-5 shrink-0 mt-0.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
+        <span>{ar
+          ? 'ده المتوقع حدوثه — الأعضاء اللي اشتراكهم هيخلص في الشهر المختار والإيراد المتوقع لو جدّدوا كلهم. أرقام توقّع مش محقّقة فعلاً.'
+          : 'This is the forecast — members expiring in the selected month and the revenue expected if they all renew. Projected figures, not actuals.'}</span>
+      </div>
+
+      {isLoading ? <div className="py-12"><LoadingScreen /></div> : <MembersAnalytics members={members as any} />}
+    </div>
+  )
+}
+
+// =========== SUBSCRIPTIONS TAB — اشتراكات بالمدة + مين جدّد ===========
+function SubscriptionsTab({ dateFrom, dateTo, formatDate, direction, locale }: any) {
+  const ar = locale === 'ar'
+  const [durFilter, setDurFilter] = useState<'all' | 'month' | 'q' | 'half' | 'year' | 'other'>('all')
+  const [subTypeFilter, setSubTypeFilter] = useState<'all' | 'new' | 'renew'>('all')
+  const { data: receipts = [], isLoading } = useQuery({
+    queryKey: ['subs-report-receipts', dateFrom, dateTo],
+    queryFn: () => fetchReceiptsByDateRange(dateFrom, dateTo),
+  })
+
+  //  نوع الاشتراك: جديد (Member) ولا تجديد (membershipRenewal). الـ Payment (باقي) بيتستبعد من العدّ.
+  const isRenewalType = (tp: string) => ['membershipRenewal', 'تجديد عضويه', 'تجديد عضوية'].includes(tp)
+  const isNewType = (tp: string) => ['Member', 'member'].includes(tp)
+  const parseDetails = (r: any) => { try { return typeof r.itemDetails === 'string' ? JSON.parse(r.itemDetails) : (r.itemDetails || {}) } catch { return {} } }
+
+  //  حساب مدة الاشتراك بالأيام (من subscriptionDays أو من تاريخ البداية/النهاية)
+  const daysOf = (r: any): number | null => {
+    const d = parseDetails(r)
+    if (d.subscriptionDays && Number(d.subscriptionDays) > 0) return Number(d.subscriptionDays)
+    if (d.startDate && d.expiryDate) {
+      const diff = Math.ceil((new Date(d.expiryDate).getTime() - new Date(d.startDate).getTime()) / (1000 * 60 * 60 * 24))
+      return diff > 0 ? diff : null
+    }
+    return null
+  }
+  //  تصنيف المدة لباقة
+  const bucketOf = (days: number | null): 'month' | 'q' | 'half' | 'year' | 'other' => {
+    if (days === null) return 'other'
+    if (days >= 25 && days <= 45) return 'month'
+    if (days >= 80 && days <= 100) return 'q'
+    if (days >= 160 && days <= 200) return 'half'
+    if (days >= 330 && days <= 400) return 'year'
+    return 'other'
+  }
+
+  const data = useMemo(() => {
+    const subs = (receipts || [])
+      .filter((r: any) => countsAsRevenue(r) && isFloorReceipt(r.type) && (isNewType(r.type) || isRenewalType(r.type)))
+    const buckets: Record<string, { total: number; nw: number; renew: number }> = {
+      month: { total: 0, nw: 0, renew: 0 }, q: { total: 0, nw: 0, renew: 0 },
+      half: { total: 0, nw: 0, renew: 0 }, year: { total: 0, nw: 0, renew: 0 }, other: { total: 0, nw: 0, renew: 0 },
+    }
+    const list: { name: string; number: string; date: string; days: number | null; bucket: string; renew: boolean; amount: number }[] = []
+    for (const r of subs) {
+      const b = bucketOf(daysOf(r))
+      buckets[b].total++
+      const renew = isRenewalType(r.type)
+      if (renew) buckets[b].renew++; else buckets[b].nw++
+      const d = parseDetails(r)
+      list.push({
+        name: d.memberName || d.name || '-', number: d.memberNumber || '-',
+        date: r.createdAt, days: daysOf(r), bucket: b, renew, amount: r.amount || 0,
+      })
+    }
+    list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    return { buckets, list, total: subs.length }
+  }, [receipts])
+
+  //  الفلاتر: المدة + النوع (جديد/تجديد)
+  const filtered = useMemo(() => data.list.filter(item => {
+    if (durFilter !== 'all' && item.bucket !== durFilter) return false
+    if (subTypeFilter === 'new' && item.renew) return false
+    if (subTypeFilter === 'renew' && !item.renew) return false
+    return true
+  }), [data, durFilter, subTypeFilter])
+
+  const labelOf = (days: number | null) => {
+    const b = bucketOf(days)
+    return b === 'month' ? (ar ? 'شهر' : '1 mo') : b === 'q' ? (ar ? '3 شهور' : '3 mo')
+      : b === 'half' ? (ar ? '6 شهور' : '6 mo') : b === 'year' ? (ar ? 'سنة' : 'year') : (ar ? 'أخرى' : 'other')
+  }
+
+  if (isLoading) return <div className="py-12"><LoadingScreen /></div>
+
+  const cards: { key: string; label: string; color: string }[] = [
+    { key: 'month', label: ar ? 'شهر' : '1 Month', color: 'text-blue-600 dark:text-blue-400' },
+    { key: 'q', label: ar ? '3 شهور' : '3 Months', color: 'text-emerald-600 dark:text-emerald-400' },
+    { key: 'half', label: ar ? '6 شهور' : '6 Months', color: 'text-purple-600 dark:text-purple-400' },
+    { key: 'year', label: ar ? 'سنة' : 'Year', color: 'text-amber-600 dark:text-amber-400' },
+  ]
+
+  return (
+    <div className="space-y-6" dir={direction}>
+      {/*  نوت توضيحي: ده اللي اتحقق فعلاً (اشتراكات مدفوعة في الفترة) */}
+      <div className="flex items-start gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-200 dark:ring-emerald-800 p-3 text-sm text-emerald-800 dark:text-emerald-300">
+        <svg {...stroke} className="w-5 h-5 shrink-0 mt-0.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+        <span>{ar ? 'ده اللي اتحقق فعلاً — الاشتراكات المدفوعة (جديد + تجديد) في الفترة المحددة.' : 'What actually happened — paid subscriptions (new + renewals) in the selected range.'}</span>
+      </div>
+
+      {/* كروت المدد */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {cards.map(c => {
+          const bk = (data.buckets as any)[c.key]
+          return (
+            <div key={c.key} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 text-center">
+              <p className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-1">{c.label}</p>
+              <p className={`text-3xl font-black ${c.color}`}>{bk.total}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {ar ? `جديد ${bk.nw} · تجديد ${bk.renew}` : `New ${bk.nw} · Renew ${bk.renew}`}
+              </p>
+            </div>
+          )
+        })}
+      </div>
+
+      {(data.buckets as any).other.total > 0 && (
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {ar ? `+ ${(data.buckets as any).other.total} اشتراك بمدة تانية (غير قياسية)` : `+ ${(data.buckets as any).other.total} other-duration subs`}
+        </p>
+      )}
+
+      {/* الفلاتر + القائمة */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+        <div className="flex flex-wrap items-end gap-3 mb-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{ar ? 'المدة' : 'Duration'}</label>
+            <select value={durFilter} onChange={(e) => setDurFilter(e.target.value as any)}
+              className="h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+              <option value="all">{ar ? 'كل المدد' : 'All durations'}</option>
+              <option value="month">{ar ? 'شهر' : '1 Month'}</option>
+              <option value="q">{ar ? '3 شهور' : '3 Months'}</option>
+              <option value="half">{ar ? '6 شهور' : '6 Months'}</option>
+              <option value="year">{ar ? 'سنة' : 'Year'}</option>
+              <option value="other">{ar ? 'أخرى' : 'Other'}</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{ar ? 'النوع' : 'Type'}</label>
+            <select value={subTypeFilter} onChange={(e) => setSubTypeFilter(e.target.value as any)}
+              className="h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+              <option value="all">{ar ? 'الكل' : 'All'}</option>
+              <option value="new">{ar ? 'عضو جديد' : 'New'}</option>
+              <option value="renew">{ar ? 'تجديد' : 'Renewal'}</option>
+            </select>
+          </div>
+          <span className="text-sm font-bold text-gray-500 dark:text-gray-400 ms-auto tabular-nums">
+            {ar ? `${filtered.length} اشتراك` : `${filtered.length} subs`}
+          </span>
+        </div>
+
+        {filtered.length === 0 ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400 py-2">{ar ? 'مفيش نتايج للفلتر ده' : 'No results for this filter'}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[480px]">
+              <thead>
+                <tr className="text-gray-500 dark:text-gray-400 text-xs border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-start py-2 font-bold">{ar ? 'العضو' : 'Member'}</th>
+                  <th className="text-center py-2 font-bold">{ar ? 'الرقم' : '#'}</th>
+                  <th className="text-center py-2 font-bold">{ar ? 'المدة' : 'Duration'}</th>
+                  <th className="text-center py-2 font-bold">{ar ? 'النوع' : 'Type'}</th>
+                  <th className="text-center py-2 font-bold">{ar ? 'التاريخ' : 'Date'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((it, i) => (
+                  <tr key={i} className="border-b border-gray-100 dark:border-gray-700/60">
+                    <td className="py-2 font-bold text-gray-800 dark:text-gray-100">{it.name}</td>
+                    <td className="py-2 text-center text-gray-700 dark:text-gray-300 font-mono">{it.number}</td>
+                    <td className="py-2 text-center text-gray-700 dark:text-gray-300">{labelOf(it.days)}</td>
+                    <td className="py-2 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${it.renew ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'}`}>
+                        {it.renew ? (ar ? 'تجديد' : 'Renewal') : (ar ? 'جديد' : 'New')}
+                      </span>
+                    </td>
+                    <td className="py-2 text-center text-gray-600 dark:text-gray-400">{formatDate(it.date)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

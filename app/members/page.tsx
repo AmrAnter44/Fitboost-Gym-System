@@ -27,11 +27,6 @@ const MemberForm = nextDynamic(() => import('../../components/MemberForm'), {
   loading: () => <div className="animate-pulse h-40 bg-gray-200 dark:bg-gray-700 rounded-xl" />
 })
 
-const MembersAnalytics = nextDynamic(() => import('../../components/MembersAnalytics'), {
-  ssr: false,
-  loading: () => <div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-xl mt-4" />
-})
-
 const VirtualMemberList = nextDynamic(() => import('../../components/VirtualMemberList'), {
   ssr: false,
   loading: () => <div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-xl" />
@@ -253,7 +248,7 @@ function MembersPageContent() {
   const debouncedSearch = useDebounce(search, 300)
   const debouncedSearchId = useDebounce(searchId, 300)
 
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'expiring-today' | 'expiring-tomorrow' | 'has-remaining' | 'other' | 'analytics' | 'banned' | 'no-coach'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'expiring-today' | 'expiring-tomorrow' | 'has-remaining' | 'other' | 'banned' | 'no-coach'>('all')
   const [filterPackage, setFilterPackage] = useState<'all' | 'month' | '3-months' | '6-months' | 'year'>('all')
   const [filterSalesId, setFilterSalesId] = useState<string>('all') // فلتر السيلز ('all' / '__none__' / staff.id)
   const [filterCoachId, setFilterCoachId] = useState<string>('all') // ‍ فلتر الكوتش ('all' / '__none__' / staff.id)
@@ -658,7 +653,7 @@ function MembersPageContent() {
 
   // Active filters count (used by mobile filter button badge)
   const activeFiltersCount =
-    (filterStatus !== 'all' && filterStatus !== 'analytics' ? 1 : 0) +
+    (filterStatus !== 'all' ? 1 : 0) +
     (filterPackage !== 'all' ? 1 : 0) +
     (filterSalesId !== 'all' ? 1 : 0) +
     (filterCoachId !== 'all' ? 1 : 0) +
@@ -934,16 +929,6 @@ function MembersPageContent() {
                         <span>{locale === 'ar' ? 'المتعلقات المفقودة' : 'Lost & Found'}</span>
                       </Link>
                     )}
-                    <button
-                      onClick={() => { setFilterStatus(filterStatus === 'analytics' ? 'all' : 'analytics'); setShowMoreMenu(false) }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                      role="menuitem"
-                    >
-                      <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
-                      </svg>
-                      <span>{filterStatus === 'analytics' ? (locale === 'ar' ? 'إخفاء التحليلات' : 'Hide Analytics') : (locale === 'ar' ? 'التحليلات' : 'Analytics')}</span>
-                    </button>
                     {user?.role === 'OWNER' && (
                       <button
                         onClick={() => { exportToCSV(); setShowMoreMenu(false) }}
@@ -1089,21 +1074,6 @@ function MembersPageContent() {
             </svg>
             <span className="truncate">{t('nav.memberAttendance')}</span>
           </Link>
-          <button
-            onClick={() => setFilterStatus(filterStatus === 'analytics' ? 'all' : 'analytics')}
-            type="button"
-            aria-pressed={filterStatus === 'analytics'}
-            className={`px-3 sm:px-6 py-2.5 min-h-[44px] rounded-lg transition-colors duration-200 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold ${
-              filterStatus === 'analytics'
-                ? 'bg-purple-700 text-white'
-                : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50'
-            }`}
-          >
-            <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4 shrink-0" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
-            </svg>
-            <span className="truncate">{locale === 'ar' ? 'التحليلات' : 'Analytics'}</span>
-          </button>
           {user?.role === 'OWNER' && (
           <button
             onClick={exportToCSV}
@@ -2137,9 +2107,7 @@ function MembersPageContent() {
             {renderSection('بدون موعد محدد', '', noDate, 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800')}
           </div>
         )
-      })() : filterStatus === 'analytics' ? (
-        <MembersAnalytics members={membersData} />
-      ) : (
+      })() : (
         <>
           {/* Desktop Cards - Hidden on mobile/tablet */}
           <div className="hidden lg:block" dir={direction}>
