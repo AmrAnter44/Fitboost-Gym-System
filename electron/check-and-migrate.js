@@ -1722,6 +1722,10 @@ function migrateDatabase(dbPath) {
       { col: 'birthDate',     def: 'DATETIME' },
       { col: 'profileImage',  def: 'TEXT' },
       { col: 'coachId',       def: 'TEXT' },
+      //  تاريخ تعيين/تغيير الكوتش — إشعارات الكوتش «اتأسند ليك» بتعتمد عليه
+      { col: 'coachAssignedAt',       def: 'DATETIME' },
+      { col: 'coachConversionNote',   def: 'TEXT' },
+      { col: 'coachConversionNoteAt', def: 'DATETIME' },
       { col: 'isFrozen',      def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'startDate',     def: 'DATETIME' },
     ];
