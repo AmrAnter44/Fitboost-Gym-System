@@ -616,12 +616,14 @@ function FollowUpsPageContent() {
 
     // عرض أحدث متابعة لكل زائر (الباقي محفوظ في الـ DB ويظهر في الـ history)
     //  إخفاء المتابعات بتاعت الزوار اللي بقوا أعضاء نشطين الآن
+    //  وقت البحث بنعرض حتى الأعضاء النشطين (اللي جدّدوا/اشتركوا) عشان تلاقيهم لما تسرش
+    const isSearching = debouncedSearchTerm.trim().length > 0
     const latestByVisitor = new Map<string, any>()
     followUps.forEach(fu => {
       // المتابعات المأرشفة يدوياً تتخفى ما عدا 'subscribed' (سجل تاريخي مهم)
       if (fu.archived && fu.result !== 'subscribed') return
-      //  لو الزائر بقى عضو نشط الآن، نخفي متابعاته (مش محتاج follow-up)
-      if (fu.visitor?.phone && activeMemberPhones.has(normalizePhone(fu.visitor.phone))) return
+      //  لو الزائر بقى عضو نشط الآن، نخفي متابعاته (مش محتاج follow-up) — إلا وقت البحث
+      if (!isSearching && fu.visitor?.phone && activeMemberPhones.has(normalizePhone(fu.visitor.phone))) return
       const phone = fu.visitor?.phone ? normalizePhone(fu.visitor.phone) : fu.id
       const existing = latestByVisitor.get(phone)
       if (!existing || new Date(fu.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
@@ -751,7 +753,8 @@ function FollowUpsPageContent() {
     //  لو سيلز  فلترة موحّدة (real + ephemeral) — staffId only
     // الاستثناء الوحيد: الدعوات غير المسنَّدة (member-invitation بدون assignedTo) تظهر للجميع
     //  استثناء كمان: مسؤول السيلز (canManageSales) بيشوف الكل عشان يقدر يدير الفريق
-    if (!permissionsLoading && user?.isSales && user?.staffId && !canManageSales) {
+    //  واستثناء وقت البحث: السيلز يقدر يلاقي أي حد بالبحث (lookup مقصود) — مش محصور على المسند له
+    if (!permissionsLoading && user?.isSales && user?.staffId && !canManageSales && !isSearching) {
       return merged.filter(fu => {
         if (fu.assignedTo === user.staffId) return true
         if (fu.visitor?.source === 'member-invitation' && !fu.assignedTo) return true
@@ -763,7 +766,7 @@ function FollowUpsPageContent() {
 
     return merged
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [followUps, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, visitors, normalizePhone, user, permissionsLoading, canManageSales])
+  }, [followUps, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, visitors, normalizePhone, user, permissionsLoading, canManageSales, debouncedSearchTerm])
 
   // الأرشفة التلقائية للمتابعات بعد تحويل الزائر لعضوية اتشالت — السجل بقى يفضل ظاهر
   // مع badge "✓ عضو الآن" بدل ما يتأرشف. لو فيه متابعات قديمة متأرشفة بـ reason='converted'
@@ -907,7 +910,7 @@ function FollowUpsPageContent() {
   }, [])
 
   //  إرسال رسالة من قالب
-  const sendWhatsAppTemplate = useCallback(async (template: MessageTemplate) => {
+  const sendWhatsAppTemplate = useCallback(async (template: MessageTemplate, sessionIndex?: number) => {
     if (!selectedVisitorForTemplate) return
 
     // استبدال المتغيرات في الرسالة
@@ -926,7 +929,7 @@ function FollowUpsPageContent() {
         const sendResponse = await fetch('/api/whatsapp/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: selectedVisitorForTemplate.phone, message })
+          body: JSON.stringify({ phone: selectedVisitorForTemplate.phone, message, ...(sessionIndex !== undefined ? { sessionIndex } : {}) })
         })
 
         const sendResult = await sendResponse.json()
@@ -1439,7 +1442,7 @@ function FollowUpsPageContent() {
   }, [])
 
   //  إرسال جماعي لجميع الأعضاء المفلترين
-  const handleBulkSend = useCallback(async (template: MessageTemplate) => {
+  const handleBulkSend = useCallback(async (template: MessageTemplate, sessionIndex?: number) => {
     // الحصول على القائمة المفلترة الحالية
     const targetVisitors = filteredFollowUps.map(fu => fu.visitor)
 
@@ -1508,7 +1511,7 @@ function FollowUpsPageContent() {
         const sendResponse = await fetch('/api/whatsapp/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: visitor.phone, message })
+          body: JSON.stringify({ phone: visitor.phone, message, ...(sessionIndex !== undefined ? { sessionIndex } : {}) })
         })
         const result: { success: boolean; error?: string } = await sendResponse.json()
 
