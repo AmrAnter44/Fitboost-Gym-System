@@ -12,6 +12,7 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import CloudBackupCard from '../../components/settings/CloudBackupCard'
 import ImageUpload from '../../components/ImageUpload'
 import ImportSheetSection from '../../components/ImportSheetSection'
+import WebsiteDataSection from '../../components/settings/WebsiteDataSection'
 import PWAInstallButton from '../../components/PWAInstallButton'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
@@ -22,6 +23,7 @@ const EYE_OFF = (<svg {...stroke} className="w-5 h-5"><path strokeLinecap="round
 
 const NAV_ICON_PATHS: Record<string, JSX.Element> = {
   'profile': (<path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />),
+  'website-data': (<path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 1 0 0-18m0 18a9 9 0 1 1 0-18m0 18c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3M3.6 9h16.8M3.6 15h16.8" />),
   'quick-links': (<path strokeLinecap="round" strokeLinejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />),
   'services': (<path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3 2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75 2.25-1.313M12 21.75V19.5m0 2.25-2.25-1.313m0-16.875L12 2.25l2.25 1.313" />),
   'points': (<path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />),
@@ -1359,7 +1361,10 @@ export default function SettingsPage() {
   const navigationItems: Array<{ id: string; label: string }> = [
     //  البروفايل — متاح لكل المستخدمين (بما فيهم الأدمن/الأونر)
     { id: 'profile', label: locale === 'ar' ? 'بروفايل' : 'Profile' },
-    ...(user?.role === 'ADMIN' || user?.role === 'OWNER' ? [{ id: 'quick-links', label: t('settingsPage.navigation.quickLinks') }] : []),
+    ...(user?.role === 'ADMIN' || user?.role === 'OWNER' ? [
+      { id: 'quick-links', label: t('settingsPage.navigation.quickLinks') },
+      { id: 'website-data', label: locale === 'ar' ? 'بيانات الويبسايت' : 'Website Data' }
+    ] : []),
     ...(hasAdminAccess ? [
       { id: 'services', label: t('settingsPage.navigation.services') },
       { id: 'points', label: t('settingsPage.navigation.points') },
@@ -3526,6 +3531,10 @@ export default function SettingsPage() {
               </div>
 
             </div>
+          )}
+
+          {activeSection === 'website-data' && (user?.role === 'ADMIN' || user?.role === 'OWNER') && (
+            <WebsiteDataSection />
           )}
 
           {activeSection === 'import-sheet' && user?.role === 'OWNER' && (
