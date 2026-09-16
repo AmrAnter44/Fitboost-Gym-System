@@ -77,6 +77,39 @@ interface NewAssignmentNotification {
   subscriptionId?: number
   memberId?: string
   daysAgo: number
+  createdAt?: string //  توقيت التأسيند الدقيق (ISO) — للعرض النسبي والتاريخ المضبوط
+}
+
+//  صياغة عربية بالعدد: 1=مفرد، 2=مثنى، 3–10=جمع قلة، >10=تمييز مفرد
+function arUnit(n: number, one: string, two: string, few: string, many: string): string {
+  if (n === 1) return one
+  if (n === 2) return two
+  if (n >= 3 && n <= 10) return `${n} ${few}`
+  return `${n} ${many}`
+}
+
+//  وقت نسبي دقيق (دقايق/ساعات/أيام) من createdAt، مع fallback على daysAgo للداتا القديمة
+function formatAssignedAgo(createdAt: string | undefined, daysAgo: number, locale: string): string {
+  const ar = locale === 'ar'
+  if (createdAt) {
+    const diffMs = Date.now() - new Date(createdAt).getTime()
+    const mins = Math.max(0, Math.floor(diffMs / 60000))
+    if (mins < 1) return ar ? 'دلوقتي' : 'just now'
+    if (mins < 60) return ar ? `من ${arUnit(mins, 'دقيقة', 'دقيقتين', 'دقايق', 'دقيقة')}` : `${mins}m ago`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return ar ? `من ${arUnit(hours, 'ساعة', 'ساعتين', 'ساعات', 'ساعة')}` : `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    return ar ? `من ${arUnit(days, 'يوم', 'يومين', 'أيام', 'يوم')}` : `${days}d ago`
+  }
+  return daysAgo === 0 ? (ar ? 'النهاردة' : 'today') : `${daysAgo} ${ar ? 'يوم' : 'days'}`
+}
+
+//  التاريخ والوقت المضبوط للتأسيند — عشان الكوتش يعرف العضو بقاله معاه من امتى بالظبط
+function formatAssignedExact(createdAt: string | undefined, locale: string): string {
+  if (!createdAt) return ''
+  return new Date(createdAt).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
 }
 
 interface MoreSubscription {
@@ -593,6 +626,8 @@ export default function CoachDashboard() {
                             ? (locale === 'ar' ? 'عضو' : 'Member')
                             : n.type}
                         </span>
+                        <span className="opacity-80">·</span>
+                        <span className="opacity-90">{formatAssignedAgo(n.createdAt, n.daysAgo, locale)}</span>
                       </span>
                     ))}
                   {coachNotifications.newAssignments.filter(n => (n as any).daysAgo === 0 || (n as any).daysAgo === 1).length > 4 && (
@@ -737,15 +772,23 @@ export default function CoachDashboard() {
                     const label = n.type === 'Member'
                       ? (locale === 'ar' ? 'عضو' : 'Member')
                       : n.type
+                    const exact = formatAssignedExact(n.createdAt, locale)
                     return (
                       <li key={i} className="bg-white dark:bg-gray-800 rounded-lg p-2">
-                        <span className="font-medium">{n.memberName}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 mx-2">·</span>
-                        <span className="text-xs text-gray-600 dark:text-gray-300">{label}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 mx-2">·</span>
-                        <span className="text-xs text-gray-600 dark:text-gray-300">
-                          {n.daysAgo === 0 ? (locale === 'ar' ? 'النهاردة' : 'today') : `${n.daysAgo} ${locale === 'ar' ? 'يوم' : 'days'}`}
-                        </span>
+                        <div className="flex items-center flex-wrap gap-x-1">
+                          <span className="font-medium">{n.memberName}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 mx-1">·</span>
+                          <span className="text-xs text-gray-600 dark:text-gray-300">{label}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 mx-1">·</span>
+                          <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">
+                            {formatAssignedAgo(n.createdAt, n.daysAgo, locale)}
+                          </span>
+                        </div>
+                        {exact && (
+                          <div className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5" dir="ltr">
+                            {exact}
+                          </div>
+                        )}
                       </li>
                     )
                   })}

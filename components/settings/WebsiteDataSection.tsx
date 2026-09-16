@@ -80,12 +80,12 @@ export default function WebsiteDataSection() {
   const ar = locale === 'ar'
   const tr = (a: string, e: string) => (ar ? a : e)
 
-  const TABS: { id: DataType; label: string; singular: string }[] = useMemo(() => [
-    { id: 'coach', label: tr('الكوتشات', 'Coaches'), singular: tr('كوتش', 'Coach') },
-    { id: 'offer', label: tr('العروض', 'Offers'), singular: tr('عرض', 'Offer') },
-    { id: 'pt_package', label: tr('باقات PT', 'PT Packages'), singular: tr('باقة PT', 'PT Package') },
-    { id: 'class', label: tr('الكلاسات', 'Classes'), singular: tr('كلاس', 'Class') },
-    { id: 'membership', label: tr('الاشتراكات', 'Memberships'), singular: tr('اشتراك', 'Membership') },
+  const TABS: { id: DataType; label: string; singular: string; hint: string }[] = useMemo(() => [
+    { id: 'coach', label: tr('الكوتشات', 'Coaches'), singular: tr('كوتش', 'Coach'), hint: tr('الكوتشات اللي بيظهروا في صفحة الفريق على الموقع', 'The coaches shown in the team section on the website') },
+    { id: 'offer', label: tr('العروض', 'Offers'), singular: tr('عرض', 'Offer'), hint: tr('العروض والخصومات اللي بتتعرض للزباين', 'Offers and discounts displayed to customers') },
+    { id: 'pt_package', label: tr('باقات PT', 'PT Packages'), singular: tr('باقة PT', 'PT Package'), hint: tr('باقات التدريب الخاص وأسعارها على الموقع', 'Personal-training packages and their prices on the website') },
+    { id: 'class', label: tr('الكلاسات', 'Classes'), singular: tr('كلاس', 'Class'), hint: tr('جدول الكلاسات (اليوم والساعة والنوع) على الموقع', 'The classes schedule (day, time and type) on the website') },
+    { id: 'membership', label: tr('الاشتراكات', 'Memberships'), singular: tr('اشتراك', 'Membership'), hint: tr('باقات العضوية وأسعارها اللي بتظهر للزباين', 'Membership packages and prices shown to customers') },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [locale])
 
@@ -232,31 +232,52 @@ export default function WebsiteDataSection() {
           </div>
           <div className="min-w-0">
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{tr('بيانات الويبسايت', 'Website Data')}</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {data
-                ? tr(`بتعدّل صفحة ${data.gymName} — ${data.branchName} على الموقع باستخدام رخصة النظام`, `Editing ${data.gymName} — ${data.branchName} on the website using the system license`)
-                : tr('عدّل الكوتشات والعروض والأسعار على موقع الجيم من غير إيميل وباسورد', 'Edit coaches, offers and prices on the gym website without email & password')}
-            </p>
+            {data ? (
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-800">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
+                  {tr('متصل بالموقع', 'Live')}
+                </span>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 ring-1 ring-primary-200 dark:ring-primary-800">
+                  {data.gymName} — {data.branchName}
+                </span>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {tr('عدّل الكوتشات والعروض والأسعار على موقع الجيم من غير إيميل وباسورد', 'Edit coaches, offers and prices on the gym website without email & password')}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {data?.websiteUrl && (
             <a href={data.websiteUrl} target="_blank" rel="noopener noreferrer"
-              className="px-3 py-2 rounded-lg text-sm font-medium ring-1 ring-gray-300 dark:ring-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-              {tr('فتح الصفحة', 'Open page')} ↗
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium ring-1 ring-gray-300 dark:ring-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              <svg {...stroke} className="w-4 h-4" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+              {tr('فتح الصفحة', 'Open page')}
             </a>
           )}
           <button onClick={load} disabled={loading}
-            className="px-3 py-2 rounded-lg text-sm font-medium ring-1 ring-gray-300 dark:ring-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50">
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium ring-1 ring-gray-300 dark:ring-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50">
+            <svg {...stroke} className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
             {loading ? tr('جاري التحميل…', 'Loading…') : tr('تحديث', 'Refresh')}
           </button>
         </div>
       </div>
-      {data && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-          {tr('التعديلات بتظهر على الموقع خلال حوالي 10 دقايق.', 'Changes appear on the website within about 10 minutes.')}
-        </p>
-      )}
+
+      {/*  بانر توضيحي: ده بيعدّل الموقع الحقيقي اللي الزباين بيشوفوه */}
+      <div className="mt-4 flex items-start gap-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 p-3">
+        <svg {...stroke} className="w-5 h-5 text-blue-700 dark:text-blue-300 flex-shrink-0 mt-0.5" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+        </svg>
+        <div className="text-sm text-blue-900 dark:text-blue-200 space-y-1">
+          <p className="font-bold">{tr('انتبه: ده بيعدّل صفحة فرعك الحقيقية على موقع FitBoost اللي الزباين بيشوفوها.', 'Heads up: this edits your real branch page on the FitBoost website that customers see.')}</p>
+          <p className="text-blue-800 dark:text-blue-300/90">{tr('التعريف بيتم عن طريق رخصة النظام (من غير إيميل ولا باسورد). أي حفظ أو حذف بيظهر على الموقع خلال حوالي 10 دقايق.', 'You are identified via the system license (no email or password). Any save or delete appears on the website within about 10 minutes.')}</p>
+        </div>
+      </div>
     </div>
   )
 
@@ -297,11 +318,15 @@ export default function WebsiteDataSection() {
 
       {/* List */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{tab.label}</h3>
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="min-w-0">
+            <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{tab.label}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{tab.hint}</p>
+          </div>
           <button onClick={() => openEditor(null)} disabled={loading}
-            className="px-4 py-2 rounded-lg text-sm font-semibold bg-primary-600 hover:bg-primary-700 text-white transition-colors disabled:opacity-50">
-            + {tr('إضافة', 'Add')} {tab.singular}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-primary-600 hover:bg-primary-700 text-white transition-colors disabled:opacity-50 flex-shrink-0">
+            <svg {...stroke} className="w-4 h-4" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            {tr('إضافة', 'Add')} {tab.singular}
           </button>
         </div>
 

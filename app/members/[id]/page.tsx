@@ -398,7 +398,8 @@ export default function MemberDetailPage() {
  gender: '' as string,
  birthDate: '' as string,
  allowedCheckInStart: '' as string,
- allowedCheckInEnd: '' as string
+ allowedCheckInEnd: '' as string,
+ remainingCheckIns: '' as string
  })
 
  const [addRemainingAmountData, setAddRemainingAmountData] = useState({
@@ -1591,7 +1592,8 @@ export default function MemberDetailPage() {
  startDate: editBasicInfoData.startDate || null,
  expiryDate: editBasicInfoData.expiryDate || null,
  allowedCheckInStart: editBasicInfoData.allowedCheckInStart || null,
- allowedCheckInEnd: editBasicInfoData.allowedCheckInEnd || null
+ allowedCheckInEnd: editBasicInfoData.allowedCheckInEnd || null,
+ remainingCheckIns: editBasicInfoData.remainingCheckIns.trim() === '' ? null : Math.max(0, parseInt(editBasicInfoData.remainingCheckIns) || 0)
  })
  })
 
@@ -1634,7 +1636,8 @@ export default function MemberDetailPage() {
  gender: '',
  birthDate: '',
  allowedCheckInStart: '',
- allowedCheckInEnd: ''
+ allowedCheckInEnd: '',
+ remainingCheckIns: ''
  })
  setActiveModal(null)
  fetchMember()
@@ -2204,7 +2207,8 @@ export default function MemberDetailPage() {
  gender: (member as any).gender || '',
  birthDate: (member as any).birthDate ? formatDateYMD((member as any).birthDate) : '',
  allowedCheckInStart: (member as any).allowedCheckInStart || '',
- allowedCheckInEnd: (member as any).allowedCheckInEnd || ''
+ allowedCheckInEnd: (member as any).allowedCheckInEnd || '',
+ remainingCheckIns: (member as any).remainingCheckIns != null ? String((member as any).remainingCheckIns) : ''
  })
  setActiveModal('edit-basic-info')
  }}
@@ -3874,6 +3878,38 @@ export default function MemberDetailPage() {
  {locale === 'ar' ? 'إلغاء التحديد' : 'Clear'}
  </button>
  )}
+ </div>
+
+ {/*  عدد الزيارات المحددة (الدخلات المتبقية) — فاضي = دخول غير محدود */}
+ <div className="col-span-2 md:col-span-3 border-t pt-3 mt-1">
+ <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-white">
+ {locale === 'ar' ? 'عدد الزيارات المحددة (اختياري)' : 'Allowed Visits Count (Optional)'}
+ </h4>
+ <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+ {locale === 'ar'
+ ? 'عدد الدخلات المتبقية للعضو. سيبها فاضية عشان دخول غير محدود (اشتراك زمني عادي).'
+ : 'Remaining check-ins for the member. Leave empty for unlimited entries (regular time-based subscription).'}
+ </p>
+ <div className="flex items-center gap-2">
+ <input
+ type="number"
+ value={editBasicInfoData.remainingCheckIns}
+ onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, remainingCheckIns: e.target.value })}
+ className="w-40 px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ placeholder={locale === 'ar' ? 'غير محدود' : 'Unlimited'}
+ min="0"
+ dir="ltr"
+ />
+ {editBasicInfoData.remainingCheckIns.trim() !== '' && (
+ <button
+ type="button"
+ onClick={() => setEditBasicInfoData({ ...editBasicInfoData, remainingCheckIns: '' })}
+ className="text-xs text-red-600 hover:underline"
+ >
+ {locale === 'ar' ? 'خليه غير محدود' : 'Make unlimited'}
+ </button>
+ )}
+ </div>
  </div>
 
  <div className="col-span-2 md:col-span-3">

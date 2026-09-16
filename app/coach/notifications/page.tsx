@@ -57,6 +57,29 @@ const subTypeLabel = (type: SubscriptionKind, locale: string): string => {
   return ({ PT: 'PT', Nutrition: 'تغذية', Physiotherapy: 'علاج طبيعي', GroupClass: 'جروب كلاس', More: 'More' } as Record<string, string>)[type] || type
 }
 
+//  صياغة عربية بالعدد: 1=مفرد، 2=مثنى، 3–10=جمع قلة، >10=تمييز مفرد
+const arUnit = (n: number, one: string, two: string, few: string, many: string): string => {
+  if (n === 1) return one
+  if (n === 2) return two
+  if (n >= 3 && n <= 10) return `${n} ${few}`
+  return `${n} ${many}`
+}
+
+//  وقت نسبي دقيق (دقايق/ساعات/أيام) من createdAt
+const formatAssignedAgo = (createdAt: string | undefined, daysAgo: number, locale: string): string => {
+  const ar = locale === 'ar'
+  if (createdAt) {
+    const mins = Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000))
+    if (mins < 1) return ar ? 'دلوقتي' : 'just now'
+    if (mins < 60) return ar ? `من ${arUnit(mins, 'دقيقة', 'دقيقتين', 'دقايق', 'دقيقة')}` : `${mins}m ago`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return ar ? `من ${arUnit(hours, 'ساعة', 'ساعتين', 'ساعات', 'ساعة')}` : `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    return ar ? `من ${arUnit(days, 'يوم', 'يومين', 'أيام', 'يوم')}` : `${days}d ago`
+  }
+  return daysAgo === 0 ? (ar ? 'النهاردة' : 'today') : `${daysAgo} ${ar ? 'يوم' : 'days ago'}`
+}
+
 export default function CoachNotificationsPage() {
   const router = useRouter()
   const { locale, direction } = useLanguage()
@@ -146,12 +169,11 @@ export default function CoachNotificationsPage() {
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                 {label}{n.subscriptionId ? ` · #${n.subscriptionId}` : ''}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1 flex-wrap">
                 <svg {...stroke} className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
-                {new Date(n.createdAt).toLocaleDateString(dateLocale)} ·{' '}
-                {n.daysAgo === 0
-                  ? (locale === 'ar' ? 'النهاردة' : 'today')
-                  : `${n.daysAgo} ${locale === 'ar' ? 'يوم' : 'days ago'}`}
+                <span className="font-semibold text-purple-700 dark:text-purple-300">{formatAssignedAgo(n.createdAt, n.daysAgo, locale)}</span>
+                <span className="mx-0.5">·</span>
+                <span dir="ltr">{new Date(n.createdAt).toLocaleString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
               </p>
             </div>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 whitespace-nowrap">

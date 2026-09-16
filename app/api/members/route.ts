@@ -1037,6 +1037,15 @@ export async function PUT(request: Request) {
       const val = data.allowedCheckInEnd
       updateData.allowedCheckInEnd = (val && typeof val === 'string' && timeFormatRegex.test(val)) ? val : null
     }
+    //  عدد الزيارات/الدخلات المتبقية — null أو فاضي = دخول غير محدود
+    if (data.remainingCheckIns !== undefined) {
+      if (data.remainingCheckIns === null || data.remainingCheckIns === '') {
+        updateData.remainingCheckIns = null
+      } else {
+        const n = parseInt(data.remainingCheckIns.toString())
+        updateData.remainingCheckIns = Number.isNaN(n) ? null : Math.max(0, n)
+      }
+    }
     if (data.remainingFreezeDays !== undefined) {
       updateData.remainingFreezeDays = parseInt(data.remainingFreezeDays.toString())
     }
