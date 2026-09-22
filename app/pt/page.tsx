@@ -1622,7 +1622,7 @@ export default function PTPage() {
               return (
                 <div
                   key={session.ptNumber}
-                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden ring-1 hover:shadow-lg dark:hover:shadow-2xl transition ${
+                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden ring-1 hover:shadow-lg dark:hover:shadow-2xl transition flex flex-col ${
                     isExpired ? 'border-red-300 dark:border-red-700' : isExpiringSoon ? 'border-orange-300 dark:border-orange-700' : 'border-gray-200 dark:border-gray-600'
                   }`}
                 >
@@ -1664,7 +1664,7 @@ export default function PTPage() {
                   </div>
 
                   {/* Card Body */}
-                  <div className="p-3 space-y-2.5">
+                  <div className="p-3 space-y-2.5 flex-1 flex flex-col">
                     {/*  🔁 تجديد معلّق — بيتفعّل لما الحصص الحالية تخلص */}
                     {session.pendingRenewal && (session.pendingRenewal.sessions > 0) && (
                       <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-800 px-2.5 py-1.5 text-xs text-blue-800 dark:text-blue-300">
@@ -1757,7 +1757,7 @@ export default function PTPage() {
                     )}
 
                     {/* Action Buttons — حضور 40% · تجديد 40% · باقي الإجراءات 20% */}
-                    <div className="grid grid-cols-5 gap-2 pt-1">
+                    <div className="grid grid-cols-5 gap-2 pt-1 mt-auto">
                       {session.ptNumber >= 0 && !isExpired && (
                         <button
                           onClick={() => handleRegisterSession(session)}
@@ -1809,28 +1809,16 @@ export default function PTPage() {
                       )}
                     </div>
 
-                    {/*  صف تاني: دفع الباقي (لو عليه فلوس) + تعديل — مباشرين جنب التجديد */}
-                    {!isCoach && session.ptNumber >= 0 && (
-                      <div className="grid grid-cols-2 gap-2">
-                        {(session.remainingAmount || 0) > 0 && (
-                          <button
-                            onClick={() => handleOpenPaymentModal(session)}
-                            className="col-span-1 bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors duration-200"
-                            title={locale === 'ar' ? 'دفع الباقي' : 'Pay remaining'}
-                          >
-                            <svg {...stroke} className="w-4 h-4 flex-shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4"/></svg>
-                            <span>{t('pt.payRemaining')} ({(session.remainingAmount || 0).toFixed(0)})</span>
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleEdit(session)}
-                          className={`${(session.remainingAmount || 0) > 0 ? 'col-span-1' : 'col-span-2'} bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors duration-200`}
-                          title={locale === 'ar' ? 'تعديل الاشتراك' : 'Edit subscription'}
-                        >
-                          <svg {...stroke} className="w-4 h-4 flex-shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/></svg>
-                          <span>{locale === 'ar' ? 'تعديل' : 'Edit'}</span>
-                        </button>
-                      </div>
+                    {/*  دفع الباقي مباشر — بيظهر بس لو العضو عليه باقي (التعديل موجود جوّه الـ ⋯) */}
+                    {!isCoach && session.ptNumber >= 0 && (session.remainingAmount || 0) > 0 && (
+                      <button
+                        onClick={() => handleOpenPaymentModal(session)}
+                        className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors duration-200"
+                        title={locale === 'ar' ? 'دفع الباقي' : 'Pay remaining'}
+                      >
+                        <svg {...stroke} className="w-4 h-4 flex-shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4"/></svg>
+                        <span>{t('pt.payRemaining')} ({(session.remainingAmount || 0).toFixed(0)})</span>
+                      </button>
                     )}
                   </div>
                 </div>
