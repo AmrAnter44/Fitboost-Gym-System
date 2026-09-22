@@ -334,6 +334,16 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 /* Dark Mode Colors */
 .dark {
   /* Dark Mode Primary Colors */
@@ -619,6 +629,14 @@ textarea {
   textarea {
     font-size: 16px !important;
   }
+}
+
+/*  ارتفاع المودالات — متوافق مع كل الأجهزة:
+    vh أولاً (مدعوم في كل المتصفحات القديمة/أندرويد قديم) ثم dvh للأجهزة الحديثة
+    (iOS 16+ / Chrome 108+) عشان الارتفاع يتحسب صح وقت فتح الكيبورد. */
+.modal-maxh {
+  max-height: 92vh;
+  max-height: 92dvh;
 }
 
 /* ========================================

@@ -49,6 +49,7 @@ interface MemberCardRowProps {
   locale: string
   direction: string
   hideNumbers?: boolean
+  highlightId?: string | null
   dynamicRowHeight: DynamicRowHeight
 }
 
@@ -66,6 +67,7 @@ const MemberCardRow = ({
   locale,
   direction,
   hideNumbers,
+  highlightId,
   dynamicRowHeight,
 }: { index: number; style: CSSProperties; ariaAttributes: any } & MemberCardRowProps) => {
   const ref = useRef<HTMLDivElement>(null)
@@ -191,9 +193,9 @@ const MemberCardRow = ({
             onViewDetails(member.id)
           }
         }}
-        className={`rounded-xl shadow-sm overflow-hidden ring-1 ${ringColor} hover:shadow-md transition-[box-shadow,background-color] duration-200 cursor-pointer ${
+        className={`rounded-xl shadow-sm overflow-hidden ring-1 ${ringColor} hover:shadow-md transition-all duration-300 cursor-pointer ${
           isBanned ? 'bg-white/80 dark:bg-gray-800/80 opacity-75' : 'bg-white dark:bg-gray-800'
-        }`}
+        } ${member.id === highlightId ? 'ring-2 ring-primary-500 dark:ring-primary-400 shadow-xl bg-primary-50 dark:bg-primary-900/20' : ''}`}
         dir={direction}
       >
         {/* Header: صورة + اسم + رقم + حالة */}
@@ -383,6 +385,7 @@ interface VirtualMemberListProps {
   locale: string
   direction: string
   hideNumbers?: boolean
+  highlightId?: string | null //  العضو اللي كنا واقفين عنده — يتعمله هايلايت وscroll
 }
 
 export default function VirtualMemberList({
@@ -394,9 +397,11 @@ export default function VirtualMemberList({
   locale,
   direction,
   hideNumbers = false,
+  highlightId = null,
 }: VirtualMemberListProps) {
   const dynamicRowHeight = useDynamicRowHeight({ defaultRowHeight: 250 })
   const queryClient = useQueryClient()
+  const listRef = useRef<any>(null)
 
   const onPrefetch = useCallback((id: string) => {
     queryClient.prefetchQuery({
@@ -406,8 +411,23 @@ export default function VirtualMemberList({
     })
   }, [queryClient])
 
+  //  scroll للعضو اللي كنا واقفين عنده بعد الرجوع من البروفايل
+  useEffect(() => {
+    if (!highlightId) return
+    const idx = members.findIndex(m => m.id === highlightId)
+    if (idx < 0) return
+    const t = setTimeout(() => {
+      try {
+        listRef.current?.scrollToRow?.({ index: idx, align: 'center', behavior: 'smooth' })
+      } catch { /* API مختلفة — الهايلايت لوحده كفاية */ }
+    }, 250)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightId])
+
   return (
     <List
+      listRef={listRef}
       rowComponent={MemberCardRow}
       rowProps={{
         members,
@@ -419,6 +439,7 @@ export default function VirtualMemberList({
         locale,
         direction,
         hideNumbers,
+        highlightId,
         dynamicRowHeight,
       } as any}
       rowCount={members.length}

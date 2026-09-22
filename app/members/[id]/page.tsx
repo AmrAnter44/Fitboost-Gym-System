@@ -373,6 +373,7 @@ export default function MemberDetailPage() {
  name: '',
  phone: '',
  memberNumber: '',
+ nationalId: '',
  profileImage: null as string | null,
  idCardFront: null as string | null,
  idCardBack: null as string | null,
@@ -1567,6 +1568,7 @@ export default function MemberDetailPage() {
  name: editBasicInfoData.name.trim(),
  phone: editBasicInfoData.phone.trim(),
  memberNumber: editBasicInfoData.memberNumber.trim() || null,
+ nationalId: editBasicInfoData.nationalId.trim() || null,
  profileImage: editBasicInfoData.profileImage,
  idCardFront: editBasicInfoData.idCardFront,
  idCardBack: editBasicInfoData.idCardBack,
@@ -1611,6 +1613,7 @@ export default function MemberDetailPage() {
  name: '',
  phone: '',
  memberNumber: '',
+ nationalId: '',
  profileImage: null,
  idCardFront: null,
  idCardBack: null,
@@ -2182,6 +2185,7 @@ export default function MemberDetailPage() {
  name: member.name,
  phone: member.phone,
  memberNumber: member.memberNumber != null ? String(member.memberNumber) : '',
+ nationalId: (member as any).nationalId || '',
  profileImage: member.profileImage || null,
  subscriptionPrice: member.subscriptionPrice,
  inBodyScans: member.inBodyScans ?? 0,
@@ -3545,6 +3549,22 @@ export default function MemberDetailPage() {
 
  <div>
  <label className="block text-xs font-medium mb-1">
+ {t('memberDetails.nationalId')}
+ </label>
+ <input
+ type="text"
+ inputMode="numeric"
+ value={editBasicInfoData.nationalId}
+ onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, nationalId: e.target.value.replace(/[^\d]/g, '') })}
+ className="w-full px-2 py-1.5 border rounded text-sm font-mono dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ placeholder={locale === 'ar' ? 'الرقم القومي (اختياري)' : 'National ID (optional)'}
+ dir="ltr"
+ maxLength={14}
+ />
+ </div>
+
+ <div>
+ <label className="block text-xs font-medium mb-1">
  {t('memberDetails.editModal.fields.subscriptionPrice')}
  </label>
  <input
@@ -3557,6 +3577,8 @@ export default function MemberDetailPage() {
  />
  </div>
 
+ {/*  تاريخ البداية والانتهاء جنب بعض دايمًا */}
+ <div className="col-span-2 md:col-span-2 grid grid-cols-2 gap-3">
  <div>
  <label className="block text-xs font-medium mb-1">
  {t('memberDetails.editModal.fields.startDate')}
@@ -3567,6 +3589,19 @@ export default function MemberDetailPage() {
  onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, startDate: e.target.value })}
  className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
  />
+ </div>
+
+ <div>
+ <label className="block text-xs font-medium mb-1">
+ {t('memberDetails.editModal.fields.expiryDate')}
+ </label>
+ <input
+ type="date"
+ value={editBasicInfoData.expiryDate}
+ onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, expiryDate: e.target.value })}
+ className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ />
+ </div>
  </div>
 
  {/* 🚻 الجنس — للجيم المكس فقط */}
@@ -3588,19 +3623,7 @@ export default function MemberDetailPage() {
  </div>
  )}
 
- <div>
- <label className="block text-xs font-medium mb-1">
- {t('memberDetails.editModal.fields.expiryDate')}
- </label>
- <input
- type="date"
- value={editBasicInfoData.expiryDate}
- onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, expiryDate: e.target.value })}
- className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
- />
- </div>
-
- {/* 🎂 تاريخ الميلاد — تحت */}
+ {/* 🎂 تاريخ الميلاد */}
  <div>
  <label className="block text-xs font-medium mb-1">
  {direction === 'rtl' ? 'تاريخ الميلاد' : 'Birthdate'}
@@ -3890,12 +3913,11 @@ export default function MemberDetailPage() {
  ? 'عدد الدخلات المتبقية للعضو. سيبها فاضية عشان دخول غير محدود (اشتراك زمني عادي).'
  : 'Remaining check-ins for the member. Leave empty for unlimited entries (regular time-based subscription).'}
  </p>
- <div className="flex items-center gap-2">
  <input
  type="number"
  value={editBasicInfoData.remainingCheckIns}
  onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, remainingCheckIns: e.target.value })}
- className="w-40 px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
  placeholder={locale === 'ar' ? 'غير محدود' : 'Unlimited'}
  min="0"
  dir="ltr"
@@ -3904,12 +3926,11 @@ export default function MemberDetailPage() {
  <button
  type="button"
  onClick={() => setEditBasicInfoData({ ...editBasicInfoData, remainingCheckIns: '' })}
- className="text-xs text-red-600 hover:underline"
+ className="mt-2 text-xs text-red-600 hover:underline"
  >
- {locale === 'ar' ? 'خليه غير محدود' : 'Make unlimited'}
+ {locale === 'ar' ? 'إلغاء التحديد' : 'Clear'}
  </button>
  )}
- </div>
  </div>
 
  <div className="col-span-2 md:col-span-3">

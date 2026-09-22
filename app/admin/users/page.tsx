@@ -657,8 +657,8 @@ export default function AdminUsersPage() {
 
       {/* Modal: إضافة مستخدم */}
       {showAddModal && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="add-user-title">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-7xl w-full p-4 my-8">
+        <div className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="add-user-title">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-3xl w-full p-4 sm:p-5 my-4 sm:my-8 modal-maxh overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between mb-4">
               <h2 id="add-user-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('adminUsers.addModal.title')}</h2>
               <button
@@ -796,7 +796,7 @@ export default function AdminUsersPage() {
               </div>
 
               {newUserData.role === 'COACH' && (
-                <div className="lg:col-span-4">
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     {t('adminUsers.addModal.staff')} <span className="text-red-600">*</span>
                   </label>
@@ -828,7 +828,7 @@ export default function AdminUsersPage() {
 
               {/* Sales */}
               {newUserData.role !== 'COACH' && newUserData.role !== 'ADMIN' && newUserData.role !== 'OWNER' && (
-                <div className="lg:col-span-4">
+                <div className="sm:col-span-2">
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
@@ -867,7 +867,7 @@ export default function AdminUsersPage() {
               )}
 
               {/* Permissions */}
-              <div className="lg:col-span-4 border-t border-gray-200 dark:border-gray-700 pt-3 mt-2">
+              <div className="sm:col-span-2 border-t border-gray-200 dark:border-gray-700 pt-3 mt-2">
                 <h3 className="text-base font-bold mb-2 flex items-center gap-2 text-gray-900 dark:text-gray-100">
                   <svg {...stroke} className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
@@ -970,7 +970,7 @@ export default function AdminUsersPage() {
                 )}
               </div>
 
-              <div className="lg:col-span-4 flex gap-2">
+              <div className="sm:col-span-2 flex gap-2">
                 <button
                   onClick={handleAddUser}
                   disabled={loading}
@@ -1006,8 +1006,8 @@ export default function AdminUsersPage() {
 
       {/* Modal: Edit Permissions */}
       {showPermissionsModal && editingUser && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="perm-modal-title">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="perm-modal-title">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-3xl w-full p-4 sm:p-6 my-4 sm:my-8 modal-maxh overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
@@ -1291,8 +1291,8 @@ export default function AdminUsersPage() {
 
       {/* Modal: Change Password */}
       {showChangePasswordModal && changingPasswordUser && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="change-pw-title">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-md w-full p-6">
+        <div className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="change-pw-title">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-md w-full p-4 sm:p-6 my-4 sm:my-8 modal-maxh overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">

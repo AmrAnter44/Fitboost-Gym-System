@@ -69,13 +69,21 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // فحص أولي عند التحميل
+  //  التطبيق بيستخدم تبويبات iframe — كل تبويب بيحمّل LicenseProvider.
+  //  عشان منعملش N استدعاءات متزامنة (بتعلّق لما النت يقطع)، بنعمل التحقق التلقائي
+  //  في النافذة الرئيسية بس (top window)، زي LicenseLockedScreen بالظبط.
+  const isTopWindow = typeof window === 'undefined' || window.self === window.top
+
+  // فحص أولي عند التحميل — النافذة الرئيسية بس
   useEffect(() => {
+    if (!isTopWindow) return
     checkLicense()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // فحص تلقائي كل 8 ساعات
+  // فحص تلقائي كل 8 ساعات — النافذة الرئيسية بس
   useEffect(() => {
+    if (!isTopWindow) return
     const EIGHT_HOURS = 8 * 60 * 60 * 1000 // 8 ساعات بالميلي ثانية
 
     const interval = setInterval(() => {
@@ -84,6 +92,7 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
     }, EIGHT_HOURS)
 
     return () => clearInterval(interval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

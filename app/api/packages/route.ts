@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
-import { requirePermission, verifyAuth } from '../../../lib/auth'
+import { requireAnyPermissionFresh, verifyAuth } from '../../../lib/auth'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
 export const dynamic = 'force-dynamic'
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 // POST - إضافة باقة جديدة
 export async function POST(request: Request) {
   try {
-    const user = await requirePermission(request, 'canAccessSettings')
+    const user = await requireAnyPermissionFresh(request, ['canManageOffers', 'canAccessSettings'])
 
     const body = await request.json()
     const { name, serviceType, sessions, price, durationDays, moreCommission } = body
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
 // PUT - تحديث باقة
 export async function PUT(request: Request) {
   try {
-    const user = await requirePermission(request, 'canAccessSettings')
+    const user = await requireAnyPermissionFresh(request, ['canManageOffers', 'canAccessSettings'])
 
     const body = await request.json()
     const { id, name, sessions, price, durationDays, moreCommission, isActive } = body
@@ -161,7 +161,7 @@ export async function PUT(request: Request) {
 // DELETE - حذف باقة (soft delete)
 export async function DELETE(request: Request) {
   try {
-    const user = await requirePermission(request, 'canAccessSettings')
+    const user = await requireAnyPermissionFresh(request, ['canManageOffers', 'canAccessSettings'])
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

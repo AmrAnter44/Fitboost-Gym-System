@@ -102,6 +102,9 @@ export interface Permissions {
   // صلاحيات الإعدادات والإدارة
   canAccessSettings: boolean
   canAccessAdmin: boolean
+  //  📦 إدارة الباقات/العروض — يسمح للموظف يضيف/يعدّل الباقات من غير ما ياخد كل الإعدادات
+  //  (اختيارية + OFF افتراضيًا؛ الأدمن/الأونر عندهم canAccessSettings فبيقدروا أصلاً)
+  canManageOffers?: boolean
 
   // صلاحيات اختبار اللياقة
 
@@ -715,6 +718,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canViewAllPT: 'رؤية كل الحصص المخصصة + متابعات PT (حتى لو كوتش)',
   canAccessSettings: 'الوصول للإعدادات',
   canAccessAdmin: 'الوصول للوحة الإدارة',
+  canManageOffers: 'إدارة الباقات/العروض',
   canViewSpaBookings: 'عرض حجوزات SPA',
   canCreateSpaBooking: 'إنشاء حجز SPA',
   canEditSpaBooking: 'تعديل حجز SPA',
@@ -881,6 +885,7 @@ export const PERMISSION_GROUPS = {
     permissions: [
       'canAccessSettings',
       'canAccessAdmin',
+      'canManageOffers',
     ] as Array<keyof Permissions>,
   },
   spa: {
@@ -1006,6 +1011,7 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canViewAllPT: '👁️',
   canAccessSettings: '⚙️',
   canAccessAdmin: '👨‍💼',
+  canManageOffers: '📦',
   canViewSpaBookings: '👁️',
   canCreateSpaBooking: '➕',
   canEditSpaBooking: '✏️',

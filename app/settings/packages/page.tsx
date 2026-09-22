@@ -7,6 +7,8 @@ import { useServiceSettings } from '@/contexts/ServiceSettingsContext'
 import { useRouter } from 'next/navigation'
 import { LoadingScreen } from '@/components/Spinner'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import { usePermissions } from '@/hooks/usePermissions'
+import PermissionDenied from '@/components/PermissionDenied'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -44,6 +46,7 @@ export default function PackagesManagementPage() {
   const toast = useToast()
   const router = useRouter()
   const { settings } = useServiceSettings()
+  const { hasPermission, loading: permLoading } = usePermissions()
 
   const [packages, setPackages] = useState<ServicePackage[]>([])
   const [loading, setLoading] = useState(true)
@@ -175,6 +178,12 @@ export default function PackagesManagementPage() {
     Physiotherapy: packages.filter(p => p.serviceType === 'Physiotherapy'),
     GroupClass: packages.filter(p => p.serviceType === 'GroupClass'),
     More: packages.filter(p => p.serviceType === 'More')
+  }
+
+  //  🔒 صلاحية إدارة الباقات — الأدمن/الأونر أو موظف عنده canManageOffers
+  if (permLoading) return <LoadingScreen fullScreen />
+  if (!hasPermission('canManageOffers') && !hasPermission('canAccessSettings')) {
+    return <PermissionDenied />
   }
 
   if (loading) {

@@ -6,6 +6,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { getTabLabel } from '../lib/tabRouteLabels'
 import SystemStats from './SystemStats'
+import NetworkStatus from './NetworkStatus'
 
 export default function TabBar() {
   const { tabs, activeTabId, isEmbedded, isReady, canAddTab, openTab, closeTab, activateTab } = useTabs()
@@ -70,8 +71,11 @@ export default function TabBar() {
         </svg>
       </button>
 
-      {/* مراقب موارد الجهاز — في الطرف المقابل للتابات */}
-      <SystemStats />
+      {/* مراقب موارد الجهاز + حالة الإنترنت — في الطرف المقابل للتابات */}
+      <div className="ms-auto self-center flex items-center gap-1">
+        <SystemStats />
+        <NetworkStatus />
+      </div>
     </div>
   )
 }

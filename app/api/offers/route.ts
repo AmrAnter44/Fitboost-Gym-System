@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
-import { requirePermission } from '../../../lib/auth'
+import { requireAnyPermissionFresh } from '../../../lib/auth'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
 // GET - جلب كل العروض
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     // ✅ التحقق من صلاحية الإعدادات (الأدمن فقط)
-    const user = await requirePermission(request, 'canAccessSettings')
+    const user = await requireAnyPermissionFresh(request, ['canManageOffers', 'canAccessSettings'])
 
     const body = await request.json()
     const { name, duration, price, minPrice, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, maxCheckIns, ptCommission, icon, upgradeEligibilityDays, upgradePoints, allowedCheckInStart, allowedCheckInEnd } = body
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     // ✅ التحقق من صلاحية الإعدادات (الأدمن فقط)
-    const user = await requirePermission(request, 'canAccessSettings')
+    const user = await requireAnyPermissionFresh(request, ['canManageOffers', 'canAccessSettings'])
 
     const body = await request.json()
     const { id, name, duration, price, minPrice, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, maxCheckIns, ptCommission, icon, isActive, upgradeEligibilityDays, upgradePoints, allowedCheckInStart, allowedCheckInEnd } = body
@@ -200,7 +200,7 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     // ✅ التحقق من صلاحية الإعدادات (الأدمن فقط)
-    const user = await requirePermission(request, 'canAccessSettings')
+    const user = await requireAnyPermissionFresh(request, ['canManageOffers', 'canAccessSettings'])
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

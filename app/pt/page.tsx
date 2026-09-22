@@ -16,6 +16,7 @@ import type { PaymentMethod } from '../../lib/paymentHelpers'
 import { fetchPTSessions, fetchCoaches } from '../../lib/api/pt'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { useDebounce } from '../../hooks/useDebounce'
+import { matchesArabicQuery, digitsOnly } from '../../lib/arabicSearch'
 import LoadingSkeleton from '../../components/LoadingSkeleton'
 import PTRenewalForm from '../../components/PTRenewalForm'
 import PTFreezeForm from '../../components/PTFreezeForm'
@@ -60,6 +61,15 @@ interface PTSession {
   memberId?: string | null
   isFrozen?: boolean
   freezeUntil?: string | null
+  //  🔁 باقة تجديد معلّقة (بتتفعّل لما الحصص الحالية تخلص)
+  pendingRenewal?: {
+    sessions: number
+    pricePerSession?: number
+    startDate?: string | null
+    expiryDate?: string | null
+    coachName?: string | null
+    remainingAmount?: number | null
+  } | null
 }
 
 export default function PTPage() {
@@ -116,8 +126,17 @@ export default function PTPage() {
 
   const [showForm, setShowForm] = useState(false)
   const [editingSession, setEditingSession] = useState<PTSession | null>(null)
+  //  🔁 مودال التجديد المعلّق (تعديل تفاصيله + دفع باقيه)
+  const [pendingEditSession, setPendingEditSession] = useState<PTSession | null>(null)
+  const [pendingForm, setPendingForm] = useState({ sessions: '', pricePerSession: '', startDate: '', expiryDate: '', coachName: '', remainingAmount: '' })
+  const [pendingPayAmount, setPendingPayAmount] = useState<number>(0)
+  const [pendingPayMethod, setPendingPayMethod] = useState<string>('cash')
+  const [pendingSaving, setPendingSaving] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
+  //  بحث بالرقم منفصل — رقم الـ PT أو رقم العضوية (مطابقة بالظبط)
+  const [searchId, setSearchId] = useState('')
+  const debouncedSearchId = useDebounce(searchId, 300)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentSession, setPaymentSession] = useState<PTSession | null>(null)
   const [paymentFormData, setPaymentFormData] = useState<{
@@ -672,7 +691,87 @@ export default function PTPage() {
       console.error('Error paying remaining:', error)
       toast.error(t('pt.messages.paymentFailed'))
     } finally {
-      
+
+    }
+  }
+
+  //  🔁 فتح مودال التجديد المعلّق (تعديل + دفع الباقي)
+  const openPendingEdit = (session: PTSession) => {
+    const p = session.pendingRenewal
+    if (!p) return
+    setPendingEditSession(session)
+    setPendingForm({
+      sessions: String(p.sessions ?? ''),
+      pricePerSession: p.pricePerSession != null ? String(p.pricePerSession) : '',
+      startDate: p.startDate ? String(p.startDate).slice(0, 10) : '',
+      expiryDate: p.expiryDate ? String(p.expiryDate).slice(0, 10) : '',
+      coachName: p.coachName || '',
+      remainingAmount: p.remainingAmount != null ? String(p.remainingAmount) : '',
+    })
+    setPendingPayAmount(Number(p.remainingAmount) || 0)
+    setPendingPayMethod('cash')
+  }
+
+  //  حفظ تعديل الباقة المعلّقة
+  const savePendingEdit = async () => {
+    if (!pendingEditSession) return
+    setPendingSaving(true)
+    try {
+      const res = await fetch('/api/pt/pending-renewal', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ptNumber: pendingEditSession.ptNumber,
+          sessions: parseInt(pendingForm.sessions) || undefined,
+          pricePerSession: pendingForm.pricePerSession !== '' ? Number(pendingForm.pricePerSession) : undefined,
+          startDate: pendingForm.startDate || null,
+          expiryDate: pendingForm.expiryDate || null,
+          coachName: pendingForm.coachName || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(locale === 'ar' ? 'اتحفظ تعديل التجديد المعلّق' : 'Pending renewal updated')
+        refetchSessions()
+        setPendingEditSession(null)
+      } else {
+        toast.error(data.error || (locale === 'ar' ? 'فشل التعديل' : 'Update failed'))
+      }
+    } catch {
+      toast.error(locale === 'ar' ? 'خطأ في الاتصال' : 'Connection error')
+    } finally {
+      setPendingSaving(false)
+    }
+  }
+
+  //  دفع باقي التجديد المعلّق
+  const payPendingRemaining = async () => {
+    if (!pendingEditSession) return
+    if (!pendingPayAmount || pendingPayAmount <= 0) return
+    setPendingSaving(true)
+    try {
+      const res = await fetch('/api/pt/pending-renewal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ptNumber: pendingEditSession.ptNumber,
+          paymentAmount: pendingPayAmount,
+          paymentMethod: pendingPayMethod,
+          staffName: user?.name || '',
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(locale === 'ar' ? 'تم دفع باقي التجديد' : 'Pending remaining paid')
+        refetchSessions()
+        setPendingEditSession(null)
+      } else {
+        toast.error(data.error || (locale === 'ar' ? 'فشل الدفع' : 'Payment failed'))
+      }
+    } catch {
+      toast.error(locale === 'ar' ? 'خطأ في الاتصال' : 'Connection error')
+    } finally {
+      setPendingSaving(false)
     }
   }
 
@@ -698,12 +797,22 @@ export default function PTPage() {
   const subDateCount = sessions.filter(s => inSubRange(s.startDate)).length
 
   const filteredSessions = sessions.filter((session) => {
-    // البحث النصي
+    // البحث النصي — بحث عربي ذكي (يوحّد الألف/الياء/التاء المربوطة + التشكيل + الأرقام)
+    //  وبحث بالكلمات للاسم (أي ترتيب)، وبحث بالأرقام للرقم/التليفون
+    const qDigits = digitsOnly(debouncedSearchTerm)
     const matchesSearch =
-      session.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      session.coachName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      session.ptNumber.toString().includes(debouncedSearchTerm) ||
-      session.phone.includes(debouncedSearchTerm)
+      !debouncedSearchTerm.trim() ||
+      matchesArabicQuery(session.clientName, debouncedSearchTerm) ||
+      matchesArabicQuery(session.coachName, debouncedSearchTerm) ||
+      (!!qDigits && session.ptNumber.toString().includes(qDigits)) ||
+      (!!qDigits && digitsOnly(session.phone).includes(qDigits))
+
+    //  البحث بالرقم (منفصل) — رقم الـ PT أو رقم العضوية، مطابقة بالظبط
+    const idDigits = digitsOnly(debouncedSearchId)
+    const matchesId =
+      !idDigits ||
+      session.ptNumber.toString() === idDigits ||
+      (!!session.memberNumber && digitsOnly(session.memberNumber) === idDigits)
 
     // فلتر المدرب
     const matchesCoach = filterCoach === '' || session.coachName === filterCoach
@@ -735,7 +844,7 @@ export default function PTPage() {
     // فلتر فترة الاشتراك — على تاريخ بداية الاشتراك (اشترك في الفترة)
     const matchesSubDate = inSubRange(session.startDate)
 
-    return matchesSearch && matchesCoach && matchesStatus && matchesSessions && matchesType && matchesSubDate
+    return matchesSearch && matchesId && matchesCoach && matchesStatus && matchesSessions && matchesType && matchesSubDate
   })
 
   // التحقق من الصلاحيات
@@ -1254,17 +1363,48 @@ export default function PTPage() {
 
       {/* Search and filters */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6 mb-6" dir={direction}>
-        <div className="mb-6 relative">
-          <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-gray-400 dark:text-gray-500">
-            <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-          </span>
-          <input
-            type="text"
-            placeholder={t('pt.searchPlaceholder')}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full ps-10 pe-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-          />
+        {/* Search — صغير لرقم الـ PT/العضوية + كبير للاسم/التليفون (نفس تصميم صفحة الأعضاء) */}
+        <div className="mb-6 flex gap-2">
+          {/*  ID search - smaller */}
+          <div className="relative w-32 shrink-0">
+            <input
+              type="search"
+              inputMode="numeric"
+              value={searchId}
+              onChange={(e) => setSearchId(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm text-center font-mono"
+              placeholder={locale === 'ar' ? 'رقم العضو' : 'Member #'}
+              dir="ltr"
+            />
+          </div>
+          {/*  Name / Phone search - larger */}
+          <div className="relative flex-1">
+            <span className={`absolute inset-y-0 ${direction === 'rtl' ? 'right-3' : 'left-3'} flex items-center text-gray-400 pointer-events-none`}>
+              <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`w-full ${direction === 'rtl' ? 'pr-10 pl-10' : 'pl-10 pr-10'} py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm`}
+              placeholder={locale === 'ar' ? 'ابحث بالاسم أو رقم التليفون...' : 'Search by name or phone...'}
+              dir={direction}
+            />
+            {(searchTerm || searchId) && (
+              <button
+                onClick={() => { setSearchTerm(''); setSearchId('') }}
+                type="button"
+                aria-label={locale === 'ar' ? 'مسح البحث' : 'Clear search'}
+                className={`absolute inset-y-0 ${direction === 'rtl' ? 'left-3' : 'right-3'} flex items-center text-gray-400 hover:text-red-500 transition-colors duration-200`}
+              >
+                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Quick filters */}
@@ -1525,6 +1665,39 @@ export default function PTPage() {
 
                   {/* Card Body */}
                   <div className="p-3 space-y-2.5">
+                    {/*  🔁 تجديد معلّق — بيتفعّل لما الحصص الحالية تخلص */}
+                    {session.pendingRenewal && (session.pendingRenewal.sessions > 0) && (
+                      <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-800 px-2.5 py-1.5 text-xs text-blue-800 dark:text-blue-300">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                          <span>{locale === 'ar'
+                            ? `تجديد معلّق: ${session.pendingRenewal.sessions} حصة${(session.pendingRenewal.remainingAmount || 0) > 0 ? ` · باقي ${Math.round(session.pendingRenewal.remainingAmount || 0)}` : ''}`
+                            : `Pending: ${session.pendingRenewal.sessions} sessions${(session.pendingRenewal.remainingAmount || 0) > 0 ? ` · owes ${Math.round(session.pendingRenewal.remainingAmount || 0)}` : ''}`}</span>
+                        </div>
+                        {!isCoach && (
+                          <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                            {/*  تعديل — دايمًا */}
+                            <button
+                              onClick={() => openPendingEdit(session)}
+                              className={`${(session.pendingRenewal.remainingAmount || 0) > 0 ? 'col-span-1' : 'col-span-2'} bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded-md text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors duration-200`}
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.9} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/></svg>
+                              <span>{locale === 'ar' ? 'تعديل' : 'Edit'}</span>
+                            </button>
+                            {/*  دفع الباقي — بس لو عليه باقي على التجديد */}
+                            {(session.pendingRenewal.remainingAmount || 0) > 0 && (
+                              <button
+                                onClick={() => openPendingEdit(session)}
+                                className="col-span-1 bg-orange-600 hover:bg-orange-700 text-white py-1.5 rounded-md text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors duration-200"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.9} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4"/></svg>
+                                <span>{locale === 'ar' ? `دفع الباقي (${Math.round(session.pendingRenewal.remainingAmount || 0)})` : `Pay (${Math.round(session.pendingRenewal.remainingAmount || 0)})`}</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {/* Progress Bar */}
                     <div>
                       <div className="flex justify-between text-xs text-gray-600 dark:text-gray-300 mb-1">
@@ -1635,6 +1808,30 @@ export default function PTPage() {
                         </>
                       )}
                     </div>
+
+                    {/*  صف تاني: دفع الباقي (لو عليه فلوس) + تعديل — مباشرين جنب التجديد */}
+                    {!isCoach && session.ptNumber >= 0 && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {(session.remainingAmount || 0) > 0 && (
+                          <button
+                            onClick={() => handleOpenPaymentModal(session)}
+                            className="col-span-1 bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors duration-200"
+                            title={locale === 'ar' ? 'دفع الباقي' : 'Pay remaining'}
+                          >
+                            <svg {...stroke} className="w-4 h-4 flex-shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4"/></svg>
+                            <span>{t('pt.payRemaining')} ({(session.remainingAmount || 0).toFixed(0)})</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleEdit(session)}
+                          className={`${(session.remainingAmount || 0) > 0 ? 'col-span-1' : 'col-span-2'} bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors duration-200`}
+                          title={locale === 'ar' ? 'تعديل الاشتراك' : 'Edit subscription'}
+                        >
+                          <svg {...stroke} className="w-4 h-4 flex-shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/></svg>
+                          <span>{locale === 'ar' ? 'تعديل' : 'Edit'}</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )
@@ -1648,6 +1845,80 @@ export default function PTPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* 🔁 مودال التجديد المعلّق — تعديل تفاصيله + دفع باقيه (قبل ما يتفعّل) */}
+      {pendingEditSession && (
+        <div className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm overflow-y-auto" onClick={(e) => { if (e.target === e.currentTarget && !pendingSaving) setPendingEditSession(null) }}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-md my-4 sm:my-8 max-h-[92dvh] overflow-y-auto p-4 sm:p-5" dir={direction}>
+            <div className="flex items-center justify-between mb-4 pb-2 border-b dark:border-gray-700">
+              <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">
+                {locale === 'ar' ? 'التجديد المعلّق' : 'Pending Renewal'} · {pendingEditSession.clientName}
+              </h3>
+              <button onClick={() => setPendingEditSession(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none">×</button>
+            </div>
+
+            <p className="text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 mb-3">
+              {locale === 'ar' ? 'الباقة دي معلّقة وهتتفعّل تلقائي لما الحصص الحالية تخلص.' : 'This package is pending and activates when current sessions run out.'}
+            </p>
+
+            {/* تعديل التفاصيل */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'عدد الحصص' : 'Sessions'}</label>
+                <input type="number" min={1} value={pendingForm.sessions} onChange={(e) => setPendingForm(f => ({ ...f, sessions: e.target.value }))} className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white" dir="ltr" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'سعر الحصة' : 'Price/session'}</label>
+                <input type="number" min={0} value={pendingForm.pricePerSession} onChange={(e) => setPendingForm(f => ({ ...f, pricePerSession: e.target.value }))} className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white" dir="ltr" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'تاريخ البداية' : 'Start date'}</label>
+                <input type="date" value={pendingForm.startDate} onChange={(e) => setPendingForm(f => ({ ...f, startDate: e.target.value }))} className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'تاريخ الانتهاء' : 'Expiry date'}</label>
+                <input type="date" value={pendingForm.expiryDate} onChange={(e) => setPendingForm(f => ({ ...f, expiryDate: e.target.value }))} className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
+              </div>
+              {/*  إجمالي سعر الباقة = عدد الحصص × سعر الحصة */}
+              <div className="col-span-2 flex items-center justify-between rounded-lg bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-800 px-3 py-2">
+                <span className="text-xs font-bold text-gray-600 dark:text-gray-300">{locale === 'ar' ? 'إجمالي الباقة' : 'Package total'}</span>
+                <span className="text-sm font-black text-primary-700 dark:text-primary-400 tabular-nums">
+                  {Math.round((Number(pendingForm.sessions) || 0) * (Number(pendingForm.pricePerSession) || 0)).toLocaleString()} {locale === 'ar' ? 'ج.م' : 'EGP'}
+                </span>
+              </div>
+            </div>
+
+            <button onClick={savePendingEdit} disabled={pendingSaving} className="w-full mt-3 bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2.5 rounded-lg font-bold text-sm disabled:opacity-60">
+              {pendingSaving ? (locale === 'ar' ? 'جاري الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ التعديل' : 'Save changes')}
+            </button>
+
+            {/* دفع الباقي */}
+            {(Number(pendingForm.remainingAmount) || 0) > 0 && (
+              <div className="mt-4 pt-4 border-t dark:border-gray-700">
+                <h4 className="text-sm font-bold mb-2 text-orange-700 dark:text-orange-300">{locale === 'ar' ? 'دفع باقي التجديد' : 'Pay pending remaining'}</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'المبلغ' : 'Amount'}</label>
+                    <input type="number" min={0} max={Number(pendingForm.remainingAmount) || 0} value={pendingPayAmount} onChange={(e) => setPendingPayAmount(Number(e.target.value) || 0)} className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white" dir="ltr" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'طريقة الدفع' : 'Method'}</label>
+                    <select value={pendingPayMethod} onChange={(e) => setPendingPayMethod(e.target.value)} className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                      <option value="cash">{locale === 'ar' ? 'كاش' : 'Cash'}</option>
+                      <option value="instapay">إنستاباي</option>
+                      <option value="wallet">{locale === 'ar' ? 'محفظة' : 'Wallet'}</option>
+                      <option value="visa">{locale === 'ar' ? 'فيزا' : 'Visa'}</option>
+                    </select>
+                  </div>
+                </div>
+                <button onClick={payPendingRemaining} disabled={pendingSaving || pendingPayAmount <= 0 || pendingPayAmount > (Number(pendingForm.remainingAmount) || 0)} className="w-full mt-3 bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold text-sm disabled:opacity-60">
+                  {pendingSaving ? (locale === 'ar' ? 'جاري الدفع…' : 'Paying…') : (locale === 'ar' ? `دفع ${pendingPayAmount || 0}` : `Pay ${pendingPayAmount || 0}`)}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Payment Modal */}

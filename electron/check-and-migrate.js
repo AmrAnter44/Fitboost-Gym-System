@@ -347,6 +347,11 @@ function migrateDatabase(dbPath) {
       }
     }
 
+    // ✅ صلاحية إدارة الباقات/العروض (canManageOffers) — جديدة، off افتراضيًا
+    if (!columnExists(db, 'Permission', 'canManageOffers')) {
+      db.prepare('ALTER TABLE Permission ADD COLUMN canManageOffers INTEGER NOT NULL DEFAULT 0').run();
+    }
+
     // ✅ صلاحية مساعد الموارد البشرية (canAccessHR) — جديدة، off افتراضيًا للموظفين
     if (!columnExists(db, 'Permission', 'canAccessHR')) {
       db.prepare('ALTER TABLE Permission ADD COLUMN canAccessHR INTEGER NOT NULL DEFAULT 0').run();
@@ -507,6 +512,8 @@ function migrateDatabase(dbPath) {
       //  تارجت الكوتش اليومي (عدد الحصص) — رينج من/إلى
       { col: 'dailySessionTargetMin', def: 'INTEGER' },
       { col: 'dailySessionTargetMax', def: 'INTEGER' },
+      //  آخر شهر (YYYY-MM) اتبعت فيه إشعار "قفل التارجت الشهري" — لمنع تكرار الإشعار
+      { col: 'coachTargetReachedMonth', def: 'TEXT' },
     ];
     for (const { col, def } of staffHrCols) {
       if (!columnExists(db, 'Staff', col)) {
@@ -1744,6 +1751,8 @@ function migrateDatabase(dbPath) {
       { col: 'expiryDate',    def: 'DATETIME' },
       { col: 'isFrozen',      def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'freezeUntil',   def: 'DATETIME' },
+      //  🔁 تجديد PT مؤجّل — باقة معلّقة تتفعّل لما الحصص الحالية تخلص
+      { col: 'pendingRenewalData', def: 'TEXT' },
     ];
     for (const { col, def } of ptCols) {
       if (!columnExists(db, 'PT', col)) {

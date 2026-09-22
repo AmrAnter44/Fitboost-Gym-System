@@ -129,6 +129,9 @@ model PT {
   qrCode            String?     @unique
   qrCodeImage       String?
   remainingAmount   Int?
+  //  🔁 تجديد مؤجّل: باقة جديدة متدفوعة بس معلّقة لحد ما الحصص الحالية تخلص، وقتها تتفعّل تلقائي.
+  //  JSON فيه { sessions, pricePerSession, startDate, expiryDate, coachName, subscriptionDays }
+  pendingRenewalData String?
   // ❄️ Freeze fields (gated by SystemSettings.ptFreezeEnabled)
   isFrozen          Boolean     @default(false)
   freezeUntil       DateTime?
@@ -377,6 +380,7 @@ model Staff {
   coachTarget          Float?   @default(0)   //  التارجت الشهري بالجنيه للكوتش
   dailySessionTargetMin Int?    //  تارجت الكوتش اليومي (عدد الحصص) — الحد الأدنى
   dailySessionTargetMax Int?    //  تارجت الكوتش اليومي (عدد الحصص) — الحد الأعلى
+  coachTargetReachedMonth String? //  آخر شهر (YYYY-MM) اتبعت فيه إشعار "قفل التارجت الشهري" — لمنع التكرار
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   attendance          Attendance[]
@@ -682,6 +686,7 @@ model Permission {
   canAccessHR             Boolean @default(false)  //  صلاحية مساعد الموارد البشرية (المرتبات/الخصومات/السلف)
   canAccessSettings       Boolean @default(false)
   canAccessAdmin          Boolean @default(false)
+  canManageOffers         Boolean @default(false)  //  📦 إدارة الباقات/العروض
   canViewSpaBookings      Boolean @default(false)
   canCreateSpaBooking     Boolean @default(false)
   canEditSpaBooking       Boolean @default(false)

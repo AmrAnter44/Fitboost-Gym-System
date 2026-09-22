@@ -19,23 +19,26 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
       }
     }
 
-    // محاولة فحص الترخيص من Supabase (مع timeout)
+    // محاولة فحص الترخيص من Supabase (مع timeout حقيقي يلغي الاتصال)
     try {
-      // إضافة timeout (5 ثواني)
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('License check timeout')), 5000)
-      )
+      //  AbortController بيلغي الـ fetch فعليًا بعد 3 ثواني — بدل ما الـ socket يفضل
+      //  معلّق لما النت يقطع (اللي كان بيعمل هنج/لاج). لو اتلغى → catch → cached status.
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
 
-      const supabasePromise = supabaseAdmin
-        .from('branches')
-        .select('system_license, offline_mode_enabled')
-        .eq('id', license.branchId)
-        .single()
-
-      const { data, error } = await Promise.race([
-        supabasePromise,
-        timeoutPromise
-      ]) as any
+      let data: any, error: any
+      try {
+        const res = await supabaseAdmin
+          .from('branches')
+          .select('system_license, offline_mode_enabled')
+          .eq('id', license.branchId)
+          .abortSignal(controller.signal)
+          .single()
+        data = res.data
+        error = res.error
+      } finally {
+        clearTimeout(timeoutId)
+      }
 
       // إذا نجح الاتصال، حدّث الـ cache
       if (!error && data) {
@@ -72,7 +75,9 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
         errorMessage.includes('EADDRNOTAVAIL') ||
         errorMessage.includes('ECONNREFUSED') ||
         errorMessage.includes('network') ||
-        errorMessage.includes('timeout')
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('abort') ||
+        networkError?.name === 'AbortError'
 
       if (isNetworkError) {
         // لا تطبع الخطأ في حالة network error (عشان ما نزعجش المستخدم)

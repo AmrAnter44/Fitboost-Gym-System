@@ -169,10 +169,8 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       title: t('nav.overview'),
       links: [
         { href: isCoach ? '/coach' : '/', label: t('nav.dashboard'), icon: NavIcons.dashboard, permission: null },
-        //  صندوق الوارد للمستقبِلين بس (الأدمن/الأونر بيبعتوا مش بيستقبلوا)
-        ...(user?.role !== 'OWNER' && user?.role !== 'ADMIN'
-          ? [{ href: '/inbox', label: locale === 'ar' ? 'صندوق الوارد' : 'Inbox', icon: NavIcons.mail, permission: null }]
-          : []),
+        //  صندوق الوارد لكل المستخدمين — الأدمن/الأونر/المديرين بيستقبلوا إشعارات (زي قفل تارجت الكباتن)
+        { href: '/inbox', label: locale === 'ar' ? 'صندوق الوارد' : 'Inbox', icon: NavIcons.mail, permission: null },
         //  مهامي — لكل موظف غير الأدمن/الأونر (اللي بيسندوا مش بيتسند لهم)
         ...(user?.role !== 'OWNER' && user?.role !== 'ADMIN'
           ? [{ href: '/tasks', label: locale === 'ar' ? 'مهامي' : 'My Tasks', icon: NavIcons.tasks, permission: null }]

@@ -59,6 +59,7 @@ import {
 } from '@/lib/api/followups'
 import { useDebounce } from '../../hooks/useDebounce'
 import { normalizeArabic } from '@/lib/arabicNormalization'
+import { digitsOnly } from '@/lib/arabicSearch'
 import { createWhatsAppUrl } from '@/lib/whatsappHelper'
 import AssignSalesButton, { type AssignEntityType } from '../../components/AssignSalesButton'
 import SocialMediaFilter from '../../components/SocialMediaFilter'
@@ -472,6 +473,9 @@ function FollowUpsPageContent() {
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
+  //  بحث برقم العضو منفصل — يطابق رقم عضوية العضو (للأعضاء المنتهيين/القرب ينتهوا)
+  const [searchId, setSearchId] = useState('')
+  const debouncedSearchId = useDebounce(searchId, 300)
   const [resultFilter, setResultFilter] = useState('all')
   const [contactedFilter, setContactedFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState('all')
@@ -1334,6 +1338,13 @@ function FollowUpsPageContent() {
           normalizeArabic(fu.notes).includes(searchNormalized) ||
           (fu.salesName && normalizeArabic(fu.salesName).includes(searchNormalized))
 
+        //  بحث برقم العضو (منفصل) — مطابقة بالظبط لرقم العضوية أو رقم التليفون
+        const idDigits = digitsOnly(debouncedSearchId)
+        const matchesId =
+          !idDigits ||
+          digitsOnly((fu.visitor as any).memberNumber) === idDigits ||
+          digitsOnly(fu.visitor.phone).includes(idDigits)
+
         const matchesResult = resultFilter === 'all' || fu.result === resultFilter
         const matchesContacted = contactedFilter === 'all' ||
           (contactedFilter === 'contacted' && fu.contacted) ||
@@ -1406,7 +1417,7 @@ function FollowUpsPageContent() {
           }
         }
 
-        return matchesSearch && matchesResult && matchesContacted && matchesPriority && matchesSource && matchesGender && matchesSocial && matchesSales && matchesAssignedStaff && matchesDateRange
+        return matchesSearch && matchesId && matchesResult && matchesContacted && matchesPriority && matchesSource && matchesGender && matchesSocial && matchesSales && matchesAssignedStaff && matchesDateRange
       })
       .sort((a, b) => {
         if (sortByPriority) {
@@ -1785,6 +1796,15 @@ function FollowUpsPageContent() {
           fu.visitor.phone.includes(debouncedSearchTerm) ||
           normalizeArabic(fu.notes).includes(searchNormalized) ||
           (fu.salesName && normalizeArabic(fu.salesName).includes(searchNormalized))
+        if (!ok) continue
+      }
+
+      //  search by member number (منفصل)
+      if (debouncedSearchId) {
+        const idDigits = digitsOnly(debouncedSearchId)
+        const ok = !idDigits ||
+          digitsOnly((fu.visitor as any).memberNumber) === idDigits ||
+          digitsOnly(fu.visitor.phone).includes(idDigits)
         if (!ok) continue
       }
 
@@ -2995,18 +3015,55 @@ function FollowUpsPageContent() {
 
         {/* Row 3: Search + dropdowns + smart script */}
         <div className="px-3 sm:px-4 pb-3 pt-2 border-t border-gray-100 dark:border-gray-700 flex flex-wrap gap-2 items-end">
+          {/*  بحث برقم العضو — منفصل، بنفس تصميم صفحة الأعضاء */}
+          <div className="w-24 sm:w-28 shrink-0">
+            <label className="block text-xs font-bold mb-1 text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
+              {locale === 'ar' ? 'رقم العضو' : 'Member #'}
+            </label>
+            <input
+              type="search"
+              inputMode="numeric"
+              value={searchId}
+              onChange={(e) => setSearchId(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm text-center font-mono"
+              placeholder={locale === 'ar' ? 'رقم العضو' : 'Member #'}
+              dir="ltr"
+            />
+          </div>
           <div className="flex-1 min-w-[150px]">
             <label className="block text-xs font-bold mb-1 text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
               {t('followups.filters.search')}
             </label>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
-              placeholder={t('followups.filters.searchPlaceholder')}
-            />
+            {/*  نفس تصميم صفحة الأعضاء — أيقونة بحث جوّه + زرار مسح */}
+            <div className="relative">
+              <span className={`absolute inset-y-0 ${direction === 'rtl' ? 'right-3' : 'left-3'} flex items-center text-gray-400 pointer-events-none`}>
+                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`w-full ${direction === 'rtl' ? 'pr-10 pl-10' : 'pl-10 pr-10'} py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm`}
+                placeholder={t('followups.filters.searchPlaceholder')}
+                dir={direction}
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  aria-label={locale === 'ar' ? 'مسح البحث' : 'Clear search'}
+                  className={`absolute inset-y-0 ${direction === 'rtl' ? 'left-3' : 'right-3'} flex items-center text-gray-400 hover:text-red-500 transition-colors duration-200`}
+                >
+                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
           <div className="min-w-[130px]">
             <label className="block text-xs font-bold mb-1 text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">

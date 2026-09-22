@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
+import { activatePendingPTIfNeeded } from '../../../lib/ptPendingRenewal'
 import { requirePermission, verifyAuth } from '../../../lib/auth'
 import {
   type PaymentMethod,
@@ -104,6 +105,17 @@ export async function GET(request: Request) {
       // نكمّل من غير بيانات الميمبر
     }
 
+    //  🔁 التجديدات المؤجّلة (عمود pendingRenewalData جديد — raw SQL لأن الـ client ممكن يكون قديم)
+    const pendingMap = new Map<number, any>()
+    try {
+      const rows: any[] = await prisma.$queryRawUnsafe(
+        `SELECT ptNumber, pendingRenewalData FROM PT WHERE pendingRenewalData IS NOT NULL`
+      )
+      for (const r of rows) {
+        try { pendingMap.set(Number(r.ptNumber), JSON.parse(r.pendingRenewalData)) } catch { /* skip */ }
+      }
+    } catch { /* العمود ممكن يكون لسه مش موجود — عادي */ }
+
     const sessionsWithImages = ptSessions.map(s => {
       const mem = phoneToMember.get(s.phone)
       return {
@@ -113,7 +125,9 @@ export async function GET(request: Request) {
         memberId: mem?.id ?? null,
         //  رصيد الـ InBody/التقييم من عضوية الكلاينت (للكوتش يخصم منها من لوحته)
         inBodyScans: mem?.inBodyScans ?? 0,
-        freeAssessmentSessions: mem?.freeAssessmentSessions ?? 0
+        freeAssessmentSessions: mem?.freeAssessmentSessions ?? 0,
+        //  🔁 باقة تجديد معلّقة (بتتفعّل لما الحصص الحالية تخلص)
+        pendingRenewal: pendingMap.get(s.ptNumber) || null,
       }
     })
 
@@ -513,6 +527,9 @@ export async function PUT(request: Request) {
         where: { ptNumber: parseInt(ptNumber) },
         data: { sessionsRemaining: pt.sessionsRemaining - 1 },
       })
+
+      //  🔁 لو الحصص خلصت وفيه تجديد مؤجّل → فعّله تلقائي
+      await activatePendingPTIfNeeded(prisma, updatedPT.ptNumber)
 
       createAuditLog({
         userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,

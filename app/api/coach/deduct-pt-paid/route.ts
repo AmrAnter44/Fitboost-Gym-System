@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
+import { activatePendingPTIfNeeded } from '../../../../lib/ptPendingRenewal'
 import { verifyAuth } from '../../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
@@ -101,6 +102,9 @@ export async function POST(request: Request) {
           memberId: member.id,
         },
       })
+
+      //  🔁 لو الحصص خلصت وفيه تجديد مؤجّل → فعّله تلقائي (جوّه نفس الترانزاكشن)
+      await activatePendingPTIfNeeded(tx, pt!.ptNumber)
 
       const fresh = await tx.pT.findUnique({
         where: { ptNumber: pt!.ptNumber },

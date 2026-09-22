@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../../lib/prisma'
 import { requirePermission } from '../../../../../lib/auth'
+import { activatePendingPTIfNeeded } from '../../../../../lib/ptPendingRenewal'
 
 export const dynamic = 'force-dynamic'
 
@@ -104,6 +105,9 @@ export async function POST(request: Request) {
       where: { ptNumber: pt.ptNumber },
       data: updateData
     })
+
+    //  🔁 لو الحصص خلصت وفيه تجديد مؤجّل → فعّله تلقائي
+    await activatePendingPTIfNeeded(prisma, pt.ptNumber)
 
 
     return NextResponse.json({

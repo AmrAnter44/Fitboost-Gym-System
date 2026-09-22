@@ -303,6 +303,12 @@ function MembersPageContent() {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(20)
+  //  العضو اللي اتفتح آخر مرة — عشان نعمله هايلايت لما نرجع من البروفايل
+  const [lastViewedId, setLastViewedId] = useState<string | null>(null)
+  //  عشان نتجاهل أول تشغيل لإفكت إعادة تعيين الصفحة (منستحملش الصفحة المحفوظة)
+  const didMountRef = useRef(false)
+  //  عشان نعمل scroll للعضو اللي كنا واقفين عنده بعد الرجوع
+  const lastViewedElRef = useRef<HTMLDivElement | null>(null)
 
   // WhatsApp جماعي
   const [showBulkWA, setShowBulkWA] = useState(false)
@@ -614,9 +620,47 @@ function MembersPageContent() {
   }, [permissionsLoading])
 
   // إعادة تعيين الصفحة عند تغيير الفلاتر
+  //  بنتجاهل أول تشغيل (mount) عشان الصفحة المحفوظة (لما نرجع من بروفايل عضو) متترجعش لـ 1
   useEffect(() => {
+    if (!didMountRef.current) return
     setCurrentPage(1)
   }, [search, searchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, socialFilter])
+
+  //  استرجاع الصفحة + العضو اللي كنا واقفين عنده لما نرجع من البروفايل
+  //  ملاحظة: مبنمسحش القيمة فورًا (عشان StrictMode في التطوير بيعمل mount مرتين
+  //  ولو مسحنا بدري تاني mount بيلاقيها فاضية ويرجع صفحة 1). بنمسح الـ id بس
+  //  بعد ما الهايلايت يخلص، والصفحة بتفضل متزامنة مع آخر صفحة اتفتح منها عضو.
+  useEffect(() => {
+    try {
+      const savedPage = sessionStorage.getItem('members_last_page')
+      const savedId = sessionStorage.getItem('members_last_member_id')
+      if (savedPage) {
+        const p = parseInt(savedPage)
+        if (p > 0) setCurrentPage(p)
+      }
+      if (savedId) {
+        setLastViewedId(savedId)
+        //  نشيل الهايلايت + الـ id المحفوظ بعد شوية عشان ميفضلش دايمًا
+        setTimeout(() => {
+          setLastViewedId(null)
+          try { sessionStorage.removeItem('members_last_member_id') } catch {}
+        }, 2500)
+      }
+    } catch { /* sessionStorage ممكن يكون مقفول */ }
+    //  بعد أول تشغيل نفعّل إعادة تعيين الصفحة عند تغيير الفلاتر
+    didMountRef.current = true
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  //  scroll للعضو اللي كنا واقفين عنده بعد ما الصفحة المحفوظة تترندر
+  useEffect(() => {
+    if (!lastViewedId) return
+    const t = setTimeout(() => {
+      lastViewedElRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 250)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastViewedId])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
@@ -625,6 +669,11 @@ function MembersPageContent() {
   const currentMembers = filteredMembers.slice(startIndex, endIndex)
 
   const handleViewDetails = (memberId: string) => {
+    //  نحفظ الصفحة الحالية + العضو المفتوح عشان نرجعله بعد ما نقفل البروفايل
+    try {
+      sessionStorage.setItem('members_last_page', String(currentPage))
+      sessionStorage.setItem('members_last_member_id', memberId)
+    } catch { /* sessionStorage ممكن يكون مقفول */ }
     router.push(`/members/${memberId}`)
   }
 
@@ -2058,7 +2107,7 @@ function MembersPageContent() {
                 {members.map(m => (
                   <div key={m.id}
                     className={`flex items-center gap-3 p-3 rounded-xl ring-1 cursor-pointer hover:shadow-md transition-shadow ${rowClass}`}
-                    onClick={() => router.push(`/members/${m.id}`)}
+                    onClick={() => handleViewDetails(m.id)}
                   >
                     <div className="text-gray-400 dark:text-gray-500 text-sm font-mono min-w-[40px]">#{m.memberNumber ?? '—'}</div>
                     <div className="flex-1 min-w-0">
@@ -2134,11 +2183,13 @@ function MembersPageContent() {
                           ? 'border-green-400'
                           : 'border-red-400'
 
+                const isLastViewed = member.id === lastViewedId
                 return (
                   <div
                     key={member.id}
+                    ref={isLastViewed ? lastViewedElRef : undefined}
                     onClick={() => handleViewDetails(member.id)}
-                    className={`bg-white dark:bg-gray-800 rounded-xl shadow-md ring-1 ${borderColor} hover:shadow-xl transition-colors duration-200 cursor-pointer ${isBanned ? 'opacity-75' : ''}`}
+                    className={`bg-white dark:bg-gray-800 rounded-xl shadow-md ring-1 ${borderColor} hover:shadow-xl transition-all duration-300 cursor-pointer ${isBanned ? 'opacity-75' : ''} ${isLastViewed ? 'ring-2 ring-primary-500 dark:ring-primary-400 shadow-2xl scale-[1.02] bg-primary-50 dark:bg-primary-900/20' : ''}`}
                   >
                     {/* Header: صورة + اسم + رقم */}
                     <div className="p-4 flex items-center gap-3">
@@ -2286,6 +2337,7 @@ function MembersPageContent() {
               locale={locale}
               direction={direction}
               hideNumbers={hideMemberNumbers}
+              highlightId={lastViewedId}
             />
           </div>
         </>

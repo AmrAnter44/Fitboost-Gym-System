@@ -1366,6 +1366,10 @@ export default function SettingsPage() {
       { id: 'quick-links', label: t('settingsPage.navigation.quickLinks') },
       { id: 'website-data', label: locale === 'ar' ? 'بيانات الويبسايت' : 'Website Data' }
     ] : []),
+    //  📦 الباقات والعروض — لموظف عنده صلاحية إدارة الباقات (مش أدمن — الأدمن عنده الروابط السريعة)
+    ...(!(user?.role === 'ADMIN' || user?.role === 'OWNER') && (user as any)?.permissions?.canManageOffers ? [
+      { id: 'packages-offers', label: locale === 'ar' ? 'الباقات والعروض' : 'Packages & Offers' }
+    ] : []),
     ...(hasAdminAccess ? [
       { id: 'services', label: t('settingsPage.navigation.services') },
       { id: 'points', label: t('settingsPage.navigation.points') },
@@ -2139,6 +2143,59 @@ export default function SettingsPage() {
                     {isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/*  📦 قسم الباقات والعروض — لموظف عنده صلاحية إدارة الباقات (بس الباقات/العروض) */}
+          {activeSection === 'packages-offers' && (user as any)?.permissions?.canManageOffers && (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? 'الباقات والعروض' : 'Packages & Offers'}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{locale === 'ar' ? 'إضافة وتعديل باقات الاشتراك وباقات الـ PT' : 'Add & edit subscription offers and PT packages'}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Link href="/offers" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 hover:ring-primary-300 dark:hover:ring-primary-700 transition-colors duration-200 group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 flex items-center justify-center flex-shrink-0">
+                      <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.quickLinks.offers.title')}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.quickLinks.offers.desc')}</p>
+                    </div>
+                    <svg {...stroke} className={`w-5 h-5 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors ${direction === 'rtl' ? 'rotate-180' : ''}`} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </div>
+                </Link>
+                <Link href="/settings/packages" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 hover:ring-primary-300 dark:hover:ring-primary-700 transition-colors duration-200 group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
+                      <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.quickLinks.packages.title')}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.quickLinks.packages.desc')}</p>
+                    </div>
+                    <svg {...stroke} className={`w-5 h-5 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors ${direction === 'rtl' ? 'rotate-180' : ''}`} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </div>
+                </Link>
               </div>
             </div>
           )}

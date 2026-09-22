@@ -65,10 +65,12 @@ export async function GET(request: Request) {
     }
 
     //  جلب كل إيصالات الكوتشات في الشهر الحالي مرة واحدة
+    //  🚫 نستبعد الملغي/المرتجع — البي تي الملغي ميتحسبش في تحصيل الكوتش (مينفعش نحاسبه عليه)
     const receipts = await prisma.receipt.findMany({
       where: {
         type: { in: COACH_RECEIPT_TYPES },
         createdAt: { gte: monthStart, lte: monthEnd },
+        isCancelled: false,
       },
       select: {
         amount: true,
@@ -131,6 +133,40 @@ export async function GET(request: Request) {
         breakdown,
       }
     })
+
+    //  🔔 قفل التارجت الشهري — إشعار تلقائي للمديرين/الأدمن/الأونر (مرة واحدة في الشهر لكل كابتن)
+    //  بنكشف هنا لأن ده المكان اللي بيحسب فيه التحصيل مقابل التارجت أصلاً (يغطّي كل مصادر الإيراد).
+    //  علامة شهرية ذرّية (UPDATE ... WHERE month != current) تمنع التكرار وأي race.
+    try {
+      const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      const reached = result.filter(r => r.coachTarget > 0 && r.collectedThisMonth >= r.coachTarget)
+      for (const coach of reached) {
+        //  نحدّث علامة الشهر فقط لو مختلفة — لو اتحدّثت فعلاً (rows=1) يبقى ده أول كشف الشهر ده
+        const flipped = await prisma.$executeRawUnsafe(
+          `UPDATE Staff SET coachTargetReachedMonth = ? WHERE id = ? AND (coachTargetReachedMonth IS NULL OR coachTargetReachedMonth != ?)`,
+          monthKey, coach.staffId, monthKey
+        )
+        if (!flipped) continue //  اتبعت الإشعار قبل كده الشهر ده
+        const managers = await prisma.user.findMany({
+          where: { isActive: true, role: { in: ['OWNER', 'ADMIN', 'MANAGER'] } },
+          select: { id: true },
+        })
+        if (managers.length === 0) continue
+        await prisma.internalMessage.create({
+          data: {
+            senderId: user.userId,
+            senderName: 'النظام',
+            subject: `🎯 الكابتن ${coach.name} قفل التارجت الشهري`,
+            body: `الكابتن ${coach.name} وصل للتارجت الشهري (${(coach.coachTarget || 0).toLocaleString()} ج).\nالتحصيل الحالي: ${coach.collectedThisMonth.toLocaleString()} ج (${coach.progressPercent}%).`,
+            targetDepts: 'management',
+            recipients: { create: managers.map(m => ({ userId: m.id })) },
+          },
+        })
+      }
+    } catch (notifyErr) {
+      //  غير حرج — لو العمود لسه مش موجود (قبل المجريشن) أو أي خطأ، الداشبورد بيفضل شغّال
+      console.error('coach target notify (non-critical):', notifyErr)
+    }
 
     //  لو Coach، رجّع entry واحد. لو Admin، رجّع array
     return NextResponse.json(isCoach ? (result[0] || null) : result)

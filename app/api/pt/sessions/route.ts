@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
+import { activatePendingPTIfNeeded } from '../../../../lib/ptPendingRenewal'
 import { requirePermission } from '../../../../lib/auth'
 
 // GET - جلب سجلات حضور جلسات PT
@@ -153,6 +154,9 @@ export async function POST(request: Request) {
       where: { ptNumber: parseInt(ptNumber) },
       data: { sessionsRemaining: pt.sessionsRemaining - 1 }
     })
+
+    //  🔁 لو الحصص خلصت وفيه تجديد مؤجّل → فعّله تلقائي
+    await activatePendingPTIfNeeded(prisma, parseInt(ptNumber))
 
 
     return NextResponse.json({

@@ -76,11 +76,11 @@ export async function GET(request: Request) {
     if (dbUser?.permissions) {
       try {
         const rows: any = await prisma.$queryRawUnsafe(
-          `SELECT canEditMemberBasic, hideFollowUpNumbers, hideMemberNumbers FROM Permission WHERE userId = ? LIMIT 1`,
+          `SELECT canEditMemberBasic, hideFollowUpNumbers, hideMemberNumbers, canManageOffers FROM Permission WHERE userId = ? LIMIT 1`,
           user.userId
         )
         if (Array.isArray(rows) && rows.length) {
-          permissions = { ...permissions, canEditMemberBasic: !!rows[0].canEditMemberBasic, hideFollowUpNumbers: !!rows[0].hideFollowUpNumbers, hideMemberNumbers: !!rows[0].hideMemberNumbers }
+          permissions = { ...permissions, canEditMemberBasic: !!rows[0].canEditMemberBasic, hideFollowUpNumbers: !!rows[0].hideFollowUpNumbers, hideMemberNumbers: !!rows[0].hideMemberNumbers, canManageOffers: !!rows[0].canManageOffers }
         }
       } catch { /* الأعمدة ممكن تكون لسه مش موجودة — عادي */ }
     }

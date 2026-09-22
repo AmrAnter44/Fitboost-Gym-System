@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { activatePendingPTIfNeeded } from '@/lib/ptPendingRenewal'
 import { apiCache } from '@/lib/cache'
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit'
 import { verifyMemberPhone } from '@/lib/memberVerify'
@@ -156,6 +157,9 @@ export async function POST(
           memberId: member.id,
         },
       })
+
+      //  🔁 لو الحصص خلصت وفيه تجديد مؤجّل → فعّله تلقائي (جوّه نفس الترانزاكشن)
+      await activatePendingPTIfNeeded(tx, pt.ptNumber)
 
       const fresh = await tx.pT.findUnique({
         where: { ptNumber: pt.ptNumber },

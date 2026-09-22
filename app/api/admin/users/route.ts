@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     //  — نقراها بـ raw SQL ونـ merge عشان الـ UI يعرضها صح بعد الحفظ (مش ترجع false).
     try {
       const rows: any[] = await prisma.$queryRawUnsafe(
-        `SELECT userId, canEditMemberBasic, hideFollowUpNumbers, hideMemberNumbers FROM Permission`
+        `SELECT userId, canEditMemberBasic, hideFollowUpNumbers, hideMemberNumbers, canManageOffers FROM Permission`
       )
       const map = new Map(rows.map(r => [r.userId, r]))
       for (const u of usersWithoutPassword as any[]) {
@@ -42,6 +42,7 @@ export async function GET(request: Request) {
             u.permissions.canEditMemberBasic = !!r.canEditMemberBasic
             u.permissions.hideFollowUpNumbers = !!r.hideFollowUpNumbers
             u.permissions.hideMemberNumbers = !!r.hideMemberNumbers
+            u.permissions.canManageOffers = !!r.canManageOffers
           }
         }
       }
@@ -81,7 +82,7 @@ const VALID_PERMISSION_FIELDS = [
   'hideMemberNumbers',
   'canViewFollowUps', 'hideFollowUpNumbers', 'canCreateFollowUp', 'canEditFollowUp', 'canDeleteFollowUp', 'canManageSales',
   'canViewDayUse', 'canCreateDayUse', 'canEditDayUse', 'canDeleteDayUse',
-  'canViewReports', 'canViewFinancials', 'canViewAttendance', 'canAccessClosing', 'canCloseDayOnly', 'canAccessPTCommission', 'canViewAllPT', 'canAccessSettings', 'canAccessAdmin',
+  'canViewReports', 'canViewFinancials', 'canViewAttendance', 'canAccessClosing', 'canCloseDayOnly', 'canAccessPTCommission', 'canViewAllPT', 'canAccessSettings', 'canAccessAdmin', 'canManageOffers',
   'canViewSpaBookings', 'canCreateSpaBooking', 'canEditSpaBooking', 'canCancelSpaBooking', 'canViewSpaReports',
   'canViewWhatsAppInbox', 'canSendWhatsApp', 'canManageWhatsApp',
   'canViewDeductions', 'canCreateDeduction', 'canEditDeduction', 'canDeleteDeduction',
@@ -233,7 +234,7 @@ export async function POST(request: Request) {
     //  🛡️ نشيل الحقول الجديدة (canEditMemberBasic) من الـ create ونطبّقها بـ raw SQL بعده،
     //  عشان لو الـ Prisma client لسه outdated الإنشاء ما يفشلش
     const rawFallback: Record<string, boolean> = {}
-    for (const f of ['canEditMemberBasic', 'hideFollowUpNumbers', 'hideMemberNumbers']) {
+    for (const f of ['canEditMemberBasic', 'hideFollowUpNumbers', 'hideMemberNumbers', 'canManageOffers']) {
       if (f in permData) {
         rawFallback[f] = permData[f]
         delete permData[f]

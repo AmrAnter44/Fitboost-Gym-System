@@ -209,3 +209,35 @@ export async function requireAllPermissions(
 
   return user
 }
+
+// ✅ التحقق من أي صلاحية من القائمة مع قراءة fresh من الداتابيز لو التوكن قديم.
+//  مفيدة للصلاحيات الجديدة (زي canManageOffers) اللي ممكن التوكن أو الـ Prisma client
+//  يكون قديم عنها — فبنعمل fallback على raw SQL يقرا العمود مباشرة من جدول Permission.
+export async function requireAnyPermissionFresh(
+  request: Request,
+  permissions: Array<keyof UserPayload['permissions']>
+): Promise<UserPayload> {
+  const user = await verifyAuth(request)
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+  if (user.role === 'OWNER' || user.role === 'ADMIN') {
+    return user
+  }
+  //  من التوكن أولاً (أسرع)
+  if (permissions.some(perm => user.permissions?.[perm])) {
+    return user
+  }
+  //  fallback: قراءة الأعمدة مباشرة من الداتابيز (التوكن ممكن يكون قديم/الـ client outdated)
+  try {
+    const cols = permissions.map(p => `"${String(p)}"`).join(', ')
+    const rows: any = await prisma.$queryRawUnsafe(
+      `SELECT ${cols} FROM Permission WHERE userId = ? LIMIT 1`,
+      user.userId
+    )
+    if (Array.isArray(rows) && rows.length && permissions.some(p => rows[0][p as string])) {
+      return user
+    }
+  } catch { /* الأعمدة ممكن تكون لسه مش موجودة — نكمّل للرفض */ }
+  throw new Error(`Forbidden: Missing required permissions`)
+}

@@ -12,6 +12,7 @@ import { getNextReceiptNumber } from '../../../../lib/receiptHelpers'
 import { round2 } from '../../../../lib/money'
 import { PtRenewInputSchema, firstIssue } from '../../../../lib/schemas/financialSchemas'
 import { logError } from '../../../../lib/errorLogger'
+import { stashPendingRenewal } from '../../../../lib/ptPendingRenewal'
 
 export const dynamic = 'force-dynamic'
 
@@ -86,10 +87,11 @@ export async function POST(request: Request) {
     // حفظ المبلغ المتبقي القديم قبل التحديث
     const oldRemainingAmount = existingPT.remainingAmount || 0
 
-    //  التجديد = باقة جديدة كاملة — مفيش ترحيل للحصص القديمة ولا إضافة على السعر.
-    //  (الترحيل كان بيضخّم الحصص والإجمالي؛ التجديد بينزّل حصص وسعر الباقة الجديدة بس)
-    const carriedOverSessions = 0
-    const totalSessionsAfterRenew = Number(sessionsPurchased)
+    //  🔁 التجديد المؤجّل: لو لسه فيه حصص في الباقة الحالية، الباقة الجديدة تتخزّن
+    //  "معلّقة" وتتفعّل تلقائي أول ما الحصص الحالية تخلص. لو مفيش حصص (خلصانة/جديدة)،
+    //  التفعيل بيتم فورًا. السعر/العمولة على الباقة الجديدة بس (مفيش تضخيم).
+    const newPackageSessions = Number(sessionsPurchased)
+    const hasActiveSessions = (Number(existingPT.sessionsRemaining) || 0) > 0
 
     // إنشاء إيصال للتجديد باستخدام Transaction
     // ملاحظة: تحديث الـ PT اتنقل جوّه الـ transaction عشان لو الإيصال فشل يترجع
@@ -111,20 +113,41 @@ export async function POST(request: Request) {
 
       // استخدام Transaction مع البحث عن أول رقم متاح
       const result = await prisma.$transaction(async (tx) => {
-        // تحديث جلسة PT جوّه الـ transaction
-        const updatedPT = await tx.pT.update({
-          where: { ptNumber: parseInt(ptNumber) },
-          data: {
-            phone,
-            sessionsPurchased: totalSessionsAfterRenew,
-            sessionsRemaining: totalSessionsAfterRenew,
-            coachName,
+        let updatedPT
+        if (hasActiveSessions) {
+          //  تأجيل: نسيب الباقة الحالية زي ما هي تمامًا (حصص/تواريخ/سعر/كوتش + الباقي القديم).
+          //  باقي الباقة الجديدة بيتخزّن مع الباقة المعلّقة ويتطبّق وقت ما تتفعّل —
+          //  فمبينزلش على الاشتراك القديم.
+          updatedPT = await tx.pT.update({
+            where: { ptNumber: parseInt(ptNumber) },
+            data: { phone },
+          })
+          await stashPendingRenewal(tx, parseInt(ptNumber), {
+            sessions: newPackageSessions,
             pricePerSession,
-            startDate: startDate ? new Date(startDate) : existingPT.startDate,
-            expiryDate: expiryDate ? new Date(expiryDate) : existingPT.expiryDate,
-            remainingAmount: parsedRemaining,
-          },
-        })
+            startDate: startDate || null,
+            expiryDate: expiryDate || null,
+            coachName: coachName || existingPT.coachName,
+            subscriptionDays,
+            remainingAmount: parsedRemaining, //  باقي الباقة الجديدة — يتطبّق وقت التفعيل
+            createdAt: new Date().toISOString(),
+          })
+        } else {
+          //  الباقة الحالية خلصت → تفعيل فوري (تجديد عادي)
+          updatedPT = await tx.pT.update({
+            where: { ptNumber: parseInt(ptNumber) },
+            data: {
+              phone,
+              sessionsPurchased: newPackageSessions,
+              sessionsRemaining: newPackageSessions,
+              coachName,
+              pricePerSession,
+              startDate: startDate ? new Date(startDate) : existingPT.startDate,
+              expiryDate: expiryDate ? new Date(expiryDate) : existingPT.expiryDate,
+              remainingAmount: Math.round(parsedRemaining + oldRemainingAmount),
+            },
+          })
+        }
 
         const receiptNumber = await getNextReceiptNumber(tx)
 
@@ -167,10 +190,13 @@ export async function POST(request: Request) {
               expiryDate: expiryDate || null,
               subscriptionDays: subscriptionDays,
               oldSessionsRemaining: existingPT.sessionsRemaining,
-              carriedOverSessions: carriedOverSessions, //  الحصص المرحّلة من الباقة القديمة
-              newSessionsRemaining: updatedPT.sessionsRemaining,
-              oldRemainingAmount: oldRemainingAmount, // ✅ المبلغ المتبقي القديم المرتجع
-              newRemainingAmount: parsedRemaining, //  المبلغ المتبقي الجديد
+              carriedOverSessions: 0, //  مفيش دمج — التأجيل بيسيب الحصص القديمة زي ما هي
+              //  🔁 التجديد المؤجّل: لو فيه حصص شغّالة، الباقة الجديدة معلّقة لحد ما تخلص
+              deferredRenewal: hasActiveSessions,
+              pendingSessions: hasActiveSessions ? newPackageSessions : 0,
+              newSessionsRemaining: updatedPT.sessionsRemaining, //  الرصيد الحالي (القديم لو مؤجّل)
+              oldRemainingAmount: oldRemainingAmount,
+              newRemainingAmount: Math.round(parsedRemaining + oldRemainingAmount), //  إجمالي الباقي بعد التجديد
             }),
             ptNumber: updatedPT.ptNumber,
           },
