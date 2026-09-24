@@ -115,7 +115,8 @@ export async function POST(request: Request) {
       notes,
       paymentMethod,
       staffName,
-      moreCommissionAmount  // 💰 عمولة المدرب من الباقة (اختياري)
+      moreCommissionAmount,  // 💰 عمولة المدرب من الباقة (اختياري)
+      packageName            // 📦 اسم الباقة اللي اتباعت — يظهر في الإيصال
     } = body
 
     // تحويل القيم إلى Numbers
@@ -260,6 +261,7 @@ export async function POST(request: Request) {
               clientName,
               phone: phone,
               memberId: memberId || null,
+              packageName: packageName || null,
               sessionsPurchased: Number(sessionsPurchased),
               pricePerSession: Number(pricePerSession),
               totalAmount: Number(totalAmount),

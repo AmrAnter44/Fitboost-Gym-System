@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
-import { verifyAuth } from '../../../../lib/auth'
-import { prisma } from '../../../../lib/prisma'
-import bcrypt from 'bcryptjs'
+import { verifyAuth, verifyOwnerPassword } from '../../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,20 +31,11 @@ export async function POST(request: Request) {
       )
     }
 
-    // جلب بيانات المستخدم
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId }
+    // ✅ التحقق من كلمة المرور — بيدعم الأونر الاحتياطي (env) والأونر في الـ DB
+    const isValid = await verifyOwnerPassword(password, {
+      userId: user.userId,
+      email: user.email
     })
-
-    if (!dbUser) {
-      return NextResponse.json(
-        { error: 'المستخدم غير موجود' },
-        { status: 404 }
-      )
-    }
-
-    // التحقق من كلمة المرور
-    const isValid = await bcrypt.compare(password, dbUser.password)
 
     if (!isValid) {
       return NextResponse.json(

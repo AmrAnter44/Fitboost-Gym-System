@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useToast } from '../../contexts/ToastContext'
@@ -19,9 +19,15 @@ export default function SpaBookingsPage() {
   const { t, direction, locale } = useLanguage()
   const { hasPermission, loading: permissionsLoading } = usePermissions()
   const toast = useToast()
+  const queryClient = useQueryClient()
+
+  // 💆 صلاحية ضبط مواعيد تشغيل الاسبا (ليميت)
+  const canManageSpaHours = hasPermission('canAccessSettings') || hasPermission('canEditSpaBooking')
 
   // States
   const [showForm, setShowForm] = useState(false)
+  const [showHoursModal, setShowHoursModal] = useState(false)
+  const [hoursForm, setHoursForm] = useState({ openTime: '10:00', closeTime: '22:00' })
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedService, setSelectedService] = useState<SpaServiceType | ''>('')
   const [showTimeSlots, setShowTimeSlots] = useState(false)
@@ -75,6 +81,48 @@ export default function SpaBookingsPage() {
 
   const handleConfirmBooking = (booking: SpaBooking) => {
     confirmMutation.mutate(booking.id)
+  }
+
+  // 💆 مواعيد تشغيل الاسبا (ليميت)
+  const { data: spaHours } = useQuery({
+    queryKey: ['spa-hours'],
+    queryFn: async () => {
+      const res = await fetch('/api/spa-bookings/hours')
+      if (!res.ok) throw new Error('failed')
+      return res.json() as Promise<{ openTime: string; closeTime: string }>
+    },
+    enabled: !permissionsLoading && hasPermission('canViewSpaBookings'),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const saveHoursMutation = useMutation({
+    mutationFn: async (payload: { openTime: string; closeTime: string }) => {
+      const res = await fetch('/api/spa-bookings/hours', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'فشل حفظ المواعيد')
+      return data
+    },
+    onSuccess: () => {
+      toast.success(direction === 'rtl' ? 'تم حفظ مواعيد الاسبا' : 'SPA hours saved')
+      queryClient.invalidateQueries({ queryKey: ['spa-hours'] })
+      queryClient.invalidateQueries({ queryKey: ['spa-availability'] })
+      setShowHoursModal(false)
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || (direction === 'rtl' ? 'فشل حفظ المواعيد' : 'Failed to save'))
+    },
+  })
+
+  const openHoursModal = () => {
+    setHoursForm({
+      openTime: spaHours?.openTime || '10:00',
+      closeTime: spaHours?.closeTime || '22:00',
+    })
+    setShowHoursModal(true)
   }
 
   // Generate next 10 days
@@ -144,15 +192,32 @@ export default function SpaBookingsPage() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('spa.title')}</h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">{t('spa.subtitle')}</p>
         </div>
-        {hasPermission('canCreateSpaBooking') && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-gradient-to-r from-primary-500 to-primary-600 text-primary-contrast px-6 py-3 rounded-lg font-medium hover:from-primary-600 hover:to-primary-700 transition-colors duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
-          >
-            <span className="text-xl">+</span>
-            {t('spa.newBooking')}
-          </button>
-        )}
+        <div className="flex items-center gap-3 flex-wrap">
+          {canManageSpaHours && (
+            <button
+              onClick={openHoursModal}
+              className="bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 text-gray-700 dark:text-gray-200 px-4 py-3 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center gap-2"
+              title={direction === 'rtl' ? 'مواعيد تشغيل الاسبا' : 'SPA operating hours'}
+            >
+              <span className="text-lg">🕐</span>
+              <span>ليميت</span>
+              {spaHours && (
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-mono" dir="ltr">
+                  ({spaHours.openTime}–{spaHours.closeTime})
+                </span>
+              )}
+            </button>
+          )}
+          {hasPermission('canCreateSpaBooking') && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="bg-gradient-to-r from-primary-500 to-primary-600 text-primary-contrast px-6 py-3 rounded-lg font-medium hover:from-primary-600 hover:to-primary-700 transition-colors duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
+            >
+              <span className="text-xl">+</span>
+              {t('spa.newBooking')}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Calendar - Next 10 Days */}
@@ -391,6 +456,71 @@ export default function SpaBookingsPage() {
             serviceType: selectedService || undefined
           }}
         />
+      )}
+
+      {/* 💆 SPA Hours (ليميت) Modal */}
+      {showHoursModal && (
+        <div
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={(e) => e.target === e.currentTarget && setShowHoursModal(false)}
+          dir={direction}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-2xl">🕐</span>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                {direction === 'rtl' ? 'مواعيد تشغيل الاسبا' : 'SPA Operating Hours'}
+              </h3>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+              {direction === 'rtl'
+                ? 'مش هيتقبل أي حجز بره المواعيد دي — لا من السيستم ولا من الأبليكشن.'
+                : 'Bookings outside these hours are rejected — from the system and the app.'}
+            </p>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                  {direction === 'rtl' ? 'الفتح' : 'Open'}
+                </label>
+                <input
+                  type="time"
+                  value={hoursForm.openTime}
+                  onChange={(e) => setHoursForm({ ...hoursForm, openTime: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  dir="ltr"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                  {direction === 'rtl' ? 'القفل' : 'Close'}
+                </label>
+                <input
+                  type="time"
+                  value={hoursForm.closeTime}
+                  onChange={(e) => setHoursForm({ ...hoursForm, closeTime: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => saveHoursMutation.mutate(hoursForm)}
+                disabled={saveHoursMutation.isPending}
+                className="flex-1 bg-primary-500 text-primary-contrast py-2.5 px-4 rounded-lg hover:bg-primary-600 disabled:opacity-50 transition-colors font-medium"
+              >
+                {saveHoursMutation.isPending ? t('common.processing') : t('common.save')}
+              </button>
+              <button
+                onClick={() => setShowHoursModal(false)}
+                disabled={saveHoursMutation.isPending}
+                className="px-6 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Delete Confirmation Modal */}

@@ -4,6 +4,7 @@ import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 import { logError } from '../../../../lib/errorLogger'
 import { sendPushNotification } from '../../../../lib/pushNotifications'
+import { getSpaHours, checkWithinSpaHours } from '../../../../lib/spaHours'
 
 // 🔔 إشعار العضو في الأبليكيشن بتغيّر حالة حجز السبا
 async function notifyMemberSpaStatus(memberId: string | null | undefined, booking: { serviceType: string; bookingDate: Date; bookingTime: string; id: string }, status: 'confirmed' | 'cancelled') {
@@ -172,6 +173,16 @@ export async function PUT(
 
     if (notes !== undefined) {
       updateData.notes = notes || null
+    }
+
+    // 💆 لو بيتغيّر ميعاد الحجز — نتأكد إنه ضمن مواعيد تشغيل الاسبا (ليميت)
+    if (bookingTime) {
+      const effectiveDuration = duration ? parseInt(duration) : existingBooking.duration
+      const spaHours = await getSpaHours(prisma)
+      const hoursCheck = checkWithinSpaHours(bookingTime, effectiveDuration, spaHours)
+      if (!hoursCheck.ok) {
+        return NextResponse.json({ error: hoursCheck.error }, { status: 400 })
+      }
     }
 
     // تحديث الحجز

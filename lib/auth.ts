@@ -1,11 +1,58 @@
 // lib/auth.ts - نظام المصادقة والصلاحيات المحدث
 import jwt from 'jsonwebtoken'
+import bcrypt from 'bcryptjs'
 import { Permissions } from '../types/permissions'
 import { logError } from './errorLogger'
 import { prisma } from './prisma'
 
 // الحساب الاحتياطي (OWNER) بيتحقق من الـ env مش من الـ DB — نتخطى فحص الـ DB له
 const FALLBACK_OWNER_ID = 'fallback-fitboost-account'
+
+/**
+ * التحقق من كلمة مرور الـ OWNER — بيقبلها لو طابقت أيّ من:
+ *  1) بيانات الـ env الاحتياطية (OWNER_PASSWORD_HASH_B64 / OWNER_PASSWORD_HASH / OWNER_PASSWORD)
+ *     — دي نفس اللي بيتسجّل بيها الأونر الاحتياطي (fallback-fitboost-account) اللي مش موجود في الـ DB.
+ *  2) باسورد حساب الأونر المخزّن في قاعدة البيانات (لو الأونر حساب حقيقي في الـ DB).
+ * كده التحقق بيطابق سلوك تسجيل الدخول بدل ما يفشل مع الأونر الاحتياطي.
+ */
+export async function verifyOwnerPassword(
+  password: string,
+  currentUser: { userId?: string; email?: string }
+): Promise<boolean> {
+  if (!password) return false
+
+  // 1) بيانات الـ env الاحتياطية (زي مسار تسجيل الدخول بالظبط)
+  try {
+    const ownerPasswordHashB64 = process.env.OWNER_PASSWORD_HASH_B64?.trim()
+    const ownerPasswordHash = ownerPasswordHashB64
+      ? Buffer.from(ownerPasswordHashB64, 'base64').toString('utf8')
+      : process.env.OWNER_PASSWORD_HASH?.trim()
+    const ownerPasswordPlain = process.env.OWNER_PASSWORD?.trim()
+
+    if (ownerPasswordHash) {
+      if (await bcrypt.compare(password, ownerPasswordHash)) return true
+    } else if (ownerPasswordPlain) {
+      if (password === ownerPasswordPlain) return true
+    }
+  } catch {
+    // تجاهل وكمّل على تحقق الـ DB
+  }
+
+  // 2) حساب الأونر في قاعدة البيانات (لو موجود)
+  try {
+    let dbUser = currentUser.userId
+      ? await prisma.user.findUnique({ where: { id: currentUser.userId }, select: { password: true } })
+      : null
+    if (!dbUser && currentUser.email) {
+      dbUser = await prisma.user.findUnique({ where: { email: currentUser.email }, select: { password: true } })
+    }
+    if (dbUser?.password && await bcrypt.compare(password, dbUser.password)) return true
+  } catch {
+    // تجاهل
+  }
+
+  return false
+}
 
 // كاش قصير لحالة المستخدم (isActive/role) عشان منعملش DB read مع كل ريكوست.
 // TTL 60 ثانية = تعطيل المستخدم أو تغيير دوره بيسري خلال دقيقة على الأكثر.

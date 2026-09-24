@@ -483,7 +483,7 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {alerts.expiringToday > 0 && (
                 <Link
-                  href="/members?filter=expired"
+                  href="/members?filter=expiring-today"
                   className="bg-gray-50 dark:bg-gray-900/40 ring-1 ring-red-200 dark:ring-red-900/50 p-4 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
                 >
                   <div className="flex items-center gap-3">

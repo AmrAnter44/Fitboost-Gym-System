@@ -36,7 +36,8 @@ export async function POST(request: Request) {
       notes,
       paymentMethod,
       staffName,
-      moreCommissionAmount  // 💰 عمولة المدرب من الباقة (اختياري)
+      moreCommissionAmount,  // 💰 عمولة المدرب من الباقة (اختياري)
+      packageName            // 📦 اسم الباقة اللي اتباعت — يظهر في الإيصال
     } = body
 
     if (!oldMoreNumber) {
@@ -159,6 +160,7 @@ export async function POST(request: Request) {
               oldMoreNumber: oldMore.moreNumber,
               clientName: oldMore.clientName,
               phone: oldMore.phone,
+              packageName: packageName || null,
               sessionsPurchased: Number(sessionsPurchased),
               pricePerSession: Number(pricePerSession),
               totalAmount: Number(totalAmount),

@@ -152,7 +152,8 @@ export default function MorePage() {
     expiryDate: '',
     notes: '',
     paymentMethod: 'cash' as string | PaymentMethodType[],
-    staffName: ''
+    staffName: '',
+    packageName: ''  // 📦 اسم الباقة اللي اتباعت — يظهر في الإيصال
   })
 
   const [sessionFormData, setSessionFormData] = useState({
@@ -168,7 +169,8 @@ export default function MorePage() {
     expiryDate: '',
     notes: '',
     paymentMethod: 'cash' as string | PaymentMethod[],
-    staffName: ''
+    staffName: '',
+    packageName: ''  // 📦 اسم الباقة اللي اتباعت — يظهر في إيصال التجديد
   })
 
   const [staffList, setStaffList] = useState<any[]>([])
@@ -511,6 +513,7 @@ export default function MorePage() {
           startDate: formatDateYMD(new Date()),
           expiryDate: '',
           notes: '',
+          packageName: '',
           paymentMethod: 'cash',
           staffName: ''
         })
@@ -689,7 +692,8 @@ export default function MorePage() {
       expiryDate: '',
       notes: '',
       paymentMethod: 'cash',
-      staffName: ''
+      staffName: '',
+      packageName: ''
     })
   }
 
@@ -763,7 +767,8 @@ export default function MorePage() {
       ...formData,
       sessionsPurchased: pkg.sessions.toString(),
       totalPrice: pkg.price.toString(),
-      expiryDate: calculatedExpiry || formData.expiryDate
+      expiryDate: calculatedExpiry || formData.expiryDate,
+      packageName: pkg.name || ''
     })
     toast.success(locale === 'ar' ? `تم تطبيق باقة: ${pkg.name} (${pkg.durationDays} يوم)` : `Package applied: ${pkg.name} (${pkg.durationDays} days)`)
   }
@@ -781,7 +786,8 @@ export default function MorePage() {
       ...renewFormData,
       sessionsPurchased: pkg.sessions.toString(),
       totalPrice: pkg.price.toString(),
-      expiryDate: calculatedExpiry || renewFormData.expiryDate
+      expiryDate: calculatedExpiry || renewFormData.expiryDate,
+      packageName: pkg.name || ''
     })
     toast.success(locale === 'ar' ? `تم تطبيق باقة: ${pkg.name} (${pkg.durationDays} يوم)` : `Package applied: ${pkg.name} (${pkg.durationDays} days)`)
   }

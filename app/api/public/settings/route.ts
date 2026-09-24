@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { apiCache } from '@/lib/cache';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
+import { getSpaHours, DEFAULT_SPA_OPEN, DEFAULT_SPA_CLOSE } from '@/lib/spaHours';
 
 // Cache TTL: 60s — settings rarely change, and mobile apps poll on launch only
 const SETTINGS_CACHE_TTL = 60_000
@@ -13,6 +14,8 @@ const DEFAULTS = {
   physiotherapyEnabled: true,
   groupClassEnabled: true,
   inBodyEnabled: true,
+  spaOpenTime: DEFAULT_SPA_OPEN,
+  spaCloseTime: DEFAULT_SPA_CLOSE,
 }
 
 export async function GET(request: NextRequest) {
@@ -57,8 +60,13 @@ export async function GET(request: NextRequest) {
     let result: Record<string, unknown> = { ...DEFAULTS }
     if (settings) {
       const { appTerms, ...rest } = settings
-      result = { ...rest, terms: (appTerms || '').trim() || null }
+      result = { ...DEFAULTS, ...rest, terms: (appTerms || '').trim() || null }
     }
+
+    // 💆 مواعيد تشغيل الاسبا (raw SQL — الأعمدة جديدة، نتفادى الـ client القديم)
+    const spaHours = await getSpaHours(prisma)
+    result.spaOpenTime = spaHours.openTime
+    result.spaCloseTime = spaHours.closeTime
 
     apiCache.set(cacheKey, result, SETTINGS_CACHE_TTL)
 

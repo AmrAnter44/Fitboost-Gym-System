@@ -219,6 +219,16 @@ export default function MemberDetailPage() {
  const [receiptData, setReceiptData] = useState<any>(null)
  const [showRenewalForm, setShowRenewalForm] = useState(false)
  const [showCancelRenewalModal, setShowCancelRenewalModal] = useState(false)
+ //  🏋️ اشتراك PT سريع من جوّه البروفايل
+ const [quickPtOpen, setQuickPtOpen] = useState(false)
+ const [quickPtSaving, setQuickPtSaving] = useState(false)
+ const [quickPtForm, setQuickPtForm] = useState({ coachName: '', sessions: '', totalPrice: '', remaining: '', startDate: '', expiryDate: '', paymentMethod: 'cash' as any })
+ const [ptPackages, setPtPackages] = useState<any[]>([]) //  باقات الـ PT الجاهزة
+ //  💰 دفع باقي الـ PT من البروفايل
+ const [ptPayOpen, setPtPayOpen] = useState(false)
+ const [ptPayAmount, setPtPayAmount] = useState<number>(0)
+ const [ptPayMethod, setPtPayMethod] = useState<string>('cash')
+ const [ptPaySaving, setPtPaySaving] = useState(false)
  const [cancelRenewalLoading, setCancelRenewalLoading] = useState(false)
  const [showRenewalDetails, setShowRenewalDetails] = useState(false)
  const [showEditRenewalModal, setShowEditRenewalModal] = useState(false)
@@ -446,6 +456,12 @@ export default function MemberDetailPage() {
  image: string
  error: string
  }>({ show: false, step: 'generating', image: '', error: '' })
+
+  //  💬 تذكير بالباقي على واتساب (بوب-اب: اختيار الرقم + تعديل الرسالة + إرسال)
+  const [sendingReminder, setSendingReminder] = useState(false)
+  const [reminderModalOpen, setReminderModalOpen] = useState(false)
+  const [reminderText, setReminderText] = useState('')
+  const [reminderPhone, setReminderPhone] = useState('')
 
  // Fitness Test
  const [fitnessTestExists, setFitnessTestExists] = useState(false)
@@ -1919,6 +1935,131 @@ export default function MemberDetailPage() {
  }
  }
 
+ //  💬 فتح نافذة تذكير بالباقي — بنجهّز الرسالة الافتراضية وتقدر تعدّلها قبل الإرسال
+ const openBalanceReminder = () => {
+ if (!member || !member.phone || (member.remainingAmount || 0) <= 0) return
+ const gymName = (settings as any)?.gymName || ''
+ const due = (member as any).remainingDueDate ? formatDateYMD((member as any).remainingDueDate) : ''
+ const message = locale === 'ar'
+ ? `أهلاً ${member.name} 👋\n\nحابين نفكّرك إن عليك مبلغ متبقّي *${member.remainingAmount} ج.م*${due ? `\nموعد السداد: ${due}` : ''}${gymName ? `\n(${gymName})` : ''}\n\nياريت تعدّي تسدّده. شكراً! 🙏`
+ : `Hi ${member.name} 👋\n\nReminder: you have an outstanding balance of *${member.remainingAmount} EGP*${due ? `\nDue date: ${due}` : ''}${gymName ? `\n(${gymName})` : ''}\n\nPlease drop by to settle it. Thank you! 🙏`
+ setReminderText(message)
+ setReminderPhone(member.phone || '')
+ setReminderModalOpen(true)
+ }
+
+ //  💬 إرسال الرسالة (بعد ما المستخدم يعدّلها لو حب) على واتساب
+ const sendBalanceReminder = async () => {
+ if (!member || !reminderPhone.trim() || !reminderText.trim()) return
+ setSendingReminder(true)
+ try {
+ const res = await fetch('/api/whatsapp/send', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ phone: reminderPhone.trim(), message: reminderText.trim() }),
+ })
+ const data = await res.json().catch(() => ({}))
+ if (res.ok && data.success !== false) {
+ toast.success(locale === 'ar' ? 'اتبعت رسالة الباقي على واتساب ✓' : 'Balance reminder sent ✓')
+ setReminderModalOpen(false)
+ } else {
+ toast.error(data.error || (locale === 'ar' ? 'فشل إرسال الرسالة — اتأكد إن الواتساب متصل' : 'Failed to send — check WhatsApp connection'))
+ }
+ } catch {
+ toast.error(locale === 'ar' ? 'خطأ في الاتصال' : 'Connection error')
+ } finally {
+ setSendingReminder(false)
+ }
+ }
+
+ //  🏋️ فتح مودال الـ PT السريع (تواريخ افتراضية: شهر من النهاردة)
+ const openQuickPt = () => {
+ const today = new Date()
+ const end = new Date(); end.setDate(end.getDate() + 30)
+ const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+ setQuickPtForm({ coachName: '', sessions: '', totalPrice: '', remaining: '', startDate: ymd(today), expiryDate: ymd(end), paymentMethod: 'cash' })
+ setQuickPtOpen(true)
+ //  جلب الكباتن + باقات الـ PT الجاهزة
+ fetch('/api/coaches/with-stats').then(r => r.ok ? r.json() : []).then(d => setPtCoaches(Array.isArray(d) ? d : [])).catch(() => {})
+ fetch('/api/packages?serviceType=PT').then(r => r.ok ? r.json() : []).then(d => setPtPackages(Array.isArray(d) ? d : [])).catch(() => {})
+ }
+
+ //  🏋️ إنشاء اشتراك PT للعضو
+ const submitQuickPt = async () => {
+ if (!member) return
+ const sessions = parseInt(quickPtForm.sessions) || 0
+ const total = Number(quickPtForm.totalPrice) || 0
+ if (!quickPtForm.coachName) { toast.warning(locale === 'ar' ? 'اختار الكوتش' : 'Select a coach'); return }
+ if (sessions <= 0) { toast.warning(locale === 'ar' ? 'عدد الحصص لازم أكبر من صفر' : 'Sessions must be > 0'); return }
+ setQuickPtSaving(true)
+ try {
+ const res = await fetch('/api/pt', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ clientName: member.name,
+ phone: member.phone,
+ coachName: quickPtForm.coachName,
+ sessionsPurchased: sessions,
+ totalPrice: total,
+ remainingAmount: Number(quickPtForm.remaining) || 0,
+ startDate: quickPtForm.startDate || null,
+ expiryDate: quickPtForm.expiryDate || null,
+ paymentMethod: quickPtForm.paymentMethod,
+ staffName: currentUser?.name || '',
+ }),
+ })
+ const data = await res.json().catch(() => ({}))
+ if (res.ok) {
+ toast.success(locale === 'ar' ? 'تم إنشاء اشتراك PT ✓' : 'PT subscription created ✓')
+ setQuickPtOpen(false)
+ } else {
+ toast.error(data.error || (locale === 'ar' ? 'فشل إنشاء اشتراك PT' : 'Failed to create PT'))
+ }
+ } catch {
+ toast.error(locale === 'ar' ? 'خطأ في الاتصال' : 'Connection error')
+ } finally {
+ setQuickPtSaving(false)
+ }
+ }
+
+ //  💰 فتح مودال دفع باقي الـ PT
+ const openPtPay = () => {
+ if (!ptSubscription || (ptSubscription.remainingAmount || 0) <= 0) return
+ setPtPayAmount(ptSubscription.remainingAmount || 0)
+ setPtPayMethod('cash')
+ setPtPayOpen(true)
+ }
+
+ //  💰 تنفيذ دفع باقي الـ PT
+ const submitPtPay = async () => {
+ if (!ptSubscription) return
+ const amount = Number(ptPayAmount) || 0
+ if (amount <= 0 || amount > (ptSubscription.remainingAmount || 0)) {
+ toast.warning(locale === 'ar' ? 'مبلغ غير صحيح' : 'Invalid amount'); return
+ }
+ setPtPaySaving(true)
+ try {
+ const res = await fetch('/api/pt/pay-remaining', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ ptNumber: ptSubscription.ptNumber, paymentAmount: amount, paymentMethod: ptPayMethod, staffName: currentUser?.name || '' }),
+ })
+ const data = await res.json().catch(() => ({}))
+ if (res.ok) {
+ toast.success(locale === 'ar' ? 'تم دفع باقي الـ PT ✓' : 'PT remaining paid ✓')
+ setPtPayOpen(false)
+ fetchMember()
+ } else {
+ toast.error(data.error || (locale === 'ar' ? 'فشل الدفع' : 'Payment failed'))
+ }
+ } catch {
+ toast.error(locale === 'ar' ? 'خطأ في الاتصال' : 'Connection error')
+ } finally {
+ setPtPaySaving(false)
+ }
+ }
+
  const handleOpenFitnessTest = async () => {
 
  if (fitnessTestExists) {
@@ -2540,6 +2681,19 @@ export default function MemberDetailPage() {
  <div className="bg-orange-400/30 ring-1 ring-orange-300 rounded-lg p-4">
  <p className="text-sm opacity-90">{locale === 'ar' ? 'باقي على العضو' : 'Remaining Balance'}</p>
  <p className="text-2xl font-bold text-orange-100">{member.remainingAmount} {t('memberDetails.egp')}</p>
+ {/*  💬 تذكير بالباقي على واتساب */}
+ {member.phone && (
+ <button
+ onClick={openBalanceReminder}
+ className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors duration-200"
+ title={locale === 'ar' ? 'إرسال تذكير بالباقي على واتساب' : 'Send balance reminder via WhatsApp'}
+ >
+ <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+ <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+ </svg>
+ <span>{locale === 'ar' ? 'تذكير بالباقي واتساب' : 'WhatsApp reminder'}</span>
+ </button>
+ )}
  </div>
  )}
  <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
@@ -3065,6 +3219,17 @@ export default function MemberDetailPage() {
  </div>
  )}
 
+ {/* 💰 دفع باقي الـ PT — بيظهر بس لو عليه باقي */}
+ {(ptSubscription.remainingAmount || 0) > 0 && currentUser?.role !== 'COACH' && (
+ <button
+ onClick={openPtPay}
+ className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors duration-200 active:scale-95 ring-1 ring-orange-300/60"
+ >
+ <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4"/></svg>
+ <span>{locale === 'ar' ? `دفع باقي الـ PT (${ptSubscription.remainingAmount} ج.م)` : `Pay PT remaining (${ptSubscription.remainingAmount})`}</span>
+ </button>
+ )}
+
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
  {hasPermission('canEditPT') && (
  <button
@@ -3076,7 +3241,7 @@ export default function MemberDetailPage() {
  </button>
  )}
  <button
- onClick={() => router.push('/pt')}
+ onClick={() => router.push(ptSubscription?.ptNumber != null ? `/pt?ptNumber=${ptSubscription.ptNumber}` : '/pt')}
  className="bg-white dark:bg-gray-700 text-teal-600 dark:text-teal-400 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-bold flex items-center justify-center gap-2 transition-colors duration-200 active:scale-95"
  >
  <span>عرض تفاصيل PT الكاملة</span>
@@ -3160,6 +3325,23 @@ export default function MemberDetailPage() {
  {locale === 'ar' ? 'تجديد' : 'Renew'}
  </button>
  )}
+ </div>
+ )}
+
+ {/* 🏋️ اشتراك PT سريع */}
+ {hasPermission('canCreatePT') && !member?.isBanned && (
+ <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-indigo-500">
+ <div className="flex items-center justify-between mb-2">
+ <p className="text-xs text-gray-600 dark:text-white font-semibold truncate">{locale === 'ar' ? 'اشتراك PT سريع' : 'Quick PT'}</p>
+ </div>
+ <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2 min-h-[2rem]">{locale === 'ar' ? 'إنشاء اشتراك تدريب شخصي للعضو مباشرة' : 'Create a personal-training subscription for this member'}</p>
+ <button
+ onClick={openQuickPt}
+ disabled={loading}
+ className="w-full bg-indigo-600 text-white text-xs py-1.5 rounded hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold"
+ >
+ {locale === 'ar' ? 'اشتراك PT' : 'New PT'}
+ </button>
  </div>
  )}
 
@@ -6009,6 +6191,222 @@ export default function MemberDetailPage() {
  fetchMember()
  }}
  />
+ )}
+
+ {/* 💰 بوب-اب دفع باقي الـ PT */}
+ {ptPayOpen && ptSubscription && (
+ <div
+ className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+ style={{ zIndex: 9999 }}
+ onClick={(e) => { if (e.target === e.currentTarget && !ptPaySaving) setPtPayOpen(false) }}
+ >
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm my-4 p-5" onClick={(e) => e.stopPropagation()} dir={direction}>
+ <div className="flex items-center justify-between mb-4 pb-2 border-b dark:border-gray-700">
+ <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? 'دفع باقي الـ PT' : 'Pay PT remaining'}</h3>
+ <button onClick={() => setPtPayOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none">×</button>
+ </div>
+
+ <div className="flex items-center justify-between rounded-lg bg-orange-50 dark:bg-orange-900/20 ring-1 ring-orange-200 dark:ring-orange-800 px-3 py-2 mb-3 text-sm">
+ <span className="font-bold text-gray-600 dark:text-gray-300">{locale === 'ar' ? 'إجمالي الباقي' : 'Total remaining'}</span>
+ <span className="font-black text-orange-700 dark:text-orange-400 tabular-nums">{ptSubscription.remainingAmount} {locale === 'ar' ? 'ج.م' : 'EGP'}</span>
+ </div>
+
+ <div className="grid grid-cols-2 gap-3 mb-4">
+ <div>
+ <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'المبلغ' : 'Amount'}</label>
+ <input type="number" min={0} max={ptSubscription.remainingAmount} value={ptPayAmount} onChange={(e) => setPtPayAmount(Number(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm" dir="ltr" />
+ </div>
+ <div>
+ <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'طريقة الدفع' : 'Method'}</label>
+ <select value={ptPayMethod} onChange={(e) => setPtPayMethod(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+ <option value="cash">{locale === 'ar' ? 'كاش' : 'Cash'}</option>
+ <option value="instapay">إنستاباي</option>
+ <option value="wallet">{locale === 'ar' ? 'محفظة' : 'Wallet'}</option>
+ <option value="visa">{locale === 'ar' ? 'فيزا' : 'Visa'}</option>
+ </select>
+ </div>
+ </div>
+
+ <div className="flex gap-2">
+ <button onClick={submitPtPay} disabled={ptPaySaving || ptPayAmount <= 0 || ptPayAmount > (ptSubscription.remainingAmount || 0)} className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold text-sm disabled:opacity-60">
+ {ptPaySaving ? (locale === 'ar' ? 'جاري الدفع…' : 'Paying…') : (locale === 'ar' ? `دفع ${ptPayAmount || 0}` : `Pay ${ptPayAmount || 0}`)}
+ </button>
+ <button onClick={() => setPtPayOpen(false)} disabled={ptPaySaving} className="px-5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-200 dark:hover:bg-gray-600">
+ {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
+
+ {/* 🏋️ بوب-اب اشتراك PT سريع */}
+ {quickPtOpen && member && (
+ <div
+ className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+ style={{ zIndex: 9999 }}
+ onClick={(e) => { if (e.target === e.currentTarget && !quickPtSaving) setQuickPtOpen(false) }}
+ >
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md my-4 max-h-[92dvh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()} dir={direction}>
+ <div className="flex items-center justify-between mb-4 pb-2 border-b dark:border-gray-700">
+ <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">
+ {locale === 'ar' ? 'اشتراك PT سريع' : 'Quick PT'} · {member.name}
+ </h3>
+ <button onClick={() => setQuickPtOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none">×</button>
+ </div>
+
+ <div className="space-y-3">
+ {/* الباقة الجاهزة — اختيارها بيملأ الحصص والسعر */}
+ {ptPackages.length > 0 && (
+ <div>
+ <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'الباقة' : 'Package'}</label>
+ <select
+ onChange={(e) => {
+ const pkg = ptPackages.find((p: any) => String(p.id) === e.target.value)
+ if (!pkg) return
+ setQuickPtForm(f => {
+ const start = f.startDate ? new Date(f.startDate) : new Date()
+ const days = Number(pkg.durationDays) || 30
+ const exp = new Date(start); exp.setDate(exp.getDate() + days)
+ const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+ return { ...f, sessions: String(pkg.sessions ?? ''), totalPrice: String(pkg.price ?? ''), expiryDate: ymd(exp) }
+ })
+ }}
+ className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+ defaultValue=""
+ >
+ <option value="">{locale === 'ar' ? '— اختار باقة (اختياري) —' : '— Select package (optional) —'}</option>
+ {ptPackages.map((p: any) => (
+ <option key={p.id} value={p.id}>{p.name} · {p.sessions} {locale === 'ar' ? 'حصة' : 'sessions'} · {p.price} {locale === 'ar' ? 'ج.م' : 'EGP'}</option>
+ ))}
+ </select>
+ </div>
+ )}
+ {/* الكوتش */}
+ <div>
+ <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'الكوتش' : 'Coach'} <span className="text-red-500">*</span></label>
+ <select value={quickPtForm.coachName} onChange={(e) => setQuickPtForm(f => ({ ...f, coachName: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+ <option value="">{locale === 'ar' ? '— اختار الكوتش —' : '— Select coach —'}</option>
+ {ptCoaches.map((c: any) => (
+ <option key={c.id || c.name} value={c.name}>{c.name}</option>
+ ))}
+ </select>
+ </div>
+
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'عدد الحصص' : 'Sessions'} <span className="text-red-500">*</span></label>
+ <input type="number" min={1} value={quickPtForm.sessions} onChange={(e) => setQuickPtForm(f => ({ ...f, sessions: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm" dir="ltr" />
+ </div>
+ <div>
+ <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'السعر الإجمالي' : 'Total price'}</label>
+ <input type="number" min={0} value={quickPtForm.totalPrice} onChange={(e) => setQuickPtForm(f => ({ ...f, totalPrice: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm" dir="ltr" />
+ </div>
+ <div>
+ <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'تاريخ البداية' : 'Start'}</label>
+ <input type="date" value={quickPtForm.startDate} onChange={(e) => setQuickPtForm(f => ({ ...f, startDate: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm" />
+ </div>
+ <div>
+ <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'تاريخ الانتهاء' : 'Expiry'}</label>
+ <input type="date" value={quickPtForm.expiryDate} onChange={(e) => setQuickPtForm(f => ({ ...f, expiryDate: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm" />
+ </div>
+ <div>
+ <label className="block text-xs font-bold mb-1 text-orange-600 dark:text-orange-400">{locale === 'ar' ? 'الباقي (اختياري)' : 'Remaining'}</label>
+ <input type="number" min={0} value={quickPtForm.remaining} onChange={(e) => setQuickPtForm(f => ({ ...f, remaining: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm" placeholder="0" dir="ltr" />
+ </div>
+ <div>
+ <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'طريقة الدفع' : 'Method'}</label>
+ <select value={quickPtForm.paymentMethod} onChange={(e) => setQuickPtForm(f => ({ ...f, paymentMethod: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+ <option value="cash">{locale === 'ar' ? 'كاش' : 'Cash'}</option>
+ <option value="instapay">إنستاباي</option>
+ <option value="wallet">{locale === 'ar' ? 'محفظة' : 'Wallet'}</option>
+ <option value="visa">{locale === 'ar' ? 'فيزا' : 'Visa'}</option>
+ </select>
+ </div>
+ </div>
+
+ {/* المدفوع = الإجمالي - الباقي */}
+ <div className="flex items-center justify-between rounded-lg bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-800 px-3 py-2 text-sm">
+ <span className="font-bold text-gray-600 dark:text-gray-300">{locale === 'ar' ? 'المدفوع الآن' : 'Paid now'}</span>
+ <span className="font-black text-green-700 dark:text-green-400 tabular-nums">
+ {Math.max(0, (Number(quickPtForm.totalPrice) || 0) - (Number(quickPtForm.remaining) || 0)).toLocaleString()} {locale === 'ar' ? 'ج.م' : 'EGP'}
+ </span>
+ </div>
+
+ <button onClick={submitQuickPt} disabled={quickPtSaving} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg font-bold text-sm disabled:opacity-60">
+ {quickPtSaving ? (locale === 'ar' ? 'جاري الإنشاء…' : 'Creating…') : (locale === 'ar' ? 'إنشاء الاشتراك' : 'Create')}
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
+
+ {/* 💬 بوب-اب تذكير بالباقي على واتساب — اختيار الرقم + تعديل الرسالة */}
+ {reminderModalOpen && member && (
+ <div
+ className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+ style={{ zIndex: 9999 }}
+ onClick={(e) => { if (e.target === e.currentTarget && !sendingReminder) setReminderModalOpen(false) }}
+ >
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md my-4 p-5" onClick={(e) => e.stopPropagation()} dir={direction}>
+ <div className="flex items-center justify-between mb-4 pb-2 border-b dark:border-gray-700">
+ <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+ <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+ {locale === 'ar' ? 'تذكير بالباقي على واتساب' : 'WhatsApp balance reminder'}
+ </h3>
+ <button onClick={() => setReminderModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none">×</button>
+ </div>
+
+ {/* الرقم */}
+ <div className="mb-3">
+ <label className="block text-xs font-bold mb-1.5 dark:text-gray-200">{locale === 'ar' ? 'الرقم' : 'Number'}</label>
+ <input
+ type="tel"
+ value={reminderPhone}
+ onChange={(e) => setReminderPhone(e.target.value)}
+ className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+ dir="ltr"
+ placeholder="010xxxxxxxx"
+ />
+ {/* أرقام سريعة: رقم العضو + الاحتياطي */}
+ <div className="flex flex-wrap gap-1.5 mt-1.5">
+ {member.phone && (
+ <button type="button" onClick={() => setReminderPhone(member.phone)} className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 font-mono" dir="ltr">
+ {member.phone}
+ </button>
+ )}
+ {(member as any).backupPhone && (
+ <button type="button" onClick={() => setReminderPhone((member as any).backupPhone)} className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 font-mono" dir="ltr">
+ {(member as any).backupPhone} ({locale === 'ar' ? 'احتياطي' : 'backup'})
+ </button>
+ )}
+ </div>
+ </div>
+
+ {/* الرسالة */}
+ <div className="mb-4">
+ <label className="block text-xs font-bold mb-1.5 dark:text-gray-200">{locale === 'ar' ? 'الرسالة' : 'Message'}</label>
+ <textarea
+ value={reminderText}
+ onChange={(e) => setReminderText(e.target.value)}
+ rows={6}
+ className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+ />
+ </div>
+
+ <div className="flex gap-2">
+ <button
+ onClick={sendBalanceReminder}
+ disabled={sendingReminder || !reminderPhone.trim() || !reminderText.trim()}
+ className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-lg font-bold text-sm disabled:opacity-60 flex items-center justify-center gap-2"
+ >
+ {sendingReminder ? (locale === 'ar' ? 'جاري الإرسال…' : 'Sending…') : (locale === 'ar' ? 'إرسال' : 'Send')}
+ </button>
+ <button onClick={() => setReminderModalOpen(false)} disabled={sendingReminder} className="px-5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-200 dark:hover:bg-gray-600">
+ {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+ </button>
+ </div>
+ </div>
+ </div>
  )}
 
  {/* Barcode WhatsApp Popup */}

@@ -421,13 +421,37 @@ function generateReceiptHTML(data: ReceiptData): string {
         <strong>العميل:</strong> ${details.clientName}
       </div>
     ` : ''}
+
+    ${details.packageName ? `
+      <div class="detail-item">
+        <strong>الباقة:</strong> ${escapeHtml(String(details.packageName))}
+      </div>
+    ` : ''}
     
     ${details.name ? `
       <div class="detail-item">
         <strong>الاسم:</strong> ${details.name}
       </div>
     ` : ''}
-    
+
+    ${details.birthDate ? `
+      <div class="detail-item">
+        <strong>تاريخ الميلاد:</strong> ${formatDateYMD(details.birthDate)}
+      </div>
+    ` : ''}
+
+    ${details.nationalId ? `
+      <div class="detail-item">
+        <strong>الرقم القومي:</strong> ${escapeHtml(String(details.nationalId))}
+      </div>
+    ` : ''}
+
+    ${details.notes ? `
+      <div class="detail-item">
+        <strong>ملاحظات:</strong> ${escapeHtml(String(details.notes))}
+      </div>
+    ` : ''}
+
     ${details.startDate || details.expiryDate ? `
       <div class="date-box">
         <p><strong>📅 فترة الاشتراك:</strong></p>

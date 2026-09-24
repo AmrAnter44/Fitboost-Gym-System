@@ -631,6 +631,9 @@ function migrateDatabase(dbPath) {
       // 💪 مميزات اشتراك PT (فريز/ترقية) — غيابها بيفشّل قراءة الإعدادات وترقية الـ PT
       { col: 'ptFreezeEnabled',            def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'ptUpgradeEnabled',           def: 'INTEGER NOT NULL DEFAULT 0' },
+      // 💆 مواعيد تشغيل الاسبا — يمنع الحجز بره الميعاد (السيستم + الأبليكشن)
+      { col: 'spaOpenTime',                def: "TEXT DEFAULT '10:00'" },
+      { col: 'spaCloseTime',               def: "TEXT DEFAULT '22:00'" },
     ];
     for (const { col, def } of settingsCols) {
       if (!columnExists(db, 'SystemSettings', col)) {

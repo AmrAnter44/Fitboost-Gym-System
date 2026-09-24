@@ -1184,6 +1184,8 @@ model SystemSettings {
   groupClassEnabled     Boolean  @default(true)
   moreEnabled           Boolean  @default(true)
   spaEnabled            Boolean  @default(true)
+  spaOpenTime           String?  @default("10:00")  // 💆 ميعاد فتح الاسبا (HH:MM) — يمنع الحجز قبله (السيستم + الأبليكشن)
+  spaCloseTime          String?  @default("22:00")  // 💆 ميعاد قفل الاسبا (HH:MM) — يمنع الحجز بعده (السيستم + الأبليكشن)
   inBodyEnabled         Boolean  @default(true)
   poolEnabled           Boolean  @default(true)
   padelEnabled          Boolean  @default(true)

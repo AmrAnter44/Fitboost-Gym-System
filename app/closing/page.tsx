@@ -1049,6 +1049,11 @@ export default function ClosingPage() {
   const yesterdayStr = formatDate(yesterday)
   const tomorrowStr = formatDate(tomorrow)
 
+  // 🔒 لما نكون فاتحين تقفيل يومي لأمس أو النهاردة — نخفي تابات التقفيل الكامل
+  //    (شهري/سنوي/مقارنة) عشان يفضل التركيز على تقفيل اليوم بس
+  const onDailyYesterdayOrToday =
+    viewMode === 'daily' && (selectedDay === yesterdayStr || selectedDay === todayStr)
+
   return (
     <div className="container mx-auto p-3 sm:p-4 md:p-6" dir={direction}>
       <div className="mb-4 sm:mb-6 no-print">
@@ -1098,8 +1103,9 @@ export default function ClosingPage() {
           </button>
         </div>
 
-        {/* View Mode Tabs — يختفي لو اليوزر معاه canCloseDayOnly فقط */}
-        {!restrictedToDayOnly && (
+        {/* View Mode Tabs (التقفيل الكامل) — يختفي لو اليوزر معاه canCloseDayOnly فقط،
+            أو لو فاتح تقفيل يومي لأمس/النهاردة */}
+        {!restrictedToDayOnly && !onDailyYesterdayOrToday && (
         <div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
           <button
             onClick={() => setViewMode('daily')}

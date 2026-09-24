@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 import { logError } from '../../../../lib/errorLogger'
+import { getSpaHours, timeToMinutes } from '../../../../lib/spaHours'
 
 // GET - جلب الأوقات المتاحة لتاريخ ونوع خدمة معينة
 
@@ -33,8 +34,11 @@ export async function GET(request: Request) {
     }
 
 
-    // توليد الأوقات المتاحة (من 9 صباحاً إلى 8 مساءً كل ساعة)
+    // توليد الأوقات المتاحة ضمن مواعيد تشغيل الاسبا (ليميت) كل ساعة
     const MAX_CAPACITY = 1 // حجز واحد فقط في نفس الوقت (بغض النظر عن نوع الخدمة)
+    const spaHours = await getSpaHours(prisma)
+    const openMin = timeToMinutes(spaHours.openTime) ?? 10 * 60
+    const closeMin = timeToMinutes(spaHours.closeTime) ?? 22 * 60
 
     // استعلام واحد بدلاً من 12 استعلام (groupBy)
     const bookingCounts = await prisma.spaBooking.groupBy({
@@ -49,7 +53,10 @@ export async function GET(request: Request) {
     const countsMap = new Map(bookingCounts.map(b => [b.bookingTime, b._count.bookingTime]))
 
     const timeSlots = []
-    for (let hour = 9; hour <= 20; hour++) {
+    for (let hour = 0; hour <= 23; hour++) {
+      const slotMin = hour * 60
+      // نعرض فقط الساعات اللي تبدأ عند/بعد الفتح وقبل القفل
+      if (slotMin < openMin || slotMin >= closeMin) continue
       const time = `${hour.toString().padStart(2, '0')}:00`
       const bookingsCount = countsMap.get(time) || 0
 

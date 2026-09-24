@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import dynamic from 'next/dynamic'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -74,6 +74,7 @@ interface PTSession {
 
 export default function PTPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
   const { t, direction, locale } = useLanguage()
   const toast = useToast()
@@ -136,6 +137,12 @@ export default function PTPage() {
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   //  بحث بالرقم منفصل — رقم الـ PT أو رقم العضوية (مطابقة بالظبط)
   const [searchId, setSearchId] = useState('')
+  //  🔗 لو جايين من بروفايل عضو بـ ?ptNumber= → نفلتر على الاشتراك ده تلقائي
+  useEffect(() => {
+    const pn = searchParams?.get('ptNumber')
+    if (pn) setSearchId(pn)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const debouncedSearchId = useDebounce(searchId, 300)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentSession, setPaymentSession] = useState<PTSession | null>(null)

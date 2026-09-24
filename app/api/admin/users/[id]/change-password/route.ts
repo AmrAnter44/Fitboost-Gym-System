@@ -1,7 +1,7 @@
 // app/api/admin/users/[id]/change-password/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../../../lib/prisma'
-import { verifyAuth } from '../../../../../../lib/auth'
+import { verifyAuth, verifyOwnerPassword } from '../../../../../../lib/auth'
 import bcrypt from 'bcryptjs'
 
 export const dynamic = 'force-dynamic'
@@ -52,71 +52,11 @@ export async function POST(
       )
     }
 
-    // جلب بيانات الـ Owner الحالي للتحقق من كلمة المرور
-    const ownerUser = await prisma.user.findUnique({
-      where: { id: currentUser.userId },
-      select: { id: true, password: true, role: true }
+    // ✅ التحقق من كلمة مرور الـ Owner — بيدعم الأونر الاحتياطي (env) والأونر في الـ DB
+    const isValidOwnerPassword = await verifyOwnerPassword(ownerPassword, {
+      userId: currentUser.userId,
+      email: currentUser.email
     })
-
-
-    if (!ownerUser) {
-      // جرب البحث بـ email بدلاً من id
-      const ownerByEmail = await prisma.user.findUnique({
-        where: { email: currentUser.email },
-        select: { id: true, password: true, role: true }
-      })
-
-      if (!ownerByEmail) {
-        console.error('❌ Owner not found by userId or email')
-        return NextResponse.json(
-          { error: 'حساب الـ Owner غير موجود' },
-          { status: 404 }
-        )
-      }
-
-      // استخدم البيانات المستخرجة من البحث بـ email
-      const isValidOwnerPassword = await bcrypt.compare(ownerPassword, ownerByEmail.password)
-
-      if (!isValidOwnerPassword) {
-        return NextResponse.json(
-          { error: 'كلمة مرور الـ Owner غير صحيحة' },
-          { status: 401 }
-        )
-      }
-
-      // استمر في الكود العادي
-      const targetUser = await prisma.user.findUnique({
-        where: { id: params.id },
-        select: { id: true, name: true, email: true, role: true }
-      })
-
-      if (!targetUser) {
-        return NextResponse.json(
-          { error: 'المستخدم غير موجود' },
-          { status: 404 }
-        )
-      }
-
-      const hashedPassword = await bcrypt.hash(newPassword, 12)
-
-      await prisma.user.update({
-        where: { id: params.id },
-        data: { password: hashedPassword }
-      })
-
-      return NextResponse.json({
-        success: true,
-        message: `تم تغيير كلمة مرور ${targetUser.name} بنجاح`,
-        user: {
-          id: targetUser.id,
-          name: targetUser.name,
-          email: targetUser.email
-        }
-      })
-    }
-
-    // التحقق من كلمة مرور الـ Owner
-    const isValidOwnerPassword = await bcrypt.compare(ownerPassword, ownerUser.password)
 
     if (!isValidOwnerPassword) {
       return NextResponse.json(

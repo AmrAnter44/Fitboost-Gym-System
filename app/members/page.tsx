@@ -218,8 +218,9 @@ function MembersPageContent() {
       router.replace('/members', { scroll: false })
     }
 
-    //  🔁 فلتر جاي من بار تذكيرات السيلز: ?status=expired|expiring-today|expiring-tomorrow|expiring-soon
-    const statusParam = searchParams.get('status')
+    //  🔁 فلتر جاي من بار تذكيرات السيلز أو الداش بورد:
+    //   ?status=... أو ?filter=... (الاتنين مدعومين عشان ما يتكسرش أي لينك)
+    const statusParam = searchParams.get('status') || searchParams.get('filter')
     const allowed = ['expired', 'expiring-today', 'expiring-tomorrow', 'expiring-soon', 'active', 'has-remaining', 'no-coach']
     if (statusParam && allowed.includes(statusParam)) {
       setFilterStatus(statusParam as any)

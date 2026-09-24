@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
 import { logError } from '../../../lib/errorLogger'
+import { getSpaHours, checkWithinSpaHours } from '../../../lib/spaHours'
 
 // GET - جلب جميع الحجوزات مع Filters
 
@@ -142,6 +143,13 @@ export async function POST(request: Request) {
         { error: 'المدة يجب أن تكون 30 أو 60 أو 90 دقيقة' },
         { status: 400 }
       )
+    }
+
+    // 💆 التحقق من مواعيد تشغيل الاسبا (ليميت) — يمنع الحجز بره الميعاد
+    const spaHours = await getSpaHours(prisma)
+    const hoursCheck = checkWithinSpaHours(bookingTime, parseInt(duration), spaHours)
+    if (!hoursCheck.ok) {
+      return NextResponse.json({ error: hoursCheck.error }, { status: 400 })
     }
 
     // التحقق من وجود العضو

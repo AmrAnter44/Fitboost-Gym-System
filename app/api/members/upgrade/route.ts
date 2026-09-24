@@ -179,6 +179,9 @@ export async function POST(request: Request) {
       memberNumber: member.memberNumber,
       memberName: member.name,
       phone: member.phone,
+      nationalId: (member as any).nationalId || null,
+      birthDate: (member as any).birthDate || null,
+      notes: (member as any).notes || null,
 
       // بيانات الباكدج القديم
       ...oldPackageData,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyMemberPhone } from '@/lib/memberVerify';
+import { getSpaHours, checkWithinSpaHours } from '@/lib/spaHours';
 
 export async function GET(
   request: NextRequest,
@@ -116,6 +117,13 @@ export async function POST(
         { error: 'المدة غير صحيحة' },
         { status: 400 }
       );
+    }
+
+    // 💆 التحقق من مواعيد تشغيل الاسبا (ليميت) — العضو مايقدرش يحجز بره الميعاد
+    const spaHours = await getSpaHours(prisma);
+    const hoursCheck = checkWithinSpaHours(bookingTime, duration, spaHours);
+    if (!hoursCheck.ok) {
+      return NextResponse.json({ error: hoursCheck.error }, { status: 400 });
     }
 
     // Get member details
