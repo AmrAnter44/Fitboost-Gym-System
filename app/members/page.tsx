@@ -259,6 +259,9 @@ function MembersPageContent() {
   // فلتر تاريخ الاشتراك — مدى (من/إلى) يحدده المستخدم (YYYY-MM-DD)
   const [filterSubFrom, setFilterSubFrom] = useState<string>('')
   const [filterSubTo, setFilterSubTo] = useState<string>('')
+  //  فلتر تاريخ الانتهاء — مدى (من/إلى) لمنتهيي الاشتراك (YYYY-MM-DD)
+  const [filterExpFrom, setFilterExpFrom] = useState<string>('')
+  const [filterExpTo, setFilterExpTo] = useState<string>('')
   //  قفل دراج الفلاتر بزر Escape
   useEffect(() => {
     if (!filtersOpen) return
@@ -464,6 +467,20 @@ function MembersPageContent() {
       })
     }
 
+    //  فلتر تاريخ الانتهاء — مدى (من/إلى) حسب expiryDate (لمنتهيي الاشتراك)
+    //  مقارنة باليوم (YYYY-MM-DD) inclusive للطرفين، وبيتجاهل اللي مالوش تاريخ انتهاء
+    if (filterExpFrom || filterExpTo) {
+      filtered = filtered.filter((member) => {
+        if (!member.expiryDate) return false
+        const d = new Date(member.expiryDate)
+        if (isNaN(d.getTime())) return false
+        const dymd = formatDateYMD(d)
+        if (filterExpFrom && dymd < filterExpFrom) return false
+        if (filterExpTo && dymd > filterExpTo) return false
+        return true
+      })
+    }
+
     // ترتيب الأعضاء — الأحدث أولاً
     // الأساس: memberNumber desc (لأن العضو الجديد بياخد رقم أعلى من اللي قبله)
     // لو memberNumber null (Other) → في الآخر
@@ -492,7 +509,7 @@ function MembersPageContent() {
     })
 
     return sorted
-  }, [debouncedSearch, debouncedSearchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, socialFilter, membersData])
+  }, [debouncedSearch, debouncedSearchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, filterExpFrom, filterExpTo, socialFilter, membersData])
 
   // جلب المحظورين عند التحميل (لو عنده صلاحية)
   useEffect(() => {
@@ -625,7 +642,7 @@ function MembersPageContent() {
   useEffect(() => {
     if (!didMountRef.current) return
     setCurrentPage(1)
-  }, [search, searchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, socialFilter])
+  }, [search, searchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, filterExpFrom, filterExpTo, socialFilter])
 
   //  استرجاع الصفحة + العضو اللي كنا واقفين عنده لما نرجع من البروفايل
   //  ملاحظة: مبنمسحش القيمة فورًا (عشان StrictMode في التطوير بيعمل mount مرتين
@@ -698,6 +715,8 @@ function MembersPageContent() {
     setFilterGender('all')
     setFilterSubFrom('')
     setFilterSubTo('')
+    setFilterExpFrom('')
+    setFilterExpTo('')
     setSocialFilter([])
   }
 
@@ -716,7 +735,8 @@ function MembersPageContent() {
     (filterSalesId !== 'all' ? 1 : 0) +
     (filterCoachId !== 'all' ? 1 : 0) +
     (socialFilter.length > 0 ? 1 : 0) +
-    ((filterSubFrom || filterSubTo) ? 1 : 0)
+    ((filterSubFrom || filterSubTo) ? 1 : 0) +
+    ((filterExpFrom || filterExpTo) ? 1 : 0)
 
   // Lock body scroll while mobile drawer is open
   useEffect(() => {
@@ -1417,6 +1437,45 @@ function MembersPageContent() {
               )}
             </div>
           </div>
+
+          {/* تاريخ الانتهاء — مدى (من/إلى) لمنتهيي الاشتراك */}
+          <div className="shrink-0">
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+              {locale === 'ar' ? 'تاريخ الانتهاء (من / إلى)' : 'Expiry Date (From / To)'}
+            </label>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={filterExpFrom}
+                max={filterExpTo || undefined}
+                onChange={(e) => setFilterExpFrom(e.target.value)}
+                aria-label={locale === 'ar' ? 'من' : 'From'}
+                className="px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+              <span className="text-gray-400 text-xs">→</span>
+              <input
+                type="date"
+                value={filterExpTo}
+                min={filterExpFrom || undefined}
+                onChange={(e) => setFilterExpTo(e.target.value)}
+                aria-label={locale === 'ar' ? 'إلى' : 'To'}
+                className="px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={() => { setFilterExpFrom(''); setFilterExpTo(new Date().toISOString().split('T')[0]) }}
+                title={locale === 'ar' ? 'المنتهيين لحد النهاردة' : 'Expired until today'}
+                className="px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-800 text-[11px] font-bold hover:bg-red-100 dark:hover:bg-red-900/50 shrink-0"
+              >
+                {locale === 'ar' ? 'منتهي' : 'Expired'}
+              </button>
+              {(filterExpFrom || filterExpTo) && (
+                <button type="button" onClick={() => { setFilterExpFrom(''); setFilterExpTo('') }} aria-label={locale === 'ar' ? 'مسح' : 'Clear'} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0">
+                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                </button>
+              )}
+            </div>
+          </div>
           </div>
           <div className="flex justify-end mt-3">
             <button
@@ -1591,6 +1650,46 @@ function MembersPageContent() {
                     </button>
                   )}
                 </div>
+              </section>
+
+              {/* Expiry Date (منتهي الاشتراك من / إلى) */}
+              <section>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'تاريخ الانتهاء (من / إلى)' : 'Expiry Date (From / To)'}</label>
+                  {(filterExpFrom || filterExpTo) && (
+                    <button type="button" onClick={() => { setFilterExpFrom(''); setFilterExpTo('') }} className="text-xs text-red-500 hover:underline font-bold">{locale === 'ar' ? 'مسح' : 'Clear'}</button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="block text-[11px] text-gray-500 dark:text-gray-400 mb-1">{locale === 'ar' ? 'من' : 'From'}</span>
+                    <input
+                      type="date"
+                      value={filterExpFrom}
+                      max={filterExpTo || undefined}
+                      onChange={(e) => setFilterExpFrom(e.target.value)}
+                      className="w-full min-h-[44px] px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <span className="block text-[11px] text-gray-500 dark:text-gray-400 mb-1">{locale === 'ar' ? 'إلى' : 'To'}</span>
+                    <input
+                      type="date"
+                      value={filterExpTo}
+                      min={filterExpFrom || undefined}
+                      onChange={(e) => setFilterExpTo(e.target.value)}
+                      className="w-full min-h-[44px] px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                {/* اختصار: المنتهيين لحد النهاردة */}
+                <button
+                  type="button"
+                  onClick={() => { setFilterExpFrom(''); setFilterExpTo(new Date().toISOString().split('T')[0]) }}
+                  className="mt-2 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-800 text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-200"
+                >
+                  {locale === 'ar' ? 'المنتهيين لحد النهاردة' : 'Expired until today'}
+                </button>
               </section>
 
               {/* Sales */}

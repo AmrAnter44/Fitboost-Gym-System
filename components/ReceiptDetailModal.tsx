@@ -15,6 +15,7 @@ interface ReceiptDetailModalProps {
     paymentMethod: string
     itemDetails: string
     createdAt: string
+    memberId?: string
   }
   onClose: () => void
 }
@@ -58,12 +59,25 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
     return colors[type] || 'bg-gray-600 dark:bg-gray-700'
   }
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
+    // 🔄 إثراء ببيانات العضو الحالية (رقم قومي/تاريخ ميلاد/ملاحظات) وقت الطباعة
+    const printDetails = { ...details }
+    if (receipt.memberId) {
+      try {
+        const res = await fetch(`/api/members/${receipt.memberId}`)
+        if (res.ok) {
+          const member = await res.json()
+          if (member?.nationalId) printDetails.nationalId = member.nationalId
+          if (member?.birthDate) printDetails.birthDate = member.birthDate
+          if (member?.notes) printDetails.notes = member.notes
+        }
+      } catch { /* نطبع بالبيانات المخزّنة لو فشل الجلب */ }
+    }
     printReceiptFromData(
       receipt.receiptNumber,
       receipt.type,
       receipt.amount,
-      details,
+      printDetails,
       receipt.createdAt,
       undefined,
       { printOnly: true }

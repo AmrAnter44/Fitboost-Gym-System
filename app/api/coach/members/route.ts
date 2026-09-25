@@ -21,14 +21,18 @@ export async function GET(request: Request) {
       )
     }
 
-    // جلب جميع الأعضاء مع معلومات اختبار اللياقة
+    // جلب الأعضاء المُسنَدين لهذا الكوتش فقط — مع الرقم والصورة (لأبليكشن الكوتش)
     const members = await prisma.member.findMany({
+      where: { coachId: user.staffId },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         memberNumber: true,
         name: true,
         phone: true,
+        profileImage: true,   // 📷 صورة العضو تظهر في الأبليكشن
+        isActive: true,
+        expiryDate: true,
         freePTSessions: true,
       },
     })

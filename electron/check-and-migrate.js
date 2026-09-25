@@ -427,6 +427,7 @@ function migrateDatabase(dbPath) {
       { col: 'salesCommissionType', def: 'TEXT' },
       { col: 'salesCommissionRate', def: 'REAL' },
       { col: 'salesCommissionTiers', def: 'TEXT' },
+      { col: 'salesCommissionFromTotal', def: 'INTEGER NOT NULL DEFAULT 0' }, // 💼 مدير السيلز — عمولة من إجمالي إيراد السيلز
     ];
     for (const { col, def } of commissionCols) {
       if (!columnExists(db, 'Staff', col)) {
