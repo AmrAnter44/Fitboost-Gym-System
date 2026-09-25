@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import dynamic from 'next/dynamic'
@@ -72,7 +72,7 @@ interface PTSession {
   } | null
 }
 
-export default function PTPage() {
+function PTPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
@@ -2372,5 +2372,16 @@ export default function PTPage() {
       )}
 
     </div>
+  )
+}
+
+//  useSearchParams لازم يبقى جوّه Suspense وإلا البناء بيفشل عند
+//  prerender الصفحة: "useSearchParams() should be wrapped in a suspense
+//  boundary at page /pt". نفس نمط app/members/page.tsx:2906
+export default function PTPage() {
+  return (
+    <Suspense fallback={null}>
+      <PTPageContent />
+    </Suspense>
   )
 }
