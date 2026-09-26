@@ -7,6 +7,10 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
   try {
+    const { verifyAuth } = await import('@/lib/auth')
+    if (!(await verifyAuth(req))) {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })
+    }
     const data = await req.json();
     const { name, phone, serviceType, price, staffName, paymentMethod = "cash" } = data;
 

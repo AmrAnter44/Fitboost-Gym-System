@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
+import { verifyAuth } from '@/lib/auth'
 import { prisma } from '../../../../../lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!(await verifyAuth(request))) return NextResponse.json({ error: 'غير مصرّح' }, { status: 401 })
   try {
     // Get counts per session per status
     const items = await prisma.whatsAppQueueItem.groupBy({

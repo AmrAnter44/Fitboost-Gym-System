@@ -27,6 +27,10 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { verifyAuth } = await import('@/lib/auth')
+    if (!(await verifyAuth(request))) {
+      return new NextResponse('Unauthorized', { status: 401 })
+    }
     const member = await prisma.member.findUnique({
       where: { id: params.id },
       select: { profileImage: true },

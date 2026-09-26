@@ -8,6 +8,14 @@ import { prisma } from '@/lib/prisma'
  */
 export async function GET(request: Request) {
   try {
+    // 🔒 حماية: المسار كان مكشوف بالكامل — أي حد كان بيقدر يسحب بيانات
+    //    الأعضاء (اسم/تليفون) بالجملة. لازم تسجيل دخول.
+    const { verifyAuth } = await import('@/lib/auth')
+    const authedUser = await verifyAuth(request)
+    if (!authedUser) {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })
+    }
+
     // جلب الإعدادات
     const settings = await prisma.systemSettings.findFirst()
 

@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
+import { verifyAuth } from '@/lib/auth'
 import { prisma } from '../../../../lib/prisma'
 
 // GET: الحصول على تسجيلات دخول اليوم
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!(await verifyAuth(request))) return NextResponse.json({ error: 'غير مصرّح' }, { status: 401 })
   try {
     // ✅ الحصول على تسجيلات دخول اليوم
     const startOfDay = new Date()

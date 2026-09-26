@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
+import { verifyAuth } from '@/lib/auth'
 import { prisma } from '../../../../../../lib/prisma'
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
+  if (!(await verifyAuth(_req))) return NextResponse.json({ error: 'غير مصرّح' }, { status: 401 })
   try {
     const conversation = await prisma.whatsAppConversation.findUnique({
       where: { id: params.id },
@@ -20,6 +22,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
+  if (!(await verifyAuth(req))) return NextResponse.json({ error: 'غير مصرّح' }, { status: 401 })
   try {
     const body = await req.json()
     const updateData: any = {}
