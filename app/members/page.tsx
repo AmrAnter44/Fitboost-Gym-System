@@ -735,8 +735,57 @@ function MembersPageContent() {
     (filterSalesId !== 'all' ? 1 : 0) +
     (filterCoachId !== 'all' ? 1 : 0) +
     (socialFilter.length > 0 ? 1 : 0) +
-    ((filterSubFrom || filterSubTo) ? 1 : 0) +
-    ((filterExpFrom || filterExpTo) ? 1 : 0)
+    ((filterSubFrom || filterSubTo) ? 1 : 0)
+
+  //  🗓️ صف فلتر تاريخ الانتهاء (من/إلى) — يظهر بس لما الحالة تكون منتهي/بيخلص
+  const expiryStatusActive = ['expired', 'expiring-soon', 'expiring-today', 'expiring-tomorrow'].includes(filterStatus)
+  const expiryRangeRow = expiryStatusActive ? (
+    <div className="flex flex-wrap items-center gap-2 mt-2 p-2.5 rounded-xl bg-red-50/70 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-800/60">
+      <span className="text-xs font-bold text-red-700 dark:text-red-300 inline-flex items-center gap-1.5">
+        <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        {locale === 'ar' ? 'تاريخ الانتهاء:' : 'Expiry:'}
+      </span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'من' : 'From'}</span>
+        <input
+          type="date"
+          value={filterExpFrom}
+          max={filterExpTo || undefined}
+          onChange={(e) => setFilterExpFrom(e.target.value)}
+          className="px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+        />
+        <span className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'إلى' : 'To'}</span>
+        <input
+          type="date"
+          value={filterExpTo}
+          min={filterExpFrom || undefined}
+          onChange={(e) => setFilterExpTo(e.target.value)}
+          className="px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => { setFilterExpFrom(''); setFilterExpTo(new Date().toISOString().split('T')[0]) }}
+        className="px-2.5 py-1.5 rounded-lg bg-red-600 text-white text-[11px] font-bold hover:bg-red-700 transition-colors duration-200"
+      >
+        {locale === 'ar' ? 'لحد النهاردة' : 'Until today'}
+      </button>
+      {(filterExpFrom || filterExpTo) && (
+        <button type="button" onClick={() => { setFilterExpFrom(''); setFilterExpTo('') }} className="text-[11px] text-red-600 dark:text-red-300 hover:underline font-bold">
+          {locale === 'ar' ? 'مسح' : 'Clear'}
+        </button>
+      )}
+    </div>
+  ) : null
+
+  //  لو الحالة اتغيّرت لغير المنتهيين → امسح فلتر تاريخ الانتهاء عشان ما يفضلش شغّال مخفي
+  useEffect(() => {
+    if (!expiryStatusActive && (filterExpFrom || filterExpTo)) {
+      setFilterExpFrom('')
+      setFilterExpTo('')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expiryStatusActive])
 
   // Lock body scroll while mobile drawer is open
   useEffect(() => {
@@ -1322,6 +1371,9 @@ function MembersPageContent() {
           })}
         </div>
 
+        {/*  🗓️ فلتر تاريخ الانتهاء — يظهر بس مع حالة المنتهيين/اللي بيخلصوا */}
+        {expiryRangeRow}
+
         {/* دراج الفلاتر — بيفتح من زرار «الفلاتر» اللي جنب عنوان «فلاتر سريعة» فوق */}
         {filtersOpen && (
           <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
@@ -1438,44 +1490,6 @@ function MembersPageContent() {
             </div>
           </div>
 
-          {/* تاريخ الانتهاء — مدى (من/إلى) لمنتهيي الاشتراك */}
-          <div className="shrink-0">
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-              {locale === 'ar' ? 'تاريخ الانتهاء (من / إلى)' : 'Expiry Date (From / To)'}
-            </label>
-            <div className="flex items-center gap-1.5">
-              <input
-                type="date"
-                value={filterExpFrom}
-                max={filterExpTo || undefined}
-                onChange={(e) => setFilterExpFrom(e.target.value)}
-                aria-label={locale === 'ar' ? 'من' : 'From'}
-                className="px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-              <span className="text-gray-400 text-xs">→</span>
-              <input
-                type="date"
-                value={filterExpTo}
-                min={filterExpFrom || undefined}
-                onChange={(e) => setFilterExpTo(e.target.value)}
-                aria-label={locale === 'ar' ? 'إلى' : 'To'}
-                className="px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-              <button
-                type="button"
-                onClick={() => { setFilterExpFrom(''); setFilterExpTo(new Date().toISOString().split('T')[0]) }}
-                title={locale === 'ar' ? 'المنتهيين لحد النهاردة' : 'Expired until today'}
-                className="px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-800 text-[11px] font-bold hover:bg-red-100 dark:hover:bg-red-900/50 shrink-0"
-              >
-                {locale === 'ar' ? 'منتهي' : 'Expired'}
-              </button>
-              {(filterExpFrom || filterExpTo) && (
-                <button type="button" onClick={() => { setFilterExpFrom(''); setFilterExpTo('') }} aria-label={locale === 'ar' ? 'مسح' : 'Clear'} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0">
-                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
-                </button>
-              )}
-            </div>
-          </div>
           </div>
           <div className="flex justify-end mt-3">
             <button
@@ -1524,6 +1538,8 @@ function MembersPageContent() {
             )
           })}
         </div>
+        {/*  🗓️ فلتر تاريخ الانتهاء (موبايل) — مع حالة المنتهيين */}
+        <div className="px-1">{expiryRangeRow}</div>
       </div>
 
       {/* ============ Mobile filters bottom sheet ============ */}
@@ -1650,46 +1666,6 @@ function MembersPageContent() {
                     </button>
                   )}
                 </div>
-              </section>
-
-              {/* Expiry Date (منتهي الاشتراك من / إلى) */}
-              <section>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'تاريخ الانتهاء (من / إلى)' : 'Expiry Date (From / To)'}</label>
-                  {(filterExpFrom || filterExpTo) && (
-                    <button type="button" onClick={() => { setFilterExpFrom(''); setFilterExpTo('') }} className="text-xs text-red-500 hover:underline font-bold">{locale === 'ar' ? 'مسح' : 'Clear'}</button>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <span className="block text-[11px] text-gray-500 dark:text-gray-400 mb-1">{locale === 'ar' ? 'من' : 'From'}</span>
-                    <input
-                      type="date"
-                      value={filterExpFrom}
-                      max={filterExpTo || undefined}
-                      onChange={(e) => setFilterExpFrom(e.target.value)}
-                      className="w-full min-h-[44px] px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <span className="block text-[11px] text-gray-500 dark:text-gray-400 mb-1">{locale === 'ar' ? 'إلى' : 'To'}</span>
-                    <input
-                      type="date"
-                      value={filterExpTo}
-                      min={filterExpFrom || undefined}
-                      onChange={(e) => setFilterExpTo(e.target.value)}
-                      className="w-full min-h-[44px] px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-                {/* اختصار: المنتهيين لحد النهاردة */}
-                <button
-                  type="button"
-                  onClick={() => { setFilterExpFrom(''); setFilterExpTo(new Date().toISOString().split('T')[0]) }}
-                  className="mt-2 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-800 text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-200"
-                >
-                  {locale === 'ar' ? 'المنتهيين لحد النهاردة' : 'Expired until today'}
-                </button>
               </section>
 
               {/* Sales */}
