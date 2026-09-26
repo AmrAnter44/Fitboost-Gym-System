@@ -57,6 +57,8 @@ export async function GET(
           freePhysioSessions: true,
           freeGroupClassSessions: true,
           remainingFreezeDays: true,
+          remainingAmount: true,
+          remainingDueDate: true,
           points: true,
           _count: {
             select: {
@@ -69,7 +71,7 @@ export async function GET(
       }),
       prisma.systemSettings.findUnique({
         where: { id: 'singleton' },
-        select: { pointsValueInEGP: true },
+        select: { pointsValueInEGP: true, remainingEnabled: true },
       }),
     ]);
 
@@ -125,13 +127,49 @@ export async function GET(
     const pointsValueInEGP = settings?.pointsValueInEGP ?? 0.1
     const pointsValue = Math.round((member.points ?? 0) * pointsValueInEGP * 100) / 100
 
+    // 💰 نظام البواقي — بيتحسب ويتبعت للعضو فقط لو مفعّل من إعدادات السيستم.
+    // الحقول الخام بتتشال من الرد دايماً (انظر memberPublic) عشان لو النظام
+    // متعطّل ميتسرّبش أي رقم للتطبيق.
+    const remainingEnabled = settings?.remainingEnabled === true
+    const { remainingAmount, remainingDueDate, ...memberPublic } = member
+
+    let remaining: {
+      membership: number
+      membershipDueDate: Date | null
+      pt: number
+      total: number
+    } | null = null
+
+    if (remainingEnabled) {
+      // بواقي باقات الـ PT المرتبطة بالعضو عن طريق الهاتف (نفس منطق pt-sessions)
+      const tail = member.phone?.replace(/\D/g, '').slice(-10)
+      let ptRemaining = 0
+      if (tail && tail.length >= 7) {
+        const agg = await prisma.pT.aggregate({
+          where: { phone: { contains: tail }, remainingAmount: { gt: 0 } },
+          _sum: { remainingAmount: true },
+        })
+        ptRemaining = agg._sum.remainingAmount ?? 0
+      }
+      const membershipRemaining = (remainingAmount ?? 0) > 0 ? remainingAmount : 0
+      if (membershipRemaining > 0 || ptRemaining > 0) {
+        remaining = {
+          membership: membershipRemaining,
+          membershipDueDate: membershipRemaining > 0 ? remainingDueDate : null,
+          pt: ptRemaining,
+          total: Math.round((membershipRemaining + ptRemaining) * 100) / 100,
+        }
+      }
+    }
+
     const result = {
       member: {
-        ...member,
+        ...memberPublic,
         remainingDays,
         status,
         subscriptionType,
         pointsValue,
+        remaining, // null = مفيش بواقي أو النظام متعطّل
       },
     }
 
