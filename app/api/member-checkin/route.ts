@@ -214,6 +214,11 @@ export async function POST(request: Request) {
 // GET: الحصول على حالة تسجيل دخول عضو معين
 export async function GET(request: Request) {
   try {
+    const { verifyAuth } = await import('@/lib/auth')
+    if (!(await verifyAuth(request))) {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const memberId = searchParams.get('memberId')
 

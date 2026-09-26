@@ -14,6 +14,14 @@ const MAX_LIST_LIMIT = 2000
 
 export async function GET(request: Request) {
   try {
+    // 🔒 حماية: المسار كان مكشوف بالكامل — أي حد كان بيقدر يسحب بيانات
+    //    الأعضاء (اسم/تليفون) بالجملة. لازم تسجيل دخول.
+    const { verifyAuth } = await import('@/lib/auth')
+    const authedUser = await verifyAuth(request)
+    if (!authedUser) {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const startDateParam = searchParams.get('startDate')
     const endDateParam = searchParams.get('endDate')

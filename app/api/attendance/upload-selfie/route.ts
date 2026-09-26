@@ -12,6 +12,11 @@ export const dynamic = 'force-dynamic'
 //  POST: يقبل { attendanceId, image (base64 data URL) }، يحفظ الملف، ويـ update السجل
 export async function POST(request: Request) {
   try {
+    const { verifyAuth } = await import('@/lib/auth')
+    if (!(await verifyAuth(request))) {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })
+    }
+
     const body = await request.json()
     const { attendanceId, image } = body as { attendanceId?: string; image?: string }
 

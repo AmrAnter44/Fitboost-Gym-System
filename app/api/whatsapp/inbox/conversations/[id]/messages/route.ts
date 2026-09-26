@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
+import { verifyAuth } from '@/lib/auth'
 import { prisma } from '../../../../../../../lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
+  if (!(await verifyAuth(request))) return NextResponse.json({ error: 'غير مصرّح' }, { status: 401 })
   try {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')

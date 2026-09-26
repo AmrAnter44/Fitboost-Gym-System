@@ -10,6 +10,10 @@ export async function GET(
   { params }: { params: { memberNumber: string } }
 ) {
   try {
+    const { verifyAuth } = await import('@/lib/auth')
+    if (!(await verifyAuth(request))) {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })
+    }
     const memberNumber = params.memberNumber
 
     if (!memberNumber) {
