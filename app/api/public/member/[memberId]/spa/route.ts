@@ -152,14 +152,30 @@ export async function POST(
 
     // Check if booking date is in the past
     const bookingDateTime = new Date(bookingDate);
+    const now = new Date();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const bookingDay = new Date(bookingDateTime);
+    bookingDay.setHours(0, 0, 0, 0);
 
-    if (bookingDateTime < today) {
+    if (bookingDay < today) {
       return NextResponse.json(
         { error: 'لا يمكن الحجز في تاريخ سابق' },
         { status: 400 }
       );
+    }
+
+    // 💆 لو الحجز النهاردة — نمنع أي سلوت وقته عدّى (مثلاً بعد ما ميعاد الاسبا يخلص)
+    if (bookingDay.getTime() === today.getTime()) {
+      const [bh, bm] = String(bookingTime).split(':').map(Number);
+      const slotMinutes = (bh || 0) * 60 + (bm || 0);
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      if (slotMinutes <= nowMinutes) {
+        return NextResponse.json(
+          { error: 'الوقت ده عدّى — اختار ميعاد قادم' },
+          { status: 400 }
+        );
+      }
     }
 
     // Check for conflicting bookings (same service, same date, overlapping time)

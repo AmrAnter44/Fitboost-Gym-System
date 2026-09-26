@@ -259,6 +259,9 @@ function MembersPageContent() {
   // فلتر تاريخ الاشتراك — مدى (من/إلى) يحدده المستخدم (YYYY-MM-DD)
   const [filterSubFrom, setFilterSubFrom] = useState<string>('')
   const [filterSubTo, setFilterSubTo] = useState<string>('')
+  //  فلتر تاريخ الانتهاء — مدى (من/إلى) لمنتهيي الاشتراك (YYYY-MM-DD)
+  const [filterExpFrom, setFilterExpFrom] = useState<string>('')
+  const [filterExpTo, setFilterExpTo] = useState<string>('')
   //  قفل دراج الفلاتر بزر Escape
   useEffect(() => {
     if (!filtersOpen) return
@@ -464,6 +467,20 @@ function MembersPageContent() {
       })
     }
 
+    //  فلتر تاريخ الانتهاء — مدى (من/إلى) حسب expiryDate (لمنتهيي الاشتراك)
+    //  مقارنة باليوم (YYYY-MM-DD) inclusive للطرفين، وبيتجاهل اللي مالوش تاريخ انتهاء
+    if (filterExpFrom || filterExpTo) {
+      filtered = filtered.filter((member) => {
+        if (!member.expiryDate) return false
+        const d = new Date(member.expiryDate)
+        if (isNaN(d.getTime())) return false
+        const dymd = formatDateYMD(d)
+        if (filterExpFrom && dymd < filterExpFrom) return false
+        if (filterExpTo && dymd > filterExpTo) return false
+        return true
+      })
+    }
+
     // ترتيب الأعضاء — الأحدث أولاً
     // الأساس: memberNumber desc (لأن العضو الجديد بياخد رقم أعلى من اللي قبله)
     // لو memberNumber null (Other) → في الآخر
@@ -492,7 +509,7 @@ function MembersPageContent() {
     })
 
     return sorted
-  }, [debouncedSearch, debouncedSearchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, socialFilter, membersData])
+  }, [debouncedSearch, debouncedSearchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, filterExpFrom, filterExpTo, socialFilter, membersData])
 
   // جلب المحظورين عند التحميل (لو عنده صلاحية)
   useEffect(() => {
@@ -625,7 +642,7 @@ function MembersPageContent() {
   useEffect(() => {
     if (!didMountRef.current) return
     setCurrentPage(1)
-  }, [search, searchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, socialFilter])
+  }, [search, searchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, filterExpFrom, filterExpTo, socialFilter])
 
   //  استرجاع الصفحة + العضو اللي كنا واقفين عنده لما نرجع من البروفايل
   //  ملاحظة: مبنمسحش القيمة فورًا (عشان StrictMode في التطوير بيعمل mount مرتين
@@ -698,6 +715,8 @@ function MembersPageContent() {
     setFilterGender('all')
     setFilterSubFrom('')
     setFilterSubTo('')
+    setFilterExpFrom('')
+    setFilterExpTo('')
     setSocialFilter([])
   }
 
@@ -717,6 +736,56 @@ function MembersPageContent() {
     (filterCoachId !== 'all' ? 1 : 0) +
     (socialFilter.length > 0 ? 1 : 0) +
     ((filterSubFrom || filterSubTo) ? 1 : 0)
+
+  //  🗓️ صف فلتر تاريخ الانتهاء (من/إلى) — يظهر بس لما الحالة تكون منتهي/بيخلص
+  const expiryStatusActive = ['expired', 'expiring-soon', 'expiring-today', 'expiring-tomorrow'].includes(filterStatus)
+  const expiryRangeRow = expiryStatusActive ? (
+    <div className="flex flex-wrap items-center gap-2 mt-2 p-2.5 rounded-xl bg-red-50/70 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-800/60">
+      <span className="text-xs font-bold text-red-700 dark:text-red-300 inline-flex items-center gap-1.5">
+        <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        {locale === 'ar' ? 'تاريخ الانتهاء:' : 'Expiry:'}
+      </span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'من' : 'From'}</span>
+        <input
+          type="date"
+          value={filterExpFrom}
+          max={filterExpTo || undefined}
+          onChange={(e) => setFilterExpFrom(e.target.value)}
+          className="px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+        />
+        <span className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'إلى' : 'To'}</span>
+        <input
+          type="date"
+          value={filterExpTo}
+          min={filterExpFrom || undefined}
+          onChange={(e) => setFilterExpTo(e.target.value)}
+          className="px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => { setFilterExpFrom(''); setFilterExpTo(new Date().toISOString().split('T')[0]) }}
+        className="px-2.5 py-1.5 rounded-lg bg-red-600 text-white text-[11px] font-bold hover:bg-red-700 transition-colors duration-200"
+      >
+        {locale === 'ar' ? 'لحد النهاردة' : 'Until today'}
+      </button>
+      {(filterExpFrom || filterExpTo) && (
+        <button type="button" onClick={() => { setFilterExpFrom(''); setFilterExpTo('') }} className="text-[11px] text-red-600 dark:text-red-300 hover:underline font-bold">
+          {locale === 'ar' ? 'مسح' : 'Clear'}
+        </button>
+      )}
+    </div>
+  ) : null
+
+  //  لو الحالة اتغيّرت لغير المنتهيين → امسح فلتر تاريخ الانتهاء عشان ما يفضلش شغّال مخفي
+  useEffect(() => {
+    if (!expiryStatusActive && (filterExpFrom || filterExpTo)) {
+      setFilterExpFrom('')
+      setFilterExpTo('')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expiryStatusActive])
 
   // Lock body scroll while mobile drawer is open
   useEffect(() => {
@@ -1302,6 +1371,9 @@ function MembersPageContent() {
           })}
         </div>
 
+        {/*  🗓️ فلتر تاريخ الانتهاء — يظهر بس مع حالة المنتهيين/اللي بيخلصوا */}
+        {expiryRangeRow}
+
         {/* دراج الفلاتر — بيفتح من زرار «الفلاتر» اللي جنب عنوان «فلاتر سريعة» فوق */}
         {filtersOpen && (
           <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
@@ -1417,6 +1489,7 @@ function MembersPageContent() {
               )}
             </div>
           </div>
+
           </div>
           <div className="flex justify-end mt-3">
             <button
@@ -1465,6 +1538,8 @@ function MembersPageContent() {
             )
           })}
         </div>
+        {/*  🗓️ فلتر تاريخ الانتهاء (موبايل) — مع حالة المنتهيين */}
+        <div className="px-1">{expiryRangeRow}</div>
       </div>
 
       {/* ============ Mobile filters bottom sheet ============ */}

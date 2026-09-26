@@ -639,9 +639,23 @@ export default function ReceiptsPage() {
  }
  }
 
- const handlePrint = (receipt: Receipt, options?: { printOnly?: boolean; pdfOnly?: boolean }) => {
+ const handlePrint = async (receipt: Receipt, options?: { printOnly?: boolean; pdfOnly?: boolean }) => {
  try {
  const details = JSON.parse(receipt.itemDetails)
+
+ // 🔄 إثراء ببيانات العضو الحالية (الرقم القومي/تاريخ الميلاد/الملاحظات) وقت الطباعة —
+ //    عشان تظهر حتى لو اتضافت بعد إنشاء الإيصال أو كانت فاضية وقت البيع
+ if (receipt.memberId) {
+   try {
+     const res = await fetch(`/api/members/${receipt.memberId}`)
+     if (res.ok) {
+       const member = await res.json()
+       if (member?.nationalId) details.nationalId = member.nationalId
+       if (member?.birthDate) details.birthDate = member.birthDate
+       if (member?.notes) details.notes = member.notes
+     }
+   } catch { /* لو فشل الجلب نطبع بالبيانات المخزّنة زي ما هي */ }
+ }
 
  // استخدام نظام الطباعة مع الخيارات
  printReceiptFromData(
@@ -1045,12 +1059,20 @@ export default function ReceiptsPage() {
  {details.phone && (
  <div className="flex items-center gap-2">
  <div className="bg-green-500 p-1.5 rounded-lg">
- 
+
  </div>
  <div className="flex-1">
  <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">{t('receipts.table.client')}</div>
  <span className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200" dir="ltr">{details.phone}</span>
  </div>
+ </div>
+ )}
+
+ {/* اسم الباقة اللي اتباعت (المزيد وغيره) */}
+ {details.packageName && (
+ <div className="flex-1">
+ <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">{direction === 'rtl' ? 'الباقة' : 'Package'}</div>
+ <span className="font-bold text-sm sm:text-base text-orange-700 dark:text-orange-300">{details.packageName}</span>
  </div>
  )}
 

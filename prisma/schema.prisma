@@ -377,6 +377,7 @@ model Staff {
   salesCommissionType  String?               // 'fixed' | 'tiered'
   salesCommissionRate  Float?                // نسبة ثابتة (fixed mode)
   salesCommissionTiers String?               // JSON: [{target:5000,rate:3},{target:10000,rate:5}]
+  salesCommissionFromTotal Boolean @default(false) // 💼 مدير السيلز — عمولته تتحسب من إجمالي إيراد السيلز كله (مش تحصيله هو بس)
   coachTarget          Float?   @default(0)   //  التارجت الشهري بالجنيه للكوتش
   dailySessionTargetMin Int?    //  تارجت الكوتش اليومي (عدد الحصص) — الحد الأدنى
   dailySessionTargetMax Int?    //  تارجت الكوتش اليومي (عدد الحصص) — الحد الأعلى

@@ -59,7 +59,14 @@ interface SalesStaffData {
   salesCommissionType: 'fixed' | 'tiered' | null
   salesCommissionRate: number | null
   salesCommissionTiers: string | null // JSON
+  salesCommissionFromTotal?: boolean   // 💼 مدير السيلز — عمولة من إجمالي إيراد السيلز
+  commissionBase?: number              // الأساس المستخدم لحساب العمولة (إجمالي السيلز لو مدير، وإلا تحصيله)
   collectedThisMonth: number
+  //  📍 تفصيل التحصيل حسب المصدر
+  sourceBreakdown?: Array<{ source: string | null; count: number; revenue: number }>
+  //  👥 ملخّص الأعضاء
+  assignedMembersCount?: number   // أعضاء معاه
+  newSubscribersCount?: number    // منهم اشتركوا جديد
   leadsCount: number
   leads: Array<{
     id: string; visitorName: string; visitorPhone: string
@@ -70,7 +77,27 @@ interface SalesStaffData {
   members: Array<{
     id: string; name: string; phone: string; memberNumber: string | null
     isActive: boolean; expiryDate: string | null; collectedThisMonth: number
+    source?: string | null; hasNew?: boolean; hasRenewal?: boolean
   }>
+}
+
+// مصدر العضو → لابل عربي/إنجليزي
+const SOURCE_LABELS: Record<string, { ar: string; en: string }> = {
+  'walk-in': { ar: 'واك إن', en: 'Walk-in' },
+  'call-in': { ar: 'اتصال', en: 'Call-in' },
+  'suggestion': { ar: 'ترشيح', en: 'Suggestion' },
+  'facebook': { ar: 'فيسبوك', en: 'Facebook' },
+  'instagram': { ar: 'انستجرام', en: 'Instagram' },
+  'tiktok': { ar: 'تيك توك', en: 'TikTok' },
+  'chatgpt': { ar: 'ChatGPT', en: 'ChatGPT' },
+  'google_maps': { ar: 'خرايط جوجل', en: 'Google Maps' },
+  'website': { ar: 'الموقع', en: 'Website' },
+  'friend_referral': { ar: 'ترشيح صديق', en: 'Referral' },
+}
+function sourceLabel(src: string | null | undefined, ar: boolean): string {
+  if (!src) return ar ? 'غير محدد' : 'Unknown'
+  const l = SOURCE_LABELS[src]
+  return l ? (ar ? l.ar : l.en) : src
 }
 
 // حساب العمولة
@@ -131,7 +158,8 @@ export default function CollectionDashboard() {
     type: 'fixed' | 'tiered' | ''
     rate: string
     tiers: CommissionTier[]
-  }>({ type: '', rate: '', tiers: [] })
+    fromTotal: boolean
+  }>({ type: '', rate: '', tiers: [], fromTotal: false })
   const [savingComm, setSavingComm] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -190,7 +218,8 @@ export default function CollectionDashboard() {
     setCommForm({
       type: (staff.salesCommissionType as any) || '',
       rate: staff.salesCommissionRate?.toString() || '',
-      tiers: tiers.length > 0 ? tiers : [{ target: 0, rate: 0 }]
+      tiers: tiers.length > 0 ? tiers : [{ target: 0, rate: 0 }],
+      fromTotal: staff.salesCommissionFromTotal === true
     })
   }
 
@@ -211,6 +240,7 @@ export default function CollectionDashboard() {
         body.salesCommissionRate = null
         body.salesCommissionTiers = null
       }
+      body.salesCommissionFromTotal = commForm.fromTotal
       const res = await fetch('/api/staff', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -222,9 +252,11 @@ export default function CollectionDashboard() {
           salesCommissionType: body.salesCommissionType,
           salesCommissionRate: body.salesCommissionRate,
           salesCommissionTiers: body.salesCommissionTiers,
+          salesCommissionFromTotal: body.salesCommissionFromTotal,
         } : s))
         setEditingCommission(null)
         toast.success(ar ? 'تم حفظ إعدادات العمولة' : 'Commission saved')
+        fetchData() //  تحديث الأساس (commissionBase) بعد تغيير خيار "من إجمالي السيلز"
       } else {
         //  نعرض رسالة الخطأ الحقيقية من السيرفر بدل ما الحفظ يفشل بصمت
         const d = await res.json().catch(() => ({} as any))
@@ -269,7 +301,7 @@ export default function CollectionDashboard() {
   const displayData = isSales ? (myData ? [myData] : []) : data
 
   const totalCollected = displayData.reduce((s, d) => s + d.collectedThisMonth, 0)
-  const totalCommission = displayData.reduce((s, d) => s + calcCommission(d.collectedThisMonth, d.salesCommissionType, d.salesCommissionRate, d.salesCommissionTiers), 0)
+  const totalCommission = displayData.reduce((s, d) => s + calcCommission(d.commissionBase ?? d.collectedThisMonth, d.salesCommissionType, d.salesCommissionRate, d.salesCommissionTiers), 0)
 
   return (
     <div className="space-y-6">
@@ -359,7 +391,8 @@ export default function CollectionDashboard() {
       {/* Per-staff cards */}
       {displayData.map(staff => {
         const isExpanded = expandedStaff === staff.staffId
-        const commission = calcCommission(staff.collectedThisMonth, staff.salesCommissionType, staff.salesCommissionRate, staff.salesCommissionTiers)
+        const commBase = staff.commissionBase ?? staff.collectedThisMonth
+        const commission = calcCommission(commBase, staff.salesCommissionType, staff.salesCommissionRate, staff.salesCommissionTiers)
         const isEditingComm = editingCommission === staff.staffId
 
         return (
@@ -380,8 +413,13 @@ export default function CollectionDashboard() {
               </div>
 
               {/* Collected amount */}
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                {ar ? 'المحصّل:' : 'Collected:'} <strong className="text-gray-900 dark:text-gray-100">{staff.collectedThisMonth.toLocaleString()} {ar ? 'ج' : 'EGP'}</strong>
+              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2 flex-wrap">
+                <span>{ar ? 'المحصّل:' : 'Collected:'} <strong className="text-gray-900 dark:text-gray-100">{staff.collectedThisMonth.toLocaleString()} {ar ? 'ج' : 'EGP'}</strong></span>
+                {staff.salesCommissionFromTotal && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300">
+                    {ar ? `عمولة من إجمالي السيلز (${(staff.commissionBase ?? 0).toLocaleString()} ج)` : `Commission on total sales (${(staff.commissionBase ?? 0).toLocaleString()})`}
+                  </span>
+                )}
               </div>
 
               {/* Commission summary */}
@@ -515,6 +553,21 @@ export default function CollectionDashboard() {
                     </div>
                   )}
 
+                  {/* 💼 مدير السيلز — عمولة من إجمالي إيراد السيلز */}
+                  <label className="flex items-start gap-2 mt-1 p-2.5 rounded-lg bg-violet-50 dark:bg-violet-900/20 ring-1 ring-violet-200 dark:ring-violet-700/50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={commForm.fromTotal}
+                      onChange={e => setCommForm(prev => ({ ...prev, fromTotal: e.target.checked }))}
+                      className="mt-0.5 w-4 h-4 accent-violet-600"
+                    />
+                    <span className="text-xs text-gray-700 dark:text-gray-200">
+                      <span className="font-bold text-violet-700 dark:text-violet-300">{ar ? 'مدير سيلز — عمولة من إجمالي إيراد السيلز' : 'Sales manager — commission on total sales revenue'}</span>
+                      <br />
+                      <span className="text-gray-500 dark:text-gray-400">{ar ? 'العمولة تتحسب من إجمالي تحصيل السيلز كله، مش من تحصيله هو بس.' : 'Commission is calculated on the whole sales team revenue, not just their own.'}</span>
+                    </span>
+                  </label>
+
                   {/* Save/Cancel */}
                   <div className="flex gap-2 pt-1">
                     <button onClick={() => saveCommission(staff.staffId)} disabled={savingComm}
@@ -532,7 +585,44 @@ export default function CollectionDashboard() {
 
             {/* Expanded details */}
             {isExpanded && (
-              <div className="border-t border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-900/40 grid md:grid-cols-2 gap-6">
+              <>
+              {/* 👥 ملخّص: كام عضو معاه، وكام اشترك جديد، وكام ليد */}
+              <div className="border-t border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-900/40">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-gray-200 dark:ring-gray-700 text-center">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{staff.assignedMembersCount ?? staff.membersCount}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{ar ? 'أعضاء معاه' : 'Members assigned'}</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-green-200 dark:ring-green-700/50 text-center">
+                    <p className="text-2xl font-bold text-green-700 dark:text-green-400">{staff.newSubscribersCount ?? 0}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{ar ? 'اشتركوا جديد' : 'New subscribers'}</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-blue-200 dark:ring-blue-700/50 text-center">
+                    <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{staff.leadsCount}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{ar ? 'ليدز معاه' : 'Leads'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 📍 تفصيل التحصيل حسب المصدر (كام واك إن/فيسبوك/... وفلوسهم) */}
+              {(staff.sourceBreakdown && staff.sourceBreakdown.length > 0) && (
+              <div className="border-t border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-900/40">
+                <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-3 inline-flex items-center gap-1.5">
+                  {iconMoney}
+                  <span>{ar ? 'تفصيل التحصيل حسب المصدر' : 'Collection by source'}</span>
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {staff.sourceBreakdown.map((s, i) => (
+                    <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-purple-200 dark:ring-purple-700/50 text-center">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{sourceLabel(s.source, ar)}</p>
+                      <p className="text-lg font-bold text-purple-700 dark:text-purple-400">{s.revenue.toLocaleString()} {ar ? 'ج' : 'EGP'}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{s.count} {ar ? 'عضو' : 'members'}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              )}
+              <div className="border-t border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-900/40 space-y-6">
                 {staff.leadsCount > 0 && (
                   <div>
                     <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-3 inline-flex items-center gap-1.5">
@@ -565,22 +655,47 @@ export default function CollectionDashboard() {
                     </h4>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {staff.members.map(member => (
-                        <div key={member.id} className="bg-white dark:bg-gray-700 rounded-lg p-3 flex items-center justify-between gap-2 ring-1 ring-gray-200 dark:ring-gray-700">
-                          <div>
-                            <p className="font-medium text-sm text-gray-900 dark:text-gray-100">
-                              {member.memberNumber ? `#${member.memberNumber} ` : ''}{member.name}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{member.phone}</p>
-                          </div>
-                          <div className="text-end">
-                            {member.collectedThisMonth > 0 && (
-                              <p className="text-xs font-bold text-green-600 dark:text-green-400">
-                                +{member.collectedThisMonth.toLocaleString()} {ar ? 'ج' : 'EGP'}
+                        <div key={member.id} className="bg-white dark:bg-gray-800 rounded-xl p-3 ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-purple-300 dark:hover:ring-purple-700/60 hover:shadow-sm transition-all duration-150">
+                          <div className="flex items-center gap-3">
+                            {/* أفاتار */}
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+                              {member.name.charAt(0).toUpperCase()}
+                            </div>
+                            {/* الاسم + التليفون */}
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                                {member.name}
+                                {member.memberNumber ? <span className="text-gray-400 dark:text-gray-500 font-normal"> #{member.memberNumber}</span> : ''}
                               </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 font-mono" dir="ltr">{member.phone}</p>
+                            </div>
+                            {/* المبلغ */}
+                            {member.collectedThisMonth > 0 && (
+                              <div className="shrink-0 px-2.5 py-1 rounded-lg bg-green-50 dark:bg-green-900/30 ring-1 ring-green-200 dark:ring-green-800">
+                                <span className="text-sm font-bold text-green-700 dark:text-green-400 whitespace-nowrap">
+                                  {member.collectedThisMonth.toLocaleString()} {ar ? 'ج' : 'EGP'}
+                                </span>
+                              </div>
                             )}
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${member.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}>
+                          </div>
+                          {/* البادجات */}
+                          <div className="flex items-center gap-1.5 flex-wrap mt-2 ps-12">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${member.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}>
                               {member.isActive ? (ar ? 'نشط' : 'Active') : (ar ? 'منتهي' : 'Expired')}
                             </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                              📍 {sourceLabel(member.source, ar)}
+                            </span>
+                            {member.hasNew && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                {ar ? 'جديد' : 'New'}
+                              </span>
+                            )}
+                            {member.hasRenewal && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                                {ar ? 'تجديد' : 'Renewal'}
+                              </span>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -588,6 +703,7 @@ export default function CollectionDashboard() {
                   </div>
                 )}
               </div>
+              </>
             )}
           </div>
         )

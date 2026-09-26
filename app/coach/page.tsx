@@ -231,6 +231,13 @@ export default function CoachDashboard() {
     return () => clearInterval(interval)
   }, [user])
 
+  //  🔄 تحديث دوري للتارجت كل دقيقتين — self-heal: لو علّق/فشل مرة، يرجع لوحده
+  useEffect(() => {
+    if (!user || user.role !== 'COACH') return
+    const interval = setInterval(() => { fetchCoachTarget() }, 120000) //  دقيقتين
+    return () => clearInterval(interval)
+  }, [user])
+
   const checkAuth = async () => {
     try {
       const response = await fetch('/api/auth/me')
@@ -303,26 +310,41 @@ export default function CoachDashboard() {
   }
 
   //  جلب التارجت الشهري للكوتش + الإيراد المحسوب من الـ commissions
-  const fetchCoachTarget = async () => {
+  //  🛡️ قوي ضد التعليق: كل fetch عليه timeout (8ث)، ومع الفشل بيعيد المحاولة —
+  //  عشان التارجت ما يختفيش لو السيستم علّق لحظة.
+  const fetchCoachTarget = async (retry = true) => {
+    const fetchWithTimeout = async (url: string, ms = 8000) => {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), ms)
+      try {
+        return await fetch(url, { signal: controller.signal })
+      } finally {
+        clearTimeout(timer)
+      }
+    }
     try {
       //  اقرأ إعداد الـ useSeparateCoachTarget الأول
-      const settingsRes = await fetch('/api/settings/commission')
+      const settingsRes = await fetchWithTimeout('/api/settings/commission')
       let enabled = false
       let method: 'revenue' | 'sessions' = 'revenue'
       if (settingsRes.ok) {
         const settings = await settingsRes.json()
         enabled = !!settings.useSeparateCoachTarget
         method = settings.defaultCommissionMethod || 'revenue'
+      } else {
+        throw new Error('settings not ok')
       }
       const shouldShow = enabled && method === 'revenue'
       setUseSeparateCoachTarget(shouldShow)
       if (!shouldShow) return // الميزة مقفولة → بلاش fetch
-      const response = await fetch('/api/coach/monthly-revenue')
-      if (!response.ok) return
+      const response = await fetchWithTimeout('/api/coach/monthly-revenue')
+      if (!response.ok) throw new Error('monthly-revenue not ok')
       const data = await response.json()
       if (data) setTargetInfo(data)
     } catch (error) {
       console.error('Error fetching coach target:', error)
+      //  🔁 إعادة محاولة واحدة بعد ثانيتين لو علّق/فشل (ما نسيبش التارجت مختفي)
+      if (retry) setTimeout(() => { fetchCoachTarget(false) }, 2000)
     }
   }
 

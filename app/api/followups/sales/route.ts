@@ -138,15 +138,30 @@ export async function GET(request: Request) {
             isCancelled: false,
             createdAt: { gte: startOfMonth, lte: endOfMonth }
           },
-          select: { memberId: true, amount: true, createdAt: true }
+          select: { memberId: true, amount: true, createdAt: true, type: true }
         })
       : []
 
+    //  تصنيف نوع الإيصال: عضوية جديدة / تجديد / غير ذلك
+    const NEW_MEMBERSHIP_TYPES = new Set(['Member', 'عضوية', 'newMember', 'member'])
+    const RENEWAL_MEMBERSHIP_TYPES = new Set(['تجديد عضويه', 'membershipRenewal'])
+    const classifyReceipt = (t: string | null): 'new' | 'renewal' | 'other' => {
+      const x = t || ''
+      if (NEW_MEMBERSHIP_TYPES.has(x)) return 'new'
+      if (RENEWAL_MEMBERSHIP_TYPES.has(x)) return 'renewal'
+      return 'other'
+    }
+
     // بناء map للتحصيل لكل عضو — الإيصالات بعد التفعيل بتتفلتر بالمصدر، واللي قبله بتتحسب عادي
     const memberRevenueMap: Record<string, number> = {}
+    const memberNewRevenue: Record<string, number> = {}       //  💰 عضويات جديدة
+    const memberRenewalRevenue: Record<string, number> = {}   //  💰 تجديدات
     for (const receipt of thisMonthReceipts) {
       if (receipt.memberId && receiptCounts(receipt.memberId, receipt.createdAt as Date)) {
         memberRevenueMap[receipt.memberId] = (memberRevenueMap[receipt.memberId] || 0) + receipt.amount
+        const cat = classifyReceipt((receipt as any).type)
+        if (cat === 'new') memberNewRevenue[receipt.memberId] = (memberNewRevenue[receipt.memberId] || 0) + receipt.amount
+        else if (cat === 'renewal') memberRenewalRevenue[receipt.memberId] = (memberRenewalRevenue[receipt.memberId] || 0) + receipt.amount
       }
     }
 
@@ -181,6 +196,18 @@ export async function GET(request: Request) {
       }
     }
 
+    //  💼 مدير السيلز: مين عمولته تتحسب من إجمالي إيراد السيلز؟ (raw SQL — العمود ممكن يكون جديد)
+    const fromTotalMap = new Map<string, boolean>()
+    try {
+      const rows: any = await prisma.$queryRawUnsafe(`SELECT id, salesCommissionFromTotal FROM Staff`)
+      if (Array.isArray(rows)) {
+        for (const r of rows) fromTotalMap.set(r.id, Number(r.salesCommissionFromTotal) === 1)
+      }
+    } catch { /* العمود لسه مش موجود — الكل بياخد من تحصيله بس */ }
+
+    //  إجمالي تحصيل السيلز كله (أساس عمولة مدير السيلز)
+    const totalCollectedAllStaff = salesMembers.reduce((sum, m) => sum + (memberRevenueMap[m.id] || 0), 0)
+
     // بناء النتيجة لكل موظف
     const result = allStaff.map(staff => {
       const leads = activeFollowUps.filter(f => f.assignedTo === staff.id)
@@ -195,6 +222,28 @@ export async function GET(request: Request) {
       const fromDayUse = dayUseRevenueByStaff[staff.id] || 0
       const collectedThisMonth = fromMembers
 
+      //  📍 تفصيل التحصيل حسب مصدر العضو: كام عضو وفلوسهم كام لكل مصدر (واك إن/فيسبوك/...)
+      const bySource = new Map<string, { count: number; revenue: number }>()
+      for (const m of members) { //  members = اللي حصّلنا منهم فعلاً (collected > 0)
+        const src = (m as any).source || '__unknown__'
+        const rev = memberRevenueMap[m.id] || 0
+        const e = bySource.get(src) || { count: 0, revenue: 0 }
+        e.count += 1
+        e.revenue += rev
+        bySource.set(src, e)
+      }
+      const sourceBreakdown = Array.from(bySource.entries())
+        .map(([source, v]) => ({ source: source === '__unknown__' ? null : source, count: v.count, revenue: Math.round(v.revenue) }))
+        .sort((a, b) => b.revenue - a.revenue)
+
+      //  👥 ملخّص: كام عضو معاه، وكام منهم اشترك اشتراك جديد
+      const assignedMembersCount = allAssignedMembers.length          // كل الأعضاء المسنَدين له
+      const newSubscribersCount = members.filter(m => (memberNewRevenue[m.id] || 0) > 0).length // اللي دفعوا اشتراك جديد في الفترة
+
+      //  💼 مدير السيلز: أساس العمولة = إجمالي إيراد السيلز كله, مش تحصيله هو بس
+      const salesCommissionFromTotal = fromTotalMap.get(staff.id) === true
+      const commissionBase = salesCommissionFromTotal ? totalCollectedAllStaff : collectedThisMonth
+
       return {
         staffId: staff.id,
         name: staff.name,
@@ -204,7 +253,14 @@ export async function GET(request: Request) {
         salesCommissionType: staff.salesCommissionType || null,
         salesCommissionRate: staff.salesCommissionRate || null,
         salesCommissionTiers: staff.salesCommissionTiers || null,
+        salesCommissionFromTotal,
+        commissionBase,
         collectedThisMonth,
+        //  📍 تفصيل حسب المصدر: كام عضو وفلوسهم كام لكل مصدر
+        sourceBreakdown,
+        //  👥 ملخّص الأعضاء
+        assignedMembersCount,   // أعضاء معاه
+        newSubscribersCount,    // منهم اشتركوا جديد
         //  Breakdown — يساعد في التشخيص ولـ UI لو احتجنا
         collectedFromMembers: fromMembers,
         collectedFromDayUse: fromDayUse,
@@ -228,7 +284,11 @@ export async function GET(request: Request) {
           memberNumber: m.memberNumber,
           isActive: m.isActive,
           expiryDate: m.expiryDate,
+          source: (m as any).source || null,   //  📍 مصدر العضو (يظهر جنبه)
           collectedThisMonth: memberRevenueMap[m.id] || 0,
+          //  نوع التحصيل لكل عضو (جديد/تجديد) عشان يبان جنبه
+          hasNew: (memberNewRevenue[m.id] || 0) > 0,
+          hasRenewal: (memberRenewalRevenue[m.id] || 0) > 0,
         })),
       }
     })

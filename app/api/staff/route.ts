@@ -204,7 +204,7 @@ export async function PUT(request: Request) {
     const hasEditStaff = user.role === 'OWNER' || user.role === 'ADMIN' || !!user.permissions?.canEditStaff
 
     const body = await request.json()
-    const { id, staffCode, name, phone, position, salary, salesTarget, salesCommissionType, salesCommissionRate, salesCommissionTiers, coachTarget, notes, isActive, customPosition, workingHours, monthlyVacationDays, shiftStartTime, shiftEndTime, joinedDate, terminatedAt, salaryChangeReason } = body
+    const { id, staffCode, name, phone, position, salary, salesTarget, salesCommissionType, salesCommissionRate, salesCommissionTiers, salesCommissionFromTotal, coachTarget, notes, isActive, customPosition, workingHours, monthlyVacationDays, shiftStartTime, shiftEndTime, joinedDate, terminatedAt, salaryChangeReason } = body
 
     // ✅ تحضير البيانات للتحديث (فقط الحقول المسموحة)
     const updateData: any = {}
@@ -251,10 +251,11 @@ export async function PUT(request: Request) {
     }
     //  💼 حقول العمولة — بنكتبها بـ raw SQL بعد الـ update (مش عن طريق Prisma) عشان تشتغل
     //  حتى لو الـ Prisma client لسه قديم على النسخة المتبّتة (drift-safe).
-    const commissionRaw: { type?: string | null; rate?: number | null; tiers?: string | null } = {}
+    const commissionRaw: { type?: string | null; rate?: number | null; tiers?: string | null; fromTotal?: number } = {}
     if (salesCommissionType !== undefined) commissionRaw.type = salesCommissionType || null
     if (salesCommissionRate !== undefined) commissionRaw.rate = (salesCommissionRate !== null && salesCommissionRate !== '') ? parseFloat(salesCommissionRate) : null
     if (salesCommissionTiers !== undefined) commissionRaw.tiers = salesCommissionTiers || null
+    if (salesCommissionFromTotal !== undefined) commissionRaw.fromTotal = salesCommissionFromTotal ? 1 : 0
 
     //  تارجت الكوتش — مسموح لـ canEditStaff (نفس صلاحيات السيلز)
     if (coachTarget !== undefined) {
@@ -299,6 +300,7 @@ export async function PUT(request: Request) {
       if (commissionRaw.type !== undefined) { sets.push('salesCommissionType = ?'); vals.push(commissionRaw.type) }
       if (commissionRaw.rate !== undefined) { sets.push('salesCommissionRate = ?'); vals.push(commissionRaw.rate) }
       if (commissionRaw.tiers !== undefined) { sets.push('salesCommissionTiers = ?'); vals.push(commissionRaw.tiers) }
+      if (commissionRaw.fromTotal !== undefined) { sets.push('salesCommissionFromTotal = ?'); vals.push(commissionRaw.fromTotal) }
       if (sets.length > 0) {
         await prisma.$executeRawUnsafe(`UPDATE Staff SET ${sets.join(', ')} WHERE id = ?`, ...vals, id)
       }
@@ -332,6 +334,7 @@ export async function PUT(request: Request) {
     if (commissionRaw.type !== undefined) staffOut.salesCommissionType = commissionRaw.type
     if (commissionRaw.rate !== undefined) staffOut.salesCommissionRate = commissionRaw.rate
     if (commissionRaw.tiers !== undefined) staffOut.salesCommissionTiers = commissionRaw.tiers
+    if (commissionRaw.fromTotal !== undefined) staffOut.salesCommissionFromTotal = commissionRaw.fromTotal === 1
 
     return NextResponse.json(staffOut)
   } catch (error: any) {

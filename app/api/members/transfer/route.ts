@@ -159,13 +159,15 @@ export async function POST(request: Request) {
     let toNewExpiryDate: Date | null = null
 
     if (mode === 'existing') {
-      // لو عنده اشتراك نشط (expiry في المستقبل) نمدّ منه؛ غير كده نبدأ من النهاردة
-      const currentExpiry = toMember.expiryDate ? new Date(toMember.expiryDate) : null
-      if (currentExpiry) currentExpiry.setHours(0, 0, 0, 0)
-      const baseDate = currentExpiry && currentExpiry > today ? currentExpiry : today
-      toNewStartDate = toMember.startDate ? new Date(toMember.startDate) : today
-      toNewExpiryDate = new Date(baseDate)
-      toNewExpiryDate.setDate(toNewExpiryDate.getDate() + remainingDays)
+      //  🐛 إصلاح: المدة المعروضة بتتحسب من (expiryDate − startDate). قبل كده كنا بنمدّ
+      //  الـ expiryDate بس ونسيب الـ startDate القديم بتاع المستلم، فالمدة كانت بتتضخّم
+      //  (مثلاً 6 شهور منقولة بتظهر "سنة"). الحل: نخلي البداية من تاريخ النقل،
+      //  والنهاية = النهاردة + (أيام المستلم المتبقية النشطة + الأيام المنقولة).
+      const recipientActiveDays = calcRemainingDays(toMember.expiryDate as any) // 0 لو منتهي/مفيش
+      const totalDays = recipientActiveDays + remainingDays
+      toNewStartDate = new Date(today)
+      toNewExpiryDate = new Date(today)
+      toNewExpiryDate.setDate(toNewExpiryDate.getDate() + totalDays)
     }
 
     let receipt: any
@@ -188,11 +190,15 @@ export async function POST(request: Request) {
             }
           })
 
-          // 2) المستلم — مدّ الـ expiryDate
+          // 2) المستلم — يبدأ من تاريخ النقل بمدة صحيحة + يتبنّى سعر وباقة العضويّة المنقولة
+          //    عشان المدة والسعر المعروضين يبقوا مطابقين للاشتراك المنقول (مش المتضخّمين)
           resultRecipient = await tx.member.update({
             where: { id: toMember!.id },
             data: {
+              startDate: toNewStartDate!,
               expiryDate: toNewExpiryDate!,
+              subscriptionPrice: fromMember.subscriptionPrice, //  💰 سعر الاشتراك المنقول
+              offerId: fromMember.offerId,                     //  📦 باقة الاشتراك المنقول
               isActive: true,
               //  📤 نربط المستلم بالعضو المصدر عشان يظهر كلينك في البروفايل
               transferredFromMemberId: fromMember.id,
