@@ -21,7 +21,13 @@ export async function verifyOwnerPassword(
 ): Promise<boolean> {
   if (!password) return false
 
-  // 1) بيانات الـ env الاحتياطية (زي مسار تسجيل الدخول بالظبط)
+  // 0) FitBoost Admin → Control بيتحقق من الباسورد (مفيش هاش على الجهاز)
+  if (currentUser.userId === FALLBACK_OWNER_ID && currentUser.email && currentUser.email.includes('@')) {
+    const { adminReverify } = await import('./gateway')
+    if (await adminReverify(currentUser.email, password)) return true
+  }
+
+  // 1) بيانات الـ env الاحتياطية (للتطوير بس — مبتتشحنش للجيمات)
   try {
     const ownerPasswordHashB64 = process.env.OWNER_PASSWORD_HASH_B64?.trim()
     const ownerPasswordHash = ownerPasswordHashB64

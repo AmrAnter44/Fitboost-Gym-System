@@ -16,11 +16,16 @@ export function phoneTail(v: unknown): string | null {
   return d.length >= 10 ? d.slice(-10) : null
 }
 
-/** 🔒 مطابقة كاملة لآخر 10 أرقام (مش "contains") — رقم ناقص أو فاضي مبيطابقش أي حد */
+/**
+ * 🔒 الرقم اللي كتبه العضو لازم يكون كامل (10 أرقام على الأقل)، وبعدها لازم آخر 10 أرقام
+ * منه تكون موجودة في رقم العضو المتسجّل. ده بيقبل الصيغ المختلفة (+20 / مسافات)
+ * وبيقبل خانة فيها رقمين، بس رقم ناقص أو فاضي مبيطابقش أي حد.
+ */
 export function samePhone(stored: unknown, provided: unknown): boolean {
-  const a = phoneTail(stored)
   const b = phoneTail(provided)
-  return !!a && !!b && a === b
+  if (!b || (typeof stored !== 'string' && typeof stored !== 'number')) return false
+  const storedDigits = String(stored).replace(/\D/g, '')
+  return storedDigits.length >= 10 && storedDigits.includes(b)
 }
 
 export async function verifyMemberPhone(memberId: string, phoneNumber: unknown): Promise<boolean> {

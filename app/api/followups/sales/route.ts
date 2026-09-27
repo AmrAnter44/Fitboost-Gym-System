@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server'
-import { guard } from '../../../../lib/routeGuard'
+import { hasAnyPermission } from '../../../../lib/routeGuard'
 import { prisma } from '../../../../lib/prisma'
 import { verifyAuth } from '../../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  const __g = await guard(request, ['canViewFollowUps', 'canManageSales'])
-  if (__g instanceof NextResponse) return __g
-
   try {
     const user = await verifyAuth(request)
     if (!user) {
@@ -361,6 +358,19 @@ export async function GET(request: Request) {
       invitationWithoutFollowUp = Math.max(0, uniqueInvitationPhones.length - invVisitorsWithFollowUp)
     }
     const unassignedInvitations = unassignedInvitationFollowUps + invitationWithoutFollowUp
+
+    // 🔒 أي حد مسجّل دخول بيحتاج لستة السيلز (مثلاً شاشة الدعوات عند الريسبشن) —
+    //    بس التفاصيل (العملاء بتليفوناتهم، الليدز، العمولات، التحصيل) للي عنده صلاحية المتابعات/السيلز بس
+    if (!hasAnyPermission(user, ['canViewFollowUps', 'canManageSales'])) {
+      return NextResponse.json({
+        staff: result.map((s: any) => ({
+          staffId: s.staffId,
+          name: s.name,
+          position: s.position,
+          leadsCount: s.leadsCount,
+        })),
+      })
+    }
 
     return NextResponse.json({
       staff: result,

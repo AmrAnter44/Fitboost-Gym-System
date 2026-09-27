@@ -230,6 +230,25 @@ export function reportBackup(r: { kind: 'db' | 'photos'; ok?: boolean; size?: nu
     .catch(() => {})
 }
 
+// ---- حساب FitBoost Admin (بيتحقق منه Control — مفيش باسورد على الجهاز) ----
+
+export type AdminLoginResult = { step?: 'code'; ok?: boolean; name?: string; email?: string }
+
+/** دخول FitBoost Admin: من غير code → { step: 'code' } لو الإيميل والباسورد صح، ومع code → { ok } */
+export function adminLogin(email: string, password: string, code?: string) {
+  return gw<AdminLoginResult>('admin-login', { body: { email, password, code }, timeoutMs: 15_000 })
+}
+
+/** تأكيد باسورد FitBoost Admin لعملية حساسة جوه جلسة شغالة */
+export async function adminReverify(email: string, password: string): Promise<boolean> {
+  try {
+    const r = await gw<AdminLoginResult>('admin-login', { body: { email, password, mode: 'reverify' }, timeoutMs: 15_000 })
+    return r.ok === true
+  } catch {
+    return false
+  }
+}
+
 /** يحوّل خطأ الـ gateway لرد مفهوم لواجهة السيستم */
 export function gatewayErrorResponse(e: unknown) {
   const { NextResponse } = require('next/server') as typeof import('next/server')

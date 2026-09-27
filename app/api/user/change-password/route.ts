@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     //  حساب الأونر الاحتياطي (env) مالوش صف في الداتابيز — كلمة سره بتتغيّر من إعدادات النظام
     if (user.userId === FALLBACK_OWNER_ID) {
       return NextResponse.json(
-        { error: 'حساب المالك الافتراضي: غيّر كلمة السر من إعدادات النظام مش من هنا' },
+        { error: 'حساب FitBoost Admin: الباسورد بيتغيّر من Control مش من هنا' },
         { status: 400 }
       )
     }

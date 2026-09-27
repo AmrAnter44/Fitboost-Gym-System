@@ -9,6 +9,7 @@ import { checkRateLimit, getClientIdentifier } from '../../../../lib/rateLimit'
 import { logLogin, logLoginFailure, logRateLimitHit, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 import { DEFAULT_PERMISSIONS } from '../../../../types/permissions'
 import { validateLicense } from '../../../../lib/license'
+import { adminLogin, getDeviceToken, GatewayError } from '../../../../lib/gateway'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { email, password } = await request.json()
+    const { email, password, code } = await request.json()
 
     // 🔒 Rate Limit إضافي مربوط بالحساب نفسه (مش الـ IP بس).
     //    الـ IP-based limit ممكن يتخطى بتزوير X-Forwarded-For؛ الحد ده بيمنع
@@ -123,7 +124,9 @@ export async function POST(request: Request) {
     const OWNER_PASSWORD = process.env.OWNER_PASSWORD?.trim()
 
     let ownerMatch = false
-    if (OWNER_EMAIL && email === OWNER_EMAIL && typeof password === 'string') {
+    // 🔒 الحساب الاحتياطي من الـ env للتطوير بس. في النسخ اللي بتتشحن للجيمات، حساب
+    //    FitBoost Admin بيتحقق منه Control (باسورد + كود تحقق) — مفيش هاش على الجهاز.
+    if (process.env.NODE_ENV !== 'production' && OWNER_EMAIL && email === OWNER_EMAIL && typeof password === 'string') {
       if (OWNER_PASSWORD_HASH) {
         try {
           ownerMatch = await bcrypt.compare(password, OWNER_PASSWORD_HASH)
@@ -201,6 +204,71 @@ export async function POST(request: Request) {
         staff: true  // ✅ جلب بيانات الموظف
       }
     })
+
+    // 🔐 FitBoost Admin: إيميل مش موجود في الجيم → نسأل Control (نفس حساب Control + كود التحقق)
+    if (!user && typeof email === 'string' && email.includes('@') && typeof password === 'string' && password && (await getDeviceToken())) {
+      try {
+        const r = await adminLogin(email.trim(), password, typeof code === 'string' && code.trim() ? code.trim() : undefined)
+        if (r.step === 'code') {
+          // الإيميل والباسورد صح — مستني كود التحقق بخطوتين
+          return NextResponse.json({ needsCode: true })
+        }
+        if (r.ok) {
+          const adminUser = {
+            id: 'fallback-fitboost-account',
+            name: r.name ? `FitBoost · ${r.name}` : 'FitBoost Admin',
+            email: r.email || email.trim().toLowerCase(),
+            role: 'OWNER' as const,
+            staffId: null,
+            permissions: DEFAULT_PERMISSIONS.OWNER
+          }
+          const token = jwt.sign(
+            {
+              userId: adminUser.id,
+              name: adminUser.name,
+              email: adminUser.email,
+              role: adminUser.role,
+              staffId: null,
+              permissions: DEFAULT_PERMISSIONS.OWNER
+            },
+            getJwtSecret(),
+            { expiresIn: '12h' } // جلسة قصيرة لحساب بيدخل على كل الجيمات
+          )
+          const response = NextResponse.json({ success: true, user: adminUser })
+          response.cookies.set('auth-token', token, {
+            httpOnly: true,
+            secure: cookieSecure(request),
+            sameSite: 'strict',
+            path: '/',
+            maxAge: 60 * 60 * 12
+          })
+          try {
+            await logLogin({
+              userId: adminUser.id,
+              userEmail: adminUser.email,
+              userName: adminUser.name,
+              userRole: adminUser.role,
+              ipAddress: getIpAddress(request),
+              userAgent: getUserAgent(request)
+            })
+          } catch { /* audit اختياري */ }
+          return response
+        }
+      } catch (e) {
+        if (e instanceof GatewayError) {
+          if (e.status === 0) {
+            return NextResponse.json({ error: 'حساب FitBoost محتاج إنترنت — مفيش اتصال دلوقتي' }, { status: 503 })
+          }
+          if (e.code === 'BAD_CODE') {
+            return NextResponse.json({ error: 'كود التحقق غلط أو خلص وقته', needsCode: true }, { status: 401 })
+          }
+          if (e.code === 'RATE_LIMITED' || e.code === 'NO_2FA') {
+            return NextResponse.json({ error: e.message }, { status: e.status })
+          }
+          // BAD_CREDENTIALS وغيره → نفس رسالة الخطأ العادية تحت
+        }
+      }
+    }
 
     if (!user) {
       // 📝 Audit: Login failed - user not found
