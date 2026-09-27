@@ -45,13 +45,8 @@ export async function runDbMaintenanceIfDue(): Promise<MaintenanceResult> {
 export async function runDbMaintenance(): Promise<MaintenanceResult> {
   const deleted: Record<string, number> = {}
   try {
-    // 1) طابور مزامنة Supabase — العناصر المتبعتة بتفضل ومعاها JSON snapshot كامل
-    const syncQueue = await prisma.syncQueueItem.deleteMany({
-      where: {
-        status: 'sent',
-        createdAt: { lt: daysAgo(RETENTION.syncQueueSentDays) },
-      },
-    })
+    // 1) طابور "وضع الأوفلاين" القديم — الميزة اتشالت، فبنمسح أي نسخ إيصالات/مصروفات فاضلة فيه
+    const syncQueue = await prisma.syncQueueItem.deleteMany({})
     deleted.syncQueue = syncQueue.count
 
     // 2) طابور الواتساب — الرسايل المتبعتة/الملغية (mediaBase64 ممكن يبقى ميجابايتس للرسالة)

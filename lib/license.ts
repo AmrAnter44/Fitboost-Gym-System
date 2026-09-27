@@ -28,7 +28,7 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
         if (!linked) return getCachedLicenseStatus()
       }
 
-      const data = await gw<{ system_license: unknown; offline_mode_enabled: boolean; gymName?: string; branchName?: string }>(
+      const data = await gw<{ system_license: unknown; gymName?: string; branchName?: string }>(
         'license',
         { timeoutMs: 3000 }
       )
@@ -40,7 +40,6 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
           data: {
             lastChecked: new Date(),
             systemLicense: data?.system_license?.toString() || 'false',
-            offlineModeEnabled: data?.offline_mode_enabled === true,
             ...(data?.gymName ? { gymName: data.gymName } : {}),
             ...(data?.branchName ? { branchName: data.branchName } : {}),
           }

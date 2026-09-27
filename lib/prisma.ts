@@ -5,27 +5,6 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Lazy-imported to avoid circular import (offline-sync imports prisma)
-async function fireReceiptSync(result: any, operation: 'upsert' | 'delete') {
-  if (!result?.id) return
-  try {
-    const { queueReceiptSync } = await import('./offline-sync')
-    await queueReceiptSync(result, operation)
-  } catch (err: any) {
-    console.error('[OfflineSync] receipt enqueue failed:', err?.message || err)
-  }
-}
-
-async function fireExpenseSync(result: any, operation: 'upsert' | 'delete') {
-  if (!result?.id) return
-  try {
-    const { queueExpenseSync } = await import('./offline-sync')
-    await queueExpenseSync(result, operation)
-  } catch (err: any) {
-    console.error('[OfflineSync] expense enqueue failed:', err?.message || err)
-  }
-}
-
 // 🚪 مزامنة العضو مع أجهزة البوابات بعد أي تعديل عليه.
 //
 //    بنعلّقها هنا مش في مسارات الـ API لأن في ~٢٢ مكان بيعدّلوا الـ Member،
@@ -80,27 +59,14 @@ function createPrismaClient() {
   process.once('SIGTERM', shutdown)
   process.once('beforeExit', () => gracefulShutdown(client))
 
-  // Hook receipt/expense mutations into the offline-sync queue.
-  // Runs after each successful query; queueXxxSync() is a no-op when offline mode is off.
+  // مزامنة العضو مع أجهزة البوابات بعد أي create/update/upsert.
   client.$use(async (params, next) => {
     const result = await next(params)
 
-    if (params.model === 'Receipt') {
-      if (params.action === 'create' || params.action === 'update' || params.action === 'upsert') {
-        void fireReceiptSync(result, 'upsert')
-      } else if (params.action === 'delete') {
-        void fireReceiptSync(result, 'delete')
-      }
-    } else if (params.model === 'Member') {
+    if (params.model === 'Member') {
       // updateMany/deleteMany مابيرجّعوش صفوف، فبيتسابوا للمُصالِح
       if (params.action === 'create' || params.action === 'update' || params.action === 'upsert') {
         void fireGateSync(result?.id)
-      }
-    } else if (params.model === 'Expense') {
-      if (params.action === 'create' || params.action === 'update' || params.action === 'upsert') {
-        void fireExpenseSync(result, 'upsert')
-      } else if (params.action === 'delete') {
-        void fireExpenseSync(result, 'delete')
       }
     }
 

@@ -442,22 +442,6 @@ export default function SettingsPage() {
   const [deviceInfo, setDeviceInfo] = useState<{ id: string; status: string } | null>(null)
   const [savingLicense, setSavingLicense] = useState(false)
 
-  // Offline Mode states
-  const [offlineStatus, setOfflineStatus] = useState<{
-    offlineModeEnabled: boolean
-    stats: {
-      pending: number
-      failed: number
-      sent: number
-      lastSentAt: string | null
-      lastError?: string | null
-      lastErrorResource?: string | null
-      lastErrorAttempts?: number
-    }
-  } | null>(null)
-  const [offlineToggling, setOfflineToggling] = useState(false)
-  const [flushingSync, setFlushingSync] = useState(false)
-
   useEffect(() => {
     checkAuth()
     fetchServiceSettings()
@@ -469,7 +453,6 @@ export default function SettingsPage() {
   useEffect(() => {
     if (user?.role === 'OWNER') {
       fetchCurrentLicense()
-      fetchOfflineStatus()
     }
   }, [user])
 
@@ -484,13 +467,6 @@ export default function SettingsPage() {
       window.history.replaceState(null, '', newHash)
     }
   }, [activeSection])
-
-  // Refresh offline sync stats every 30s while on the license tab
-  useEffect(() => {
-    if (user?.role !== 'OWNER' || activeSection !== 'license') return
-    const interval = setInterval(fetchOfflineStatus, 30_000)
-    return () => clearInterval(interval)
-  }, [user, activeSection])
 
   // Fetch DB files list when database section is opened
   useEffect(() => {
@@ -1128,77 +1104,6 @@ export default function SettingsPage() {
     }
   }
 
-  // Offline Mode functions
-  const fetchOfflineStatus = async () => {
-    try {
-      const res = await fetch('/api/offline-mode/status')
-      if (!res.ok) return
-      const data = await res.json()
-      if (data.configured) {
-        setOfflineStatus({
-          offlineModeEnabled: data.offlineModeEnabled,
-          stats: data.stats
-        })
-      }
-    } catch (error) {
-      console.error('Error fetching offline status:', error)
-    }
-  }
-
-  const flushSyncQueue = async () => {
-    setFlushingSync(true)
-    try {
-      const res = await fetch('/api/offline-mode/flush', { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) {
-        toast.error(data.error || 'فشل الإرسال')
-      } else {
-        await fetchOfflineStatus()
-        toast.success(`تم: ${data.sent} ناجح، ${data.failed} فشل`)
-      }
-    } catch (error) {
-      console.error('Flush sync error:', error)
-      toast.error('خطأ في الاتصال')
-    } finally {
-      setFlushingSync(false)
-    }
-  }
-
-  const toggleOfflineMode = async () => {
-    if (!offlineStatus) return
-    const next = !offlineStatus.offlineModeEnabled
-    const confirmMsg = next
-      ? 'تفعيل وضع الأوفلاين؟ كل إيصال ومصروف هيتبعت لـ Fitboost dashboard تلقائياً.'
-      : 'إيقاف وضع الأوفلاين؟ مش هيتبعت أي إيصال جديد بعد كده.'
-    setConfirmState({
-      open: true,
-      message: confirmMsg,
-      title: 'وضع الأوفلاين',
-      type: 'warning',
-      onConfirm: async () => {
-        setOfflineToggling(true)
-        try {
-          const res = await fetch('/api/offline-mode/toggle', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled: next })
-          })
-          const data = await res.json()
-          if (!res.ok) {
-            toast.error(data.error || 'فشل التبديل')
-          } else {
-            await fetchOfflineStatus()
-          }
-        } catch (error) {
-          console.error('Toggle offline mode error:', error)
-          toast.error('خطأ في الاتصال')
-        } finally {
-          setOfflineToggling(false)
-        }
-      },
-    })
-  }
-
   // تفعيل الجهاز بكود من Control (بيحدد الجيم والفرع أوتوماتيك)
   const activateDevice = async () => {
     const code = activationCode.trim()
@@ -1219,7 +1124,6 @@ export default function SettingsPage() {
         setActivationCode('')
         setSaveMessage({ type: 'success', text: `تم ربط الجهاز: ${data.license?.gymName} — ${data.license?.branchName}` })
         setTimeout(() => setSaveMessage(null), 4000)
-        fetchOfflineStatus()
       } else {
         setSaveMessage({ type: 'error', text: data.error || 'فشل التفعيل' })
       }
@@ -2787,131 +2691,6 @@ export default function SettingsPage() {
                       </span>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* Offline Mode Toggle */}
-              {currentLicense && offlineStatus && (
-                <div className={`rounded-xl p-5 ring-1 ${offlineStatus.offlineModeEnabled
-                    ? 'bg-blue-50 dark:bg-blue-900/20 ring-blue-200 dark:ring-blue-900/50'
-                    : 'bg-white dark:bg-gray-800 ring-gray-200 dark:ring-gray-700'
-                  }`}>
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${offlineStatus.offlineModeEnabled ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
-                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
-                          {offlineStatus.offlineModeEnabled ? (
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15a4.5 4.5 0 0 0 4.5 4.5H18a3.75 3.75 0 0 0 1.332-7.257 3 3 0 0 0-3.758-3.848 5.25 5.25 0 0 0-10.233 2.33A4.502 4.502 0 0 0 2.25 15Z" />
-                          ) : (
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.348 14.652a3.75 3.75 0 0 1 0-5.304m5.304 0a3.75 3.75 0 0 1 0 5.304m-7.425 2.121a6.75 6.75 0 0 1 0-9.546m9.546 0a6.75 6.75 0 0 1 0 9.546M5.106 18.894c-3.808-3.808-3.808-9.98 0-13.788m13.788 0c3.808 3.808 3.808 9.98 0 13.788M12 12h.008v.008H12V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-                          )}
-                        </svg>
-                      </div>
-                      <div>
-                        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">
-                          وضع الأوفلاين (Offline Mode)
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          لما تفعّله، كل إيصال ومصروف هيتبعت تلقائياً لـ Fitboost dashboard
-                          <br />
-                          عشان تقدر تتابع الـ closing من غير ما الجهاز يكون فاتح
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={toggleOfflineMode}
-                      disabled={offlineToggling}
-                      aria-label="Toggle offline mode"
-                      aria-pressed={offlineStatus.offlineModeEnabled}
-                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-200 shrink-0 ${offlineStatus.offlineModeEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'} ${offlineToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                    >
-                      <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${offlineStatus.offlineModeEnabled ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-1 rtl:-translate-x-1'}`} />
-                    </button>
-                  </div>
-
-                  {/* Sync Stats */}
-                  {offlineStatus.offlineModeEnabled && (
-                    <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-900/50">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                        <div className="bg-white dark:bg-gray-900 ring-1 ring-gray-200 dark:ring-gray-700 p-3 rounded-lg">
-                          <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">في الانتظار</div>
-                          <div className={`mt-1 text-xl font-bold ${offlineStatus.stats.pending > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-gray-100'}`}>
-                            {offlineStatus.stats.pending}
-                          </div>
-                        </div>
-                        <div className="bg-white dark:bg-gray-900 ring-1 ring-gray-200 dark:ring-gray-700 p-3 rounded-lg">
-                          <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">تم الإرسال</div>
-                          <div className="mt-1 text-xl font-bold text-green-700 dark:text-green-400">
-                            {offlineStatus.stats.sent}
-                          </div>
-                        </div>
-                        <div className="bg-white dark:bg-gray-900 ring-1 ring-gray-200 dark:ring-gray-700 p-3 rounded-lg">
-                          <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">فشل</div>
-                          <div className={`mt-1 text-xl font-bold ${offlineStatus.stats.failed > 0 ? 'text-red-700 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}`}>
-                            {offlineStatus.stats.failed}
-                          </div>
-                        </div>
-                        <div className="bg-white dark:bg-gray-900 ring-1 ring-gray-200 dark:ring-gray-700 p-3 rounded-lg">
-                          <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">آخر إرسال</div>
-                          <div className="mt-1 text-sm font-bold text-gray-900 dark:text-gray-100">
-                            {offlineStatus.stats.lastSentAt
-                              ? new Date(offlineStatus.stats.lastSentAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
-                              : '—'}
-                          </div>
-                        </div>
-                      </div>
-                      {/* Last error (if any) */}
-                      {offlineStatus.stats.lastError && (
-                        <div className="mt-3 bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg p-3">
-                          <div className="flex items-start gap-2">
-                            <svg {...stroke} className="w-5 h-5 text-red-700 dark:text-red-300 flex-shrink-0 mt-0.5" aria-hidden="true">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                            </svg>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-bold text-red-800 dark:text-red-300 mb-1">
-                                خطأ في الإرسال ({offlineStatus.stats.lastErrorResource} — {offlineStatus.stats.lastErrorAttempts} محاولة)
-                              </div>
-                              <div className="text-xs text-red-700 dark:text-red-400 break-all font-mono">
-                                {offlineStatus.stats.lastError}
-                              </div>
-                              <div className="text-xs text-red-600 dark:text-red-400 mt-2">
-                                لو الجداول لسه ما اتعملتش على Supabase، شغّل ملف{' '}
-                                <code className="bg-red-100 dark:bg-red-900/40 px-1 rounded">offline-mode-system.sql</code>{' '}
-                                الأول، وبعدين اضغط &quot;إرسال يدوي&quot;.
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between mt-3 gap-2">
-                        <p className="text-xs text-blue-700 dark:text-blue-300">
-                          البيانات بتتمسح تلقائياً بعد ٦٠ يوم - بنخزن الإجمالي بس
-                        </p>
-                        <button
-                          onClick={flushSyncQueue}
-                          disabled={flushingSync}
-                          className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors duration-200 disabled:opacity-50 shrink-0"
-                        >
-                          {flushingSync ? (
-                            <>
-                              <svg {...stroke} className="w-3.5 h-3.5 animate-spin" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                              جاري...
-                            </>
-                          ) : (
-                            <>
-                              <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                              إرسال يدوي
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 

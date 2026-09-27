@@ -94,7 +94,6 @@ export type LinkResult = {
   branchId: string
   branchName: string
   systemLicense: string
-  offlineModeEnabled: boolean
 }
 
 /** يحفظ ربط الجهاز (بعد activate / claim) مكان الرخصة القديمة */
@@ -107,7 +106,6 @@ export async function saveLink(link: LinkResult) {
       branchId: link.branchId,
       branchName: link.branchName,
       systemLicense: String(link.systemLicense ?? 'false'),
-      offlineModeEnabled: link.offlineModeEnabled === true,
       gatewayToken: link.token,
       lastChecked: new Date(),
     } as any,

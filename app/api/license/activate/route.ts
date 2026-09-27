@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { verifyAuth } from '../../../../lib/auth'
 import { activateWithCode, GatewayError } from '../../../../lib/gateway'
-import { invalidateOfflineSyncCache } from '../../../../lib/offline-sync'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 export const dynamic = 'force-dynamic'
@@ -19,7 +18,6 @@ export async function POST(request: Request) {
     if (!code) return NextResponse.json({ error: 'اكتب كود التفعيل' }, { status: 400 })
 
     const license = await activateWithCode(code)
-    invalidateOfflineSyncCache()
 
     await createAuditLog({
       userId: user.userId,
