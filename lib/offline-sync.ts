@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import { supabaseAdmin } from './supabase'
+import { gw } from './gateway'
 
 type ReceiptSnapshot = {
   id: string
@@ -143,47 +143,69 @@ export async function processSyncQueue(limit = 50): Promise<{ sent: number; fail
     const items = await prisma.syncQueueItem.findMany({
       where: { status: 'pending' },
       orderBy: { createdAt: 'asc' },
-      take: limit
+      take: Math.min(limit, 100) // حد الـ gateway للدفعة الواحدة
     })
 
-    for (const item of items) {
-      try {
-        const payload = JSON.parse(item.payload)
-        const tableName = item.resource === 'receipt' ? 'gym_receipts' : 'gym_expenses'
+    if (items.length === 0) return { sent: 0, failed: 0 }
 
-        if (item.operation === 'delete') {
-          const { error } = await supabaseAdmin
-            .from(tableName)
-            .delete()
-            .eq('local_id', item.resourceId)
-            .eq('branch_id', payload.branch_id)
-          if (error) throw error
-        } else {
-          const { error } = await supabaseAdmin
-            .from(tableName)
-            .upsert(payload, { onConflict: 'branch_id,local_id' })
-          if (error) throw error
+    // دفعة واحدة للـ gateway — الفرع والجيم بيتحددوا هناك من توكن الجهاز
+    let results: { localId: string; ok: boolean; error?: string }[] = []
+    let batchError: string | null = null
+    try {
+      const res = await gw<{ results: typeof results }>('sync', {
+        timeoutMs: 20_000,
+        body: {
+          items: items.map((item) => ({
+            resource: item.resource,
+            operation: item.operation,
+            localId: item.resourceId,
+            payload: (() => {
+              try {
+                return JSON.parse(item.payload)
+              } catch {
+                return {}
+              }
+            })()
+          }))
         }
+      })
+      results = res.results || []
+    } catch (err: any) {
+      batchError = err?.message || String(err)
+    }
 
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      const r = results[i]
+      if (!batchError && r?.ok) {
         await prisma.syncQueueItem.update({
           where: { id: item.id },
           data: { status: 'sent', sentAt: new Date() }
         })
         sent++
-      } catch (err: any) {
-        const attempts = item.attempts + 1
-        const message = err?.message || String(err)
+        continue
+      }
+      // مفيش نت / الجهاز مش مربوط: منحسبهاش محاولة فاشلة — تفضل pending لحد ما يرجع
+      if (batchError) {
         await prisma.syncQueueItem.update({
           where: { id: item.id },
-          data: {
-            attempts,
-            lastError: message.slice(0, 500),
-            // After 10 attempts, mark as failed so we stop retrying it forever
-            status: attempts >= 10 ? 'failed' : 'pending'
-          }
+          data: { lastError: batchError.slice(0, 500) }
         })
         failed++
+        continue
       }
+      const attempts = item.attempts + 1
+      const message = r?.error || 'فشل غير معروف'
+      await prisma.syncQueueItem.update({
+        where: { id: item.id },
+        data: {
+          attempts,
+          lastError: message.slice(0, 500),
+          // After 10 attempts, mark as failed so we stop retrying it forever
+          status: attempts >= 10 ? 'failed' : 'pending'
+        }
+      })
+      failed++
     }
   } finally {
     isProcessing = false

@@ -18,13 +18,13 @@ export const EXTERNAL_LINKS = {
      * رابط المستودع الرئيسي على GitHub
      * يُستخدم للوصول إلى الكود المصدري
      */
-    repo: process.env.NEXT_PUBLIC_GITHUB_REPO_URL || 'https://github.com/AmrAnter44/Fitboost-Gym-System',
+    repo: process.env.NEXT_PUBLIC_GITHUB_REPO_URL || 'https://github.com/AmrAnter44/fitboost-releases',
 
     /**
      * رابط صفحة الإصدارات على GitHub
      * يُستخدم للتحقق من التحديثات المتاحة
      */
-    releases: process.env.NEXT_PUBLIC_GITHUB_RELEASES_URL || 'https://github.com/AmrAnter44/Fitboost-Gym-System/releases',
+    releases: process.env.NEXT_PUBLIC_GITHUB_RELEASES_URL || 'https://github.com/AmrAnter44/fitboost-releases/releases',
   },
 
   support: {

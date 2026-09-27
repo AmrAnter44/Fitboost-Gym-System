@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { guard } from '../../../lib/routeGuard'
 import { prisma } from '../../../lib/prisma'
 import { addPoints } from '../../../lib/points'
 import { verifyAuth } from '../../../lib/auth'
@@ -9,6 +10,9 @@ import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLo
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
+  const __g = await guard(request, ['canViewMembers'])
+  if (__g instanceof NextResponse) return __g
+
   try {
     const user = await verifyAuth(request)
     if (!user) {

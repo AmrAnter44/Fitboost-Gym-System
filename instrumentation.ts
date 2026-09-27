@@ -45,6 +45,19 @@ export async function register() {
       )
     }, 60_000)
 
+    // الجهاز بيعرّف نفسه لـ Control (بيظهر في "أجهزة الجيمات") وبياخد الربط أول ما
+    // يتوافق عليه — كل دقيقتين لحد ما يتربط. وفحص الرخصة كل ربع ساعة.
+    const { validateLicense } = await import('./lib/license')
+    const { ensureLinked } = await import('./lib/gateway')
+    setTimeout(() => ensureLinked(true).catch(() => {}), 20_000)
+    setInterval(() => {
+      ensureLinked().catch(() => {})
+    }, 2 * 60_000)
+    setTimeout(() => validateLicense().catch(() => {}), 60_000)
+    setInterval(() => {
+      validateLicense().catch(() => {})
+    }, 15 * 60_000)
+
     // نسخة احتياطية يومية تلقائية للـ DB — بتتأكد كل 6 ساعات وبتاخد نسخة لو عدّى
     // يوم على آخر واحدة (رخيصة لو مش مستحقة). أول تشغيل بعد دقيقة من الإقلاع.
     // وبعد النسخة المحلية بنرفع نسخة سحابية لـ B2 (لو مفعّل ومتظبط ومستحق) —

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
+import { phoneTail, samePhone } from '@/lib/memberVerify';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,27 +21,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { memberNumber, phoneNumber } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const memberNumber = body?.memberNumber;
+    const phoneNumber = body?.phoneNumber;
 
-    // Validate input
-    if (!memberNumber || !phoneNumber) {
+    // Validate input — رقم تليفون كامل (10 أرقام على الأقل) مطلوب
+    if (!memberNumber || !phoneTail(phoneNumber)) {
       return NextResponse.json(
         { success: false, error: 'رقم العضوية ورقم الهاتف مطلوبان' },
         { status: 400 }
       );
     }
 
-    // Clean phone number (remove spaces, dashes, etc.)
-    const cleanPhone = phoneNumber.replace(/\D/g, '').slice(-10); // Last 10 digits
+    // 🔒 حد كمان على رقم العضوية نفسه (ضد تخمين التليفون من أكتر من IP)
+    const perMember = checkRateLimit(`member:${String(memberNumber).trim()}`, {
+      id: 'public-verify-member',
+      limit: 10,
+      windowMs: 15 * 60 * 1000
+    });
+    if (!perMember.success) {
+      return NextResponse.json(
+        { success: false, error: 'محاولات كثيرة، حاول بعد قليل' },
+        { status: 429 }
+      );
+    }
 
-    // Find member by memberNumber AND phone
-    const member = await prisma.member.findFirst({
-      where: {
-        memberNumber: String(memberNumber).trim(),
-        phone: {
-          contains: cleanPhone,
-        },
-      },
+    // مطابقة كاملة للتليفون (آخر 10 أرقام) — مش "contains"
+    const candidate = await prisma.member.findFirst({
+      where: { memberNumber: String(memberNumber).trim() },
       select: {
         id: true,
         memberNumber: true,
@@ -48,8 +56,10 @@ export async function POST(request: NextRequest) {
         profileImage: true,
         isActive: true,
         termsAcceptedAt: true,
+        phone: true,
       },
     });
+    const member = candidate && samePhone(candidate.phone, phoneNumber) ? candidate : null;
 
     if (!member) {
       return NextResponse.json(

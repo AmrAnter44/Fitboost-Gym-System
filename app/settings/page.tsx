@@ -437,13 +437,9 @@ export default function SettingsPage() {
   const [isLoadingIP, setIsLoadingIP] = useState(false)
 
   // License states
-  const [gyms, setGyms] = useState<any[]>([])
-  const [branches, setBranches] = useState<any[]>([])
-  const [selectedGymId, setSelectedGymId] = useState('')
-  const [selectedBranchId, setSelectedBranchId] = useState('')
   const [currentLicense, setCurrentLicense] = useState<any>(null)
-  const [loadingGyms, setLoadingGyms] = useState(false)
-  const [loadingBranches, setLoadingBranches] = useState(false)
+  const [activationCode, setActivationCode] = useState('')
+  const [deviceInfo, setDeviceInfo] = useState<{ id: string; status: string } | null>(null)
   const [savingLicense, setSavingLicense] = useState(false)
 
   // Offline Mode states
@@ -473,7 +469,6 @@ export default function SettingsPage() {
   useEffect(() => {
     if (user?.role === 'OWNER') {
       fetchCurrentLicense()
-      fetchGyms()
       fetchOfflineStatus()
     }
   }, [user])
@@ -1123,13 +1118,9 @@ export default function SettingsPage() {
       const response = await fetch('/api/license/current')
       if (response.ok) {
         const data = await response.json()
+        if (data.device) setDeviceInfo(data.device)
         if (data.license) {
           setCurrentLicense(data.license)
-          setSelectedGymId(data.license.gymId)
-          setSelectedBranchId(data.license.branchId)
-          if (data.license.gymId) {
-            fetchBranches(data.license.gymId)
-          }
         }
       }
     } catch (error) {
@@ -1208,90 +1199,33 @@ export default function SettingsPage() {
     })
   }
 
-  const fetchGyms = async () => {
-    setLoadingGyms(true)
-    try {
-      const response = await fetch('/api/license/gyms')
-      if (response.ok) {
-        const data = await response.json()
-        setGyms(data.gyms || [])
-        if (!data.gyms || data.gyms.length === 0) {
-          setSaveMessage({ type: 'error', text: 'لا توجد صالات متاحة في قاعدة البيانات' })
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({}))
-        setSaveMessage({ type: 'error', text: errorData.error || 'فشل جلب الصالات' })
-      }
-    } catch (error) {
-      console.error('Exception fetching gyms:', error)
-      setSaveMessage({ type: 'error', text: 'خطأ في الاتصال - تحقق من الإنترنت أو إعدادات Supabase' })
-    } finally {
-      setLoadingGyms(false)
-    }
-  }
-
-  const fetchBranches = async (gymId: string) => {
-    if (!gymId) {
-      setBranches([])
+  // تفعيل الجهاز بكود من Control (بيحدد الجيم والفرع أوتوماتيك)
+  const activateDevice = async () => {
+    const code = activationCode.trim()
+    if (!code) {
+      setSaveMessage({ type: 'error', text: 'اكتب كود التفعيل' })
       return
     }
-    setLoadingBranches(true)
-    try {
-      const response = await fetch(`/api/license/branches?gymId=${gymId}`)
-      if (response.ok) {
-        const data = await response.json()
-        setBranches(data.branches || [])
-      }
-    } catch (error) {
-      console.error('Error fetching branches:', error)
-    } finally {
-      setLoadingBranches(false)
-    }
-  }
-
-  const handleGymChange = (gymId: string) => {
-    setSelectedGymId(gymId)
-    setSelectedBranchId('')
-    setBranches([])
-    if (gymId) {
-      fetchBranches(gymId)
-    }
-  }
-
-  const saveLicenseSelection = async () => {
-    if (!selectedGymId || !selectedBranchId) {
-      setSaveMessage({ type: 'error', text: 'يرجى اختيار الصالة والفرع' })
-      return
-    }
-
     setSavingLicense(true)
     try {
-      const selectedGym = gyms.find(g => g.id === selectedGymId)
-      const selectedBranch = branches.find(b => b.id === selectedBranchId)
-
-      const response = await fetch('/api/license/select', {
+      const response = await fetch('/api/license/activate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gymId: selectedGymId,
-          gymName: selectedGym?.name_ar || selectedGym?.name_en,
-          branchId: selectedBranchId,
-          branchName: selectedBranch?.name_ar || selectedBranch?.name_en,
-          systemLicense: selectedBranch?.system_license
-        })
+        body: JSON.stringify({ code })
       })
-
+      const data = await response.json().catch(() => ({}))
       if (response.ok) {
-        const data = await response.json()
-        setCurrentLicense(data.license)
-        setSaveMessage({ type: 'success', text: 'تم حفظ اختيار الصالة والفرع بنجاح' })
-        setTimeout(() => setSaveMessage(null), 3000)
+        setCurrentLicense({ ...data.license, linked: true })
+        setActivationCode('')
+        setSaveMessage({ type: 'success', text: `تم ربط الجهاز: ${data.license?.gymName} — ${data.license?.branchName}` })
+        setTimeout(() => setSaveMessage(null), 4000)
+        fetchOfflineStatus()
       } else {
-        setSaveMessage({ type: 'error', text: 'فشل حفظ الاختيار' })
+        setSaveMessage({ type: 'error', text: data.error || 'فشل التفعيل' })
       }
     } catch (error) {
-      console.error('Error saving license:', error)
-      setSaveMessage({ type: 'error', text: 'حدث خطأ أثناء الحفظ' })
+      console.error('Error activating device:', error)
+      setSaveMessage({ type: 'error', text: 'حدث خطأ أثناء التفعيل' })
     } finally {
       setSavingLicense(false)
     }
@@ -2981,133 +2915,72 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* License Selection Form */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-5">
-                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
+              {/* Device Activation (Control / Gym Gateway) */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-4">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                   <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
                   </svg>
-                  {t('settingsPage.license.selectGymAndBranch')}
+                  {currentLicense?.linked ? 'الجهاز مربوط' : 'تفعيل الجهاز'}
                 </h3>
 
-                {/* Debug Info */}
-                <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                      {t('settingsPage.license.diagnosticInfo')}
-                    </span>
-                    <button
-                      onClick={async () => {
-                        try {
-                          const res = await fetch('/api/license/test')
-                          const data = await res.json()
-                          toast.info(`Test Result:\nGyms: ${data.gyms?.count || 0}\nBranches: ${data.branches?.count || 0}\nCheck console for details`)
-                        } catch (err) {
-                          console.error('Test failed:', err)
-                          toast.error('Test failed - check console')
-                        }
-                      }}
-                      className="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors duration-200"
-                    >
-                      {t('settingsPage.license.testConnection')}
-                    </button>
-                  </div>
-                  <div className="text-xs space-y-1 text-gray-600 dark:text-gray-400">
-                    <div>{t('settingsPage.license.loadedGymsCount')}: <span className="font-bold">{gyms.length}</span></div>
-                    <div>{t('settingsPage.license.loadingStatus')}: <span className="font-bold">{loadingGyms ? t('settingsPage.license.loading') : t('settingsPage.license.complete')}</span></div>
-                    <div>{t('settingsPage.license.userRole')}: <span className="font-bold">{user?.role || t('settingsPage.license.undefined')}</span></div>
-                  </div>
-                </div>
-
-                {/* Gym Selection */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                    {t('settingsPage.license.gymLabel')}
-                  </label>
-                  <select
-                    value={selectedGymId}
-                    onChange={(e) => handleGymChange(e.target.value)}
-                    disabled={loadingGyms}
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50"
-                  >
-                    <option value="">{t('settingsPage.license.selectGym')}</option>
-                    {gyms.map(gym => (
-                      <option key={gym.id} value={gym.id}>
-                        {gym.name_ar || gym.name_en}
-                      </option>
-                    ))}
-                  </select>
-                  {loadingGyms && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5">جاري التحميل...</p>}
-                  {!loadingGyms && gyms.length === 0 && (
-                    <p className="flex items-center gap-1.5 text-xs text-red-700 dark:text-red-400 mt-1.5">
-                      <svg {...stroke} className="w-4 h-4 flex-shrink-0" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                      </svg>
-                      لم يتم تحميل أي صالات - تحقق من الكونسول
+                {deviceInfo && !currentLicense?.linked && (
+                  <div className={`p-3 rounded-lg ring-1 text-sm ${deviceInfo.status === 'rejected'
+                    ? 'bg-red-50 dark:bg-red-900/20 ring-red-200 dark:ring-red-900/50 text-red-800 dark:text-red-300'
+                    : 'bg-amber-50 dark:bg-amber-900/20 ring-amber-200 dark:ring-amber-900/50 text-amber-800 dark:text-amber-300'}`}>
+                    <p className="font-bold mb-1">
+                      رقم الجهاز: <span dir="ltr" className="font-mono tracking-wider">#{deviceInfo.id}</span>
                     </p>
-                  )}
-                </div>
+                    {deviceInfo.status === 'offline' ? (
+                      <p>مفيش اتصال بسحابة فيت بوست — اتأكد من النت.</p>
+                    ) : deviceInfo.status === 'rejected' ? (
+                      <p>فيت بوست رفضت ربط الجهاز ده. كلّمهم أو استخدم كود تفعيل.</p>
+                    ) : (
+                      <p>الجهاز ظاهر عند فيت بوست ومستني الربط بالجيم والفرع — بيتربط لوحده أول ما يتوافق عليه (خلال دقيقتين). أو اكتب كود تفعيل تحت.</p>
+                    )}
+                    {currentLicense && (
+                      <p className="mt-1 opacity-80">لحد ما يتربط شغال بالرخصة المحفوظة — لازم يتربط خلال ١٤ يوم من آخر تحقق ناجح.</p>
+                    )}
+                  </div>
+                )}
 
-                {/* Branch Selection */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                    الفرع *
-                  </label>
-                  <select
-                    value={selectedBranchId}
-                    onChange={(e) => setSelectedBranchId(e.target.value)}
-                    disabled={!selectedGymId || loadingBranches}
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50"
-                  >
-                    <option value="">-- اختر الفرع --</option>
-                    {branches.map(branch => (
-                      <option key={branch.id} value={branch.id}>
-                        {branch.name_ar || branch.name_en}
-                        {branch.system_license === true || branch.system_license === 'true' ? ' ✓' : ' (منتهي)'}
-                      </option>
-                    ))}
-                  </select>
-                  {loadingBranches && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5">جاري تحميل الفروع...</p>}
-                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {currentLicense?.linked
+                    ? 'لو عايز تنقل الجهاز لفرع تاني أو تعيد الربط، اكتب كود تفعيل جديد من فيت بوست.'
+                    : 'اطلب كود التفعيل من فيت بوست واكتبه هنا — الكود بيحدد الجيم والفرع أوتوماتيك.'}
+                </p>
 
-                {/* Save Button */}
-                <div className="pt-2">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    value={activationCode}
+                    onChange={(e) => setActivationCode(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => { if (e.key === 'Enter') activateDevice() }}
+                    placeholder="XXXXX-XXXXX"
+                    dir="ltr"
+                    autoComplete="off"
+                    spellCheck={false}
+                    maxLength={14}
+                    className="flex-1 px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center font-mono text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
                   <button
-                    onClick={saveLicenseSelection}
-                    disabled={!selectedGymId || !selectedBranchId || savingLicense}
-                    className="w-full bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold py-2.5 px-4 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    onClick={activateDevice}
+                    disabled={!activationCode.trim() || savingLicense}
+                    className="sm:w-40 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold py-2.5 px-4 rounded-lg transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {savingLicense ? (
-                      <>
-                        <svg {...stroke} className="w-5 h-5 animate-spin" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        <span>جاري الحفظ...</span>
-                      </>
+                      <svg {...stroke} className="w-5 h-5 animate-spin" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
                     ) : (
-                      <>
-                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                        </svg>
-                        <span>حفظ الاختيار</span>
-                      </>
+                      <span>تفعيل</span>
                     )}
                   </button>
                 </div>
 
-                {/* Info Note */}
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <svg {...stroke} className="w-5 h-5 text-blue-700 dark:text-blue-300 flex-shrink-0 mt-0.5" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                    </svg>
-                    <div className="text-sm text-gray-700 dark:text-gray-300">
-                      <p className="font-bold mb-1">ملاحظة:</p>
-                      <p>• يجب اختيار الصالة والفرع الصحيح لتفعيل الرخصة</p>
-                      <p>• سيتم التحقق من حالة الترخيص تلقائياً كل 8 ساعات</p>
-                      <p>• في حالة انقطاع الإنترنت، سيعمل النظام بالترخيص المحفوظ</p>
-                    </div>
-                  </div>
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                  <p>• الكود لجهاز واحد وصالح ٧٢ ساعة</p>
+                  <p>• الترخيص بيتراجع أوتوماتيك كل ربع ساعة</p>
+                  <p>• لو النت قطع، السيستم بيشتغل بالترخيص المحفوظ لحد ١٤ يوم</p>
                 </div>
               </div>
             </div>

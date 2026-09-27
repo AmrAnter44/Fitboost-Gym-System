@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { guard } from '../../../../lib/routeGuard'
 import { prisma } from '../../../../lib/prisma'
 import { activatePendingPTIfNeeded } from '../../../../lib/ptPendingRenewal'
 import { requirePermission } from '../../../../lib/auth'
@@ -109,6 +110,9 @@ export async function GET(request: Request) {
 
 // POST - تسجيل حضور جلسة PT
 export async function POST(request: Request) {
+  const __g = await guard(request, ['canRegisterPTAttendance'])
+  if (__g instanceof NextResponse) return __g
+
   try {
     const body = await request.json()
     const { ptNumber, sessionDate, notes, signature } = body
@@ -174,6 +178,9 @@ export async function POST(request: Request) {
 
 // DELETE - حذف سجل حضور
 export async function DELETE(request: Request) {
+  const __g = await guard(request, ['canRegisterPTAttendance'])
+  if (__g instanceof NextResponse) return __g
+
   try {
     const { searchParams } = new URL(request.url)
     const sessionId = searchParams.get('sessionId')

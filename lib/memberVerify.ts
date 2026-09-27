@@ -9,13 +9,25 @@ import { prisma } from './prisma'
  *
  * (نفس المنطق المستخدم أصلاً في profile-image/route.ts)
  */
+/** آخر 10 أرقام من رقم التليفون — أو null لو أقل من 10 أرقام */
+export function phoneTail(v: unknown): string | null {
+  if (typeof v !== 'string' && typeof v !== 'number') return null
+  const d = String(v).replace(/\D/g, '')
+  return d.length >= 10 ? d.slice(-10) : null
+}
+
+/** 🔒 مطابقة كاملة لآخر 10 أرقام (مش "contains") — رقم ناقص أو فاضي مبيطابقش أي حد */
+export function samePhone(stored: unknown, provided: unknown): boolean {
+  const a = phoneTail(stored)
+  const b = phoneTail(provided)
+  return !!a && !!b && a === b
+}
+
 export async function verifyMemberPhone(memberId: string, phoneNumber: unknown): Promise<boolean> {
-  if (!memberId || !phoneNumber || typeof phoneNumber !== 'string') return false
-  const cleanPhone = phoneNumber.replace(/\D/g, '').slice(-10)
-  if (cleanPhone.length < 7) return false
-  const member = await prisma.member.findFirst({
-    where: { id: memberId, phone: { contains: cleanPhone } },
-    select: { id: true },
+  if (!memberId || typeof memberId !== 'string' || !phoneTail(phoneNumber)) return false
+  const member = await prisma.member.findUnique({
+    where: { id: memberId },
+    select: { phone: true },
   })
-  return !!member
+  return !!member && samePhone(member.phone, phoneNumber)
 }

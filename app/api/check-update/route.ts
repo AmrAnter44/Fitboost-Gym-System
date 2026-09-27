@@ -13,11 +13,7 @@ export async function GET() {
       'Accept': 'application/vnd.github.v3+json',
     }
 
-    // 🔑 لو الـ repo خاص، مرّر التوكن كـ Bearer
-    const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
+    // repo الإصدارات عام — مفيش توكن على أجهزة الجيمات
 
     const response = await fetch(GITHUB_API, {
       headers,

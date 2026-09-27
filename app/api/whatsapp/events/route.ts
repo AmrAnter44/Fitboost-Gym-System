@@ -2,12 +2,17 @@
  * WhatsApp Events – SSE proxy to sidecar on port 4002
  */
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { guard, hasAnyPermission } from '@/lib/routeGuard'
+
 import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  const g = await guard(request, ['canManageWhatsApp', 'canViewWhatsAppInbox', 'canSendWhatsApp'])
+  if (g instanceof NextResponse) return g
+
   try {
     const res = await fetch(`${WHATSAPP_SIDECAR}/events`, {
       cache: 'no-store',

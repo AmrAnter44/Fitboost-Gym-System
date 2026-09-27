@@ -33,6 +33,12 @@ if (fs.existsSync(udpSrc) && fs.existsSync('.next/standalone')) {
   fs.copyFileSync(udpSrc, udpDest);
 }
 
+// 🔒 شيل الأسرار من .env اللي بيتشحن + افحص الـ build (بيوقف لو لقى سر)
+{
+  const { execFileSync } = require('child_process');
+  execFileSync(process.execPath, [path.join('scripts', 'sanitize-standalone-env.js')], { stdio: 'inherit' });
+}
+
 // Verify standalone build
 if (fs.existsSync('.next/standalone/server.js')) {
 } else {

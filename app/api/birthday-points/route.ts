@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { guard } from '../../../lib/routeGuard'
 import { prisma } from '@/lib/prisma'
 
 /**
@@ -131,6 +132,9 @@ export async function POST(request: Request) {
  * GET endpoint للتحقق اليدوي من أعياد الميلاد
  */
 export async function GET(request: Request) {
+  const __g = await guard(request, ['canViewMembers'])
+  if (__g instanceof NextResponse) return __g
+
   try {
     const settings = await prisma.systemSettings.findFirst()
 

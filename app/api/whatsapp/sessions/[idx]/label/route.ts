@@ -1,7 +1,12 @@
+import { guard } from '@/lib/routeGuard'
 import { NextResponse } from 'next/server'
 import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 export async function PUT(req: Request, { params }: { params: { idx: string } }) {
+  const g = await guard(req, ['canManageWhatsApp'])
+  if (g instanceof NextResponse) return g
+  if (!/^\d+$/.test(String(params.idx))) return NextResponse.json({ error: 'رقم جلسة غير صحيح' }, { status: 400 })
+
   try {
     const { label } = await req.json()
     const res = await fetch(`${WHATSAPP_SIDECAR}/session/${params.idx}/label`, {

@@ -32,7 +32,7 @@ function messageFor(result: CloudBackupResult): string {
   if (result.ok) return 'تم رفع النسخة الاحتياطية للسحابة بنجاح'
   switch (result.reason) {
     case 'not-configured':
-      return 'متغيرات B2 مش متظبطة في ملف الـ env (B2_KEY_ID / B2_APPLICATION_KEY / B2_BUCKET_ID)'
+      return 'الجهاز مش مربوط بفيت بوست — اربطه من الإعدادات ← الترخيص'
     case 'no-license':
       return 'مفيش بيانات ترخيص (gymId/branchId) — فعّل الترخيص الأول'
     case 'disabled':

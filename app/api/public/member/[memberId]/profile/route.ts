@@ -144,7 +144,7 @@ export async function GET(
       // بواقي باقات الـ PT المرتبطة بالعضو عن طريق الهاتف (نفس منطق pt-sessions)
       const tail = member.phone?.replace(/\D/g, '').slice(-10)
       let ptRemaining = 0
-      if (tail && tail.length >= 7) {
+      if (tail && tail.length === 10) {
         const agg = await prisma.pT.aggregate({
           where: { phone: { contains: tail }, remainingAmount: { gt: 0 } },
           _sum: { remainingAmount: true },

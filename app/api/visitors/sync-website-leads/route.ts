@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { verifyAuth } from '../../../../lib/auth'
 import { prisma } from '../../../../lib/prisma'
-import { supabaseAdmin } from '../../../../lib/supabase'
+import { gw } from '../../../../lib/gateway'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,53 +30,26 @@ export async function POST(request: Request) {
       })
     }
 
-    // 2. Fetch leads for this gym (last 30 days, capped) — server bypasses RLS.
-    //    Multi-branch rule: this branch sees its own leads + gym-wide leads
-    //    (where branch_id is NULL — meaning the visitor didn't pick a branch).
-    const since = new Date()
-    since.setDate(since.getDate() - 30)
-    let query = supabaseAdmin
-      .from('website_leads')
-      .select('id, name, phone, interested_in, branch_id, created_at')
-      .eq('gym_id', license.gymId)
-      .gte('created_at', since.toISOString())
-      .order('created_at', { ascending: false })
-      .limit(200)
-
-    if (license.branchId) {
-      query = query.or(`branch_id.is.null,branch_id.eq.${license.branchId}`)
-    }
-    const { data: leads, error } = await query
-
-    if (error) {
-      console.error('[sync-website-leads] Supabase fetch error:', error)
+    // 2. Fetch leads for this gym (last 30 days, capped) — via Control, scoped to this
+    //    device's gym/branch. Multi-branch rule: this branch sees its own leads + gym-wide
+    //    leads (branch_id NULL — the visitor didn't pick a branch).
+    let leads: { id: string; name: string | null; phone: string | null; interested_in: string | null; branch_id: string | null; created_at: string }[] = []
+    let totalForGym = 0
+    try {
+      const res = await gw<{ leads: typeof leads; totalForGym: number }>('website-leads', { timeoutMs: 15000 })
+      leads = res.leads || []
+      totalForGym = res.totalForGym || 0
+    } catch (error: any) {
+      console.error('[sync-website-leads] gateway error:', error?.message)
       return NextResponse.json(
-        { error: 'تعذر الاتصال بـ Supabase: ' + error.message, gymId: license.gymId },
+        { error: 'تعذر الاتصال بسحابة فيت بوست: ' + (error?.message || ''), gymId: license.gymId },
         { status: 502 }
       )
     }
 
     const found = leads?.length || 0
 
-    // Diagnostic: count total leads in Supabase regardless of gym_id/branch_id.
-    // Helps detect "lead exists but went to a different branch" cases.
-    let totalAcrossGyms = 0
-    let totalForGym = 0
-    try {
-      const r1 = await supabaseAdmin
-        .from('website_leads')
-        .select('id', { count: 'exact', head: true })
-        .gte('created_at', since.toISOString())
-      totalAcrossGyms = r1.count || 0
-      const r2 = await supabaseAdmin
-        .from('website_leads')
-        .select('id', { count: 'exact', head: true })
-        .eq('gym_id', license.gymId)
-        .gte('created_at', since.toISOString())
-      totalForGym = r2.count || 0
-    } catch {
-      // diagnostic only — never fail the sync because of it
-    }
+    const totalAcrossGyms = 0 // مبقاش متاح للأجهزة (بيانات جيمات تانية)
 
     if (!leads || leads.length === 0) {
       let message = 'مفيش leads جديدة على Supabase'

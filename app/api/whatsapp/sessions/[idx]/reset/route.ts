@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
+import { hasAnyPermission } from '@/lib/routeGuard'
 import { verifyAuth } from '../../../../../../lib/auth'
 import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 export async function POST(request: Request, { params }: { params: { idx: string } }) {
   // 🔒 Auth
   const user = await verifyAuth(request)
+  if (user && !hasAnyPermission(user, ['canManageWhatsApp'])) return NextResponse.json({ error: 'ليس لديك صلاحية' }, { status: 403 })
   if (!user) {
     return NextResponse.json({ success: false, error: 'يجب تسجيل الدخول أولاً' }, { status: 401 })
   }

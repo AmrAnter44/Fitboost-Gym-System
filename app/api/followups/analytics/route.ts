@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { guard } from '@/lib/routeGuard'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -14,6 +15,9 @@ export const dynamic = 'force-dynamic'
  * - endDate: Filter by creation date (ISO string)
  */
 export async function GET(request: Request) {
+  const __g = await guard(request, ['canViewFollowUps'])
+  if (__g instanceof NextResponse) return __g
+
   try {
     const { searchParams } = new URL(request.url)
     const staffId = searchParams.get('staffId')

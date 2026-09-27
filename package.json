@@ -1,6 +1,6 @@
 {
   "name": "fitboost-system",
-  "version": "6.11.8",
+  "version": "6.12.0",
   "description": "FitBoost - Professional Gym Management System",
   "private": true,
   "main": "electron/main.js",
@@ -188,10 +188,17 @@
       "uninstallerIcon": "public/icon.ico",
       "artifactName": "Gym-Management-Setup-${version}.${ext}"
     },
-    "publish": {
-      "provider": "github",
-      "owner": "AmrAnter44",
-      "repo": "Fitboost-Gym-System"
-    }
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "AmrAnter44",
+        "repo": "fitboost-releases"
+      },
+      {
+        "provider": "github",
+        "owner": "AmrAnter44",
+        "repo": "Fitboost-Gym-System"
+      }
+    ]
   }
 }

@@ -232,10 +232,7 @@ export default function CloudBackupCard() {
                   محتاج إعداد قبل التفعيل
                 </p>
                 <p className="text-amber-900 dark:text-amber-200">
-                  لازم تظبّط متغيرات Backblaze في ملف الـ <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">.env</code> وتعيد تشغيل السيرفر:
-                  <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded mx-1">B2_KEY_ID</code>،
-                  <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded mx-1">B2_APPLICATION_KEY</code>،
-                  <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded mx-1">B2_BUCKET_ID</code>.
+                  الباك أب السحابي بيشتغل عن طريق فيت بوست — لازم الجهاز يكون مربوط (الإعدادات ← الترخيص).
                 </p>
               </div>
             )}

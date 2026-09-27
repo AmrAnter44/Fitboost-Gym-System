@@ -21,7 +21,14 @@ export async function POST(request: Request) {
       data: { status: 'pending', attempts: 0 }
     })
 
-    const result = await processSyncQueue(500)
+    // دفعات من ١٠٠ (حد الـ gateway) لحد ٥٠٠ عنصر
+    const result = { sent: 0, failed: 0 }
+    for (let i = 0; i < 5; i++) {
+      const r = await processSyncQueue(100)
+      result.sent += r.sent
+      result.failed += r.failed
+      if (r.sent === 0) break
+    }
     return NextResponse.json({ success: true, ...result })
   } catch (error: any) {
     console.error('Flush sync queue error:', error)

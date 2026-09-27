@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
+import { guard } from '../../../../lib/routeGuard'
 import { prisma } from '../../../../lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
+  const __g = await guard(request, ['canViewExpenses', 'canViewReports', 'canViewFinancials'])
+  if (__g instanceof NextResponse) return __g
+
   try {
     // جلب جميع المصروفات من آخر 6 شهور
     const sixMonthsAgo = new Date()

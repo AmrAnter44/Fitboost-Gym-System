@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { guard } from '../../../../lib/routeGuard'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 
@@ -101,6 +102,9 @@ export async function GET(request: Request) {
 
 // POST - تسجيل حضور جلسة علاج طبيعي
 export async function POST(request: Request) {
+  const __g = await guard(request, ['canRegisterPhysioAttendance'])
+  if (__g instanceof NextResponse) return __g
+
   try {
     const body = await request.json()
     const { physioNumber, sessionDate, notes } = body
@@ -159,6 +163,9 @@ export async function POST(request: Request) {
 
 // DELETE - حذف سجل حضور
 export async function DELETE(request: Request) {
+  const __g = await guard(request, ['canRegisterPhysioAttendance'])
+  if (__g instanceof NextResponse) return __g
+
   try {
     const { searchParams } = new URL(request.url)
     const sessionId = searchParams.get('sessionId')

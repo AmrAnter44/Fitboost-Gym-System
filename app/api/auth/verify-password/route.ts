@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { verifyAuth, verifyOwnerPassword } from '../../../../lib/auth'
+import { checkRateLimit } from '../../../../lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +21,12 @@ export async function POST(request: Request) {
         { error: 'غير مصرح - فقط OWNER' },
         { status: 403 }
       )
+    }
+
+    // 🔒 منع تخمين باسورد الأونر من أي جيم (5 محاولات / 15 دقيقة لكل مستخدم)
+    const rl = checkRateLimit(user.userId, { id: 'verify-owner-password', limit: 5, windowMs: 15 * 60 * 1000 })
+    if (!rl.success) {
+      return NextResponse.json({ error: 'محاولات كثيرة، حاول بعد قليل' }, { status: 429 })
     }
 
     const { password } = await request.json()

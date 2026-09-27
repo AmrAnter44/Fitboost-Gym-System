@@ -773,22 +773,13 @@ function setupAutoUpdater() {
   //    (يحمّل الفرق → يوصل 100% → يفشل التحقق → يرجع يحمّل كامل). نخليه يحمّل كامل مرة واحدة بثبات.
   autoUpdater.disableDifferentialDownload = true;
 
-  // 🔑 لو الـ repo خاص (private)، لازم نمرر GH_TOKEN عشان autoUpdater يقدر يحمّل
-  const ghToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
-  if (ghToken) {
-    try {
-      autoUpdater.setFeedURL({
-        provider: 'github',
-        owner: 'AmrAnter44',
-        repo: 'Fitboost-Gym-System',
-        private: true,
-        token: ghToken
-      });
-      // fallback — في حالة الـ provider العادي لسه ما يقبلش الـ token
-      autoUpdater.requestHeaders = { Authorization: `token ${ghToken}` };
-    } catch (err) {
-      console.error('⚠️ Failed to configure autoUpdater with GH_TOKEN:', err.message);
-    }
+  // 📦 التحديثات بتتنزل من repo عام فيه ملفات الإصدارات بس (AmrAnter44/fitboost-releases)
+  //    — من غير أي توكن على أجهزة الجيمات. العنوان بيتحفر في app-update.yml من package.json
+  //    (أول publisher)، والسطر ده تأكيد صريح.
+  try {
+    autoUpdater.setFeedURL({ provider: 'github', owner: 'AmrAnter44', repo: 'fitboost-releases' });
+  } catch (err) {
+    console.error('⚠️ Failed to set update feed:', err.message);
   }
 
   // عند اكتشاف تحديث جديد

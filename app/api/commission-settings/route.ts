@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { guard } from '../../../lib/routeGuard'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
 
 // GET - جلب إعدادات الكومشن
 export async function GET(request: NextRequest) {
+  const __g = await guard(request)
+  if (__g instanceof NextResponse) return __g
+
   try {
     // البحث عن الإعدادات الموجودة
     let settings = await prisma.commissionSettings.findFirst()

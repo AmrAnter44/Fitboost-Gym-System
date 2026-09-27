@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { hasAnyPermission } from '@/lib/routeGuard'
 import { prisma } from '../../../../../lib/prisma'
 import { toWhatsAppNumber } from '../../../../../lib/phoneNormalize'
 import { verifyAuth } from '../../../../../lib/auth'
@@ -7,6 +8,7 @@ import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 export async function POST(req: Request) {
   // 🔒 Auth
   const user = await verifyAuth(req)
+  if (user && !hasAnyPermission(user, ['canViewWhatsAppInbox'])) return NextResponse.json({ error: 'ليس لديك صلاحية' }, { status: 403 })
   if (!user) {
     return NextResponse.json({ success: false, error: 'يجب تسجيل الدخول أولاً' }, { status: 401 })
   }

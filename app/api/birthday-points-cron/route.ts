@@ -11,7 +11,9 @@ export async function GET(request: Request) {
   try {
     // التحقق من Vercel Cron header
     const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    const secret = process.env.CRON_SECRET
+    // 🔒 من غير CRON_SECRET متظبط المسار مقفول (كان "Bearer undefined" بيعدّي)
+    if (!secret || secret.length < 16 || authHeader !== `Bearer ${secret}`) {
       return NextResponse.json({
         success: false,
         error: 'Unauthorized'

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { guard } from '@/lib/routeGuard'
 import { prisma } from '../../../../lib/prisma'
 import { withPhotoUrl } from '../../../../lib/memberPhoto'
 
@@ -13,6 +14,9 @@ const DEFAULT_LIST_LIMIT = 500
 const MAX_LIST_LIMIT = 2000
 
 export async function GET(request: Request) {
+  const __g = await guard(request, ['canViewMembers'])
+  if (__g instanceof NextResponse) return __g
+
   try {
     // 🔒 حماية: المسار كان مكشوف بالكامل — أي حد كان بيقدر يسحب بيانات
     //    الأعضاء (اسم/تليفون) بالجملة. لازم تسجيل دخول.

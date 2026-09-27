@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { verifyAuth } from '../../../../lib/auth'
 import { prisma } from '../../../../lib/prisma'
-import { supabaseAdmin } from '../../../../lib/supabase'
+import { gw } from '../../../../lib/gateway'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +20,8 @@ const VISITS_CACHE_TTL_MS = 60 * 60 * 1000
 // we resolve it on the server.
 export async function GET(request: Request) {
   try {
-    await verifyAuth(request)
+    const user = await verifyAuth(request)
+    if (!user) return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })
 
     if (visitsCache && Date.now() - visitsCache.at < VISITS_CACHE_TTL_MS) {
       return NextResponse.json(visitsCache.data)
@@ -38,36 +39,21 @@ export async function GET(request: Request) {
       })
     }
 
-    // Look up the gym slug — we need it for the gym-level RPC.
-    let gymSlug: string | null = null
-    {
-      const { data, error } = await supabaseAdmin
-        .from('gyms')
-        .select('slug')
-        .eq('id', license.gymId)
-        .single()
-      if (!error && data?.slug) gymSlug = data.slug
-    }
-
-    // Fire both RPCs in parallel; failures degrade to 0.
-    const [branchRes, gymRes] = await Promise.all([
-      license.branchId
-        ? supabaseAdmin.rpc('get_branch_visits_last_30_days', { p_branch_id: license.branchId })
-        : Promise.resolve({ data: 0, error: null }),
-      gymSlug
-        ? supabaseAdmin.rpc('get_gym_visits_last_30_days', { p_gym_slug: gymSlug })
-        : Promise.resolve({ data: 0, error: null })
-    ])
+    // عن طريق Control — الفرع والجيم من توكن الجهاز. أي فشل → 0.
+    const v = await gw<{ gymSlug: string | null; branchVisits: number; gymVisits: number }>('visits', {
+      timeoutMs: 8000
+    }).catch(() => null)
+    const gymSlug = v?.gymSlug ?? null
 
     const payload = {
       configured: true,
       gymSlug,
       gymName: license.gymName,
       branchName: license.branchName,
-      branchVisits: Number(branchRes.data) || 0,
-      gymVisits: Number(gymRes.data) || 0
+      branchVisits: Number(v?.branchVisits) || 0,
+      gymVisits: Number(v?.gymVisits) || 0
     }
-    visitsCache = { data: payload, at: Date.now() }
+    if (v) visitsCache = { data: payload, at: Date.now() }
     return NextResponse.json(payload)
   } catch (error: any) {
     if (error?.message === 'Unauthorized') {

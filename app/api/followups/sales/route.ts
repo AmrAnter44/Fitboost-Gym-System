@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
+import { guard } from '../../../../lib/routeGuard'
 import { prisma } from '../../../../lib/prisma'
 import { verifyAuth } from '../../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
+  const __g = await guard(request, ['canViewFollowUps', 'canManageSales'])
+  if (__g instanceof NextResponse) return __g
+
   try {
     const user = await verifyAuth(request)
     if (!user) {

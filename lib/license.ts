@@ -1,5 +1,5 @@
-import { supabaseAdmin } from './supabase'
 import { prisma } from './prisma'
+import { gw, GatewayError, ensureLinked } from './gateway'
 
 /**
  * التحقق من صلاحية الترخيص
@@ -19,73 +19,49 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
       }
     }
 
-    // محاولة فحص الترخيص من Supabase (مع timeout حقيقي يلغي الاتصال)
+    // فحص الترخيص من Control (Gym Gateway) — مع timeout قصير.
+    // أي فشل (مفيش نت / الجهاز لسه مش مربوط) → الحالة المحفوظة محلياً (بفترة سماح ١٤ يوم).
     try {
-      //  AbortController بيلغي الـ fetch فعليًا بعد 3 ثواني — بدل ما الـ socket يفضل
-      //  معلّق لما النت يقطع (اللي كان بيعمل هنج/لاج). لو اتلغى → catch → cached status.
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000)
-
-      let data: any, error: any
-      try {
-        const res = await supabaseAdmin
-          .from('branches')
-          .select('system_license, offline_mode_enabled')
-          .eq('id', license.branchId)
-          .abortSignal(controller.signal)
-          .single()
-        data = res.data
-        error = res.error
-      } finally {
-        clearTimeout(timeoutId)
+      if (!(license as { gatewayToken?: string | null }).gatewayToken) {
+        // جهاز لسه مش مربوط: بيعرّف نفسه لـ Control ويستنى الموافقة
+        const linked = await ensureLinked()
+        if (!linked) return getCachedLicenseStatus()
       }
 
-      // إذا نجح الاتصال، حدّث الـ cache
-      if (!error && data) {
+      const data = await gw<{ system_license: unknown; offline_mode_enabled: boolean; gymName?: string; branchName?: string }>(
+        'license',
+        { timeoutMs: 3000 }
+      )
+
+      const current = await prisma.supabaseLicense.findFirst({ orderBy: { lastChecked: 'desc' } })
+      if (current) {
         await prisma.supabaseLicense.update({
-          where: { id: license.id },
+          where: { id: current.id },
           data: {
             lastChecked: new Date(),
             systemLicense: data?.system_license?.toString() || 'false',
-            offlineModeEnabled: data?.offline_mode_enabled === true
+            offlineModeEnabled: data?.offline_mode_enabled === true,
+            ...(data?.gymName ? { gymName: data.gymName } : {}),
+            ...(data?.branchName ? { branchName: data.branchName } : {}),
           }
         })
-
-        const isValid = data?.system_license === true ||
-                        data?.system_license === 'true' ||
-                        data?.system_license === 'active'
-
-        return {
-          valid: isValid,
-          message: isValid
-            ? 'الترخيص نشط ✓'
-            : 'الترخيص منتهي. يرجى التواصل مع المسؤول.'
-        }
       }
 
-      // إذا فشل الاتصال، استخدم الـ cached status
-      // (لا نطبع warning عشان ما نزعجش المستخدم في حالة offline mode)
-      return getCachedLicenseStatus()
-    } catch (networkError: any) {
-      // في حالة network errors (مفيش نت) أو timeout، استخدم الـ cached status
-      const errorMessage = networkError?.message || ''
-      const isNetworkError =
-        errorMessage.includes('fetch failed') ||
-        errorMessage.includes('ENOTFOUND') ||
-        errorMessage.includes('EADDRNOTAVAIL') ||
-        errorMessage.includes('ECONNREFUSED') ||
-        errorMessage.includes('network') ||
-        errorMessage.includes('timeout') ||
-        errorMessage.includes('abort') ||
-        networkError?.name === 'AbortError'
+      const isValid = data?.system_license === true ||
+                      data?.system_license === 'true' ||
+                      data?.system_license === 'active'
 
-      if (isNetworkError) {
-        // لا تطبع الخطأ في حالة network error (عشان ما نزعجش المستخدم)
-        return getCachedLicenseStatus()
+      return {
+        valid: isValid,
+        message: isValid
+          ? 'الترخيص نشط ✓'
+          : 'الترخيص منتهي. يرجى التواصل مع المسؤول.'
       }
-
-      // خطأ آخر غير network error
-      console.error('License check error:', networkError)
+    } catch (e) {
+      // التوكن اتلغى من Control → نمسحه عشان يتفعّل تاني بكود
+      if (e instanceof GatewayError && (e.code === 'REVOKED' || e.code === 'BAD_TOKEN')) {
+        await prisma.supabaseLicense.updateMany({ data: { gatewayToken: null } as any }).catch(() => {})
+      }
       return getCachedLicenseStatus()
     }
   } catch (error) {

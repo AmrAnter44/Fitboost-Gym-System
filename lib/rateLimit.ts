@@ -96,16 +96,19 @@ export function checkRateLimit(
  * يستخدم IP address أو fallback على identifier من headers
  */
 export function getClientIdentifier(request: Request): string {
-  // محاولة الحصول على IP من headers
-  const forwarded = request.headers.get('x-forwarded-for')
+  // 🔒 Cloudflare Tunnel بيحط IP العميل الحقيقي في cf-connecting-ip (مينفعش يتزوّر).
+  //    أول قيمة في X-Forwarded-For بيكتبها العميل نفسه — فمبنعتمدش عليها.
+  const cfIp = request.headers.get('cf-connecting-ip')
+  if (cfIp) return cfIp.trim()
+
   const realIp = request.headers.get('x-real-ip')
+  if (realIp) return realIp.trim()
 
+  // آخر قيمة = اللي أضافها أقرب proxy (مش العميل)
+  const forwarded = request.headers.get('x-forwarded-for')
   if (forwarded) {
-    return forwarded.split(',')[0].trim()
-  }
-
-  if (realIp) {
-    return realIp
+    const parts = forwarded.split(',').map(s => s.trim()).filter(Boolean)
+    if (parts.length) return parts[parts.length - 1]
   }
 
   // Fallback: use a combination of user agent and host

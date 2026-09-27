@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 // آخر 10 أرقام من الهاتف — لمطابقة سجلّ الـ PT المرتبط بالهاتف
 function phoneTailOf(phone?: string | null): string | null {
   const t = phone?.replace(/\D/g, '').slice(-10)
-  return t && t.length >= 7 ? t : null
+  return t && t.length === 10 ? t : null
 }
 
 /**

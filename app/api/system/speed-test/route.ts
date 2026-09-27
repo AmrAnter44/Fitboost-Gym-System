@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { guard } from '../../../../lib/routeGuard'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,7 +10,10 @@ const DOWNLOAD_BYTES = 3_000_000 //  ~3 ميجابايت
 const SPEED_URL = `https://speed.cloudflare.com/__down?bytes=${DOWNLOAD_BYTES}`
 const TIMEOUT_MS = 15000
 
-export async function GET() {
+export async function GET(request: Request) {
+  const __g = await guard(request)
+  if (__g instanceof NextResponse) return __g
+
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
   const start = Date.now()

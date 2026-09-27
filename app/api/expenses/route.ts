@@ -45,7 +45,7 @@ export async function GET(request: Request) {
           },
           orderBy: { createdAt: 'desc' },
           include: {
-            staff: true
+            staff: { select: { id: true, name: true, staffCode: true, position: true, isActive: true } }
           }
         })
 
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
       where,
       orderBy: { createdAt: 'desc' },
       include: {
-        staff: true
+        staff: { select: { id: true, name: true, staffCode: true, position: true, isActive: true } }
       }
     })
 
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
     const expense = await prisma.expense.create({
       data: expenseData,
       include: {
-        staff: true
+        staff: { select: { id: true, name: true, staffCode: true, position: true, isActive: true } }
       }
     })
 
@@ -202,7 +202,7 @@ export async function PUT(request: Request) {
       where: { id },
       data: updateData,
       include: {
-        staff: true
+        staff: { select: { id: true, name: true, staffCode: true, position: true, isActive: true } }
       }
     })
 

@@ -1,11 +1,38 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
+import { verifyAuth, requireAnyPermission, type UserPayload } from '../../../lib/auth'
+
+// 🔒 بيانات الموظف الحساسة (المرتب والعمولات) بتتشال من أي رد لغير الأونر/الأدمن
+const SENSITIVE_STAFF_KEY = /^(salary|coachTarget|.*commission.*)$/i
+function scrub<T>(data: T, user: UserPayload | null): T {
+  if (user && (user.role === 'OWNER' || user.role === 'ADMIN')) return data
+  const walk = (v: any): any => {
+    if (Array.isArray(v)) return v.map(walk)
+    if (v && typeof v === 'object' && !(v instanceof Date)) {
+      const out: any = {}
+      for (const [k, val] of Object.entries(v)) {
+        if (SENSITIVE_STAFF_KEY.test(k)) continue
+        out[k] = walk(val)
+      }
+      return out
+    }
+    return v
+  }
+  return walk(data)
+}
 
 // GET - جلب سجلات الحضور
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
+  let user: UserPayload
+  try {
+    user = await requireAnyPermission(request, ['canViewAttendance', 'canViewStaff', 'canViewReports'])
+  } catch (e: any) {
+    const unauth = e?.message === 'Unauthorized'
+    return NextResponse.json({ error: unauth ? 'يجب تسجيل الدخول' : 'ليس لديك صلاحية' }, { status: unauth ? 401 : 403 })
+  }
   try {
     const { searchParams } = new URL(request.url)
     const staffId = searchParams.get('staffId')
@@ -57,7 +84,7 @@ export async function GET(request: Request) {
       orderBy: { checkIn: 'desc' },
     })
 
-    return NextResponse.json(attendance)
+    return NextResponse.json(scrub(attendance, user))
   } catch (error) {
     console.error('Error fetching attendance:', error)
     return NextResponse.json({ error: 'فشل جلب سجلات الحضور' }, { status: 500 })
@@ -66,6 +93,11 @@ export async function GET(request: Request) {
 
 // POST - تسجيل حضور وانصراف (Toggle) أو إدخال يدوي بواسطة الأدمن
 export async function POST(request: Request) {
+  // 🔒 تسجيل الحضور بالكود لازم يكون من جهاز داخل السيستم (مستخدم مسجّل دخول)
+  const authUser = await verifyAuth(request)
+  if (!authUser) {
+    return NextResponse.json({ error: 'يجب تسجيل الدخول أولاً', action: 'error' }, { status: 401 })
+  }
   try {
     const body = await request.json()
     const { staffCode, staffId, checkIn, checkOut, notes } = body
@@ -110,11 +142,11 @@ export async function POST(request: Request) {
         include: { staff: true },
       })
 
-      return NextResponse.json({
+      return NextResponse.json(scrub({
         action: 'manual-add',
         message: `✅ تم تسجيل حضور ${staff.name} يدوياً`,
         attendance: created,
-      })
+      }, authUser))
     }
 
     if (!staffCode) {
@@ -215,7 +247,7 @@ export async function POST(request: Request) {
       const minutes = durationMinutes % 60
       const durationText = hours > 0 ? `${hours} ساعة و ${minutes} دقيقة` : `${minutes} دقيقة`
 
-      return NextResponse.json({
+      return NextResponse.json(scrub({
         action: 'check-out',
         message: `👋 مع السلامة ${staff.name}!\nمدة العمل: ${durationText}`,
         staffCode: staff.staffCode,
@@ -223,7 +255,7 @@ export async function POST(request: Request) {
         attendance: updatedAttendance,
         duration: durationMinutes,
         durationText,
-      })
+      }, authUser))
     }
 
     // التحقق من آخر سجل انصراف (حتى لو تم تسجيل الانصراف)
@@ -265,13 +297,13 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({
+    return NextResponse.json(scrub({
       action: 'check-in',
       message: `✅ مرحباً ${staff.name}! تم تسجيل حضورك`,
       staffCode: staff.staffCode,
       staffName: staff.name,
       attendance: newAttendance,
-    })
+    }, authUser))
   } catch (error: any) {
     console.error('Error recording attendance:', error)
 

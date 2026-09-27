@@ -1,8 +1,8 @@
 // lib/websiteData.ts
 // تعديل بيانات ويبسايت الجيم (branch_data على Supabase) من جوه السيستم —
 // من غير إيميل وباسورد: الهوية هنا هي رخصة النظام (الجيم + الفرع المحفوظين
-// في SupabaseLicense). كل العمليات بتتعمل من السيرفر بالـ service role ومقفولة
-// على branch_id بتاع الرخصة، فمفيش أي فرع يقدر يلمس بيانات فرع تاني.
+// في SupabaseLicense). كل العمليات بتعدّي على Control (lib/gateway) بتوكن الجهاز،
+// والفرع بيتحدد هناك من التوكن — فمفيش أي فرع يقدر يلمس بيانات فرع تاني.
 
 import { NextResponse } from 'next/server'
 import { requireAdmin, type UserPayload } from './auth'
@@ -45,7 +45,7 @@ export async function resolveLicensedBranch(
   })
   if (!license?.gymId || !license?.branchId) {
     return NextResponse.json(
-      { error: 'السيستم مش مربوط برخصة. اختار الجيم والفرع من الإعدادات ← الترخيص.', code: 'NO_LICENSE' },
+      { error: 'السيستم مش مربوط. فعّله بكود التفعيل من الإعدادات ← الترخيص.', code: 'NO_LICENSE' },
       { status: 400 }
     )
   }

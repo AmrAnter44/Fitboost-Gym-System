@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { guard } from '../../../lib/routeGuard'
 import { prisma } from '../../../lib/prisma'
 import { addPoints } from '../../../lib/points'
 import { activatePendingRenewalForMember } from '../../../lib/pendingRenewal'
@@ -8,6 +9,9 @@ import { activatePendingRenewalForMember } from '../../../lib/pendingRenewal'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
+  const __g = await guard(request)
+  if (__g instanceof NextResponse) return __g
+
   try {
     const { memberId, method = 'scan' } = await request.json()
 

@@ -1,3 +1,5 @@
+import { guard, hasAnyPermission } from '@/lib/routeGuard'
+import { NextResponse } from 'next/server'
 import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 /**
  * Merged SSE stream for all WhatsApp sessions – proxy to sidecar
@@ -5,7 +7,10 @@ import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
+  const g = await guard(request, ['canManageWhatsApp', 'canViewWhatsAppInbox', 'canSendWhatsApp'])
+  if (g instanceof NextResponse) return g
+
   try {
     const upstreamRes = await fetch(`${WHATSAPP_SIDECAR}/events/all`, {
       cache: 'no-store',

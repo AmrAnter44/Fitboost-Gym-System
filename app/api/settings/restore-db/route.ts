@@ -22,7 +22,11 @@ function getDbPath(): string {
 // رفع وتحديث قاعدة البيانات
 export async function POST(request: Request) {
   try {
-    await requirePermission(request, 'canAccessSettings')
+    // 🔒 استبدال قاعدة البيانات كلها = سيطرة كاملة على السيستم → الأونر/الأدمن بس
+    const actor = await requirePermission(request, 'canAccessSettings')
+    if (actor.role !== 'OWNER' && actor.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'استرجاع قاعدة البيانات للأونر/الأدمن بس' }, { status: 403 })
+    }
 
     const formData = await request.formData()
     const file = formData.get('database') as File

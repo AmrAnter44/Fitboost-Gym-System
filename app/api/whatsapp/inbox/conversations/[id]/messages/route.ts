@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
+import { hasAnyPermission } from '@/lib/routeGuard'
 import { verifyAuth } from '@/lib/auth'
 import { prisma } from '../../../../../../../lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
-  if (!(await verifyAuth(request))) return NextResponse.json({ error: 'غير مصرّح' }, { status: 401 })
+  { const __u = await verifyAuth(request); if (!__u) return NextResponse.json({ error: 'غير مصرّح' }, { status: 401 }); if (!hasAnyPermission(__u, ['canViewWhatsAppInbox'])) return NextResponse.json({ error: 'ليس لديك صلاحية' }, { status: 403 }) }
   try {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')

@@ -46,7 +46,9 @@ export async function GET(
     }
 
     // آخر 10 أرقام من هاتف العضو — لمطابقة سجلّ الـ PT المرتبط بالهاتف
-    const phoneTail = member.phone?.replace(/\D/g, '').slice(-10)
+    const rawTail = member.phone?.replace(/\D/g, '').slice(-10)
+    // 🔒 رقم ناقص (أقل من 10) ممكن يطابق عملاء تانيين — منستخدموش
+    const phoneTail = rawTail && rawTail.length === 10 ? rawTail : null
 
     // Run all service queries in parallel
     const [ptReceipt, ptByPhone, nutritionRecord, physioRecord, groupClassRecord] = await Promise.all([

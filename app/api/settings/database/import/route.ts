@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { guard } from '../../../../../lib/routeGuard'
 import { writeFile, copyFile, unlink, access } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
@@ -185,7 +186,10 @@ export async function POST(request: NextRequest) {
 /**
  * GET: الحصول على معلومات عن النسخ الاحتياطية المتوفرة
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const __g = await guard(request, undefined, { adminOnly: true })
+  if (__g instanceof NextResponse) return __g
+
   try {
     const prismaDir = resolveDbDir();
     const { stdout } = await execAsync(`ls -1 "${prismaDir}" | grep "${resolveDbName()}.backup"`);

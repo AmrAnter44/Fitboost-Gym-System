@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { verifyAuth } from '../../../../lib/auth'
 import { prisma } from '../../../../lib/prisma'
-import { supabaseAdmin } from '../../../../lib/supabase'
+import { gw } from '../../../../lib/gateway'
 import { invalidateOfflineSyncCache } from '../../../../lib/offline-sync'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
@@ -29,16 +29,13 @@ export async function POST(request: Request) {
       )
     }
 
-    // 1) Update Supabase first — that's the source of truth
-    const { error } = await supabaseAdmin
-      .from('branches')
-      .update({ offline_mode_enabled: enabled })
-      .eq('id', license.branchId)
-
-    if (error) {
-      console.error('Supabase toggle error:', error)
+    // 1) Update the cloud first (via Control) — that's the source of truth
+    try {
+      await gw('offline-mode', { body: { enabled } })
+    } catch (e: any) {
+      console.error('Gateway toggle error:', e?.message)
       return NextResponse.json(
-        { error: 'فشل التحديث على Supabase: ' + error.message },
+        { error: 'فشل التحديث على السحابة: ' + (e?.message || '') },
         { status: 502 }
       )
     }

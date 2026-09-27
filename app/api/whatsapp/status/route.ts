@@ -1,3 +1,4 @@
+import { guard, stripQr } from '@/lib/routeGuard'
 /**
  * WhatsApp Status – checks all sessions, returns ready if any is connected
  */
@@ -5,7 +6,7 @@
 import { NextResponse } from 'next/server';
 import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
-export async function GET() {
+async function handler(): Promise<NextResponse> {
   try {
     // Try multi-session status first
     const allRes = await fetch(`${WHATSAPP_SIDECAR}/status/all`, { cache: 'no-store' });
@@ -46,4 +47,12 @@ export async function GET() {
       return NextResponse.json({ success: true, sidecarOnline: false, isReady: false, qrCode: null, hasClient: false });
     }
   }
+}
+
+export async function GET(request: Request) {
+  const g = await guard(request)
+  if (g instanceof NextResponse) return g
+  const res = await handler()
+  const data = await res.json().catch(() => null)
+  return NextResponse.json(stripQr(data, g), { status: res.status })
 }

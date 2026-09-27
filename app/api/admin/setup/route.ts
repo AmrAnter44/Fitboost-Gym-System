@@ -29,6 +29,11 @@ function isStrongPassword(password: string): { valid: boolean; error?: string } 
 
 export async function POST(request: Request) {
   try {
+    // 🔒 الإعداد الأول من الجهاز نفسه أو الشبكة الداخلية بس — مش من الإنترنت (Cloudflare tunnel)
+    if (request.headers.get('cf-connecting-ip') || request.headers.get('cf-ray')) {
+      return NextResponse.json({ error: 'الإعداد الأول متاح من جهاز الجيم بس' }, { status: 403 })
+    }
+
     const existingUsers = await prisma.user.count()
 
     if (existingUsers > 0) {

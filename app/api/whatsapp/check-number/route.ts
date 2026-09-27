@@ -1,7 +1,11 @@
+import { guard } from '@/lib/routeGuard'
 import { NextResponse } from 'next/server'
 import { WHATSAPP_SIDECAR } from '@/lib/servicePorts'
 
 export async function POST(req: Request) {
+  const g = await guard(req, ['canSendWhatsApp', 'canManageWhatsApp'])
+  if (g instanceof NextResponse) return g
+
   try {
     const { phone } = await req.json()
     const res = await fetch(`${WHATSAPP_SIDECAR}/check-number`, {

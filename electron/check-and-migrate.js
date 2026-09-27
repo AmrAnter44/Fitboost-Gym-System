@@ -1363,6 +1363,7 @@ function migrateDatabase(dbPath) {
           systemLicense TEXT NOT NULL,
           licenseMessage TEXT,
           offlineModeEnabled INTEGER NOT NULL DEFAULT 0,
+          gatewayToken TEXT,
           lastChecked DATETIME NOT NULL DEFAULT (datetime('now')),
           createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
           updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
@@ -1373,6 +1374,10 @@ function migrateDatabase(dbPath) {
       // ✅ SupabaseLicense.offlineModeEnabled — flag وضع الأوفلاين
       if (!columnExists(db, 'SupabaseLicense', 'offlineModeEnabled')) {
         db.prepare('ALTER TABLE SupabaseLicense ADD COLUMN offlineModeEnabled INTEGER NOT NULL DEFAULT 0').run();
+      }
+      // ✅ SupabaseLicense.gatewayToken — توكن الجهاز عند Control (بدل مفاتيح Supabase)
+      if (!columnExists(db, 'SupabaseLicense', 'gatewayToken')) {
+        db.prepare('ALTER TABLE SupabaseLicense ADD COLUMN gatewayToken TEXT').run();
       }
     }
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { guard } from '@/lib/routeGuard'
 import { verifyAuth } from '@/lib/auth'
 import { prisma } from '../../../../lib/prisma'
 
@@ -7,6 +8,9 @@ import { prisma } from '../../../../lib/prisma'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
+  const __g = await guard(request, ['canViewMembers'])
+  if (__g instanceof NextResponse) return __g
+
   if (!(await verifyAuth(request))) return NextResponse.json({ error: 'غير مصرّح' }, { status: 401 })
   try {
     const { searchParams } = new URL(request.url)
