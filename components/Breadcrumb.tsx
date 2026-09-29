@@ -14,6 +14,8 @@ const SEGMENT_KEYS: Record<string, string> = {
   'pt':             'nav.pt',
   'nutrition':      'nav.nutrition',
   'physiotherapy':  'nav.physiotherapy',
+  'more':           'nav.more',
+  'commission':     'more.commissionCalculator',
   'group-classes':  'nav.groupClasses',
   'dayuse':         'nav.dayUse',
   'staff':          'nav.staff',

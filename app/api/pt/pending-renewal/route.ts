@@ -11,12 +11,14 @@ import {
   PaymentValidationError,
 } from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
+import { activatePendingPTIfNeeded } from '../../../../lib/ptPendingRenewal'
 
 export const dynamic = 'force-dynamic'
 
 //  🔁 إدارة التجديد المعلّق للـ PT (قبل ما يتفعّل):
 //   - PUT  : تعديل تفاصيل الباقة المعلّقة (حصص/سعر/تواريخ/كوتش/باقي)
 //   - POST : دفع باقي الباقة المعلّقة (بيطلّع إيصال ويقلّل الباقي المخزّن في المعلّق)
+//   - PATCH: تفعيل الباقة المعلّقة دلوقتي من غير ما نستنى الحصص الحالية تخلص
 //  العمود pendingRenewalData جديد → بنقراه/نكتبه بـ raw SQL (الـ client ممكن يكون قديم).
 
 async function readPending(db: any, ptNumber: number): Promise<any | null> {
@@ -72,6 +74,52 @@ export async function PUT(request: Request) {
   } catch (error: any) {
     console.error('❌ خطأ في تعديل التجديد المعلّق:', error)
     return NextResponse.json({ error: 'فشل تعديل التجديد المعلّق' }, { status: 500 })
+  }
+}
+
+// PATCH — تفعيل الباقة المعلّقة فورًا (جيمات بتمشي بتاريخ الانتهاء مش بالحصص)
+//  الحصص اللي فاضلة من الباقة الحالية بتتلغي، والباقة المعلّقة بتبدأ مكانها.
+export async function PATCH(request: Request) {
+  try {
+    const user = await verifyAuth(request)
+    if (!user) return NextResponse.json({ error: 'يجب تسجيل الدخول أولاً' }, { status: 401 })
+    if (user.role === 'COACH') return NextResponse.json({ error: 'غير مسموح' }, { status: 403 })
+
+    const body = await request.json()
+    const ptNum = parseInt(body?.ptNumber)
+    if (!ptNum) return NextResponse.json({ error: 'رقم PT مطلوب' }, { status: 400 })
+
+    const pt = await prisma.pT.findUnique({
+      where: { ptNumber: ptNum },
+      select: { clientName: true, sessionsRemaining: true, sessionsPurchased: true },
+    })
+    if (!pt) return NextResponse.json({ error: 'جلسة PT غير موجودة' }, { status: 404 })
+    const pending = await readPending(prisma, ptNum)
+    if (!pending) return NextResponse.json({ error: 'مفيش تجديد معلّق على الاشتراك ده' }, { status: 404 })
+
+    //  activatePendingPTIfNeeded بيبلع أخطاءه ويرجّع false — فبنرمي عشان الـ transaction تترولّبك كاملة
+    await prisma.$transaction(async (tx) => {
+      const ok = await activatePendingPTIfNeeded(tx, ptNum, { force: true })
+      if (!ok) throw new Error('ACTIVATE_FAILED')
+    })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'PT', resourceId: String(ptNum),
+      details: {
+        operation: 'ActivatePendingRenewalNow',
+        ptNumber: ptNum,
+        clientName: pt.clientName,
+        discardedSessions: pt.sessionsRemaining, //  الحصص اللي كانت فاضلة من الباقة القديمة واتلغت
+        pending,
+      },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
+    return NextResponse.json({ success: true, discardedSessions: pt.sessionsRemaining })
+  } catch (error: any) {
+    console.error('❌ خطأ في تفعيل التجديد المعلّق:', error)
+    return NextResponse.json({ error: 'فشل تفعيل التجديد — لم يتم أي تغيير' }, { status: 500 })
   }
 }
 

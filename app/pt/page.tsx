@@ -751,6 +751,46 @@ function PTPageContent() {
     }
   }
 
+  //  ⚡ تفعيل التجديد المعلّق دلوقتي — من غير ما نستنى الحصص الحالية تخلص
+  //     (جيمات بتمشي بتاريخ الانتهاء مش بالحصص). الحصص الفاضلة من الباقة القديمة بتتلغي.
+  const [activatingPendingPt, setActivatingPendingPt] = useState<number | null>(null)
+  const activatePendingNow = async (session: PTSession) => {
+    const p = session.pendingRenewal
+    if (!p || activatingPendingPt) return
+    const left = Math.max(0, session.sessionsRemaining || 0)
+    const confirmed = await confirm({
+      title: locale === 'ar' ? 'تفعيل الاشتراك دلوقتي؟' : 'Activate renewal now?',
+      message: locale === 'ar'
+        ? `الباقة الجديدة (${p.sessions} حصة) هتتفعّل دلوقتي بدل ما تستنى الحصص الحالية تخلص.` +
+          (left > 0 ? `\nالحصص الفاضلة من الباقة الحالية (${left} حصة) هتتلغي.` : '')
+        : `The new package (${p.sessions} sessions) will start now instead of waiting for current sessions to finish.` +
+          (left > 0 ? `\nThe ${left} remaining sessions of the current package will be discarded.` : ''),
+      confirmText: locale === 'ar' ? 'تفعيل دلوقتي' : 'Activate now',
+      cancelText: locale === 'ar' ? 'إلغاء' : 'Cancel',
+      type: 'warning'
+    })
+    if (!confirmed) return
+    setActivatingPendingPt(session.ptNumber)
+    try {
+      const res = await fetch('/api/pt/pending-renewal', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ptNumber: session.ptNumber }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        toast.success(locale === 'ar' ? 'تم تفعيل الاشتراك الجديد' : 'New package activated')
+        refetchSessions()
+      } else {
+        toast.error(data.error || (locale === 'ar' ? 'فشل التفعيل' : 'Activation failed'))
+      }
+    } catch {
+      toast.error(locale === 'ar' ? 'خطأ في الاتصال' : 'Connection error')
+    } finally {
+      setActivatingPendingPt(null)
+    }
+  }
+
   //  دفع باقي التجديد المعلّق
   const payPendingRemaining = async () => {
     if (!pendingEditSession) return
@@ -1682,20 +1722,31 @@ function PTPageContent() {
                             : `Pending: ${session.pendingRenewal.sessions} sessions${(session.pendingRenewal.remainingAmount || 0) > 0 ? ` · owes ${Math.round(session.pendingRenewal.remainingAmount || 0)}` : ''}`}</span>
                         </div>
                         {!isCoach && (
-                          <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                          <div className="mt-1.5 flex gap-1.5">
                             {/*  تعديل — دايمًا */}
                             <button
                               onClick={() => openPendingEdit(session)}
-                              className={`${(session.pendingRenewal.remainingAmount || 0) > 0 ? 'col-span-1' : 'col-span-2'} bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded-md text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors duration-200`}
+                              className="flex-1 min-w-0 bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded-md text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors duration-200"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.9} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/></svg>
                               <span>{locale === 'ar' ? 'تعديل' : 'Edit'}</span>
+                            </button>
+                            {/*  ⚡ (i) تفعيل الاشتراك دلوقتي — من غير ما نستنى الحصص تخلص */}
+                            <button
+                              type="button"
+                              onClick={() => activatePendingNow(session)}
+                              disabled={activatingPendingPt === session.ptNumber}
+                              title={locale === 'ar' ? 'فعّل الاشتراك دلوقتي (من غير ما تستنى الحصص تخلص)' : 'Activate now (don\'t wait for sessions to finish)'}
+                              aria-label={locale === 'ar' ? 'تفعيل الاشتراك دلوقتي' : 'Activate renewal now'}
+                              className="flex-shrink-0 w-8 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-md flex items-center justify-center transition-colors duration-200"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
                             </button>
                             {/*  دفع الباقي — بس لو عليه باقي على التجديد */}
                             {(session.pendingRenewal.remainingAmount || 0) > 0 && (
                               <button
                                 onClick={() => openPendingEdit(session)}
-                                className="col-span-1 bg-orange-600 hover:bg-orange-700 text-white py-1.5 rounded-md text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors duration-200"
+                                className="flex-1 min-w-0 bg-orange-600 hover:bg-orange-700 text-white py-1.5 rounded-md text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors duration-200"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.9} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4"/></svg>
                                 <span>{locale === 'ar' ? `دفع الباقي (${Math.round(session.pendingRenewal.remainingAmount || 0)})` : `Pay (${Math.round(session.pendingRenewal.remainingAmount || 0)})`}</span>

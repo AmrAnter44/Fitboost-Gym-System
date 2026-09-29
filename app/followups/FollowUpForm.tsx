@@ -42,6 +42,7 @@ interface FollowUpFormProps {
     result: string
     nextFollowUpDate: string
     contacted: boolean
+    contactMethod?: 'call' | 'whatsapp'
     assignedTo?: string
     priority?: string
     stage?: string
@@ -70,6 +71,7 @@ export default function FollowUpForm({
     result: '',
     nextFollowUpDate: initialDate,
     contacted: true,
+    contactMethod: 'call' as 'call' | 'whatsapp',
     assignedTo: '',
     priority: 'medium',
     stage: 'new'
@@ -148,6 +150,7 @@ export default function FollowUpForm({
         result: '',
         nextFollowUpDate: '',
         contacted: true,
+        contactMethod: 'call',
         assignedTo: user?.staffId || '',
         priority: 'medium',
         stage: 'new'
@@ -226,6 +229,28 @@ export default function FollowUpForm({
               </div>
             </div>
           )}
+
+          {/* 📞 طريقة التواصل */}
+          <div>
+            <label className={labelCls}>{locale === 'ar' ? 'طريقة التواصل' : 'Contact method'}</label>
+            <div className="grid grid-cols-2 gap-2" role="radiogroup">
+              {([
+                { value: 'call' as const, label: locale === 'ar' ? 'كول' : 'Call', active: 'bg-blue-600 text-white ring-blue-600' },
+                { value: 'whatsapp' as const, label: locale === 'ar' ? 'واتساب' : 'WhatsApp', active: 'bg-green-600 text-white ring-green-600' },
+              ]).map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={formData.contactMethod === opt.value}
+                  onClick={() => setFormData({ ...formData, contactMethod: opt.value })}
+                  className={`px-3 py-2 rounded-lg text-sm font-bold ring-1 transition-colors duration-200 ${formData.contactMethod === opt.value ? opt.active : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div>
             <label className={labelCls}>

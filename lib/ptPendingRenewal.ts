@@ -39,7 +39,9 @@ export async function readPendingRenewal(db: any, ptNumber: number): Promise<Pen
 
 //  بيفعّل الباقة المعلّقة لو الحصص الحالية خلصت (sessionsRemaining <= 0).
 //  بيتنادى بعد أي خصم حصة. آمن يتنادى دايمًا — لو مفيش معلّق أو لسه فيه حصص مايعملش حاجة.
-export async function activatePendingPTIfNeeded(db: any, ptNumber: number): Promise<boolean> {
+//  force: تفعيل فوري من غير ما نستنى الحصص تخلص (جيمات بتمشي بتاريخ الانتهاء مش بالحصص) —
+//         الحصص اللي فاضلة من الباقة الحالية بتتلغي والباقة الجديدة بتبدأ مكانها.
+export async function activatePendingPTIfNeeded(db: any, ptNumber: number, opts: { force?: boolean } = {}): Promise<boolean> {
   try {
     const rows: any = await db.$queryRawUnsafe(
       `SELECT sessionsRemaining, remainingAmount, pendingRenewalData FROM PT WHERE ptNumber = ? LIMIT 1`,
@@ -47,7 +49,7 @@ export async function activatePendingPTIfNeeded(db: any, ptNumber: number): Prom
     )
     const row = Array.isArray(rows) && rows.length ? rows[0] : null
     if (!row) return false
-    if ((Number(row.sessionsRemaining) || 0) > 0) return false
+    if (!opts.force && (Number(row.sessionsRemaining) || 0) > 0) return false
     if (!row.pendingRenewalData) return false
 
     let p: PendingRenewal

@@ -35,7 +35,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
   const { user } = usePermissions()
   // كل المستخدمين يقدروا يعدلوا التواريخ في فورم إضافة العضو
   const canEditDates = true
-  const { t, direction } = useLanguage()
+  const { t, direction, locale } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
@@ -127,13 +127,15 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
   const isPrivilegedUser = user?.role === 'OWNER' || user?.role === 'ADMIN'
 
   // إغلاق الفورم عند الضغط على Escape (نفس نمط ReceiptDetailModal)
+  //  🧾 مش وقت الحفظ ولا والإيصال ظاهر — لأن بوب أب الإيصال جوّه الفورم، فقفل الفورم
+  //     كان بيضيّع الإيصال من الشاشة رغم إنه اتسجل
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel?.()
+      if (e.key === 'Escape' && !loading && !receiptPopup) onCancel?.()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onCancel])
+  }, [onCancel, loading, receiptPopup])
 
   useEffect(() => {
     const fetchNextNumber = async () => {
@@ -414,6 +416,11 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
       if (response.ok) {
         if (formData.skipReceipt) {
           toast.success(t('members.form.memberAddedWithoutReceipt'))
+        } else if (!data.receipt) {
+          //  🧾 مش المفروض يحصل (السيرفر بيسجل العضو والإيصال مع بعض) — بس لو حصل ما يعديش في صمت
+          toast.error(locale === 'ar'
+            ? 'تم تسجيل العضو لكن الإيصال مارجعش — راجع صفحة الإيصالات'
+            : 'Member saved but no receipt was returned — check the receipts page')
         } else {
           toast.success(t('members.form.memberAddedSuccessfully'))
         }

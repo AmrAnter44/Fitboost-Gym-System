@@ -6,6 +6,7 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tansta
 import Link from 'next/link'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
+import ConfirmDialog from '../../components/ConfirmDialog'
 import { LoadingScreen } from '../../components/Spinner'
 import type { MessageTemplate } from './MessageTemplateManager'
 
@@ -88,6 +89,7 @@ interface FollowUp {
   id: string
   notes: string
   contacted: boolean
+  contactMethod?: string | null // 📞 'whatsapp' | 'call' (null = قديم)
   nextFollowUpDate?: string
   result?: string
   salesName?: string
@@ -114,6 +116,13 @@ interface Member {
   isActive: boolean
   isBanned?: boolean
   birthDate?: string
+}
+
+//  📞 طريقة التواصل لمتابعة: المحفوظة، ولو قديمة (null) بنستنتجها من الملاحظة
+//  (رسايل الواتساب/السكريبت من السيستم بتكتب كده في الملاحظة — أي حاجة تانية = كول)
+function getContactMethod(fu: { contactMethod?: string | null; notes?: string | null }): 'whatsapp' | 'call' {
+  if (fu.contactMethod === 'whatsapp' || fu.contactMethod === 'call') return fu.contactMethod
+  return /واتساب|واتس|whatsapp|السكريبت|script/i.test(fu.notes || '') ? 'whatsapp' : 'call'
 }
 
 function FollowUpsPageContent() {
@@ -283,6 +292,7 @@ function FollowUpsPageContent() {
 
   const {
     data: allMembersData = [],
+    isLoading: loadingMembers,
     error: membersError
   } = useQuery({
     queryKey: ['members-followups'],
@@ -351,7 +361,8 @@ function FollowUpsPageContent() {
     [allMembersData]
   )
 
-  const loading = loadingFollowUps
+  //  نستنى الأعضاء كمان — من غيرهم متابعات الزوار اللي بقوا أعضاء بتظهر لثواني وبعدين تختفي
+  const loading = loadingFollowUps || loadingMembers
 
   //  Delete mutation مع Optimistic Update (متوافق مع useInfiniteQuery)
   const followUpsQueryKey = ['followups', 'paged', FOLLOWUPS_PAGE_SIZE] as const
@@ -478,6 +489,11 @@ function FollowUpsPageContent() {
   const debouncedSearchId = useDebounce(searchId, 300)
   const [resultFilter, setResultFilter] = useState('all')
   const [contactedFilter, setContactedFilter] = useState('all')
+  //  📞 فلتر طريقة التواصل — بيظهر ويشتغل بس مع «تم التواصل»
+  const [contactMethodFilter, setContactMethodFilter] = useState<'all' | 'whatsapp' | 'call'>('all')
+  useEffect(() => {
+    if (contactedFilter !== 'contacted') setContactMethodFilter('all')
+  }, [contactedFilter])
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [sourceFilter, setSourceFilter] = useState('all') //  فلتر المصدر
   const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female' | 'unknown'>('all') // 🚻 فلتر الجندر
@@ -602,6 +618,8 @@ function FollowUpsPageContent() {
   //  دمج المتابعات الحقيقية مع الأعضاء المنتهيين + الأعضاء القريبين من الانتهاء + Day Use + Invitations
   // ملاحظة: فلترة السيلز تتم في النهاية على الـ merged list (real + ephemeral) بشكل موحّد
   const allFollowUps = useMemo(() => {
+    //  لحد ما الأعضاء يتحمّلوا مش هنعرف مين من الزوار بقى عضو — فمنعرضش حاجة (العدّادات وزرار «لم يتم التواصل» كمان)
+    if (loadingMembers) return []
     //  Set من أرقام الأعضاء (نشطين + منتهيين) — لإزالة الزوار الذين أصبحوا أعضاء
     const memberPhones = new Set<string>()
     //  Set منفصل لـ الأعضاء النشطين فقط — يستخدم لإخفاء المتابعات بتاعت اللي بقوا أعضاء فعلاً
@@ -770,7 +788,7 @@ function FollowUpsPageContent() {
 
     return merged
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [followUps, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, visitors, normalizePhone, user, permissionsLoading, canManageSales, debouncedSearchTerm])
+  }, [followUps, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, visitors, normalizePhone, user, permissionsLoading, canManageSales, debouncedSearchTerm, loadingMembers, allMembersData])
 
   // الأرشفة التلقائية للمتابعات بعد تحويل الزائر لعضوية اتشالت — السجل بقى يفضل ظاهر
   // مع badge "✓ عضو الآن" بدل ما يتأرشف. لو فيه متابعات قديمة متأرشفة بـ reason='converted'
@@ -816,6 +834,7 @@ function FollowUpsPageContent() {
     result: string
     nextFollowUpDate: string
     contacted: boolean
+    contactMethod?: 'call' | 'whatsapp'
     assignedTo?: string
     priority?: string
     stage?: string
@@ -975,6 +994,7 @@ function FollowUpsPageContent() {
                     },
                     notes: `تم إرسال رسالة "${template.title}" عبر الواتساب`,
                     contacted: true,
+                    contactMethod: 'whatsapp',
                     lastContactedAt: optimisticContactedAt,
                     createdAt: optimisticContactedAt,
                     updatedAt: optimisticContactedAt,
@@ -994,6 +1014,7 @@ function FollowUpsPageContent() {
                 visitorId: selectedVisitorForTemplate.id,
                 notes: `تم إرسال رسالة "${template.title}" عبر الواتساب`,
                 contacted: true,
+                contactMethod: 'whatsapp',
                 salesName: user?.name,
                 visitorData: {
                   name: selectedVisitorForTemplate.name,
@@ -1347,7 +1368,8 @@ function FollowUpsPageContent() {
 
         const matchesResult = resultFilter === 'all' || fu.result === resultFilter
         const matchesContacted = contactedFilter === 'all' ||
-          (contactedFilter === 'contacted' && fu.contacted) ||
+          (contactedFilter === 'contacted' && fu.contacted &&
+            (contactMethodFilter === 'all' || getContactMethod(fu) === contactMethodFilter)) ||
           (contactedFilter === 'not-contacted' && !fu.contacted)
 
         const priority = getFollowUpPriority(fu)
@@ -1434,18 +1456,49 @@ function FollowUpsPageContent() {
         //  ترتيب حسب تاريخ الإضافة: الأحدث أولاً
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       })
-  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, genderFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority, getFollowUpPriority, user, isMyFollowUp])
+  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, contactMethodFilter, priorityFilter, sourceFilter, genderFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority, getFollowUpPriority, user, isMyFollowUp])
 
   // إعادة تعيين الصفحة للأولى عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, genderFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority])
+  }, [debouncedSearchTerm, resultFilter, contactedFilter, contactMethodFilter, priorityFilter, sourceFilter, genderFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredFollowUps.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const currentFollowUps = filteredFollowUps.slice(startIndex, endIndex)
+
+  // 🔁 "طبق لم يتم التواصل على الجميع" — على نتيجة الفلتر الحالية كلها (مش الصفحة بس).
+  //    بس المتابعات الحقيقية اللي "تم التواصل" — الصفوف المولّدة (منتهي/قريب/داي يوز/دعوة/زائر) مش في الـ DB
+  const resetContactedIds = useMemo(() => filteredFollowUps
+    .filter(fu => fu.contacted && !/^(expired-|expiring-|dayuse-|invitation-|visitor-|optimistic-)/.test(fu.id))
+    .map(fu => fu.id), [filteredFollowUps])
+  const [resettingContacted, setResettingContacted] = useState(false)
+  const [showResetContactedConfirm, setShowResetContactedConfirm] = useState(false)
+
+  const handleResetContacted = async () => {
+    setShowResetContactedConfirm(false)
+    if (resetContactedIds.length === 0 || resettingContacted) return
+    setResettingContacted(true)
+    try {
+      const res = await fetch('/api/followups/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset_contacted', followUpIds: resetContactedIds })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error)
+      toast.success(locale === 'ar' ? `تم تحويل ${data.affectedCount} متابعة لـ "لم يتم التواصل"` : `${data.affectedCount} follow-ups marked as not contacted`)
+      // لو كان فلتر "تم التواصل" شغال — الناس دي هتختفي منه، فنحوّل لـ "لم يتم التواصل" عشان تفضل ظاهرة
+      if (contactedFilter === 'contacted') setContactedFilter('not-contacted')
+      queryClient.invalidateQueries({ queryKey: ['followups'] })
+    } catch (error: any) {
+      toast.error(error?.message || (locale === 'ar' ? 'حدث خطأ' : 'An error occurred'))
+    } finally {
+      setResettingContacted(false)
+    }
+  }
 
   const goToPage = useCallback((page: number) => {
     setCurrentPage(page)
@@ -1539,6 +1592,7 @@ function FollowUpsPageContent() {
                 visitorId: visitor.id,
                 notes: `تم إرسال رسالة "${template.title}" عبر الواتساب (إرسال جماعي)`,
                 contacted: true,
+                contactMethod: 'whatsapp',
                 salesName: user?.name,
                 visitorData: {
                   name: visitor.name,
@@ -1776,6 +1830,8 @@ function FollowUpsPageContent() {
     let todayCount = 0
     let notContacted = 0
     let contacted = 0
+    let contactedWhatsapp = 0
+    let contactedCall = 0
     //  مسؤول السيلز بيشوف الكل، مش بس بتاعه
     const isSales = !!user?.isSales && !canManageSales
 
@@ -1855,10 +1911,14 @@ function FollowUpsPageContent() {
       }
 
       if (priority === 'today') todayCount++
-      if (fu.contacted) contacted++
+      if (fu.contacted) {
+        contacted++
+        if (getContactMethod(fu) === 'whatsapp') contactedWhatsapp++
+        else contactedCall++
+      }
       else notContacted++
     }
-    return { myFollowUps, todayCount, notContacted, contacted }
+    return { myFollowUps, todayCount, notContacted, contacted, contactedWhatsapp, contactedCall }
   }, [allFollowUps, isMyFollowUp, getFollowUpPriority, user?.isSales, canManageSales, debouncedSearchTerm, resultFilter, priorityFilter, salesFilter, assignedStaffFilter, sourceFilter, dateFromFilter, dateToFilter])
 
   //  قائمة مفلترة بكل الفلاتر **ما عدا** فلتر المصدر (Source) وفلتر «تم التواصل»
@@ -2952,6 +3012,29 @@ function FollowUpsPageContent() {
                 <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
                 {t('followups.contactStatus.contacted')} ({quickFilterCounts.contacted})
               </button>
+              {/* 📞 فلتر طريقة التواصل — بيظهر بس مع «تم التواصل» */}
+              {contactedFilter === 'contacted' && (
+                <div className="inline-flex items-center gap-1 ps-2 ms-1 border-s border-gray-200 dark:border-gray-600" role="group" aria-label={locale === 'ar' ? 'طريقة التواصل' : 'Contact method'}>
+                  {([
+                    { value: 'all' as const, label: locale === 'ar' ? 'الكل' : 'All', count: quickFilterCounts.contacted, active: 'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-800' },
+                    { value: 'whatsapp' as const, label: locale === 'ar' ? 'واتساب' : 'WhatsApp', count: quickFilterCounts.contactedWhatsapp, active: 'bg-green-600 text-white' },
+                    { value: 'call' as const, label: locale === 'ar' ? 'كول' : 'Call', count: quickFilterCounts.contactedCall, active: 'bg-blue-600 text-white' },
+                  ]).map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setContactMethodFilter(opt.value)}
+                      aria-pressed={contactMethodFilter === opt.value}
+                      className={`px-2.5 py-1 rounded-lg font-medium text-xs sm:text-sm transition-colors duration-200 ${
+                        contactMethodFilter === opt.value
+                          ? `${opt.active} shadow-sm`
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      {opt.label} ({opt.count})
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <button
               onClick={() => { const v = !sortByPriority; setSortByPriority(v); localStorage.setItem('followups-sortByPriority', String(v)) }}
@@ -3182,6 +3265,23 @@ function FollowUpsPageContent() {
             >
               <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
               {t('followups.bulkScript.buttonLabel')} ({filteredFollowUps.length})
+            </button>
+          )}
+          {hasPermission('canCreateFollowUp') && (
+            <button
+              onClick={() => setShowResetContactedConfirm(true)}
+              disabled={resetContactedIds.length === 0 || resettingContacted || followUpsHasNext || followUpsFetchingNext}
+              title={followUpsHasNext || followUpsFetchingNext
+                ? (locale === 'ar' ? 'استنى لحد ما كل المتابعات تتحمّل' : 'Wait until all follow-ups are loaded')
+                : resetContactedIds.length === 0
+                  ? (locale === 'ar' ? 'مفيش حد "تم التواصل" في نتيجة الفلتر الحالي' : 'No contacted follow-ups in the current filter')
+                  : undefined}
+              className="px-4 py-2 rounded-lg font-bold text-sm bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-sm flex items-center gap-2 whitespace-nowrap transition-colors duration-200"
+            >
+              <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+              {resettingContacted
+                ? (locale === 'ar' ? 'جاري التطبيق...' : 'Applying...')
+                : (locale === 'ar' ? 'طبق لم يتم التواصل على الجميع' : 'Mark all as not contacted')} ({resetContactedIds.length})
             </button>
           )}
         </div>
@@ -3811,6 +3911,20 @@ function FollowUpsPageContent() {
           <li>• <strong>{t('followups.tips.green.title')}:</strong> {t('followups.tips.green.text')}</li>
         </ul>
       </div>
+
+      {/* 🔁 تأكيد «طبق لم يتم التواصل على الجميع» */}
+      <ConfirmDialog
+        isOpen={showResetContactedConfirm}
+        type="warning"
+        title={locale === 'ar' ? 'طبق لم يتم التواصل على الجميع' : 'Mark all as not contacted'}
+        message={locale === 'ar'
+          ? `هيتم تحويل ${resetContactedIds.length} متابعة من نتيجة الفلتر الحالي لـ "لم يتم التواصل".\nمتأكد؟`
+          : `${resetContactedIds.length} follow-ups in the current filter will be marked as "not contacted".\nContinue?`}
+        confirmText={locale === 'ar' ? `تطبيق (${resetContactedIds.length})` : `Apply (${resetContactedIds.length})`}
+        cancelText={locale === 'ar' ? 'إلغاء' : 'Cancel'}
+        onConfirm={handleResetContacted}
+        onCancel={() => setShowResetContactedConfirm(false)}
+      />
 
       {/* Delete Confirmation Popup */}
       {showDeleteConfirm && deleteTarget && (
