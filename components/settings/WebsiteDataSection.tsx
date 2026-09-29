@@ -13,7 +13,11 @@ import ConfirmDialog from '../ConfirmDialog'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
-type DataType = 'coach' | 'offer' | 'pt_package' | 'class' | 'membership'
+type DataType = 'coach' | 'offer' | 'pt_package' | 'class' | 'membership' | 'morning'
+
+const DEFAULT_MORNING_COLOR = '#F59E0B'
+/** ألوان جاهزة لعروض المورنينج — وفيه اختيار حر كمان */
+const MORNING_SWATCHES = ['#F59E0B', '#F97316', '#EF4444', '#EC4899', '#8B5CF6', '#3B82F6', '#10B981', '#EAB308']
 
 interface BranchDataItem {
   id: string
@@ -29,7 +33,7 @@ interface BranchDataItem {
   time?: string | null
   class_type?: string | null
   sessions_count?: number | null
-  metadata?: { features?: string[] } | null
+  metadata?: { features?: string[]; color?: string; time_note?: string | null } | null
 }
 
 interface WebsiteData {
@@ -53,11 +57,14 @@ type FormState = {
   class_type: string
   sessions_count: string
   features: string[]
+  color: string
+  time_note: string
 }
 
 const emptyForm: FormState = {
   name: '', description: '', price: '', original_price: '', image_url: '', role: '',
   coach_name: '', day_of_week: '', time: '', class_type: '', sessions_count: '', features: [],
+  color: DEFAULT_MORNING_COLOR, time_note: '',
 }
 
 const DAYS = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
@@ -86,6 +93,7 @@ export default function WebsiteDataSection() {
     { id: 'pt_package', label: tr('باقات PT', 'PT Packages'), singular: tr('باقة PT', 'PT Package'), hint: tr('باقات التدريب الخاص وأسعارها على الموقع', 'Personal-training packages and their prices on the website') },
     { id: 'class', label: tr('الكلاسات', 'Classes'), singular: tr('كلاس', 'Class'), hint: tr('جدول الكلاسات (اليوم والساعة والنوع) على الموقع', 'The classes schedule (day, time and type) on the website') },
     { id: 'membership', label: tr('الاشتراكات', 'Memberships'), singular: tr('اشتراك', 'Membership'), hint: tr('باقات العضوية وأسعارها اللي بتظهر للزباين', 'Membership packages and prices shown to customers') },
+    { id: 'morning', label: tr('عروض المورنينج', 'Morning Offers'), singular: tr('عرض مورنينج', 'Morning Offer'), hint: tr('عروض بمواعيد تمرين محددة — بتظهر في سيكشن لوحدها على الموقع وكل عرض بلونه', 'Offers with limited workout hours — shown in their own section, each in its own color') },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [locale])
 
@@ -151,6 +159,8 @@ export default function WebsiteDataSection() {
       class_type: item.class_type || '',
       sessions_count: item.sessions_count != null ? String(item.sessions_count) : '',
       features: Array.isArray(item.metadata?.features) ? item.metadata!.features! : [],
+      color: item.metadata?.color || DEFAULT_MORNING_COLOR,
+      time_note: item.metadata?.time_note || '',
     } : emptyForm)
     setEditorOpen(true)
   }
@@ -340,6 +350,9 @@ export default function WebsiteDataSection() {
               const img = imageSrc(item.image_url)
               return (
                 <div key={item.id} className="flex gap-3 p-3 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-50 dark:bg-gray-900/40">
+                  {item.data_type === 'morning' && (
+                    <span className="w-2 self-stretch rounded-full flex-shrink-0" style={{ backgroundColor: item.metadata?.color || DEFAULT_MORNING_COLOR }} aria-hidden="true" />
+                  )}
                   {item.data_type === 'coach' && (
                     img
                       ? <img src={img} alt={item.name} className="w-14 h-14 rounded-lg object-cover flex-shrink-0 bg-gray-200" />
@@ -358,6 +371,7 @@ export default function WebsiteDataSection() {
                         </p>
                       )}
                       {item.data_type === 'pt_package' && item.sessions_count != null && <p>{item.sessions_count} {tr('جلسة', 'sessions')}</p>}
+                      {item.data_type === 'morning' && item.metadata?.time_note && <p>🕒 {item.metadata.time_note}</p>}
                       {item.description && <p className="truncate">{item.description}</p>}
                       {item.price != null && (
                         <p className="font-semibold text-gray-800 dark:text-gray-200">
@@ -445,7 +459,7 @@ export default function WebsiteDataSection() {
               </>
             )}
 
-            {editorType === 'membership' && (
+            {(editorType === 'membership' || editorType === 'morning') && (
               <Field label={tr('الوصف (اختياري)', 'Description (optional)')}>
                 <input className={inputCls} value={form.description} onChange={(e) => set('description', e.target.value)} />
               </Field>
@@ -457,7 +471,36 @@ export default function WebsiteDataSection() {
               </Field>
             )}
 
-            {(editorType === 'offer' || editorType === 'pt_package' || editorType === 'membership') && (
+            {editorType === 'morning' && (
+              <>
+                <Field label={tr('مواعيد التمرين المسموحة', 'Allowed workout hours')}>
+                  <input className={inputCls} value={form.time_note} onChange={(e) => set('time_note', e.target.value)}
+                    placeholder={tr('مثال: من ٣ الفجر لـ ٤ العصر', 'e.g. 3 AM – 4 PM only')} />
+                </Field>
+                <Field label={tr('لون العرض على الموقع', 'Card color on the website')}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {MORNING_SWATCHES.map((c) => (
+                      <button key={c} type="button" onClick={() => set('color', c)} aria-label={c}
+                        className={`w-8 h-8 rounded-full ring-2 ring-offset-2 dark:ring-offset-gray-800 transition ${form.color.toLowerCase() === c.toLowerCase() ? 'ring-gray-900 dark:ring-white' : 'ring-transparent'}`}
+                        style={{ backgroundColor: c }} />
+                    ))}
+                    <label className="inline-flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 ms-1">
+                      <input type="color" value={form.color} onChange={(e) => set('color', e.target.value)} className="w-8 h-8 rounded cursor-pointer bg-transparent" />
+                      {tr('لون تاني', 'Custom')}
+                    </label>
+                  </div>
+                  {/* معاينة */}
+                  <div className="mt-3 rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700 max-w-xs">
+                    <div className="px-4 py-2 text-white font-bold text-sm" style={{ backgroundColor: form.color }}>☀ {form.name || tr('اسم العرض', 'Offer name')}</div>
+                    <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200" style={{ backgroundColor: form.color + '1A' }}>
+                      {form.price ? `${form.price} ${tr('ج.م', 'EGP')}` : tr('السعر', 'Price')}{form.time_note ? ` • ${form.time_note}` : ''}
+                    </div>
+                  </div>
+                </Field>
+              </>
+            )}
+
+            {(editorType === 'offer' || editorType === 'pt_package' || editorType === 'membership' || editorType === 'morning') && (
               <div className="grid grid-cols-2 gap-3">
                 <Field label={tr('السعر (ج.م)', 'Price (EGP)')} required={editorType !== 'offer'}>
                   <input type="number" min={0} step="any" className={inputCls} value={form.price} onChange={(e) => set('price', e.target.value)} required={editorType !== 'offer'} dir="ltr" />
@@ -470,7 +513,7 @@ export default function WebsiteDataSection() {
               </div>
             )}
 
-            {(editorType === 'pt_package' || editorType === 'membership') && (
+            {(editorType === 'pt_package' || editorType === 'membership' || editorType === 'morning') && (
               <Field label={tr('المميزات', 'Features')}>
                 <div className="space-y-2">
                   {form.features.map((f, i) => (

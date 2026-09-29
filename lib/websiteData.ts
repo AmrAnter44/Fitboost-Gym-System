@@ -9,7 +9,11 @@ import { requireAdmin, type UserPayload } from './auth'
 import { prisma } from './prisma'
 import { validateLicense } from './license'
 
-export const WEBSITE_DATA_TYPES = ['coach', 'offer', 'pt_package', 'class', 'membership'] as const
+export const WEBSITE_DATA_TYPES = ['coach', 'offer', 'pt_package', 'class', 'membership', 'morning'] as const
+
+/** لون كارت عرض المورنينج الافتراضي (برتقالي) */
+export const DEFAULT_MORNING_COLOR = '#F59E0B'
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
 export type WebsiteDataType = (typeof WEBSITE_DATA_TYPES)[number]
 
 export const WEBSITE_MEDIA_BUCKET = 'gym-media'
@@ -90,6 +94,15 @@ export function buildBranchDataPayload(dataType: WebsiteDataType, body: any) {
 
   const sessions = toNumber(body?.sessions_count)
 
+  // المورنينج: لون الكارت + ملاحظة المواعيد (مثلاً "من ٣ الفجر لـ ٤ العصر")
+  const morningMeta = dataType === 'morning'
+    ? {
+        ...(features.length > 0 ? { features } : {}),
+        color: typeof body?.color === 'string' && HEX_COLOR.test(body.color.trim()) ? body.color.trim() : DEFAULT_MORNING_COLOR,
+        time_note: toText(body?.time_note, 200),
+      }
+    : null
+
   return {
     name: toText(body?.name, 200),
     description: toText(body?.description, 1000),
@@ -104,9 +117,10 @@ export function buildBranchDataPayload(dataType: WebsiteDataType, body: any) {
     role: dataType === 'coach' ? toText(body?.role, 200) || 'Coach' : null,
     sessions_count: dataType === 'pt_package' && sessions !== null ? Math.round(sessions) : null,
     metadata:
-      (dataType === 'membership' || dataType === 'pt_package') && features.length > 0
+      morningMeta ??
+      ((dataType === 'membership' || dataType === 'pt_package') && features.length > 0
         ? { features }
-        : null,
+        : null),
   }
 }
 
@@ -120,7 +134,7 @@ export function validateBranchDataPayload(
     if (p.sessions_count === null) return 'عدد الجلسات مطلوب'
     if (p.price === null) return 'السعر مطلوب'
   }
-  if (dataType === 'membership' && p.price === null) return 'السعر مطلوب'
+  if ((dataType === 'membership' || dataType === 'morning') && p.price === null) return 'السعر مطلوب'
   if (dataType === 'class') {
     if (!p.day_of_week) return 'اليوم مطلوب'
     if (!p.class_type) return 'نوع الكلاس مطلوب'
