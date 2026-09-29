@@ -496,6 +496,7 @@ function migrateDatabase(dbPath) {
       { col: 'archived',        def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'archivedAt',      def: 'DATETIME' },
       { col: 'archivedReason',  def: 'TEXT' },
+      { col: 'contactMethod',   def: 'TEXT' }, // 📞 'whatsapp' | 'call'
     ];
     for (const { col, def } of followUpCols) {
       if (!columnExists(db, 'FollowUp', col)) {

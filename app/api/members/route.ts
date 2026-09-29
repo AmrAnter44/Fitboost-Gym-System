@@ -12,7 +12,7 @@ import {
 import { logError } from '../../../lib/errorLogger'
 import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment, addPoints } from '../../../lib/points'
-import { getNextReceiptNumber, runReceiptTransaction } from '../../../lib/receiptHelpers'
+import { getNextReceiptNumber, runReceiptTransaction, PaymentValidationError } from '../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 import { memberCreateSchema, formatZodError } from '../../../lib/schemas/memberSchema'
 import { memberPhotoUrl } from '../../../lib/memberPhoto'
@@ -585,16 +585,121 @@ export async function POST(request: Request) {
       memberData.createdAt = new Date(customCreatedAt)
     }
 
-    // إنشاء العضو مع معالجة سباق رقم العضوية:
-    // لو رقمين اتسجّلوا بنفس الرقم في نفس اللحظة، الـ unique constraint بيرفض
-    // الثاني (P2002). بدل ما نرجّع 500 محيّر، بنجيب أول رقم متاح ونعيد المحاولة.
-    let member
+    // 🧾 تجهيز بيانات الإيصال والتحقق من الدفع **قبل** إنشاء العضو —
+    //    عشان أي خطأ في الدفع يرجّع 400 من غير ما يتسجل عضو من غير إيصال
+    const paidAmount = cleanSubscriptionPrice - cleanRemainingAmount
+    let finalPaymentMethod: string = 'cash'
+    let salesPersonName: string | null = null
+    if (!skipReceipt) {
+      if (Array.isArray(paymentMethod)) {
+        const validation = validatePaymentDistribution(paymentMethod, paidAmount)
+        if (!validation.valid) {
+          return NextResponse.json(
+            { error: validation.message || 'توزيع المبالغ غير صحيح' },
+            { status: 400 }
+          )
+        }
+        finalPaymentMethod = serializePaymentMethods(paymentMethod)
+      } else {
+        finalPaymentMethod = paymentMethod || 'cash'
+      }
+
+      // 💼 اسم السيلز عشان يظهر في الإيصال (effectiveSalesStaffId ممكن يكون اتغصب من المتابعة)
+      if (effectiveSalesStaffId) {
+        const salesStaff = await prisma.staff.findUnique({
+          where: { id: effectiveSalesStaffId },
+          select: { name: true }
+        })
+        salesPersonName = salesStaff?.name || null
+      }
+    }
+
+    let subscriptionDays = null
+    if (startDate && expiryDate) {
+      const start = new Date(startDate)
+      const end = new Date(expiryDate)
+      subscriptionDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+    }
+
+    const buildReceiptPayload = (memberId: string, receiptNumber: number): any => {
+      const payload: any = {
+        receiptNumber,
+        type: 'Member',
+        amount: paidAmount,
+        paymentMethod: finalPaymentMethod,
+        staffName: (staffName || '').trim(),
+        itemDetails: JSON.stringify({
+          memberNumber: cleanMemberNumber,
+          memberName: name,
+          phone: phone,
+          nationalId: nationalId || null,
+          birthDate: birthDate || null,
+          notes: notes || null,
+          subscriptionPrice: cleanSubscriptionPrice,
+          paidAmount: paidAmount,
+          remainingAmount: cleanRemainingAmount,
+          freePTSessions: cleanFreePTSessions,
+          inBodyScans: cleanInBodyScans,
+          invitations: cleanInvitations,
+          remainingFreezeDays: cleanRemainingFreezeDays,
+          startDate: startDate,
+          expiryDate: expiryDate,
+          subscriptionDays: subscriptionDays,
+          staffName: (staffName || '').trim(),
+          salesPersonName,
+          isOther: isOther === true,
+          // 💸 الخصم — يظهر في الإيصال
+          ...(discount && Number(discount) > 0 ? {
+            discount: Number(discount),
+            originalPrice: originalPrice ? Number(originalPrice) : (cleanSubscriptionPrice + Number(discount))
+          } : {}),
+        }),
+        memberId,
+      }
+      // إذا كان هناك تاريخ مخصص من الأدمن، استخدمه للإيصال أيضاً
+      if (customCreatedAt) payload.createdAt = new Date(customCreatedAt)
+      return payload
+    }
+
+    // ✅ العضو + رقم الإيصال + الإيصال + خصم النقاط في transaction واحدة ذرّية:
+    //    يا إما الاشتراك والإيصال يتسجلوا مع بعض، يا إما ولا حاجة (والمستخدم يشوف خطأ ويعيد).
+    //    قبل كده العضو كان بيتسجل لوحده، ولو الإيصال فشل (غالباً "database is locked" وقت
+    //    الضغط — جهازين ريسبشن أو التقفيل شغال) كان الخطأ بيتبلع ويرجع success من غير إيصال.
+    //    runReceiptTransaction: مهلات أوسع + إعادة محاولة تلقائية على أخطاء القفل العابرة.
+    // معالجة سباق رقم العضوية: لو رقمين اتسجّلوا بنفس الرقم في نفس اللحظة، الـ unique
+    // constraint بيرفض الثاني (P2002) — بنجيب أول رقم متاح ونعيد الـ transaction كلها.
+    let member: any
+    let receipt: any = null
     let createAttempts = 0
     while (true) {
       try {
-        member = await prisma.member.create({ data: memberData })
+        const txResult = await runReceiptTransaction(prisma, async (tx: any) => {
+          const m = await tx.member.create({ data: memberData })
+          if (skipReceipt) return { member: m, receipt: null }
+
+          const receiptNumber = await getNextReceiptNumber(tx)
+          const r = await tx.receipt.create({ data: buildReceiptPayload(m.id, receiptNumber) })
+          const pr = await processPaymentWithPoints(
+            m.id,
+            phone,
+            m.memberNumber,  // ✅ تمرير رقم العضوية
+            finalPaymentMethod,
+            `دفع اشتراك عضوية - ${name}`,
+            tx
+          )
+          if (!pr.success) {
+            // PaymentValidationError → مش بيتعاد، والـ transaction بتترولّبك (لا عضو ولا إيصال)
+            throw new PaymentValidationError(pr.message || 'فشل خصم النقاط')
+          }
+          return { member: m, receipt: r }
+        })
+        member = txResult.member
+        receipt = txResult.receipt
         break
       } catch (createErr: any) {
+        if (createErr instanceof PaymentValidationError) {
+          return NextResponse.json({ error: createErr.message }, { status: 400 })
+        }
         const target = createErr?.meta?.target
         const isNumberClash = createErr?.code === 'P2002' &&
           cleanMemberNumber !== null &&
@@ -716,129 +821,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // إنشاء إيصال (إلا إذا طلب المستخدم عدم إنشائه)
+    // 🧾 الإيصال اتعمل خلاص جوّه نفس الـ transaction بتاعة العضو (فوق)
     let receiptData = null
-    let receiptFailureMessage: string | null = null
-
-    if (!skipReceipt) {
-      // ✅ إنشاء الإيصال فقط إذا لم يتم تفعيل خيار عدم الإنشاء
-      try {
-      const paidAmount = cleanSubscriptionPrice - cleanRemainingAmount
-
-      // ✅ معالجة وسائل الدفع المتعددة
-      let finalPaymentMethod: string
-      if (Array.isArray(paymentMethod)) {
-        // التحقق من صحة توزيع المبالغ
-        const validation = validatePaymentDistribution(paymentMethod, paidAmount)
-        if (!validation.valid) {
-          return NextResponse.json(
-            { error: validation.message || 'توزيع المبالغ غير صحيح' },
-            { status: 400 }
-          )
-        }
-        // تحويل لـ JSON للتخزين
-        finalPaymentMethod = serializePaymentMethods(paymentMethod)
-      } else {
-        // طريقة دفع واحدة (backward compatible)
-        finalPaymentMethod = paymentMethod || 'cash'
-      }
-
-      let subscriptionDays = null
-      if (startDate && expiryDate) {
-        const start = new Date(startDate)
-        const end = new Date(expiryDate)
-        subscriptionDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-      }
-
-      // 💼 جلب اسم السيلز عشان يظهر في الإيصال (مش بس اسم الكاشير)
-      // نستخدم effectiveSalesStaffId اللي ممكن يكون اتغصب من المتابعة
-      let salesPersonName: string | null = null
-      if (effectiveSalesStaffId) {
-        const salesStaff = await prisma.staff.findUnique({
-          where: { id: effectiveSalesStaffId },
-          select: { name: true }
-        })
-        salesPersonName = salesStaff?.name || null
-      }
-
-      // ✅ payload لإنشاء الإيصال — اسم مختلف عن receiptData الخارجي
-      // عشان لا يحصل shadowing (كانت bug قديمة بترجع receipt: null للـ client)
-      const receiptCreatePayload: any = {
-        type: 'Member',
-        amount: paidAmount,
-        paymentMethod: finalPaymentMethod,
-        staffName: (staffName || '').trim(),
-        itemDetails: JSON.stringify({
-          memberNumber: cleanMemberNumber,
-          memberName: name,
-          phone: phone,
-          nationalId: nationalId || null,
-          birthDate: birthDate || null,
-          notes: notes || null,
-          subscriptionPrice: cleanSubscriptionPrice,
-          paidAmount: paidAmount,
-          remainingAmount: cleanRemainingAmount,
-          freePTSessions: cleanFreePTSessions,
-          inBodyScans: cleanInBodyScans,
-          invitations: cleanInvitations,
-          remainingFreezeDays: cleanRemainingFreezeDays,
-          startDate: startDate,
-          expiryDate: expiryDate,
-          subscriptionDays: subscriptionDays,
-          staffName: (staffName || '').trim(),
-          salesPersonName,
-          isOther: isOther === true,
-          // 💸 الخصم — يظهر في الإيصال
-          ...(discount && Number(discount) > 0 ? {
-            discount: Number(discount),
-            originalPrice: originalPrice ? Number(originalPrice) : (cleanSubscriptionPrice + Number(discount))
-          } : {}),
-        }),
-        memberId: member.id,
-      }
-
-      // إذا كان هناك تاريخ مخصص من الأدمن، استخدمه للإيصال أيضاً
-      if (customCreatedAt) {
-        receiptCreatePayload.createdAt = new Date(customCreatedAt)
-      }
-
-      // ✅ Receipt + points في transaction واحد — لو الـ points فشلت، الإيصال يترجع
-      // (BUG 3: قبل كده كان الإيصال بيتسجّل ثم لو النقاط فشلت يرجع 400 والإيصال orphan)
-      let receipt: any
-      try {
-        // رقم الإيصال بيتحجز جوّه نفس الـ transaction، مع مهلة أطول وإعادة محاولة
-        // لو الداتابيز مشغولة (كانت السبب إن الإيصال يفشل ساعات والعضو يتسجّل من غيره)
-        const result = await runReceiptTransaction(prisma, async (tx) => {
-          const receiptNumber = await getNextReceiptNumber(tx)
-          const r = await tx.receipt.create({ data: { ...receiptCreatePayload, receiptNumber } })
-          const pr = await processPaymentWithPoints(
-            member.id,
-            phone,
-            member.memberNumber,  // ✅ تمرير رقم العضوية
-            finalPaymentMethod,
-            `دفع اشتراك عضوية - ${name}`,
-            tx  // ✅ نمرّر الـ tx بدل الـ global prisma
-          )
-          if (!pr.success) {
-            const e: any = new Error(pr.message || 'فشل خصم النقاط')
-            e.code = 'POINTS_FAILED'
-            e.userMessage = pr.message
-            throw e
-          }
-          return { receipt: r, pointsResult: pr }
-        })
-        receipt = result.receipt
-      } catch (txErr: any) {
-        if (txErr?.code === 'POINTS_FAILED') {
-          return NextResponse.json(
-            { error: txErr.userMessage || 'فشل خصم النقاط' },
-            { status: 400 }
-          )
-        }
-        throw txErr
-      }
-
-      // إضافة نقاط مكافأة على الدفع
+    if (receipt) {
+      // إضافة نقاط مكافأة على الدفع (غير حرج)
       try {
         await addPointsForPayment(
           member.id,
@@ -859,30 +845,6 @@ export async function POST(request: Request) {
         createdAt: receipt.createdAt,
         itemDetails: JSON.parse(receipt.itemDetails)
       }
-
-    } catch (receiptError) {
-      console.error('❌ خطأ في إنشاء الإيصال:', receiptError)
-
-      // Log error to file
-      logError({
-        error: receiptError,
-        endpoint: '/api/members',
-        method: 'POST',
-        statusCode: 500,
-        additionalContext: {
-          errorType: 'Receipt creation failed',
-          isDuplicateReceipt: receiptError instanceof Error && receiptError.message.includes('Unique constraint')
-        }
-      })
-
-      if (receiptError instanceof Error && receiptError.message.includes('Unique constraint')) {
-        console.error('❌ رقم الإيصال مكرر! المحاولة مرة أخرى...')
-      }
-
-      // ⚠️ العضو اتسجّل بس الإيصال ماتعملش — لازم الموظف يعرف بدل ما يشوف "تم بنجاح" بس
-      receiptFailureMessage = 'تم تسجيل العضو لكن الإيصال ماتعملش — راجع صفحة الإيصالات وسجّل الدفع يدوياً أو تواصل مع الدعم'
-    }
-    } else {
     }
 
     // 👥 منح نقاط الإحالة للعضو المُحيل
@@ -914,8 +876,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       member: member,
-      receipt: receiptData,
-      ...(receiptFailureMessage ? { receiptError: receiptFailureMessage } : {})
+      receipt: receiptData
     }, { status: 201 })
 
   } catch (error: any) {
@@ -948,7 +909,8 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.json({ error: 'فشل إضافة العضو' }, { status: 500 })
+    // العضو والإيصال في transaction واحدة — فلو وصلنا هنا مفيش حاجة اتسجلت، وإعادة المحاولة آمنة
+    return NextResponse.json({ error: 'فشل إضافة العضو ولم يتم تسجيل أي حاجة (لا اشتراك ولا إيصال). من فضلك حاول مرة أخرى.' }, { status: 500 })
   }
 }
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAuth } from '@/lib/auth'
+import { verifyAuth, requirePermission } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +14,7 @@ export const dynamic = 'force-dynamic'
  * - archive: Archive multiple followups
  * - update_stage: Update stage for multiple followups
  * - update_priority: Update priority for multiple followups
+ * - reset_contacted: Mark multiple followups as "not contacted" (عشان يتكلموا تاني)
  */
 export async function POST(request: Request) {
   try {
@@ -162,6 +163,19 @@ export async function POST(request: Request) {
         })
         break
 
+      case 'reset_contacted':
+        // 🔁 "طبق لم يتم التواصل على الجميع" — نفس صلاحية تعديل المتابعة (PUT /api/visitors/followups)
+        try {
+          await requirePermission(request, 'canCreateFollowUp')
+        } catch {
+          return NextResponse.json({ error: 'ليس لديك صلاحية تعديل المتابعات' }, { status: 403 })
+        }
+        result = await prisma.followUp.updateMany({
+          where: { id: { in: followUpIds } },
+          data: { contacted: false }
+        })
+        break
+
       case 'delete':
         // Permanent delete (use with caution)
         // حذف الأنشطة والمتابعات في transaction واحد
@@ -177,7 +191,7 @@ export async function POST(request: Request) {
 
       default:
         return NextResponse.json(
-          { error: 'Invalid action. Valid actions: assign, archive, update_stage, update_priority, unarchive, delete' },
+          { error: 'Invalid action. Valid actions: assign, archive, update_stage, update_priority, unarchive, reset_contacted, delete' },
           { status: 400 }
         )
     }

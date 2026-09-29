@@ -132,7 +132,9 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canCreateFollowUp')
 
     const body = await request.json()
-    const { visitorId, notes, contacted, nextFollowUpDate, result, salesName, visitorData, priority, stage } = body
+    const { visitorId, notes, contacted, nextFollowUpDate, result, salesName, visitorData, priority, stage, contactMethod } = body
+    //  📞 طريقة التواصل — بتتسجل بس لو تم التواصل
+    const safeContactMethod = contacted && (contactMethod === 'whatsapp' || contactMethod === 'call') ? contactMethod : null
     // ✅ المتابعة دائماً تُسند للمستخدم المسجل دخول، أيًا كانت قيمة assignedTo في body
     const assignedTo: string | null = user.staffId || null
 
@@ -203,6 +205,7 @@ export async function POST(request: Request) {
         stage: stage || 'new',
         lastContactedAt: contacted ? new Date() : null,
         contactCount: contacted ? 1 : 0,
+        contactMethod: safeContactMethod,
       },
     })
 

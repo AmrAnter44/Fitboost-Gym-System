@@ -258,6 +258,7 @@ model FollowUp {
   stage            String       @default("new") // Pipeline stage
   lastContactedAt  DateTime?    // Last contact timestamp
   contactCount     Int          @default(0)   // Number of contact attempts
+  contactMethod    String?      // 📞 طريقة التواصل: 'whatsapp' | 'call' (null = قديم — بيتحدد من الملاحظة)
   archived         Boolean      @default(false) // Soft delete for converted
   archivedAt       DateTime?    // When archived
   archivedReason   String?      // Why archived ('converted', 'renewed', 'manual')

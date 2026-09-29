@@ -144,6 +144,8 @@ interface Staff {
 
 export default function ClosingPage() {
   const { hasPermission, isAdmin, loading: permissionsLoading, user } = usePermissions()
+  // 🔒 صلاحية اليوم بس (من غير التقفيل الكامل) — صافي الربح مايظهرش (لا في الشاشة ولا في الإكسيل)
+  const hideNetProfit = hasPermission('canCloseDayOnly') && !hasPermission('canAccessClosing')
   const [dailyData, setDailyData] = useState<DailyData[]>([])
   const [staffList, setStaffList] = useState<Staff[]>([])
   const [loading, setLoading] = useState(true)
@@ -800,15 +802,17 @@ export default function ClosingPage() {
         }
       })
 
-      mainSheet.addRow([])
-      const profitRow = mainSheet.addRow([t('closing.stats.netProfit'), totals.netProfit])
-      profitRow.font = { bold: true, size: 14, name: 'Arial' }
-      profitRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF90EE90' }
+      if (!hideNetProfit) {
+        mainSheet.addRow([])
+        const profitRow = mainSheet.addRow([t('closing.stats.netProfit'), totals.netProfit])
+        profitRow.font = { bold: true, size: 14, name: 'Arial' }
+        profitRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF90EE90' }
+        }
+        profitRow.alignment = { horizontal: direction === 'rtl' ? 'right' : 'left', vertical: 'middle' }
       }
-      profitRow.alignment = { horizontal: direction === 'rtl' ? 'right' : 'left', vertical: 'middle' }
 
       mainSheet.addRow([])
       const summaryTitle = mainSheet.addRow([t('closing.excel.summaryTitle')])
@@ -820,7 +824,7 @@ export default function ClosingPage() {
       }
 
       mainSheet.addRow([t('closing.stats.totalExpenses'), totals.expenses])
-      mainSheet.addRow([t('closing.stats.netProfit'), totals.netProfit])
+      if (!hideNetProfit) mainSheet.addRow([t('closing.stats.netProfit'), totals.netProfit])
       mainSheet.addRow([t('closing.stats.numberOfDays'), dailyData.length])
       mainSheet.addRow([t('closing.stats.dailyAverage'), dailyData.length > 0 ? Math.round(totals.totalPayments / dailyData.length) : 0])
 
@@ -1581,7 +1585,7 @@ export default function ClosingPage() {
             const dayExpenses = dailyData.reduce((s, d) => s + (d.expenses || 0), 0)
             const dayNet = dayTotalIncome - dayExpenses
             return (
-              <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
+              <div className={`grid ${hideNetProfit ? 'grid-cols-1' : 'grid-cols-2'} gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print`}>
                 <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/30 dark:to-emerald-900/10 rounded-xl shadow-sm ring-1 ring-emerald-200 dark:ring-emerald-700/50 p-4 sm:p-5">
                   <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
                     {t('closing.stats.totalIncome') !== 'closing.stats.totalIncome' ? t('closing.stats.totalIncome') : (direction === 'rtl' ? 'إجمالي الدخل' : 'Total Income')}
@@ -1591,6 +1595,7 @@ export default function ClosingPage() {
                     <span className="text-xs sm:text-sm font-medium text-emerald-600/80 dark:text-emerald-400/80 ms-1">{t('closing.currency')}</span>
                   </div>
                 </div>
+                {!hideNetProfit && (
                 <div className="bg-gradient-to-br from-primary-50 to-primary-100/50 dark:from-primary-900/30 dark:to-primary-900/10 rounded-xl shadow-sm ring-1 ring-primary-200 dark:ring-primary-700/50 p-4 sm:p-5">
                   <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary-700 dark:text-primary-300">
                     {t('closing.stats.netProfit')}
@@ -1600,6 +1605,7 @@ export default function ClosingPage() {
                     <span className={`text-xs sm:text-sm font-medium ms-1 ${dayNet >= 0 ? 'text-primary-600/80 dark:text-primary-400/80' : 'text-red-500/80 dark:text-red-400/80'}`}>{t('closing.currency')}</span>
                   </div>
                 </div>
+                )}
               </div>
             )
           })()}
@@ -2320,6 +2326,7 @@ export default function ClosingPage() {
                 </tr>
 
                 {/* Net Profit Row */}
+                {!hideNetProfit && (
                 <tr className="bg-green-100 dark:bg-green-900/40 font-bold border-t border-green-200 dark:border-green-900/50">
                   <td colSpan={8} className="px-3 py-3 text-center text-lg text-gray-900 dark:text-gray-100">
                     {t('closing.stats.netProfit')}
@@ -2328,6 +2335,7 @@ export default function ClosingPage() {
                     {totals.netProfit.toFixed(0)} {t('closing.currency')}
                   </td>
                 </tr>
+                )}
 
                 {/* صافي الانستا باي بعد مصاريف الانستا باي */}
                 <tr className="bg-amber-50 dark:bg-amber-900/30 font-bold border-t border-amber-200 dark:border-amber-900/50">

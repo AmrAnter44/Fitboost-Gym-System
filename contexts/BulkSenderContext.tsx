@@ -202,6 +202,7 @@ export function BulkSenderProvider({ children }: { children: ReactNode }) {
                 visitorId: visitor.id,
                 notes: t('followups.bulkScript.scriptFollowupNote'),
                 contacted: true,
+                contactMethod: 'whatsapp',
                 salesName: meta.userName,
                 //  ⏰ ريمايندر: يرجع يظهر في المتابعات في التاريخ ده
                 nextFollowUpDate: meta.reminderDate || undefined,

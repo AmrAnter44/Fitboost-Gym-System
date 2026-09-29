@@ -2167,6 +2167,38 @@ function MembersPageContent() {
           return d > today
         })
         const noDate = withRemaining.filter(m => !m.remainingDueDate)
+        const canExportRemaining = user?.role === 'OWNER' || user?.role === 'ADMIN'
+
+        // 📊 تصدير البواقي Excel — الاسم / الهاتف / المبلغ الباقي / الموعد (لو محدد)
+        const exportRemainingToExcel = async () => {
+          const { default: ExcelJS } = await import('exceljs')
+          const wb = new ExcelJS.Workbook()
+          const ws = wb.addWorksheet('البواقي', { views: [{ rightToLeft: true }] })
+          ws.columns = [
+            { header: 'الاسم', key: 'name', width: 30 },
+            { header: 'رقم الهاتف', key: 'phone', width: 18 },
+            { header: 'المبلغ الباقي', key: 'amount', width: 16 },
+            { header: 'الموعد', key: 'dueDate', width: 16 },
+          ]
+          ws.getRow(1).font = { bold: true }
+          for (const m of [...overdue, ...dueToday, ...upcoming, ...noDate]) {
+            ws.addRow({
+              name: m.name,
+              phone: m.phone || '',
+              amount: m.remainingAmount,
+              dueDate: m.remainingDueDate ? formatDateYMD(m.remainingDueDate) : '',
+            })
+          }
+          const totalRow = ws.addRow({ name: 'الإجمالي', amount: totalRemaining })
+          totalRow.font = { bold: true }
+          const buffer = await wb.xlsx.writeBuffer()
+          const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `remaining_${new Date().toISOString().split('T')[0]}.xlsx`
+          a.click()
+          URL.revokeObjectURL(url)
+        }
 
         const renderSection = (title: string, icon: string, members: Member[], rowClass: string) => {
           if (members.length === 0) return null
@@ -2217,6 +2249,18 @@ function MembersPageContent() {
                   <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{totalRemaining.toLocaleString()} ج.م</div>
                 </div>
                 <div className="mr-auto text-right text-sm text-gray-500 dark:text-gray-400">{withRemaining.length} عضو</div>
+                {canExportRemaining && withRemaining.length > 0 && (
+                  <button
+                    onClick={exportRemainingToExcel}
+                    type="button"
+                    className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 min-h-[40px] rounded-lg transition-colors duration-200 text-xs sm:text-sm font-bold flex items-center gap-1.5 shrink-0"
+                  >
+                    <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4 shrink-0" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    <span>Excel</span>
+                  </button>
+                )}
               </div>
               <div className="flex flex-wrap gap-2 text-sm">
                 {overdue.length > 0 && <span className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 px-3 py-1 rounded-lg font-bold"> {overdue.length} متأخر</span>}

@@ -223,7 +223,7 @@ export async function POST(request: Request) {
 
       let schedReceipt: any
       try {
-        schedReceipt = await runReceiptTransaction(prisma, async (tx) => {
+        schedReceipt = await runReceiptTransaction(prisma, async (tx: any) => {
           const receiptNumber = await getNextReceiptNumber(tx)
           const r = await tx.receipt.create({
             data: {
@@ -331,7 +331,7 @@ export async function POST(request: Request) {
     try {
       // ✅ العضو + رقم الإيصال + الإيصال + النقاط كلهم في transaction واحد.
       //    لو أي خطوة فشلت، التجديد بالكامل بيترجع (atomic).
-      const txResult = await runReceiptTransaction(prisma, async (tx) => {
+      const txResult = await runReceiptTransaction(prisma, async (tx: any) => {
         const um = await tx.member.update({
           where: { id: memberId },
           data: {
