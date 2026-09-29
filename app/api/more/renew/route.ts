@@ -9,7 +9,7 @@ import {
 import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../../lib/points'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
-import { getNextReceiptNumber } from '../../../../lib/receiptHelpers'
+import { getNextReceiptNumber, runReceiptTransaction } from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 export const dynamic = 'force-dynamic'
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
         subscriptionDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
       }
 
-      const newMore = await prisma.$transaction(async (tx) => {
+      const newMore = await runReceiptTransaction(prisma, async (tx) => {
         //  🔄 تجديد بنفس الرقم: نحدّث نفس سجل الاشتراك (مش بنعمل رقم جديد) عشان الـ ID مايتغيّرش
         //  الحصص والتواريخ والسعر بيترسِتوا للاشتراك الجديد، والاشتراك يفضل نشط بنفس رقمه.
         const newMore = await tx.more.update({

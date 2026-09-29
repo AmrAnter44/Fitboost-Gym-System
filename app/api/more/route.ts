@@ -10,7 +10,7 @@ import {
 import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
-import { getNextReceiptNumber } from '../../../lib/receiptHelpers'
+import { getNextReceiptNumber, runReceiptTransaction } from '../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
 export const dynamic = 'force-dynamic'
@@ -227,7 +227,7 @@ export async function POST(request: Request) {
       const subscriptionDays = Math.ceil((finalExpiryDate.getTime() - finalStartDate.getTime()) / (1000 * 60 * 60 * 24))
 
       // استخدام Transaction
-      const more = await prisma.$transaction(async (tx) => {
+      const more = await runReceiptTransaction(prisma, async (tx) => {
         // ✅ إنشاء اشتراك More داخل الـ Transaction
         const more = await tx.more.create({
           data: moreData,

@@ -9,7 +9,7 @@ import {
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
 import { addPointsForPayment, addPoints } from '../../../../lib/points'
-import { getNextReceiptNumber } from '../../../../lib/receiptHelpers'
+import { getNextReceiptNumber, runReceiptTransaction } from '../../../../lib/receiptHelpers'
 import { round2 } from '../../../../lib/money'
 import { UpgradeInputSchema, firstIssue } from '../../../../lib/schemas/financialSchemas'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
@@ -212,7 +212,7 @@ export async function POST(request: Request) {
 
     // 13. تحديث العضو + رقم الإيصال + إنشاء الإيصال في transaction واحد (atomic)
     //     لو الإيصال فشل، ترقية العضو بترجع بالكامل — مفيش عضو مترقّى بدون إيصال.
-    const { updatedMember, receipt, receiptNumber } = await prisma.$transaction(async (tx) => {
+    const { updatedMember, receipt, receiptNumber } = await runReceiptTransaction(prisma, async (tx) => {
       const um = await tx.member.update({
         where: { id: memberId },
         data: {

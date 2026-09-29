@@ -8,7 +8,7 @@ import {
 } from '../../../../lib/paymentHelpers'
 import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
-import { getNextReceiptNumber } from '../../../../lib/receiptHelpers'
+import { getNextReceiptNumber, runReceiptTransaction } from '../../../../lib/receiptHelpers'
 import { round2 } from '../../../../lib/money'
 import { PtRenewInputSchema, firstIssue } from '../../../../lib/schemas/financialSchemas'
 import { logError } from '../../../../lib/errorLogger'
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
       }
 
       // استخدام Transaction مع البحث عن أول رقم متاح
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await runReceiptTransaction(prisma, async (tx) => {
         let updatedPT
         if (hasActiveSessions) {
           //  تأجيل: نسيب الباقة الحالية زي ما هي تمامًا (حصص/تواريخ/سعر/كوتش + الباقي القديم).

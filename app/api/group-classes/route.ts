@@ -10,7 +10,7 @@ import {
 import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
-import { getNextReceiptNumber } from '../../../lib/receiptHelpers'
+import { getNextReceiptNumber, runReceiptTransaction } from '../../../lib/receiptHelpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -243,7 +243,7 @@ export async function POST(request: Request) {
 
       // استخدام Transaction مع البحث عن أول رقم متاح
       // ⏱️ زيادة timeout إلى 10 ثوانٍ بسبب العمليات الكثيرة (نقاط، عمولات، إلخ)
-      const groupClass = await prisma.$transaction(async (tx) => {
+      const groupClass = await runReceiptTransaction(prisma, async (tx) => {
         // ✅ التحقق من رقم GroupClass داخل الـ Transaction لمنع Race Condition
         if (classNumber && parseInt(classNumber) > 0) {
           const existingGroupClass = await tx.groupClass.findUnique({

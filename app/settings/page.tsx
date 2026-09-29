@@ -13,6 +13,7 @@ import CloudBackupCard from '../../components/settings/CloudBackupCard'
 import ImageUpload from '../../components/ImageUpload'
 import ImportSheetSection from '../../components/ImportSheetSection'
 import WebsiteDataSection from '../../components/settings/WebsiteDataSection'
+import WebsiteContactCard from '../../components/settings/WebsiteContactCard'
 import PWAInstallButton from '../../components/PWAInstallButton'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
@@ -3245,7 +3246,10 @@ export default function SettingsPage() {
           )}
 
           {activeSection === 'website-data' && (user?.role === 'ADMIN' || user?.role === 'OWNER') && (
-            <WebsiteDataSection />
+            <div className="space-y-6">
+              <WebsiteDataSection />
+              <WebsiteContactCard />
+            </div>
           )}
 
           {activeSection === 'import-sheet' && user?.role === 'OWNER' && (

@@ -10,7 +10,7 @@ import {
 import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../../lib/points'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
-import { getNextReceiptNumber } from '../../../../lib/receiptHelpers'
+import { getNextReceiptNumber, runReceiptTransaction } from '../../../../lib/receiptHelpers'
 import { round2 } from '../../../../lib/money'
 import { RenewInputSchema, firstIssue } from '../../../../lib/schemas/financialSchemas'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
@@ -223,7 +223,7 @@ export async function POST(request: Request) {
 
       let schedReceipt: any
       try {
-        schedReceipt = await prisma.$transaction(async (tx) => {
+        schedReceipt = await runReceiptTransaction(prisma, async (tx) => {
           const receiptNumber = await getNextReceiptNumber(tx)
           const r = await tx.receipt.create({
             data: {
@@ -331,7 +331,7 @@ export async function POST(request: Request) {
     try {
       // ✅ العضو + رقم الإيصال + الإيصال + النقاط كلهم في transaction واحد.
       //    لو أي خطوة فشلت، التجديد بالكامل بيترجع (atomic).
-      const txResult = await prisma.$transaction(async (tx) => {
+      const txResult = await runReceiptTransaction(prisma, async (tx) => {
         const um = await tx.member.update({
           where: { id: memberId },
           data: {

@@ -7,7 +7,7 @@ import {
   serializePaymentMethods
 } from "../../../lib/paymentHelpers";
 import { processPaymentWithPoints } from "../../../lib/paymentProcessor";
-import { getNextReceiptNumber } from "../../../lib/receiptHelpers";
+import { getNextReceiptNumber, runReceiptTransaction } from "../../../lib/receiptHelpers";
 
 export const dynamic = 'force-dynamic'
 
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
     }
 
     // ✅ إنشاء DayUse و Receipt في transaction واحدة لضمان الذرية
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await runReceiptTransaction(prisma, async (tx) => {
       // ✅ الحصول على رقم الإيصال التالي (يضمن عدم التكرار)
       const receiptNumber = await getNextReceiptNumber(tx);
 

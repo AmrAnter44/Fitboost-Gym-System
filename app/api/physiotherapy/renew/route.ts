@@ -10,7 +10,7 @@ import {
 import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../../lib/points'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
-import { getNextReceiptNumber } from '../../../../lib/receiptHelpers'
+import { getNextReceiptNumber, runReceiptTransaction } from '../../../../lib/receiptHelpers'
 import { logError } from '../../../../lib/errorLogger'
 
 export const dynamic = 'force-dynamic'
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
       }
 
       // استخدام Transaction مع البحث عن أول رقم متاح
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await runReceiptTransaction(prisma, async (tx) => {
         const receiptNumber = await getNextReceiptNumber(tx)
 
         // ✅ معالجة وسائل الدفع المتعددة

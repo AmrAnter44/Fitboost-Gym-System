@@ -11,7 +11,7 @@ import {
 import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
-import { getNextReceiptNumber } from '../../../lib/receiptHelpers'
+import { getNextReceiptNumber, runReceiptTransaction } from '../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
 export const dynamic = 'force-dynamic'
@@ -312,7 +312,7 @@ export async function POST(request: Request) {
 
       // استخدام Transaction مع البحث عن أول رقم متاح
       // ⏱️ زيادة timeout إلى 10 ثوانٍ بسبب العمليات الكثيرة (نقاط، عمولات، إلخ)
-      const pt = await prisma.$transaction(async (tx) => {
+      const pt = await runReceiptTransaction(prisma, async (tx) => {
         // ✅ التحقق من رقم PT داخل الـ Transaction لمنع Race Condition
         if (ptNumber && parseInt(ptNumber) > 0) {
           const existingPT = await tx.pT.findUnique({

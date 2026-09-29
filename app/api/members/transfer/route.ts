@@ -10,7 +10,7 @@ import {
 } from '../../../../lib/paymentHelpers'
 import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
-import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
+import { getNextReceiptNumber, runReceiptTransaction } from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 import { logError } from '../../../../lib/errorLogger'
 
@@ -174,9 +174,8 @@ export async function POST(request: Request) {
     let resultRecipient: any
 
     try {
-      const receiptNumber = await getNextReceiptNumberDirect(prisma)
-
-      const txResult = await prisma.$transaction(async (tx) => {
+      // رقم الإيصال بيتحجز جوّه نفس الـ transaction (مع إعادة محاولة وقت ضغط الداتابيز)
+      const txResult = await runReceiptTransaction(prisma, async (tx) => {
         if (mode === 'existing') {
           // 1) تصفير المصدر — expiryDate = today، isActive = false، نوتة بالتحويل
           const transferNote = `\n[نقل عضوية → ${toMember!.name} (#${toMember!.memberNumber || 'Other'}) في ${today.toISOString().slice(0, 10)} — ${remainingDays} يوم]`
@@ -280,6 +279,7 @@ export async function POST(request: Request) {
               phone: newMember!.phone.trim(),
             }
 
+        const receiptNumber = await getNextReceiptNumber(tx)
         const r = await tx.receipt.create({
           data: {
             receiptNumber,

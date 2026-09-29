@@ -52,12 +52,30 @@ export class PaymentValidationError extends Error {
 function isTransientTxError(error: any): boolean {
   if (error instanceof PaymentValidationError) return false
   const code = error?.code
-  if (code === 'P2028' || code === 'P2034') return true
+  // P1008 = SQLite رجّع SQLITE_BUSY (كاتب تاني ماسك الداتابيز) — ده أشهر خطأ وقت
+  //         إن اتنين يدفعوا في نفس اللحظة، ومكانش بيتعاد قبل كده
+  if (code === 'P2028' || code === 'P2034' || code === 'P1008') return true
   const msg = String(error?.message || '').toLowerCase()
   return msg.includes('database is locked') ||
+    msg.includes('operations timed out') ||
     msg.includes('database table is locked') ||
     msg.includes('busy') ||
     msg.includes('unable to start a transaction')
+}
+
+// 🔒 طابور داخل السيرفر لعمليات الإيصالات: SQLite بيسمح بكاتب واحد بس، والـ transactions
+//    بتاعة Prisma بتبدأ "deferred" — فلو اتنين كاشير دفعوا في نفس اللحظة بيتصادموا
+//    (SQLITE_BUSY → P1008) بدل ما يستنوا. كل الشاشات بتكلّم نفس السيرفر، فالطابور ده
+//    بيخلّيهم ياخدوا دورهم واحد ورا التاني. متخزّن على globalThis عشان يبقى نسخة واحدة
+//    حتى لو الموديول اتحمّل أكتر من مرة (dev / chunks).
+const receiptQueueHolder = globalThis as unknown as { __fitboostReceiptQueue?: Promise<unknown> }
+
+function withReceiptQueue<T>(task: () => Promise<T>): Promise<T> {
+  const previous = receiptQueueHolder.__fitboostReceiptQueue || Promise.resolve()
+  const run = previous.then(task, task)
+  // الطابور مايقفش لو عملية فشلت
+  receiptQueueHolder.__fitboostReceiptQueue = run.catch(() => undefined)
+  return run
 }
 
 /**
@@ -67,21 +85,27 @@ function isTransientTxError(error: any): boolean {
  * الـ pool بيشتغل بـ connection_limit=5، فممكن transactions تتزاحم على قفل
  * الكتابة في SQLite وقت الضغط (التقفيل/التقارير). عشان كده:
  * - مهلات أوسع من الافتراضي (maxWait 10s / timeout 20s بدل 2s / 5s)
- * - إعادة محاولة تلقائية (حتى 3 مرات) على الأخطاء العابرة — آمنة لأن
+ * - طابور داخل السيرفر (withReceiptQueue) عشان الإيصالات المتزامنة ماتتصادمش
+ * - إعادة محاولة تلقائية (حتى 6 مرات) على الأخطاء العابرة (P1008/P2028/P2034) — آمنة لأن
  *   الـ transaction بترولّبك بالكامل قبل ما نعيد
  */
 export async function runReceiptTransaction<T>(
   prisma: any,
-  fn: (tx: any) => Promise<T>
+  fn: (tx: any) => Promise<T>,
+  options?: { maxWait?: number; timeout?: number }
 ): Promise<T> {
+  // options اختيارية — للمسارات اللي كان ليها مهلات أطول من الافتراضي (زي 60 ثانية)
+  const txOptions = { maxWait: 10000, timeout: 20000, ...(options || {}) }
   let lastError: any
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  const MAX_ATTEMPTS = 6
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      return await prisma.$transaction(fn, { maxWait: 10000, timeout: 20000 })
+      return await withReceiptQueue(() => prisma.$transaction(fn, txOptions))
     } catch (error) {
       lastError = error
-      if (!isTransientTxError(error) || attempt === 3) throw error
-      await new Promise(resolve => setTimeout(resolve, 250 * attempt))
+      if (!isTransientTxError(error) || attempt === MAX_ATTEMPTS) throw error
+      // انتظار متزايد + عشوائية بسيطة عشان المحاولات المتزامنة ماتتصادمش تاني في نفس اللحظة
+      await new Promise(resolve => setTimeout(resolve, 300 * attempt + Math.floor(Math.random() * 300)))
     }
   }
   throw lastError

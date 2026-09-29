@@ -5,12 +5,14 @@ import { requirePermission, requireAnyPermission, verifyAuth } from '../../../li
 import {
   type PaymentMethod,
   validatePaymentDistribution,
-  serializePaymentMethods
+  serializePaymentMethods,
+  deserializePaymentMethods,
+  getPointsUsedFromPayment
 } from '../../../lib/paymentHelpers'
 import { logError } from '../../../lib/errorLogger'
 import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment, addPoints } from '../../../lib/points'
-import { getNextReceiptNumberDirect } from '../../../lib/receiptHelpers'
+import { getNextReceiptNumber, runReceiptTransaction } from '../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 import { memberCreateSchema, formatZodError } from '../../../lib/schemas/memberSchema'
 import { memberPhotoUrl } from '../../../lib/memberPhoto'
@@ -444,6 +446,31 @@ export async function POST(request: Request) {
       }
     }
 
+    // 💳 التحقق من الدفع قبل تسجيل العضو — قبل كده الأخطاء دي كانت بتظهر بعد ما العضو
+    //    اتسجّل فعلاً، فيفضل عضو من غير إيصال والموظف يعيد فيتكرر التسجيل.
+    if (!skipReceipt) {
+      const prePaidAmount = cleanSubscriptionPrice - cleanRemainingAmount
+      if (Array.isArray(paymentMethod)) {
+        const preValidation = validatePaymentDistribution(paymentMethod, prePaidAmount)
+        if (!preValidation.valid) {
+          return NextResponse.json(
+            { error: preValidation.message || 'توزيع المبالغ غير صحيح' },
+            { status: 400 }
+          )
+        }
+      }
+      // نفس حساب processPaymentWithPoints — والعضو الجديد رصيد نقاطه صفر، فأي خصم نقاط هيفشل
+      const preMethods = Array.isArray(paymentMethod)
+        ? paymentMethod
+        : (typeof paymentMethod === 'string' ? deserializePaymentMethods(paymentMethod) : [])
+      if (getPointsUsedFromPayment(preMethods) > 0) {
+        return NextResponse.json(
+          { error: 'رصيد النقاط غير كافٍ (المتاح: 0) — العضو الجديد مالوش نقاط، اختر وسيلة دفع أخرى' },
+          { status: 400 }
+        )
+      }
+    }
+
     // 👥 التحقق من رقم العضو المُحيل إذا تم إدخاله
     // ملاحظة: Zod schema بيـ coerce القيمة لـ number، فبنحوّلها لـ string قبل ما نـ trim/findUnique
     let referrerId = null
@@ -691,13 +718,11 @@ export async function POST(request: Request) {
 
     // إنشاء إيصال (إلا إذا طلب المستخدم عدم إنشائه)
     let receiptData = null
+    let receiptFailureMessage: string | null = null
 
     if (!skipReceipt) {
       // ✅ إنشاء الإيصال فقط إذا لم يتم تفعيل خيار عدم الإنشاء
       try {
-      // ✅ الحصول على رقم الإيصال التالي (يضمن عدم التكرار)
-      const receiptNumber = await getNextReceiptNumberDirect(prisma)
-
       const paidAmount = cleanSubscriptionPrice - cleanRemainingAmount
 
       // ✅ معالجة وسائل الدفع المتعددة
@@ -739,7 +764,6 @@ export async function POST(request: Request) {
       // ✅ payload لإنشاء الإيصال — اسم مختلف عن receiptData الخارجي
       // عشان لا يحصل shadowing (كانت bug قديمة بترجع receipt: null للـ client)
       const receiptCreatePayload: any = {
-        receiptNumber: receiptNumber,
         type: 'Member',
         amount: paidAmount,
         paymentMethod: finalPaymentMethod,
@@ -782,8 +806,11 @@ export async function POST(request: Request) {
       // (BUG 3: قبل كده كان الإيصال بيتسجّل ثم لو النقاط فشلت يرجع 400 والإيصال orphan)
       let receipt: any
       try {
-        const result = await prisma.$transaction(async (tx) => {
-          const r = await tx.receipt.create({ data: receiptCreatePayload })
+        // رقم الإيصال بيتحجز جوّه نفس الـ transaction، مع مهلة أطول وإعادة محاولة
+        // لو الداتابيز مشغولة (كانت السبب إن الإيصال يفشل ساعات والعضو يتسجّل من غيره)
+        const result = await runReceiptTransaction(prisma, async (tx) => {
+          const receiptNumber = await getNextReceiptNumber(tx)
+          const r = await tx.receipt.create({ data: { ...receiptCreatePayload, receiptNumber } })
           const pr = await processPaymentWithPoints(
             member.id,
             phone,
@@ -851,6 +878,9 @@ export async function POST(request: Request) {
       if (receiptError instanceof Error && receiptError.message.includes('Unique constraint')) {
         console.error('❌ رقم الإيصال مكرر! المحاولة مرة أخرى...')
       }
+
+      // ⚠️ العضو اتسجّل بس الإيصال ماتعملش — لازم الموظف يعرف بدل ما يشوف "تم بنجاح" بس
+      receiptFailureMessage = 'تم تسجيل العضو لكن الإيصال ماتعملش — راجع صفحة الإيصالات وسجّل الدفع يدوياً أو تواصل مع الدعم'
     }
     } else {
     }
@@ -884,7 +914,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       member: member,
-      receipt: receiptData
+      receipt: receiptData,
+      ...(receiptFailureMessage ? { receiptError: receiptFailureMessage } : {})
     }, { status: 201 })
 
   } catch (error: any) {

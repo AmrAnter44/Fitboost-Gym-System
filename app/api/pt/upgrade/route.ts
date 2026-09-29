@@ -10,7 +10,7 @@ import {
 } from '../../../../lib/paymentHelpers'
 import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
-import { getNextReceiptNumber } from '../../../../lib/receiptHelpers'
+import { getNextReceiptNumber, runReceiptTransaction } from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 export const dynamic = 'force-dynamic'
@@ -125,7 +125,7 @@ export async function POST(request: Request) {
     const newSessionsRemaining = Math.max(0, newPackage.sessions - sessionsUsed) // 15 − 2 = 13
 
     try {
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await runReceiptTransaction(prisma, async (tx) => {
         // تحديث الـ PT
         const upd = await tx.pT.update({
           where: { ptNumber: ptNum },

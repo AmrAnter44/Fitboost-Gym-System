@@ -418,6 +418,11 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
           toast.success(t('members.form.memberAddedSuccessfully'))
         }
 
+        // ⚠️ العضو اتسجّل بس الإيصال فشل — نبيّن ده بوضوح بدل ما يعدّي في صمت
+        if (data.receiptError) {
+          toast.error(data.receiptError, 15000)
+        }
+
         if (data.receipt) {
           queryClient.invalidateQueries({ queryKey: ['receipts'] })
 

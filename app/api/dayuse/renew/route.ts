@@ -6,6 +6,7 @@ import {
   serializePaymentMethods
 } from "../../../../lib/paymentHelpers";
 import { processPaymentWithPoints } from "../../../../lib/paymentProcessor";
+import { getNextReceiptNumber, runReceiptTransaction, PaymentValidationError } from "../../../../lib/receiptHelpers";
 
 export const dynamic = 'force-dynamic'
 
@@ -42,15 +43,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get next receipt number
-    const counter = await prisma.receiptCounter.upsert({
-      where: { id: 1 },
-      update: { current: { increment: 1 } },
-      create: { id: 1, current: 1001 },
-    });
-
-    const receiptNumber = counter.current;
-
     // Determine Arabic type name
     const typeArabic =
       serviceType === "DayUse"
@@ -77,7 +69,11 @@ export async function POST(req: Request) {
     }
 
     // Create receipt only (no new DayUse entry)
-    const receipt = await prisma.receipt.create({
+    // رقم الإيصال + الإيصال + خصم النقاط في transaction واحدة (مع إعادة محاولة وقت
+    // ضغط الداتابيز) — لو أي حاجة فشلت مفيش إيصال يتسجّل ولا رقم يضيع
+    const receipt = await runReceiptTransaction(prisma, async (tx) => {
+     const receiptNumber = await getNextReceiptNumber(tx);
+     const r = await tx.receipt.create({
       data: {
         receiptNumber,
         type: `${typeArabic} - تجديد`,
@@ -92,33 +88,35 @@ export async function POST(req: Request) {
         paymentMethod: finalPaymentMethod,
         dayUseId: entryId,
       },
-    });
+     });
 
-
-    // خصم النقاط إذا تم استخدامها في الدفع
-    const pointsResult = await processPaymentWithPoints(
+     // خصم النقاط إذا تم استخدامها في الدفع
+     const pointsResult = await processPaymentWithPoints(
       null,  // لا يوجد memberId
       existingEntry.phone,
       null,  // لا يوجد memberNumber لـ DayUse
       finalPaymentMethod,
       `دفع تجديد ${typeArabic} - ${existingEntry.name}`,
-      prisma
-    );
+      tx
+     );
 
-    if (!pointsResult.success) {
-      return NextResponse.json(
-        { error: pointsResult.message || 'فشل خصم النقاط' },
-        { status: 400 }
-      );
-    }
+     if (!pointsResult.success) {
+      throw new PaymentValidationError(pointsResult.message || 'فشل خصم النقاط');
+     }
+
+     return r;
+    });
 
     return NextResponse.json({
       success: true,
       id: entryId,
-      receiptNumber,
+      receiptNumber: receipt.receiptNumber,
       receipt
     });
   } catch (error) {
+    if (error instanceof PaymentValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error("❌ Error creating renewal receipt:", error);
     return NextResponse.json({
       success: false,
