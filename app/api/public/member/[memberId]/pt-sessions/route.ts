@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { activatePendingPTIfNeeded } from '@/lib/ptPendingRenewal'
 import { apiCache } from '@/lib/cache'
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit'
-import { verifyMemberPhone } from '@/lib/memberVerify'
+import { verifyMemberPhone, memberPhoneFrom } from '@/lib/memberVerify'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,7 +34,7 @@ export async function GET(
     const { memberId } = await params
 
     // 🔒 تأكيد الملكية برقم الهاتف
-    if (!(await verifyMemberPhone(memberId, new URL(request.url).searchParams.get('phone')))) {
+    if (!(await verifyMemberPhone(memberId, memberPhoneFrom(request, new URL(request.url).searchParams.get('phone'))))) {
       return NextResponse.json({ error: 'يجب إدخال رقم هاتفك لعرض هذه البيانات' }, { status: 401 })
     }
 
@@ -104,7 +104,7 @@ export async function POST(
     const body = await request.json().catch(() => ({} as any))
 
     // 🔒 تأكيد الملكية برقم الهاتف (الهاتف بييجي في الـ body للـ POST)
-    if (!(await verifyMemberPhone(memberId, body?.phoneNumber))) {
+    if (!(await verifyMemberPhone(memberId, memberPhoneFrom(request, body?.phoneNumber)))) {
       return NextResponse.json({ error: 'يجب إدخال رقم هاتفك لتنفيذ هذه العملية' }, { status: 401 })
     }
 

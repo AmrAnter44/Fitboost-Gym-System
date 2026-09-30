@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
-import { verifyMemberPhone } from '@/lib/memberVerify';
+import { verifyMemberPhone, memberPhoneFrom } from '@/lib/memberVerify';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +16,7 @@ export async function GET(
     const { memberId } = await params;
 
     // 🔒 تأكيد الملكية برقم الهاتف (ضد الـ IDOR)
-    if (!(await verifyMemberPhone(memberId, new URL(request.url).searchParams.get('phone')))) {
+    if (!(await verifyMemberPhone(memberId, memberPhoneFrom(request, new URL(request.url).searchParams.get('phone'))))) {
       return NextResponse.json({ error: 'يجب إدخال رقم هاتفك لعرض هذه البيانات' }, { status: 401 });
     }
 
@@ -71,7 +71,7 @@ export async function POST(
     const { startDate, days, reason, phoneNumber } = body;
 
     // 🔒 تأكيد الملكية: لازم صاحب الطلب يعرف رقم هاتف العضو (ضد الـ IDOR)
-    const verified = await verifyMemberPhone(memberId, phoneNumber);
+    const verified = await verifyMemberPhone(memberId, memberPhoneFrom(request, phoneNumber));
     if (!verified) {
       return NextResponse.json(
         { error: 'يجب إدخال رقم هاتفك لتأكيد العملية' },

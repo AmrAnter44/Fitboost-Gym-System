@@ -28,6 +28,16 @@ export function samePhone(stored: unknown, provided: unknown): boolean {
   return storedDigits.length >= 10 && storedDigits.includes(b)
 }
 
+/**
+ * رقم العضو من هيدر x-member-phone (الأبلكيشن الجديد بيبعته في الهيدر بدل الرابط
+ * عشان مايتسجلش في لوجات السيرفر/Cloudflare). لو مش موجود بنرجع للقيمة القديمة
+ * (?phone= أو phoneNumber في الـ body) عشان النسخ القديمة من الأبلكيشن تفضل شغالة.
+ */
+export function memberPhoneFrom(request: { headers: Headers }, fallback?: unknown): unknown {
+  const h = request.headers.get('x-member-phone')
+  return h && h.trim() ? h : fallback
+}
+
 export async function verifyMemberPhone(memberId: string, phoneNumber: unknown): Promise<boolean> {
   if (!memberId || typeof memberId !== 'string' || !phoneTail(phoneNumber)) return false
   const member = await prisma.member.findUnique({

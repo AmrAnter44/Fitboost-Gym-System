@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { apiCache } from '@/lib/cache';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
-import { verifyMemberPhone } from '@/lib/memberVerify';
+import { verifyMemberPhone, memberPhoneFrom } from '@/lib/memberVerify';
 
 // Cache TTL: 5 minutes — schedule rarely changes during the day
 const TODAY_CLASSES_TTL = 5 * 60 * 1000
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const showNames = await verifyMemberPhone(
       searchParams.get('memberId') || '',
-      searchParams.get('phone')
+      memberPhoneFrom(request, searchParams.get('phone'))
     )
 
     const classIds = classes.map((c) => c.id)

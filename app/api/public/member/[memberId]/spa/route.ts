@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyMemberPhone } from '@/lib/memberVerify';
+import { verifyMemberPhone, memberPhoneFrom } from '@/lib/memberVerify';
 import { getSpaHours, checkWithinSpaHours } from '@/lib/spaHours';
 
 export async function GET(
@@ -13,7 +13,7 @@ export async function GET(
     const status = searchParams.get('status');
 
     // 🔒 تأكيد الملكية برقم الهاتف (ضد الـ IDOR)
-    if (!(await verifyMemberPhone(memberId, searchParams.get('phone')))) {
+    if (!(await verifyMemberPhone(memberId, memberPhoneFrom(request, searchParams.get('phone'))))) {
       return NextResponse.json({ error: 'يجب إدخال رقم هاتفك لعرض هذه البيانات' }, { status: 401 });
     }
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -89,7 +89,7 @@ export async function POST(
     const { serviceType, bookingDate, bookingTime, duration, notes, phoneNumber } = body;
 
     // 🔒 تأكيد الملكية برقم الهاتف (ضد الـ IDOR — حجز باسم أي عضو)
-    if (!(await verifyMemberPhone(memberId, phoneNumber))) {
+    if (!(await verifyMemberPhone(memberId, memberPhoneFrom(request, phoneNumber)))) {
       return NextResponse.json({ error: 'يجب إدخال رقم هاتفك لتأكيد الحجز' }, { status: 401 });
     }
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Expo } from 'expo-server-sdk';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
-import { verifyMemberPhone } from '@/lib/memberVerify';
+import { verifyMemberPhone, memberPhoneFrom } from '@/lib/memberVerify';
 
 export async function POST(
   request: NextRequest,
@@ -27,7 +27,7 @@ export async function POST(
     const { pushToken, phoneNumber } = body;
 
     // 🔒 تأكيد الملكية برقم الهاتف (ضد الـ IDOR: منع تحويل إشعارات أي عضو)
-    const verified = await verifyMemberPhone(memberId, phoneNumber);
+    const verified = await verifyMemberPhone(memberId, memberPhoneFrom(request, phoneNumber));
     if (!verified) {
       return NextResponse.json(
         { error: 'يجب إدخال رقم هاتفك لتأكيد العملية' },
@@ -72,5 +72,48 @@ export async function POST(
       { error: 'حدث خطأ في الخادم' },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * DELETE — بيتنده من الأبلكيشن عند تسجيل الخروج عشان الإشعارات ماتفضلش توصل
+ * للموبايل ده. بنمسح التوكن بس لو هو نفس التوكن المتسجل (لو العضو دخل من موبايل
+ * تاني بعد كده، ماينفعش خروج الموبايل القديم يوقف إشعارات الجديد).
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ memberId: string }> }
+) {
+  try {
+    const rl = checkRateLimit(getClientIdentifier(request), {
+      id: 'public-push-token-delete',
+      limit: 10,
+      windowMs: 60_000,
+    });
+    if (!rl.success) {
+      return NextResponse.json({ error: rl.error || 'طلبات كثيرة، حاول بعد قليل' }, { status: 429 });
+    }
+
+    const { memberId } = await params;
+    const body = await request.json().catch(() => ({} as any));
+
+    if (!(await verifyMemberPhone(memberId, memberPhoneFrom(request, body?.phoneNumber)))) {
+      return NextResponse.json({ error: 'يجب إدخال رقم هاتفك لتأكيد العملية' }, { status: 401 });
+    }
+
+    const pushToken = typeof body?.pushToken === 'string' ? body.pushToken : null;
+    if (!pushToken) {
+      return NextResponse.json({ error: 'Push token is required' }, { status: 400 });
+    }
+
+    const res = await prisma.member.updateMany({
+      where: { id: memberId, pushToken },
+      data: { pushToken: null },
+    });
+
+    return NextResponse.json({ success: true, removed: res.count > 0 });
+  } catch (error) {
+    console.error('Delete push token error:', error);
+    return NextResponse.json({ error: 'حدث خطأ في الخادم' }, { status: 500 });
   }
 }
