@@ -16,6 +16,11 @@ const DEFAULTS = {
   inBodyEnabled: true,
   spaOpenTime: DEFAULT_SPA_OPEN,
   spaCloseTime: DEFAULT_SPA_CLOSE,
+  // 📱 إمكانيات السيرفر اللي الأبلكيشن بيعتمد عليها (عشان النسخ الجديدة تشتغل مع السيرفرات القديمة):
+  // memberPhoneHeader = بيقبل رقم العضو في هيدر x-member-phone بدل ?phone= في الرابط
+  // spaCancel = فيه مسار إلغاء حجز الاسبا للعضو
+  // pushTokenDelete = بيشيل توكن الإشعارات عند تسجيل الخروج
+  capabilities: { memberPhoneHeader: true, spaCancel: true, pushTokenDelete: true },
 }
 
 export async function GET(request: NextRequest) {
