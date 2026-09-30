@@ -16,6 +16,7 @@ import { LoadingScreen } from '../../../components/Spinner'
 import { formatDateYMD, calculateRemainingDays, calculateDaysBetween } from '../../../lib/dateFormatter'
 import { prepareReceiptMessage } from '../../../lib/whatsappReceiptMessage'
 import { usePermissions } from '../../../hooks/usePermissions'
+import { maskPhone, displayPhone } from '../../../lib/maskPhone'
 import PermissionDenied from '../../../components/PermissionDenied'
 import MemberGateCard from '../../../components/gates/MemberGateCard'
 import type { PaymentMethod } from '../../../lib/paymentHelpers'
@@ -204,7 +205,9 @@ export default function MemberDetailPage() {
  if (typeof window !== 'undefined' && window.history.length > 1) router.back()
  else router.push('/members')
  }
- const { hasPermission, user: currentUser, loading: permissionsLoading } = usePermissions()
+ const { hasPermission, user: currentUser, loading: permissionsLoading, permissions } = usePermissions()
+ //  قيد إخفاء أرقام الأعضاء: بنتشيّك على القيمة الخام عشان الأونر/الأدمن يشوفوا الأرقام عادي
+ const hideNumbers = permissions?.hideMemberNumbers === true
  const canOverrideInvitationSales = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN'
  const { t, direction, locale } = useLanguage()
  const toast = useToast()
@@ -462,6 +465,9 @@ export default function MemberDetailPage() {
   const [reminderModalOpen, setReminderModalOpen] = useState(false)
   const [reminderText, setReminderText] = useState('')
   const [reminderPhone, setReminderPhone] = useState('')
+  //  رقم العضو/الاحتياطي يفضل مشفّر ومقفول مع قيد الإخفاء — أي رقم تاني يتكتب عادي
+  const reminderPhoneLocked = hideNumbers && !!reminderPhone &&
+    (reminderPhone === member?.phone || reminderPhone === member?.backupPhone)
 
  // Fitness Test
  const [fitnessTestExists, setFitnessTestExists] = useState(false)
@@ -2396,15 +2402,15 @@ export default function MemberDetailPage() {
 
  {/* معلومات إضافية */}
  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
- {/* رقم التليفون — دايماً ظاهر */}
+ {/* رقم التليفون — مشفّر لو عليه قيد إخفاء الأرقام */}
  <div className="bg-white/10 rounded-lg p-3">
  <p className="text-xs opacity-80 mb-1">{t('memberDetails.phoneNumber')}</p>
- <p className="text-base font-mono font-semibold" dir="ltr">{member.phone}</p>
+ <p className="text-base font-mono font-semibold" dir="ltr">{displayPhone(member.phone, hideNumbers)}</p>
  </div>
  {member.backupPhone && (
  <div className="bg-white/10 rounded-lg p-3">
  <p className="text-xs opacity-80 mb-1">{t('memberDetails.backupPhone')}</p>
- <p className="text-base font-mono" dir="ltr">{member.backupPhone}</p>
+ <p className="text-base font-mono" dir="ltr">{displayPhone(member.backupPhone, hideNumbers)}</p>
  </div>
  )}
  {member.email && (
@@ -3609,8 +3615,9 @@ export default function MemberDetailPage() {
  <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">{locale === 'ar' ? 'رقم الموبايل' : 'Phone'}</label>
  <input
  type="tel"
- value={editBasicInfoData.phone}
+ value={displayPhone(editBasicInfoData.phone, hideNumbers)}
  onChange={(e) => setEditBasicInfoData(prev => ({ ...prev, phone: e.target.value }))}
+ readOnly={hideNumbers}
  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono focus:outline-none focus:ring-2 focus:ring-primary-500"
  placeholder="010xxxxxxxx"
  />
@@ -3707,8 +3714,9 @@ export default function MemberDetailPage() {
  </label>
  <input
  type="tel"
- value={editBasicInfoData.phone}
+ value={displayPhone(editBasicInfoData.phone, hideNumbers)}
  onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, phone: e.target.value })}
+ readOnly={hideNumbers}
  className="w-full px-2 py-1.5 border rounded text-sm font-mono dark:border-gray-600 dark:bg-gray-700 dark:text-white"
  placeholder={t('memberDetails.editModal.fields.phonePlaceholder')}
  dir="ltr"
@@ -4701,7 +4709,7 @@ export default function MemberDetailPage() {
  </div>
  <div>
  <p className="text-gray-600 dark:text-white text-sm">الهاتف</p>
- <p className="font-bold text-lg">{member?.phone}</p>
+ <p className="font-bold text-lg" dir="ltr">{displayPhone(member?.phone, hideNumbers)}</p>
  </div>
  </div>
  </div>
@@ -5648,6 +5656,7 @@ export default function MemberDetailPage() {
  date={receiptData.date}
  paymentMethod={receiptData.paymentMethod}
  onClose={() => setShowReceipt(false)}
+ hidePhone={hideNumbers}
  />
  )}
 
@@ -6361,8 +6370,9 @@ export default function MemberDetailPage() {
  <label className="block text-xs font-bold mb-1.5 dark:text-gray-200">{locale === 'ar' ? 'الرقم' : 'Number'}</label>
  <input
  type="tel"
- value={reminderPhone}
+ value={reminderPhoneLocked ? maskPhone(reminderPhone) : reminderPhone}
  onChange={(e) => setReminderPhone(e.target.value)}
+ readOnly={reminderPhoneLocked}
  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
  dir="ltr"
  placeholder="010xxxxxxxx"
@@ -6371,12 +6381,12 @@ export default function MemberDetailPage() {
  <div className="flex flex-wrap gap-1.5 mt-1.5">
  {member.phone && (
  <button type="button" onClick={() => setReminderPhone(member.phone)} className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 font-mono" dir="ltr">
- {member.phone}
+ {displayPhone(member.phone, hideNumbers)}
  </button>
  )}
  {(member as any).backupPhone && (
  <button type="button" onClick={() => setReminderPhone((member as any).backupPhone)} className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 font-mono" dir="ltr">
- {(member as any).backupPhone} ({locale === 'ar' ? 'احتياطي' : 'backup'})
+ {displayPhone((member as any).backupPhone, hideNumbers)} ({locale === 'ar' ? 'احتياطي' : 'backup'})
  </button>
  )}
  </div>
@@ -6444,7 +6454,7 @@ export default function MemberDetailPage() {
  </div>
 
  <p className="text-sm text-gray-600 dark:text-white text-center mb-4">
- سيتم إرسال الباركود إلى <span className="font-bold">{member.phone}</span>
+ سيتم إرسال الباركود إلى <span className="font-bold" dir="ltr">{displayPhone(member.phone, hideNumbers)}</span>
  </p>
 
  <div className="space-y-2">

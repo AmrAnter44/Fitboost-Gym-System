@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 import { usePermissions } from '../hooks/usePermissions'
+import { displayPhone } from '../lib/maskPhone'
 import { calculateRemainingDays, formatDateYMD } from '../lib/dateFormatter'
 import Paymentmethodselector from './Paymentmethodselector'
 import ImageUpload from './ImageUpload'
@@ -65,7 +66,8 @@ interface Props {
 export default function TransferMembershipForm({ member, onClose, onSuccess }: Props) {
   const { locale, direction, t } = useLanguage()
   const { settings } = useServiceSettings()
-  const { user } = usePermissions()
+  const { user, permissions } = usePermissions()
+  const hideNumbers = permissions?.hideMemberNumbers === true
 
   const remainingDays = calculateRemainingDays(member.expiryDate as any) ?? 0
 
@@ -248,7 +250,7 @@ export default function TransferMembershipForm({ member, onClose, onSuccess }: P
               <p className="font-bold text-lg text-gray-900 dark:text-gray-100">
                 {member.name} {member.memberNumber ? <span className="text-orange-600 dark:text-orange-400">#{member.memberNumber}</span> : null}
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 font-mono">{member.phone}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 font-mono" dir="ltr">{displayPhone(member.phone, hideNumbers)}</p>
             </div>
             <div className="text-center bg-gray-50 dark:bg-gray-900/40 rounded-xl px-5 py-3 ring-1 ring-orange-200 dark:ring-orange-900/50">
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
@@ -350,7 +352,7 @@ export default function TransferMembershipForm({ member, onClose, onSuccess }: P
                     <p className="font-bold text-gray-900 dark:text-gray-100">
                       {recipient.name} <span className="text-green-700 dark:text-green-300">#{recipient.memberNumber || '—'}</span>
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{recipient.phone}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-mono" dir="ltr">{displayPhone(recipient.phone, hideNumbers)}</p>
                   </div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">
                     {recipient.expiryDate ? (

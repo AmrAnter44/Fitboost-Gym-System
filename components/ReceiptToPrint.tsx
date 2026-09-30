@@ -5,6 +5,7 @@ import { printReceiptFromData } from '../lib/printSystem'
 import Toast from './Toast'
 import { useLanguage } from '../contexts/LanguageContext'
 import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel } from '../lib/paymentHelpers'
+import { maskPhone } from '../lib/maskPhone'
 
 interface ReceiptProps {
   receiptNumber: number
@@ -14,12 +15,15 @@ interface ReceiptProps {
   date: Date
   paymentMethod?: string
   onClose: () => void
+  hidePhone?: boolean // قيد إخفاء الأرقام: رقم العضو المعبّى تلقائياً يظهر مشفّر ومقفول
 }
 
-export function ReceiptToPrint({ receiptNumber, type, amount, details, date, paymentMethod, onClose }: ReceiptProps) {
+export function ReceiptToPrint({ receiptNumber, type, amount, details, date, paymentMethod, onClose, hidePhone = false }: ReceiptProps) {
   const { t } = useLanguage()
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
   const [phone, setPhone] = useState('')
+  const prefilledPhone = details?.phone || details?.memberPhone || details?.clientPhone || ''
+  const phoneLocked = hidePhone && !!prefilledPhone && phone === prefilledPhone
   const [sending, setSending] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
   const [websiteUrl, setWebsiteUrl] = useState('') // يتم جلب القيمة من الإعدادات
@@ -547,8 +551,9 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
               </label>
               <input
                 type="tel"
-                value={phone}
+                value={phoneLocked ? maskPhone(phone) : phone}
                 onChange={(e) => setPhone(e.target.value)}
+                readOnly={phoneLocked}
                 placeholder="01xxxxxxxxx"
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 font-mono text-lg"
                 dir="ltr"

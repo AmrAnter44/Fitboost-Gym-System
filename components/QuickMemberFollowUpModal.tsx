@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { usePermissions } from '../hooks/usePermissions'
+import { displayPhone } from '../lib/maskPhone'
 import { useToast } from '../contexts/ToastContext'
 
 interface QuickMemberFollowUpModalProps {
@@ -22,7 +23,8 @@ interface QuickMemberFollowUpModalProps {
 
 export default function QuickMemberFollowUpModal({ isOpen, onClose, member, onSuccess }: QuickMemberFollowUpModalProps) {
   const { locale, direction } = useLanguage()
-  const { user } = usePermissions()
+  const { user, permissions } = usePermissions()
+  const hideNumbers = permissions?.hideMemberNumbers === true
   const toast = useToast()
 
   const [notes, setNotes] = useState('')
@@ -140,7 +142,7 @@ export default function QuickMemberFollowUpModal({ isOpen, onClose, member, onSu
                 </span>
               </h3>
               <p className="text-sm opacity-95 mt-1 font-bold truncate">{member.name}</p>
-              <p className="text-xs opacity-85 font-mono mt-0.5" dir="ltr">{member.phone}</p>
+              <p className="text-xs opacity-85 font-mono mt-0.5" dir="ltr">{displayPhone(member.phone, hideNumbers)}</p>
             </div>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors shrink-0">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>

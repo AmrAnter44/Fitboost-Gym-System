@@ -12,6 +12,7 @@ import { fetchVisitors, fetchFollowUps } from '../../lib/api/visitors'
 import { fetchMembers } from '../../lib/api/members'
 import { useDebounce } from '../../hooks/useDebounce'
 import { usePermissions } from '../../hooks/usePermissions'
+import { displayPhone } from '../../lib/maskPhone'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
@@ -52,7 +53,9 @@ export default function VisitorsPage() {
   const router = useRouter()
   const { t, direction } = useLanguage()
   const toast = useToast()
-  const { user } = usePermissions()
+  const { user, permissions } = usePermissions()
+  //  قيد إخفاء أرقام المتابعات بيسري على الزوار كمان (التاب ده جوّه صفحة المتابعات)
+  const hideNumbers = permissions?.hideFollowUpNumbers === true
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
 
@@ -880,7 +883,7 @@ export default function VisitorsPage() {
                         className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold text-sm bg-green-500 hover:bg-green-600 text-white transition-colors duration-200"
                       >
                         <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 20l1.5-4.5A8 8 0 1112 20H7l-4 0z"/></svg>
-                        <span className="font-mono">{visitor.phone}</span>
+                        <span className="font-mono" dir="ltr">{displayPhone(visitor.phone, hideNumbers)}</span>
                       </a>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
@@ -1093,7 +1096,7 @@ export default function VisitorsPage() {
                   <span>{t('visitors.historyModal.title')}</span>
                 </h2>
                 <p className="text-xs opacity-80 mt-0.5">
-                  {selectedVisitorForHistory.name} - {selectedVisitorForHistory.phone}
+                  {selectedVisitorForHistory.name} - <span dir="ltr">{displayPhone(selectedVisitorForHistory.phone, hideNumbers)}</span>
                 </p>
               </div>
               <button
@@ -1232,6 +1235,7 @@ export default function VisitorsPage() {
                   name: selectedVisitorForSubscribe.name,
                   phone: selectedVisitorForSubscribe.phone
                 }}
+                hidePhone={hideNumbers}
               />
             </div>
           </div>
@@ -1248,7 +1252,7 @@ export default function VisitorsPage() {
         onConfirm={confirmDelete}
         title={t('visitors.deleteModal.title')}
         message={t('visitors.deleteModal.message')}
-        itemName={visitorToDelete ? `${visitorToDelete.name} (${visitorToDelete.phone})` : ''}
+        itemName={visitorToDelete ? `${visitorToDelete.name} (${displayPhone(visitorToDelete.phone, hideNumbers)})` : ''}
         loading={deleteVisitorMutation.isPending}
       />
     </div>

@@ -11,6 +11,7 @@ import { calculateDaysBetween, formatDateYMD } from '../lib/dateFormatter'
 // المستخدم بيختار من البوب اب: يطبع، يرسل واتساب، أو يغلق
 import { ReceiptToPrint } from './ReceiptToPrint'
 import { usePermissions } from '../hooks/usePermissions'
+import { maskPhone } from '../lib/maskPhone'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
 import { useServiceSettings } from '../contexts/ServiceSettingsContext'
@@ -29,10 +30,12 @@ interface MemberFormProps {
     phone?: string
     salesStaffId?: string // موظف السيلز المسؤول عن هذا الليد
   }
+  hidePhone?: boolean // قيد إخفاء الأرقام: الرقم المعبّى مسبقاً يظهر مشفّر ومقفول
 }
 
-export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefillData }: MemberFormProps) {
+export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefillData, hidePhone = false }: MemberFormProps) {
   const { user } = usePermissions()
+  const phoneLocked = hidePhone && !!prefillData?.phone
   // كل المستخدمين يقدروا يعدلوا التواريخ في فورم إضافة العضو
   const canEditDates = true
   const { t, direction, locale } = useLanguage()
@@ -669,8 +672,9 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
               <input
                 type="tel"
                 required
-                value={formData.phone}
+                value={phoneLocked ? maskPhone(formData.phone) : formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                readOnly={phoneLocked}
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                 placeholder={countryCode === 'EG' ? '01234567890' : '512345678'}
                 dir="ltr"
@@ -1416,6 +1420,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
     {/* Receipt popup — يظهر بعد إنشاء عضو + إيصال بدل الطباعة التلقائية */}
     {receiptPopup && (
       <ReceiptToPrint
+        hidePhone={hidePhone}
         receiptNumber={receiptPopup.receiptNumber}
         type="Member"
         amount={receiptPopup.amount}

@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { formatDateYMD, calculateRemainingDays, calculateDaysBetween } from '@/lib/dateFormatter'
 import { getPackageName } from '@/lib/memberUtils'
 import LazyAvatar from './LazyAvatar'
+import { maskPhone } from '@/lib/maskPhone'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -29,14 +30,6 @@ interface Member {
   noCoachWanted?: boolean
   pendingRenewalStartDate?: string | null
   pendingRenewalExpiryDate?: string | null
-}
-
-//  إخفاء الرقم: أول 3 وآخر 2 والباقي نقط
-function maskMemberPhone(p?: string | null): string {
-  const s = (p || '').replace(/\s/g, '')
-  if (!s) return ''
-  if (s.length <= 5) return '•'.repeat(s.length)
-  return s.slice(0, 3) + '•'.repeat(Math.max(4, s.length - 5)) + s.slice(-2)
 }
 
 interface MemberCardRowProps {
@@ -234,7 +227,7 @@ const MemberCardRow = ({
               {hideNumbers ? (
                 //  🙈 رقم مخفي — يتكشف جوّه بروفايل العضو
                 <span className="text-gray-500 dark:text-gray-400 text-sm font-medium font-mono select-none tracking-widest" dir="ltr">
-                  {maskMemberPhone(member.phone)}
+                  {maskPhone(member.phone)}
                 </span>
               ) : (
                 <a

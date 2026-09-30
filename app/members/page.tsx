@@ -7,6 +7,7 @@ import Link from 'next/link'
 import nextDynamic from 'next/dynamic'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
+import { maskPhone } from '../../lib/maskPhone'
 import PermissionDenied from '../../components/PermissionDenied'
 import { useAdminDate } from '../../contexts/AdminDateContext'
 import { formatDateYMD, calculateRemainingDays } from '../../lib/dateFormatter'
@@ -111,13 +112,6 @@ function MembersPageContent() {
   //  قيد إخفاء الأرقام: نتشيّك على القيمة الخام (مش hasPermission اللي بيتخطّى للأونر/الأدمن)
   //  عشان الأدمن/الأونر يشوفوا الأرقام عادي، والموظف اللي عليه القيد بس هو اللي تتخفي عنه.
   const hideMemberNumbers = permissions?.hideMemberNumbers === true
-  //  تشفير الرقم: أول 3 وآخر 2 والباقي نقط
-  const maskPhoneNum = (p?: string | null) => {
-    const s = (p || '').replace(/\s/g, '')
-    if (!s) return ''
-    if (s.length <= 5) return '•'.repeat(s.length)
-    return s.slice(0, 3) + '•'.repeat(Math.max(4, s.length - 5)) + s.slice(-2)
-  }
   const { customCreatedAt } = useAdminDate()
   const { t, locale, direction } = useLanguage()
   const toast = useToast()
@@ -2345,7 +2339,7 @@ function MembersPageContent() {
                           <span className="text-gray-400 dark:text-gray-500">|</span>
                           {hideMemberNumbers ? (
                             <span className="text-gray-500 dark:text-gray-400 text-sm font-medium font-mono select-none tracking-widest" dir="ltr">
-                              {maskPhoneNum(member.phone)}
+                              {maskPhone(member.phone)}
                             </span>
                           ) : (
                             <a

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { usePermissions } from '@/hooks/usePermissions'
+import { displayPhone } from '@/lib/maskPhone'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -62,7 +63,8 @@ export default function FollowUpForm({
   onClose
 }: FollowUpFormProps) {
   const { t, direction, locale } = useLanguage()
-  const { user } = usePermissions()
+  const { user, permissions } = usePermissions()
+  const hideNumbers = permissions?.hideFollowUpNumbers === true
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     visitorId: initialVisitorId,
@@ -207,7 +209,7 @@ export default function FollowUpForm({
                   </div>
                   <p className="text-gray-600 dark:text-gray-400 text-sm mt-1 flex items-center gap-1">
                     <IconPhone className="w-4 h-4" />
-                    <span>{selectedInfo.phone}</span>
+                    <span dir="ltr">{displayPhone(selectedInfo.phone, hideNumbers)}</span>
                   </p>
                 </div>
               </div>

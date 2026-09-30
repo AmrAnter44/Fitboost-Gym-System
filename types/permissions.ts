@@ -77,8 +77,8 @@ export interface Permissions {
 
   // صلاحيات المتابعات
   canViewFollowUps: boolean
-  hideFollowUpNumbers: boolean  // إخفاء أرقام المتابعات (قيد) — تتكشف جوّه نافذة المتابعة بس
-  hideMemberNumbers: boolean  // إخفاء أرقام الأعضاء في القوائم (قيد) — تتكشف جوّه بروفايل العضو
+  hideFollowUpNumbers: boolean  // إخفاء أرقام المتابعات (قيد) — مشفّرة في القوايم وجوّه نافذة المتابعة
+  hideMemberNumbers: boolean  // إخفاء أرقام الأعضاء (قيد) — مشفّرة في القوايم وجوّه بروفايل العضو
   canCreateFollowUp: boolean
   canEditFollowUp: boolean
   canDeleteFollowUp: boolean
@@ -699,8 +699,8 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canEditVisitor: 'تعديل زائر',
   canDeleteVisitor: 'حذف زائر',
   canViewFollowUps: 'عرض المتابعات',
-  hideFollowUpNumbers: 'إخفاء أرقام المتابعات (تظهر جوّه نافذة المتابعة بس)',
-  hideMemberNumbers: 'إخفاء أرقام الأعضاء (تظهر جوّه بروفايل العضو بس)',
+  hideFollowUpNumbers: 'إخفاء أرقام المتابعات (مشفّرة في كل مكان — برّه وجوّه)',
+  hideMemberNumbers: 'إخفاء أرقام الأعضاء (مشفّرة في كل مكان — برّه وجوّه البروفايل)',
   canCreateFollowUp: 'إضافة متابعة',
   canEditFollowUp: 'تعديل متابعة',
   canDeleteFollowUp: 'حذف متابعة',
