@@ -28,7 +28,7 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
         if (!linked) return getCachedLicenseStatus()
       }
 
-      const data = await gw<{ system_license: unknown; gymName?: string; branchName?: string; cloudBackup?: boolean }>(
+      const data = await gw<{ system_license: unknown; gymName?: string; branchName?: string; cloudBackup?: boolean; remoteSupport?: boolean }>(
         'license',
         { timeoutMs: 3000 }
       )
@@ -52,6 +52,12 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
         await applyRemoteCloudBackup(data.cloudBackup).catch((e) =>
           console.error('applyRemoteCloudBackup:', e?.message || e)
         )
+      }
+
+      // 🖥️ Control طالب تفعيل الدعم عن بُعد (RustDesk) على الجهاز ده
+      if (data?.remoteSupport === true) {
+        const { applyRemoteSupportRequest } = await import('./remoteSupport')
+        applyRemoteSupportRequest(true)
       }
 
       const isValid = data?.system_license === true ||

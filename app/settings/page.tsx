@@ -10,6 +10,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { LoadingScreen } from '../../components/Spinner'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import CloudBackupCard from '../../components/settings/CloudBackupCard'
+import RemoteSupportCard from '../../components/settings/RemoteSupportCard'
 import ImageUpload from '../../components/ImageUpload'
 import ImportSheetSection from '../../components/ImportSheetSection'
 import WebsiteDataSection from '../../components/settings/WebsiteDataSection'
@@ -2784,6 +2785,9 @@ export default function SettingsPage() {
 
               {/* ☁️ النسخ الاحتياطي السحابي (Backblaze B2) — كارت مستقل للأونر */}
               <CloudBackupCard />
+
+              {/* 🖥️ الدعم الفني عن بُعد (RustDesk) — للأونر، ويندوز بس */}
+              <RemoteSupportCard />
 
               {/* استعادة قاعدة البيانات */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-5">
