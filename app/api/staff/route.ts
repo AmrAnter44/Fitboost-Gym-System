@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
-import { requirePermission, requireAnyPermission } from '../../../lib/auth'
+import { requirePermission, requireAnyPermission, isPtCommissionManagerScope } from '../../../lib/auth'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
 // GET - جلب كل الموظفين
@@ -26,6 +26,17 @@ export async function GET(request: Request) {
       if (user.role === 'OWNER' || user.role === 'ADMIN' || user.role === 'MANAGER') {
         // نكمل للقايمة الكاملة تحت (بره الـ catch)
       } else if (user.role === 'COACH') {
+        //  🏋️ الفتنس مانجر (كوتش + صلاحية حاسبة الـ PT) من جوّه الحاسبة: قايمة الكباتن كلهم —
+        //     بيانات أساسية بس (من غير مرتب / سلف / خصومات)
+        if (isPtCommissionManagerScope(user, request)) {
+          const coachesOnly = await prisma.staff.findMany({
+            where: { position: { contains: 'مدرب' } },
+            orderBy: { createdAt: 'desc' },
+            select: { id: true, name: true, phone: true, position: true, isActive: true }
+          })
+          return NextResponse.json(coachesOnly)
+        }
+
         // جلب معلومات المستخدم مع staffId
         const userWithStaff = await prisma.user.findUnique({
           where: { id: user.userId },

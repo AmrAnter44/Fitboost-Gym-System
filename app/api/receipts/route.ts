@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
-import { requireAnyPermission } from '../../../lib/auth'
+import { requireAnyPermission, isPtCommissionManagerScope } from '../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,6 +22,26 @@ export async function GET(request: Request) {
 
       // الكوتشات يمكنهم رؤية إيصالات PT الخاصة بهم فقط
       if (user.role === 'COACH') {
+        //  🏋️ الفتنس مانجر من جوّه حاسبة العمولات: إيصالات الـ PT بتاعة كل الكباتن (PT بس — مش باقي الإيصالات)
+        if (isPtCommissionManagerScope(user, request)) {
+          const sp = new URL(request.url).searchParams
+          const from = sp.get('startDate'), to = sp.get('endDate')
+          const createdAt: any = {}
+          if (from) createdAt.gte = new Date(from)
+          if (to) createdAt.lte = new Date(to.length === 10 ? `${to}T23:59:59.999` : to)
+          const ptReceipts = await prisma.receipt.findMany({
+            where: {
+              OR: [
+                { ptNumber: { not: null } },
+                { type: { in: ['PT', 'newPT', 'ptDayUse', 'ptRenewal', 'برايفت جديد', 'PT Day Use', 'تجديد برايفت', 'اشتراك برايفت', 'دفع باقي برايفت', 'new pt'] } },
+              ],
+              ...(from || to ? { createdAt } : {}),
+            },
+            orderBy: { receiptNumber: 'desc' }
+          })
+          return NextResponse.json(ptReceipts)
+        }
+
         // جلب اسم الكوتش من جدول Staff (للبحث بالاسم كـ fallback)
         const coachStaff = user.staffId
           ? await prisma.staff.findUnique({ where: { id: user.staffId }, select: { name: true } })

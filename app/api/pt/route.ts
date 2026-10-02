@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { activatePendingPTIfNeeded } from '../../../lib/ptPendingRenewal'
-import { requirePermission, verifyAuth } from '../../../lib/auth'
+import { requirePermission, verifyAuth, isPtCommissionManagerScope } from '../../../lib/auth'
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -34,8 +34,8 @@ export async function GET(request: Request) {
     //  «رؤية كل الـ PT» بقت للمشرف (MANAGER) والإدارة بالدور — مش صلاحية منفصلة.
     const canViewAll = user.role === 'OWNER' || user.role === 'ADMIN' || user.role === 'MANAGER'
 
-    if (user.role === 'COACH' && !canViewAll) {
-      // الكوتش يرى عملائه فقط (إلا لو عنده canViewAllPT)
+    if (user.role === 'COACH' && !canViewAll && !isPtCommissionManagerScope(user, request)) {
+      // الكوتش يرى عملائه فقط — إلا الفتنس مانجر من جوّه حاسبة العمولات (scope=pt-commission)
       // جلب اسم الكوتش من جدول Staff
       const coachStaff = await prisma.staff.findFirst({
         where: {

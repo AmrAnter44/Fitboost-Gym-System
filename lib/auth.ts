@@ -132,6 +132,20 @@ export interface UserPayload {
   permissions?: Permissions
 }
 
+//  🏋️ "الفتنس مانجر" = حساب كوتش معاه صلاحية «تقفيل/حاسبة الـ PT» (canAccessPTCommission).
+//  حاسبة العمولات بتبعت ?scope=pt-commission مع طلباتها — ولما الشرطين يتحققوا، الـ APIs
+//  بترجّع بيانات كل الكباتن بدل بيانات الكوتش نفسه بس. من غير الـ scope (صفحة الـ PT، شاشة
+//  الكوتش...) الكوتش ده بيفضل شايف عملاءه بس. كوتش من غير الصلاحية: الـ scope مالوش أي أثر.
+export function isPtCommissionManagerScope(user: UserPayload | null | undefined, request: Request): boolean {
+  if (!user || user.role !== 'COACH') return false
+  if (!user.permissions?.canAccessPTCommission) return false
+  try {
+    return new URL(request.url).searchParams.get('scope') === 'pt-commission'
+  } catch {
+    return false
+  }
+}
+
 // ✅ التحقق من المصادقة
 export async function verifyAuth(request: Request): Promise<UserPayload | null> {
   try {

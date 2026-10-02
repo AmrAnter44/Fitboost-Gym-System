@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
-import { verifyAuth } from '../../../../lib/auth'
+import { verifyAuth, isPtCommissionManagerScope } from '../../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     }
 
     // إذا كان المستخدم COACH، فلتر بناءً على staffId
-    if (user.role === 'COACH' && user.staffId) {
+    if (user.role === 'COACH' && user.staffId && !isPtCommissionManagerScope(user, request)) {
       whereClause.staffId = user.staffId
     }
 
