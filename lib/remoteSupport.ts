@@ -16,6 +16,8 @@ import { resolveDbPath } from './dbPath'
 import { gw, getDeviceToken } from './gateway'
 
 const RUSTDESK_VERSION = '1.5.0'
+// بصمة ملف التسطيب الرسمي من GitHub — لو الملف اتغيّر في السكة، التسطيب بيترفض
+const RUSTDESK_SHA256 = '8555777215510D83D2D61C9DC984E4FCC838BD7E79F9D18A42585431F5E8BB47'
 // سيرفر FitBoost (الـ VPS) + مفتاحه العام — بصيغة "config string" بتاعة RustDesk
 const SERVER_CONFIG =
   '=0nI9kEaIdUOtJGTOZVdphWc0c2aJVTQ6tUdPFlczh0dzRma5VnWYplMyhnaPpmI6ISeltmIsIiI6ISawFmIsIyM54iNwEjL1MjLyYTMiojI5FGblJnIsIyM54iNwEjL1MjLyYTMiojI0N3boJye'
@@ -84,6 +86,7 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $tmp = Join-Path $env:TEMP 'rustdesk-${RUSTDESK_VERSION}.exe'
     Invoke-WebRequest -Uri 'https://github.com/rustdesk/rustdesk/releases/download/${RUSTDESK_VERSION}/rustdesk-${RUSTDESK_VERSION}-x86_64.exe' -OutFile $tmp -UseBasicParsing
+    if ((Get-FileHash -Algorithm SHA256 -Path $tmp).Hash -ne '${RUSTDESK_SHA256}') { Remove-Item $tmp -Force; throw 'ملف التسطيب مش مطابق للنسخة الرسمية — اترفض' }
     Start-Process -FilePath $tmp -ArgumentList '--silent-install' -Wait
     $t = 0; while (-not (Test-Path $exe) -and $t -lt 90) { Start-Sleep 2; $t += 2 }
     if (-not (Test-Path $exe)) { throw 'التسطيب مخلصش' }
