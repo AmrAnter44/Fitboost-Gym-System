@@ -9,6 +9,25 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   try {
+    //  🔎 وضع خفيف للفلاتر (?scope=names): الاسم والوظيفة بس — من غير مرتب / سلف / خصومات / حضور.
+    //     متاح لأي حد يقدر يشوف الأعضاء أو المتابعات، عشان فلاتر السيلز/الكوتش في صفحة الأعضاء
+    //     تتملي للريسبشن اللي معندوش صلاحية «عرض الموظفين».
+    if (new URL(request.url).searchParams.get('scope') === 'names') {
+      const { verifyAuth } = await import('../../../lib/auth')
+      const viewer = await verifyAuth(request)
+      if (!viewer) throw new Error('Unauthorized')
+      const byRole = viewer.role === 'OWNER' || viewer.role === 'ADMIN' || viewer.role === 'MANAGER'
+      const p: any = viewer.permissions || {}
+      if (!byRole && !p.canViewMembers && !p.canViewFollowUps && !p.canViewStaff) {
+        throw new Error('Forbidden: Missing permission')
+      }
+      const names = await prisma.staff.findMany({
+        orderBy: { name: 'asc' },
+        select: { id: true, name: true, position: true, isActive: true }
+      })
+      return NextResponse.json(names)
+    }
+
     // ✅ التحقق من صلاحية عرض الموظفين (أو صلاحية التقفيل اللي محتاجة بيانات الموظفين)
     let user
     try {

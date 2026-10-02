@@ -449,6 +449,8 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
             memberNumber: data.member.memberNumber,
             memberName: data.member.name,
             phone: data.member.phone,
+            //  📦 اسم الباقة — جاي من السيرفر (اتحفظ في الإيصال)
+            ...(data.receipt.itemDetails?.packageName ? { packageName: data.receipt.itemDetails.packageName } : {}),
             startDate: formData.startDate,
             expiryDate: formData.expiryDate,
             subscriptionDays: subscriptionDays,

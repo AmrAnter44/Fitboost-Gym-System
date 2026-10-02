@@ -140,6 +140,8 @@ export async function POST(request: Request) {
               startDate: startDate || null,
               expiryDate: expiryDate || null,
               subscriptionDays: subscriptionDays,
+              //  اسم الباقة المختارة (اختياري) — بيتطبع في الإيصال
+              packageName: (typeof body.packageName === 'string' && body.packageName.trim()) ? body.packageName.trim() : null,
               oldSessionsRemaining: existingPhysiotherapy.sessionsRemaining,
               newSessionsRemaining: updatedPhysiotherapy.sessionsRemaining,
               oldRemainingAmount: oldRemainingAmount, // ✅ المبلغ المتبقي القديم المرتجع

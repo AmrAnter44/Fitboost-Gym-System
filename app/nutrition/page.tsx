@@ -132,6 +132,7 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
     expiryDate: string
     paymentMethod: string | PaymentMethod[]
     staffName: string
+    packageName: string //  اسم الباقة المختارة — بيتحفظ في الإيصال
   }>({
     nutritionNumber: '',
     clientName: '',
@@ -145,6 +146,7 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
     expiryDate: '',
     paymentMethod: 'cash',
     staffName: user?.name || '',
+    packageName: '',
   })
 
   const [referralCoachId, setReferralCoachId] = useState<string | null>(null)
@@ -254,6 +256,7 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
       sessionsPurchased: pkg.sessions,
       sessionsRemaining: pkg.sessions,
       totalPrice: pkg.price,
+      packageName: pkg.name || '',
       expiryDate: calculatedExpiry || prev.expiryDate // حساب تاريخ الانتهاء تلقائيًا
     }))
     toast.success(tr(`تم تطبيق باقة: ${pkg.name} (${pkg.durationDays} يوم)`, `Package applied: ${pkg.name} (${pkg.durationDays} days)`))
@@ -313,6 +316,7 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
       expiryDate: '',
       paymentMethod: 'cash',
       staffName: user?.name || '',
+      packageName: '',
     })
     setReferralCoachId(null)
     setSessionsLimitUntilPaid('')
@@ -351,6 +355,7 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
       expiryDate: session.expiryDate ? formatDateYMD(session.expiryDate) : '',
       paymentMethod: 'cash',
       staffName: user?.name || '',
+      packageName: '',
     })
     // 🔒 لو مقفول (0) بنسيب الخانة فاضية — الحد الحالي بيفضل زي ما هو إلا لو الموظف كتب رقم جديد
     const limitLeft = sessionsLeftBeforePayment(session)
@@ -379,7 +384,7 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
       }
 
       const body = editingSession
-        ? { nutritionNumber: editingSession.nutritionNumber, ...formData, ...limitPayload, staffName: user?.name || '' }
+        ? { nutritionNumber: editingSession.nutritionNumber, ...formData, packageName: undefined, ...limitPayload, staffName: user?.name || '' }
         : { ...formData, ...limitPayload, staffName: user?.name || '', referralCoachId: referralCoachId || null }
 
       const response = await fetch(url, {

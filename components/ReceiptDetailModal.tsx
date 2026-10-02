@@ -147,6 +147,14 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
               </div>
             )}
 
+            {/* 📦 اسم الباقة */}
+            {details.packageName && (
+              <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{tr('الباقة', 'Package')}</p>
+                <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{details.packageName}</p>
+              </div>
+            )}
+
             {details.name && (
               <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t('receipts.detail.name')}</p>

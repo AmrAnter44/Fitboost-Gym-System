@@ -107,6 +107,10 @@ export function prepareReceiptMessage(
   if (details.phone || details.memberPhone || details.clientPhone || memberPhone) {
     message += `📱 *الهاتف:* ${details.phone || details.memberPhone || details.clientPhone || memberPhone}\n`
   }
+  //  📦 اسم الباقة
+  if (details.packageName) {
+    message += `📦 *الباقة:* ${details.packageName}\n`
+  }
   message += `\n`
 
   // تفاصيل الاشتراك - عضوية
