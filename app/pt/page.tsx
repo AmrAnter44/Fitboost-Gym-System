@@ -76,7 +76,7 @@ function PTPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
-  const { t, direction, locale } = useLanguage()
+  const { t, tr, direction, locale } = useLanguage()
   const toast = useToast()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const { settings } = useServiceSettings()
@@ -224,7 +224,7 @@ function PTPageContent() {
       } else if (errorMessage === 'FORBIDDEN') {
         // لا نفعل شيء - PermissionDenied سيظهر
       } else {
-        toast.error(errorMessage || 'حدث خطأ أثناء جلب الجلسات')
+        toast.error(errorMessage || tr('حدث خطأ أثناء جلب الجلسات', 'Error loading sessions'))
       }
     }
   }, [sessionsError, router, toast])
@@ -315,7 +315,7 @@ function PTPageContent() {
       expiryDate: calculatedExpiry || prev.expiryDate, // حساب تاريخ الانتهاء تلقائيًا
       ptCommissionAmount: pkg.ptCommission || null // حفظ عمولة الباقة
     }))
-    toast.success(`تم تطبيق باقة: ${pkg.name} (${pkg.durationDays} يوم)`)
+    toast.success(tr(`تم تطبيق باقة: ${pkg.name} (${pkg.durationDays} يوم)`, `Package applied: ${pkg.name} (${pkg.durationDays} days)`))
   }
 
   // دالة جلب بيانات العضو بناءً على رقم العضوية وملء الحقول تلقائياً
@@ -324,7 +324,7 @@ function PTPageContent() {
 
     // التحقق من صلاحية عرض الأعضاء
     if (!hasPermission('canViewMembers')) {
-      toast.warning('لا تملك صلاحية عرض بيانات الأعضاء')
+      toast.warning(tr('لا تملك صلاحية عرض بيانات الأعضاء', 'You do not have permission to view members'))
       return
     }
 
@@ -341,9 +341,9 @@ function PTPageContent() {
           clientName: member.name,
           phone: member.phone
         }))
-        toast.success(`تم تحميل بيانات العضو: ${member.name}`)
+        toast.success(tr(`تم تحميل بيانات العضو: ${member.name}`, `Member data loaded: ${member.name}`))
       } else {
-        toast.warning(`لم يتم العثور على عضو برقم ${memberNumber}`)
+        toast.warning(tr(`لم يتم العثور على عضو برقم ${memberNumber}`, `No member found with number ${memberNumber}`))
       }
     } catch (error) {
       console.error('Error fetching member:', error)
@@ -1040,7 +1040,7 @@ function PTPageContent() {
 
       {!isCoach && showForm && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="pt-form-title" onClick={(e) => { if (e.target === e.currentTarget) { resetForm() } }}>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6 animate-modal-in" dir={direction}>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-5xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 animate-modal-in" dir={direction}>
           <div className="flex items-center justify-between mb-4">
             <h2 id="pt-form-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">
               {editingSession ? t('pt.editSession') : t('pt.addSession')}
@@ -1067,9 +1067,9 @@ function PTPageContent() {
                     onChange={(e) => setFormData({ ...formData, ptNumber: e.target.value })}
                     onKeyPress={handleIdKeyPress}
                     className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg disabled:bg-gray-100 dark:disabled:bg-gray-600 dark:bg-gray-700 dark:text-white"
-                    placeholder="اختياري - يمكن تركه فارغ"
+                    placeholder={tr('اختياري - يمكن تركه فارغ', 'Optional - can be left empty')}
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">اضغط Enter لتحميل بيانات العضو تلقائياً</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{tr('اضغط Enter لتحميل بيانات العضو تلقائياً', 'Press Enter to load member data automatically')}</p>
                 </div>
               )}
 
@@ -1171,10 +1171,10 @@ function PTPageContent() {
                   <div>
                     <span className="text-sm font-bold text-primary-800 dark:text-primary-200 inline-flex items-center gap-1">
                       <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                      Day Use (استخدام يومي)
+                      {tr('Day Use (استخدام يومي)', 'Day Use')}
                     </span>
                     <p className="text-xs text-primary-700 dark:text-primary-300 mt-1">
-                      تسجيل مبسط - اسم ورقم وسعر الجلسة فقط
+                      {tr('تسجيل مبسط - اسم ورقم وسعر الجلسة فقط', 'Quick registration - name, phone and session price only')}
                     </p>
                   </div>
                 </label>
@@ -1207,7 +1207,7 @@ function PTPageContent() {
                           {pkg.durationDays && (
                             <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 inline-flex items-center gap-1">
                               <svg {...stroke} className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
-                              {pkg.durationDays} يوم
+                              {pkg.durationDays} {tr('يوم', 'days')}
                             </div>
                           )}
                           <div className="text-lg font-bold text-primary-700 dark:text-primary-400 mt-1">
@@ -1243,7 +1243,7 @@ function PTPageContent() {
               {!isDayUse && editingSession && (
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                    الجلسات المتبقية <span className="text-red-600">*</span>
+                    {tr('الجلسات المتبقية', 'Remaining sessions')} <span className="text-red-600">*</span>
                   </label>
                   <input
                     type="number"
@@ -1252,10 +1252,10 @@ function PTPageContent() {
                     value={formData.sessionsRemaining}
                     onChange={(e) => setFormData({ ...formData, sessionsRemaining: parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 border rounded-lg bg-primary-50 dark:bg-primary-900/50 border-primary-300 dark:border-primary-600 dark:text-primary-contrast"
-                    placeholder="عدد الجلسات المتبقية"
+                    placeholder={tr('عدد الجلسات المتبقية', 'Number of remaining sessions')}
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    يمكنك تعديل عدد الجلسات المتبقية للعميل
+                    {tr('يمكنك تعديل عدد الجلسات المتبقية للعميل', 'You can edit the client\'s remaining sessions')}
                   </p>
                 </div>
               )}
@@ -1470,7 +1470,7 @@ function PTPageContent() {
                 className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors duration-200 inline-flex items-center gap-1"
               >
                 <svg {...stroke} className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                إعادة تعيين
+                {tr('إعادة تعيين', 'Reset')}
               </button>
             )}
           </div>
@@ -1952,7 +1952,7 @@ function PTPageContent() {
                     <label className="block text-xs font-bold mb-1 dark:text-gray-200">{locale === 'ar' ? 'طريقة الدفع' : 'Method'}</label>
                     <select value={pendingPayMethod} onChange={(e) => setPendingPayMethod(e.target.value)} className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                       <option value="cash">{locale === 'ar' ? 'كاش' : 'Cash'}</option>
-                      <option value="instapay">إنستاباي</option>
+                      <option value="instapay">{tr('إنستاباي', 'InstaPay')}</option>
                       <option value="wallet">{locale === 'ar' ? 'محفظة' : 'Wallet'}</option>
                       <option value="visa">{locale === 'ar' ? 'فيزا' : 'Visa'}</option>
                     </select>
@@ -1970,7 +1970,7 @@ function PTPageContent() {
       {/* Payment Modal */}
       {showPaymentModal && paymentSession && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="pt-payment-title" onClick={(e) => { if (e.target === e.currentTarget) { setShowPaymentModal(false); setPaymentSession(null) } }}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-3xl w-full p-6 animate-modal-in" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-3xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 animate-modal-in" dir={direction}>
             <div className="flex items-center justify-between mb-4">
               <h2 id="pt-payment-title" className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('pt.paymentModal.title')}</h2>
               <button
@@ -2130,8 +2130,8 @@ function PTPageContent() {
       {/* SignaturePad Modal - للكوتش فقط */}
       {showSignatureModal && signatureSession && (
         <SignaturePad
-          title={`تسجيل حصة - ${signatureSession.clientName}`}
-          subtitle={`الحصص المتبقية: ${signatureSession.sessionsRemaining} من ${signatureSession.sessionsPurchased}`}
+          title={tr(`تسجيل حصة - ${signatureSession.clientName}`, `Record session - ${signatureSession.clientName}`)}
+          subtitle={tr(`الحصص المتبقية: ${signatureSession.sessionsRemaining} من ${signatureSession.sessionsPurchased}`, `Remaining sessions: ${signatureSession.sessionsRemaining} of ${signatureSession.sessionsPurchased}`)}
           onConfirm={handleSignatureConfirm}
           onCancel={() => {
             setShowSignatureModal(false)

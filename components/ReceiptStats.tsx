@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useLanguage } from '../contexts/LanguageContext'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -17,14 +18,14 @@ interface StatCardProps {
 
 function StatCard({ label, value, subtitle, icon }: StatCardProps) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-3 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</div>
-          <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</div>
+          <div className="mt-1 text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">{value}</div>
           {subtitle && <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">{subtitle}</div>}
         </div>
-        <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center shrink-0">
+        <div className="hidden sm:flex w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 items-center justify-center shrink-0">
           {icon}
         </div>
       </div>
@@ -33,6 +34,7 @@ function StatCard({ label, value, subtitle, icon }: StatCardProps) {
 }
 
 export function ReceiptStats({ receipts }: StatsProps) {
+  const { tr } = useLanguage()
   const [stats, setStats] = useState({
     total: 0,
     today: 0,
@@ -141,53 +143,53 @@ export function ReceiptStats({ receipts }: StatsProps) {
   )
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       <StatCard
-        label="إجمالي الإيصالات"
+        label={tr('إجمالي الإيصالات', 'Total Receipts')}
         value={stats.total}
-        subtitle="منذ البداية"
+        subtitle={tr('منذ البداية', 'All time')}
         icon={iconChart}
       />
       <StatCard
-        label="إيصالات اليوم"
+        label={tr('إيصالات اليوم', "Today's Receipts")}
         value={stats.today}
-        subtitle={`${stats.todayRevenue.toFixed(0)} ج.م`}
+        subtitle={`${stats.todayRevenue.toFixed(0)} ${tr('ج.م', 'EGP')}`}
         icon={iconCalendar}
       />
       <StatCard
-        label="هذا الأسبوع"
+        label={tr('هذا الأسبوع', 'This Week')}
         value={stats.thisWeek}
-        subtitle="آخر 7 أيام"
+        subtitle={tr('آخر 7 أيام', 'Last 7 days')}
         icon={iconCalendarRange}
       />
       <StatCard
-        label="إجمالي الإيرادات"
+        label={tr('إجمالي الإيرادات', 'Total Revenue')}
         value={stats.totalRevenue.toFixed(0)}
-        subtitle="جنيه مصري"
+        subtitle={tr('جنيه مصري', 'Egyptian Pound')}
         icon={iconMoney}
       />
       <StatCard
-        label="اشتراكات العضوية"
+        label={tr('اشتراكات العضوية', 'Memberships')}
         value={stats.byType.Member}
-        subtitle={`${stats.total > 0 ? ((stats.byType.Member / stats.total) * 100).toFixed(0) : 0}% من الإجمالي`}
+        subtitle={`${stats.total > 0 ? ((stats.byType.Member / stats.total) * 100).toFixed(0) : 0}% ${tr('من الإجمالي', 'of total')}`}
         icon={iconUsers}
       />
       <StatCard
-        label="التدريب الشخصي"
+        label={tr('التدريب الشخصي', 'Personal Training')}
         value={stats.byType.PT}
-        subtitle={`${stats.total > 0 ? ((stats.byType.PT / stats.total) * 100).toFixed(0) : 0}% من الإجمالي`}
+        subtitle={`${stats.total > 0 ? ((stats.byType.PT / stats.total) * 100).toFixed(0) : 0}% ${tr('من الإجمالي', 'of total')}`}
         icon={iconDumbbell}
       />
       <StatCard
-        label="يوم استخدام"
+        label={tr('يوم استخدام', 'Day Use')}
         value={stats.byType.DayUse}
-        subtitle={`${stats.total > 0 ? ((stats.byType.DayUse / stats.total) * 100).toFixed(0) : 0}% من الإجمالي`}
+        subtitle={`${stats.total > 0 ? ((stats.byType.DayUse / stats.total) * 100).toFixed(0) : 0}% ${tr('من الإجمالي', 'of total')}`}
         icon={iconClock}
       />
       <StatCard
-        label="فحص InBody"
+        label={tr('فحص InBody', 'InBody Scan')}
         value={stats.byType.InBody}
-        subtitle={`${stats.total > 0 ? ((stats.byType.InBody / stats.total) * 100).toFixed(0) : 0}% من الإجمالي`}
+        subtitle={`${stats.total > 0 ? ((stats.byType.InBody / stats.total) * 100).toFixed(0) : 0}% ${tr('من الإجمالي', 'of total')}`}
         icon={iconScale}
       />
     </div>

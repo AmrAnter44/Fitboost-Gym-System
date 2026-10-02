@@ -63,7 +63,7 @@ const renderOfferIcon = (icon: string, className = 'w-6 h-6') => {
 }
 
 export default function OffersPage() {
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
   const toast = useToast()
   const router = useRouter()
   const { settings } = useServiceSettings()
@@ -139,7 +139,7 @@ export default function OffersPage() {
 
     //  المدة بالأيام إجبارية قبل إنشاء/تعديل الباقة
     if (!formData.duration || parseInt(formData.duration.toString()) <= 0) {
-      setError('المدة بالأيام مطلوبة ولازم تكون أكبر من صفر')
+      setError(tr('المدة بالأيام مطلوبة ولازم تكون أكبر من صفر', 'Duration in days is required and must be greater than zero'))
       return
     }
 
@@ -395,7 +395,7 @@ export default function OffersPage() {
               <div>
                 <label className={labelCls}>{t('offers.duration')} <span className="text-red-600">*</span></label>
                 <input type="number" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className={inputCls} placeholder={t('offers.durationPlaceholder')} min="1" required />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">المدة بالأيام مطلوبة. للباقات بعدد دخلات: حط المدة + عدد الدخلات، والاشتراك بينتهي بأول اللي يخلص.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{tr('المدة بالأيام مطلوبة. للباقات بعدد دخلات: حط المدة + عدد الدخلات، والاشتراك بينتهي بأول اللي يخلص.', 'Duration in days is required. For visit-based packages: set duration + visits; the subscription ends at whichever runs out first.')}</p>
               </div>
 
               <div>
@@ -446,21 +446,21 @@ export default function OffersPage() {
 
               {settings.poolEnabled && (
                 <div>
-                  <label className={labelCls}>جلسات حمام السباحة</label>
+                  <label className={labelCls}>{tr('جلسات حمام السباحة', 'Pool sessions')}</label>
                   <input type="number" value={formData.freePoolSessions} onChange={(e) => setFormData({ ...formData, freePoolSessions: e.target.value })} className={inputCls} placeholder="0" />
                 </div>
               )}
 
               {settings.padelEnabled && (
                 <div>
-                  <label className={labelCls}>جلسات البادل</label>
+                  <label className={labelCls}>{tr('جلسات البادل', 'Padel sessions')}</label>
                   <input type="number" value={formData.freePadelSessions} onChange={(e) => setFormData({ ...formData, freePadelSessions: e.target.value })} className={inputCls} placeholder="0" />
                 </div>
               )}
 
               {settings.assessmentEnabled && (
                 <div>
-                  <label className={labelCls}>جلسات التقييم</label>
+                  <label className={labelCls}>{tr('جلسات التقييم', 'Assessment sessions')}</label>
                   <input type="number" value={formData.freeAssessmentSessions} onChange={(e) => setFormData({ ...formData, freeAssessmentSessions: e.target.value })} className={inputCls} placeholder="0" />
                 </div>
               )}
@@ -471,15 +471,15 @@ export default function OffersPage() {
               </div>
 
               <div>
-                <label className={labelCls}>أيام الفريز</label>
+                <label className={labelCls}>{tr('أيام الفريز', 'Freeze days')}</label>
                 <input type="number" value={formData.freezeDays} onChange={(e) => setFormData({ ...formData, freezeDays: e.target.value })} className={inputCls} placeholder="0" min="0" />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">عدد أيام الفريز المسموح بها لهذا العرض</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{tr('عدد أيام الفريز المسموح بها لهذا العرض', 'Freeze days allowed for this offer')}</p>
               </div>
 
               <div>
-                <label className={labelCls}>عدد حصص الدخول</label>
+                <label className={labelCls}>{tr('عدد حصص الدخول', 'Number of visits')}</label>
                 <input type="number" value={formData.maxCheckIns} onChange={(e) => setFormData({ ...formData, maxCheckIns: e.target.value })} className={inputCls} placeholder="0" min="0" />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">عدد مرات الدخول المسموح بها (0 = دخول غير محدود بالمدة)</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{tr('عدد مرات الدخول المسموح بها (0 = دخول غير محدود بالمدة)', 'Allowed visits (0 = unlimited within duration)')}</p>
               </div>
 
               <div>
@@ -496,30 +496,30 @@ export default function OffersPage() {
 
               {settings.ptCommissionEnabled && (
                 <div>
-                  <label className={labelCls}>عمولة الكوتش (جنيه)</label>
+                  <label className={labelCls}>{tr('عمولة الكوتش (جنيه)', 'Coach commission (EGP)')}</label>
                   <input type="number" value={formData.ptCommission} onChange={(e) => setFormData({ ...formData, ptCommission: e.target.value })} className={inputCls} placeholder="0" min="0" step="10" />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    مبلغ العمولة للكوتش عند اشتراك عضو بهذا العرض
+                    {tr('مبلغ العمولة للكوتش عند اشتراك عضو بهذا العرض', 'Coach commission when a member subscribes to this offer')}
                     <br />
-                    <span>(0 = استخدام المبلغ الافتراضي من الإعدادات: {settings.ptCommissionAmount || 50} ج.م)</span>
+                    <span>({tr('0 = استخدام المبلغ الافتراضي من الإعدادات:', '0 = use default amount from settings:')} {settings.ptCommissionAmount || 50} {tr('ج.م', 'EGP')})</span>
                   </p>
                 </div>
               )}
 
               <div className="md:col-span-2 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg p-4">
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  ساعات الدخول المسموح بها (اختياري)
+                  {tr('ساعات الدخول المسموح بها (اختياري)', 'Allowed check-in hours (optional)')}
                 </label>
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-                  لو حددت ساعات، كل عضو يشترك في العرض ده هيتحدد له نفس الساعات تلقائياً. سيب فاضي عشان يدخل أي وقت.
+                  {tr('لو حددت ساعات، كل عضو يشترك في العرض ده هيتحدد له نفس الساعات تلقائياً. سيب فاضي عشان يدخل أي وقت.', 'If set, every member subscribing to this offer gets the same hours automatically. Leave empty to allow any time.')}
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">من</label>
+                    <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">{tr('من', 'From')}</label>
                     <input type="time" value={formData.allowedCheckInStart} onChange={(e) => setFormData({ ...formData, allowedCheckInStart: e.target.value })} className={inputCls} />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">إلى</label>
+                    <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">{tr('إلى', 'To')}</label>
                     <input type="time" value={formData.allowedCheckInEnd} onChange={(e) => setFormData({ ...formData, allowedCheckInEnd: e.target.value })} className={inputCls} />
                   </div>
                 </div>
@@ -532,7 +532,7 @@ export default function OffersPage() {
                     <svg {...stroke} className="w-3 h-3" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                     </svg>
-                    <span>إلغاء التحديد</span>
+                    <span>{tr('إلغاء التحديد', 'Clear')}</span>
                   </button>
                 )}
               </div>
@@ -649,8 +649,8 @@ export default function OffersPage() {
                   </div>
                   {settings.ptCommissionEnabled && offer.ptCommission !== undefined && offer.ptCommission > 0 && (
                     <div className="flex justify-between items-center text-sm bg-primary-50 dark:bg-primary-900/30 px-3 py-2 rounded-lg">
-                      <span className="text-primary-700 dark:text-primary-300 font-semibold">عمولة الكوتش</span>
-                      <span className="font-bold text-primary-700 dark:text-primary-300">{offer.ptCommission} ج.م</span>
+                      <span className="text-primary-700 dark:text-primary-300 font-semibold">{tr('عمولة الكوتش', 'Coach commission')}</span>
+                      <span className="font-bold text-primary-700 dark:text-primary-300">{offer.ptCommission} {tr('ج.م', 'EGP')}</span>
                     </div>
                   )}
                   {settings.nutritionEnabled && (
@@ -679,19 +679,19 @@ export default function OffersPage() {
                   )}
                   {settings.poolEnabled && (
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">جلسات حمام السباحة</span>
+                      <span className="text-gray-600 dark:text-gray-400">{tr('جلسات حمام السباحة', 'Pool sessions')}</span>
                       <span className="font-bold text-gray-900 dark:text-gray-100">{(offer as any).freePoolSessions || 0}</span>
                     </div>
                   )}
                   {settings.padelEnabled && (
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">جلسات البادل</span>
+                      <span className="text-gray-600 dark:text-gray-400">{tr('جلسات البادل', 'Padel sessions')}</span>
                       <span className="font-bold text-gray-900 dark:text-gray-100">{(offer as any).freePadelSessions || 0}</span>
                     </div>
                   )}
                   {settings.assessmentEnabled && (
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">جلسات التقييم</span>
+                      <span className="text-gray-600 dark:text-gray-400">{tr('جلسات التقييم', 'Assessment sessions')}</span>
                       <span className="font-bold text-gray-900 dark:text-gray-100">{(offer as any).freeAssessmentSessions || 0}</span>
                     </div>
                   )}
@@ -700,7 +700,7 @@ export default function OffersPage() {
                     <span className="font-bold text-gray-900 dark:text-gray-100">{offer.invitations}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">أيام الفريز</span>
+                    <span className="text-gray-600 dark:text-gray-400">{tr('أيام الفريز', 'Freeze days')}</span>
                     <span className="font-bold text-primary-600 dark:text-primary-400">{offer.freezeDays}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">

@@ -23,7 +23,7 @@ interface ReceiptDetailModalProps {
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps) {
-  const { direction, t, language } = useLanguage()
+  const { direction, t, tr, language } = useLanguage()
   const panelRef = useRef<HTMLDivElement>(null)
   const details = JSON.parse(receipt.itemDetails)
 
@@ -115,8 +115,8 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
               type="button"
               onClick={onClose}
               autoFocus
-              aria-label="إغلاق"
-              className="text-white hover:bg-white/20 rounded-lg w-9 h-9 flex items-center justify-center transition-colors duration-200"
+              aria-label={tr('إغلاق', 'Close')}
+              className="text-white hover:bg-white/20 rounded-lg w-10 h-10 shrink-0 flex items-center justify-center transition-colors duration-200"
             >
               <svg className="w-5 h-5" {...stroke}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -161,14 +161,14 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
                 <svg className="w-5 h-5" {...stroke}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
                 </svg>
-                <span>{details.kind === 'membershipTransferIdentity' ? 'تغيير ملكية العضوية' : 'نقل عضوية'}</span>
+                <span>{details.kind === 'membershipTransferIdentity' ? tr('تغيير ملكية العضوية', 'Membership Ownership Change') : tr('نقل عضوية', 'Membership Transfer')}</span>
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 {details.kind === 'membershipTransferIdentity' ? (
                   <>
                     {details.previousOwner?.name && (
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">المالك السابق</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{tr('المالك السابق', 'Previous Owner')}</p>
                         <p className="font-bold dark:text-gray-100">{details.previousOwner.name}</p>
                         {details.previousOwner.phone && (
                           <p className="text-xs font-mono text-gray-500 dark:text-gray-400" dir="ltr">{details.previousOwner.phone}</p>
@@ -177,7 +177,7 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
                     )}
                     {details.newOwner?.name && (
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">المالك الجديد</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{tr('المالك الجديد', 'New Owner')}</p>
                         <p className="font-bold text-purple-700 dark:text-purple-300">{details.newOwner.name}</p>
                         {details.newOwner.phone && (
                           <p className="text-xs font-mono text-gray-500 dark:text-gray-400" dir="ltr">{details.newOwner.phone}</p>
@@ -186,13 +186,13 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
                     )}
                     {details.remainingDays !== undefined && (
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">الأيام المتبقية</p>
-                        <p className="font-bold dark:text-gray-100">{details.remainingDays} يوم</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{tr('الأيام المتبقية', 'Remaining Days')}</p>
+                        <p className="font-bold dark:text-gray-100">{details.remainingDays} {tr('يوم', 'days')}</p>
                       </div>
                     )}
                     {details.expiryDate && (
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">ينتهي في</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{tr('ينتهي في', 'Expires On')}</p>
                         <p className="font-bold dark:text-gray-100">{new Date(details.expiryDate).toLocaleDateString('ar-EG')}</p>
                       </div>
                     )}
@@ -201,13 +201,13 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
                   <>
                     {details.fromMember?.name && (
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">من</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{tr('من', 'From')}</p>
                         <p className="font-bold dark:text-gray-100">{details.fromMember.name} {details.fromMember.memberNumber && <span className="text-xs text-gray-500">#{details.fromMember.memberNumber}</span>}</p>
                       </div>
                     )}
                     {details.toMember?.name && (
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">إلى</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{tr('إلى', 'To')}</p>
                         <p className="font-bold text-purple-700 dark:text-purple-300">{details.toMember.name} {details.toMember.memberNumber && <span className="text-xs text-gray-500">#{details.toMember.memberNumber}</span>}</p>
                         {details.toMember.phone && (
                           <p className="text-xs font-mono text-gray-500 dark:text-gray-400" dir="ltr">{details.toMember.phone}</p>
@@ -216,13 +216,13 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
                     )}
                     {details.transferredDays !== undefined && (
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">الأيام المنقولة</p>
-                        <p className="font-bold dark:text-gray-100">{details.transferredDays} يوم</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{tr('الأيام المنقولة', 'Transferred Days')}</p>
+                        <p className="font-bold dark:text-gray-100">{details.transferredDays} {tr('يوم', 'days')}</p>
                       </div>
                     )}
                     {details.toNewExpiryDate && (
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">تاريخ الانتهاء الجديد</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{tr('تاريخ الانتهاء الجديد', 'New Expiry Date')}</p>
                         <p className="font-bold dark:text-gray-100">{new Date(details.toNewExpiryDate).toLocaleDateString('ar-EG')}</p>
                       </div>
                     )}
@@ -230,8 +230,8 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
                 )}
                 {details.transferFee !== undefined && (
                   <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">رسوم النقل</p>
-                    <p className="font-bold text-emerald-600 dark:text-emerald-400">{details.transferFee} ج.م</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{tr('رسوم النقل', 'Transfer Fee')}</p>
+                    <p className="font-bold text-emerald-600 dark:text-emerald-400">{details.transferFee} {tr('ج.م', 'EGP')}</p>
                   </div>
                 )}
               </div>
@@ -250,7 +250,7 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
               <div className="space-y-1">
               {details.discount && details.discount > 0 && details.originalPrice && (
                 <div className="flex justify-between py-1 border-b border-gray-200 dark:border-gray-700 text-sm">
-                  <span className="text-gray-600 dark:text-gray-300">السعر الأصلي</span>
+                  <span className="text-gray-600 dark:text-gray-300">{tr('السعر الأصلي', 'Original Price')}</span>
                   <span className="font-bold text-gray-500 dark:text-gray-400 line-through">
                     {details.originalPrice} {t('common.currency')}
                   </span>
@@ -262,7 +262,7 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
                     <svg className="w-3.5 h-3.5" {...stroke}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185zM9.75 9h.008v.008H9.75V9zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 6h.008v.008h-.008V15zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                     </svg>
-                    <span>الخصم</span>
+                    <span>{tr('الخصم', 'Discount')}</span>
                   </span>
                   <span className="font-bold text-amber-600 dark:text-amber-400">
                     - {details.discount} {t('common.currency')}
@@ -307,7 +307,7 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
 
               {details.salesPersonName && (
                 <div className="flex justify-between py-1 border-b border-gray-200 dark:border-gray-700 text-sm">
-                  <span className="text-gray-600 dark:text-gray-300">السيلز</span>
+                  <span className="text-gray-600 dark:text-gray-300">{tr('السيلز', 'Sales')}</span>
                   <span className="font-bold dark:text-gray-100">{details.salesPersonName}</span>
                 </div>
               )}

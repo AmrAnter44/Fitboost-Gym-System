@@ -41,7 +41,7 @@ export default function MemberDetailPage() {
   const params = useParams()
   const router = useRouter()
   const memberId = params.id as string
-  const { t, locale } = useLanguage()
+  const { t, tr, locale } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
@@ -273,7 +273,7 @@ export default function MemberDetailPage() {
     }
 
     if (freezeData.days > member.remainingFreezeDays) {
-      toast.error(`رصيد الفريز غير كافٍ. المتاح: ${member.remainingFreezeDays} يوم، المطلوب: ${freezeData.days} يوم`)
+      toast.error(tr(`رصيد الفريز غير كافٍ. المتاح: ${member.remainingFreezeDays} يوم، المطلوب: ${freezeData.days} يوم`, `Insufficient freeze balance. Available: ${member.remainingFreezeDays} days, requested: ${freezeData.days} days`))
       return
     }
 
@@ -291,13 +291,13 @@ export default function MemberDetailPage() {
       const result = await response.json()
 
       if (response.ok) {
-        toast.success(`تم تجميد الاشتراك لمدة ${freezeData.days} يوم بنجاح`)
+        toast.success(tr(`تم تجميد الاشتراك لمدة ${freezeData.days} يوم بنجاح`, `Subscription frozen for ${freezeData.days} days`))
 
         setFreezeData({ days: 0, reason: '' })
         setActiveModal(null)
         fetchMember()
       } else {
-        toast.error(result.error || 'فشل التجميد')
+        toast.error(result.error || tr('فشل التجميد', 'Freeze failed'))
       }
     } catch (error) {
       toast.error(t('common.error'))
@@ -308,7 +308,7 @@ export default function MemberDetailPage() {
 
   const handleEdit = async () => {
     if (!member || !editData.name || !editData.phone) {
-      toast.error('يرجى إدخال الاسم ورقم الهاتف')
+      toast.error(tr('يرجى إدخال الاسم ورقم الهاتف', 'Please enter name and phone number'))
       return
     }
 
@@ -333,11 +333,11 @@ export default function MemberDetailPage() {
       })
 
       if (response.ok) {
-        toast.success('تم تحديث البيانات بنجاح!')
+        toast.success(tr('تم تحديث البيانات بنجاح!', 'Details updated successfully!'))
         setActiveModal(null)
         fetchMember()
       } else {
-        toast.error('فشل تحديث البيانات')
+        toast.error(tr('فشل تحديث البيانات', 'Failed to update details'))
       }
     } catch (error) {
       toast.error(t('common.error'))
@@ -512,7 +512,7 @@ export default function MemberDetailPage() {
               <svg className="w-3.5 h-3.5" {...stroke}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M3 12h18M5.636 5.636l12.728 12.728M5.636 18.364L18.364 5.636" />
               </svg>
-              أيام الفريز
+              {tr('أيام الفريز', 'Freeze days')}
             </p>
             <p className="text-lg sm:text-xl md:text-2xl font-bold">{member.remainingFreezeDays}</p>
           </div>
@@ -566,8 +566,8 @@ export default function MemberDetailPage() {
               </svg>
             </div>
             <div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">تعديل البيانات</h3>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">تعديل جميع بيانات العضو</p>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">{tr('تعديل البيانات', 'Edit details')}</h3>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{tr('تعديل جميع بيانات العضو', 'Edit all member details')}</p>
             </div>
           </div>
           <button
@@ -589,7 +589,7 @@ export default function MemberDetailPage() {
             disabled={loading}
             className="w-full bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2.5 sm:py-3 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed font-bold text-sm sm:text-base transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
-            تعديل البيانات
+            {tr('تعديل البيانات', 'Edit details')}
           </button>
         </div>
       </div>
@@ -604,7 +604,7 @@ export default function MemberDetailPage() {
             if (e.target === e.currentTarget) setActiveModal(null)
           }}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
               <h3 id="edit-image-title" className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('memberDetails.editMemberImage')}</h3>
               <button
@@ -673,14 +673,14 @@ export default function MemberDetailPage() {
             disabled={member.inBodyScans <= 0 || loading}
             className="w-full bg-green-600 hover:bg-green-700 text-white py-2 sm:py-2.5 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
-            استخدام حصة
+            {tr('استخدام حصة', 'Use session')}
           </button>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-bold uppercase tracking-wider">الدعوات</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-bold uppercase tracking-wider">{tr('الدعوات', 'Invitations')}</p>
               <p className="text-3xl sm:text-4xl font-bold text-primary-700 dark:text-primary-400">{member.invitations}</p>
             </div>
             <div className="w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
@@ -694,14 +694,14 @@ export default function MemberDetailPage() {
             disabled={member.invitations <= 0 || loading}
             className="w-full bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2 sm:py-2.5 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
-            استخدام دعوة
+            {tr('استخدام دعوة', 'Use invitation')}
           </button>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-bold uppercase tracking-wider">حصص PT مجانية</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-bold uppercase tracking-wider">{tr('حصص PT مجانية', 'Free PT sessions')}</p>
               <p className="text-3xl sm:text-4xl font-bold text-orange-600 dark:text-orange-400">{member.freePTSessions}</p>
             </div>
             <div className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 flex items-center justify-center flex-shrink-0">
@@ -715,14 +715,14 @@ export default function MemberDetailPage() {
             disabled={member.freePTSessions <= 0 || loading}
             className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 sm:py-2.5 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
-            استخدام حصة
+            {tr('استخدام حصة', 'Use session')}
           </button>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-bold uppercase tracking-wider">أيام الفريز</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-bold uppercase tracking-wider">{tr('أيام الفريز', 'Freeze days')}</p>
               <p className="text-3xl sm:text-4xl font-bold text-cyan-600 dark:text-cyan-400">{member.remainingFreezeDays}</p>
             </div>
             <div className="w-12 h-12 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 flex items-center justify-center flex-shrink-0">
@@ -736,7 +736,7 @@ export default function MemberDetailPage() {
             disabled={!member.expiryDate || loading || member.remainingFreezeDays <= 0}
             className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-2 sm:py-2.5 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
-            تجميد الاشتراك
+            {tr('تجميد الاشتراك', 'Freeze subscription')}
           </button>
         </div>
       </div>
@@ -749,8 +749,8 @@ export default function MemberDetailPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">دفع المبلغ المتبقي</h3>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">المتبقي: {member.remainingAmount} ج.م</p>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">{tr('دفع المبلغ المتبقي', 'Pay remaining amount')}</h3>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{tr('المتبقي:', 'Remaining:')} {member.remainingAmount} {tr('ج.م', 'EGP')}</p>
           </div>
         </div>
         <button
@@ -758,7 +758,7 @@ export default function MemberDetailPage() {
           disabled={member.remainingAmount <= 0 || loading}
           className="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 sm:py-3 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed font-bold text-sm sm:text-base transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
         >
-          دفع مبلغ
+          {tr('دفع مبلغ', 'Make payment')}
         </button>
       </div>
 
@@ -769,17 +769,17 @@ export default function MemberDetailPage() {
           aria-labelledby="payment-title"
           className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm"
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-6">
               <h3 id="payment-title" className="text-2xl font-bold text-gray-900 dark:text-gray-100 inline-flex items-center gap-2">
                 <svg className="w-6 h-6 text-green-600 dark:text-green-400" {...stroke}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                دفع المبلغ المتبقي
+                {tr('دفع المبلغ المتبقي', 'Pay remaining amount')}
               </h3>
               <button
                 onClick={() => setActiveModal(null)}
-                aria-label="إغلاق"
+                aria-label={tr('إغلاق', 'Close')}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200"
               >
                 <svg className="w-6 h-6" {...stroke}>
@@ -790,14 +790,14 @@ export default function MemberDetailPage() {
 
             <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 p-4 rounded-lg mb-6">
               <p className="font-bold text-amber-800 dark:text-amber-300">
-                المبلغ المتبقي: {member.remainingAmount} ج.م
+                {tr('المبلغ المتبقي:', 'Remaining amount:')} {member.remainingAmount} {tr('ج.م', 'EGP')}
               </p>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                  المبلغ المدفوع <span className="text-red-600">*</span>
+                  {tr('المبلغ المدفوع', 'Amount paid')} <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="number"
@@ -823,21 +823,21 @@ export default function MemberDetailPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">ملاحظات</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{tr('ملاحظات', 'Notes')}</label>
                 <textarea
                   value={paymentData.notes}
                   onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
                   className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   rows={3}
-                  placeholder="ملاحظات إضافية..."
+                  placeholder={tr('ملاحظات إضافية...', 'Additional notes...')}
                 />
               </div>
 
               <div className="bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg p-4">
                 <div className="flex justify-between text-lg text-gray-700 dark:text-gray-200">
-                  <span>المتبقي بعد الدفع:</span>
+                  <span>{tr('المتبقي بعد الدفع:', 'Remaining after payment:')}</span>
                   <span className="font-bold text-green-600 dark:text-green-400">
-                    {(member.remainingAmount - paymentData.amount).toFixed(0)} ج.م
+                    {(member.remainingAmount - paymentData.amount).toFixed(0)} {tr('ج.م', 'EGP')}
                   </span>
                 </div>
               </div>
@@ -853,14 +853,14 @@ export default function MemberDetailPage() {
                       <svg className="w-5 h-5 animate-spin" {...stroke}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      جاري المعالجة...
+                      {tr('جاري المعالجة...', 'Processing...')}
                     </>
                   ) : (
                     <>
                       <svg className="w-5 h-5" {...stroke}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
-                      تأكيد الدفع
+                      {tr('تأكيد الدفع', 'Confirm payment')}
                     </>
                   )}
                 </button>
@@ -868,7 +868,7 @@ export default function MemberDetailPage() {
                   onClick={() => setActiveModal(null)}
                   className="px-6 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 font-bold"
                 >
-                  إلغاء
+                  {tr('إلغاء', 'Cancel')}
                 </button>
               </div>
             </div>
@@ -883,17 +883,17 @@ export default function MemberDetailPage() {
           aria-labelledby="freeze-title"
           className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm"
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-6">
               <h3 id="freeze-title" className="text-2xl font-bold text-gray-900 dark:text-gray-100 inline-flex items-center gap-2">
                 <svg className="w-6 h-6 text-cyan-600 dark:text-cyan-400" {...stroke}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M3 12h18M5.636 5.636l12.728 12.728M5.636 18.364L18.364 5.636" />
                 </svg>
-                تجميد الاشتراك
+                {tr('تجميد الاشتراك', 'Freeze subscription')}
               </h3>
               <button
                 onClick={() => setActiveModal(null)}
-                aria-label="إغلاق"
+                aria-label={tr('إغلاق', 'Close')}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200"
               >
                 <svg className="w-6 h-6" {...stroke}>
@@ -907,18 +907,18 @@ export default function MemberDetailPage() {
                 <svg className="w-4 h-4" {...stroke}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M3 12h18M5.636 5.636l12.728 12.728M5.636 18.364L18.364 5.636" />
                 </svg>
-                أيام الفريز المتاحة: <strong className="text-xl">{member.remainingFreezeDays} يوم</strong>
+                {tr('أيام الفريز المتاحة:', 'Available freeze days:')} <strong className="text-xl">{member.remainingFreezeDays} {tr('يوم', 'days')}</strong>
               </p>
-              <p className="text-xs text-cyan-700 dark:text-cyan-400">يمكنك استخدام أيام الفريز على دفعات</p>
+              <p className="text-xs text-cyan-700 dark:text-cyan-400">{tr('يمكنك استخدام أيام الفريز على دفعات', 'You can use freeze days in multiple parts')}</p>
             </div>
 
             <div className="bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-900/50 p-4 rounded-lg mb-6">
               <p className="text-sm text-primary-800 dark:text-primary-200 mb-2">
-                تاريخ الانتهاء الحالي: <strong>{formatDateYMD(member.expiryDate)}</strong>
+                {tr('تاريخ الانتهاء الحالي:', 'Current expiry date:')} <strong>{formatDateYMD(member.expiryDate)}</strong>
               </p>
               {daysRemaining !== null && (
                 <p className="text-sm text-primary-800 dark:text-primary-200">
-                  الأيام المتبقية: <strong>{daysRemaining > 0 ? daysRemaining : 0} يوم</strong>
+                  {tr('الأيام المتبقية:', 'Days remaining:')} <strong>{daysRemaining > 0 ? daysRemaining : 0} {tr('يوم', 'days')}</strong>
                 </p>
               )}
             </div>
@@ -926,7 +926,7 @@ export default function MemberDetailPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                  عدد أيام التجميد <span className="text-red-600">*</span>
+                  {tr('عدد أيام التجميد', 'Freeze days count')} <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="number"
@@ -938,7 +938,7 @@ export default function MemberDetailPage() {
                   placeholder="0"
                 />
                 <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  يمكنك تجميد حتى {member.remainingFreezeDays} يوم
+                  {tr(`يمكنك تجميد حتى ${member.remainingFreezeDays} يوم`, `You can freeze up to ${member.remainingFreezeDays} days`)}
                 </p>
               </div>
 
@@ -948,7 +948,7 @@ export default function MemberDetailPage() {
                     <svg className="w-4 h-4" {...stroke}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    التاريخ الجديد للانتهاء:
+                    {tr('التاريخ الجديد للانتهاء:', 'New expiry date:')}
                   </p>
                   <p className="text-xl font-bold text-green-600 dark:text-green-400">
                     {formatDateYMD(new Date(new Date(member.expiryDate).getTime() + freezeData.days * 24 * 60 * 60 * 1000))}
@@ -958,13 +958,13 @@ export default function MemberDetailPage() {
                       <svg className="w-3.5 h-3.5" {...stroke}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
-                      سيتم تجميد الاشتراك لمدة {freezeData.days} يوم
+                      {tr(`سيتم تجميد الاشتراك لمدة ${freezeData.days} يوم`, `Subscription will be frozen for ${freezeData.days} days`)}
                     </p>
                     <p className="text-xs text-green-700 dark:text-green-300 inline-flex items-center gap-1.5">
                       <svg className="w-3.5 h-3.5" {...stroke}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M3 12h18M5.636 5.636l12.728 12.728M5.636 18.364L18.364 5.636" />
                       </svg>
-                      الرصيد المتبقي: {member.remainingFreezeDays - freezeData.days} يوم
+                      {tr('الرصيد المتبقي:', 'Remaining balance:')} {member.remainingFreezeDays - freezeData.days} {tr('يوم', 'days')}
                     </p>
                   </div>
                 </div>
@@ -981,14 +981,14 @@ export default function MemberDetailPage() {
                       <svg className="w-5 h-5 animate-spin" {...stroke}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      جاري المعالجة...
+                      {tr('جاري المعالجة...', 'Processing...')}
                     </>
                   ) : (
                     <>
                       <svg className="w-5 h-5" {...stroke}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
-                      تأكيد التجميد
+                      {tr('تأكيد التجميد', 'Confirm freeze')}
                     </>
                   )}
                 </button>
@@ -996,7 +996,7 @@ export default function MemberDetailPage() {
                   onClick={() => setActiveModal(null)}
                   className="px-6 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 font-bold"
                 >
-                  إلغاء
+                  {tr('إلغاء', 'Cancel')}
                 </button>
               </div>
             </div>
@@ -1011,12 +1011,12 @@ export default function MemberDetailPage() {
           aria-labelledby="edit-member-title"
           className="fixed inset-0 z-[10000] flex items-center justify-center p-1 bg-slate-950/60 backdrop-blur-sm"
         >
-          <div className="bg-white dark:bg-gray-800 rounded-md shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-[99vw] w-full p-1.5">
+          <div className="bg-white dark:bg-gray-800 rounded-md shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-[99vw] w-full max-h-[95vh] overflow-y-auto p-1.5">
             <div className="flex justify-between items-center mb-0.5 bg-white dark:bg-gray-800 pb-0.5 border-b border-gray-200 dark:border-gray-700">
               <h3 id="edit-member-title" className="text-xs font-bold text-gray-900 dark:text-gray-100">#{member.memberNumber}</h3>
               <button
                 onClick={() => setActiveModal(null)}
-                aria-label="إغلاق"
+                aria-label={tr('إغلاق', 'Close')}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200"
               >
                 <svg className="w-4 h-4" {...stroke}>
@@ -1025,39 +1025,39 @@ export default function MemberDetailPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-5 md:grid-cols-10 gap-1">
+            <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-1">
               <div>
-                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">الاسم</label>
+                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">{tr('الاسم', 'Name')}</label>
                 <input type="text" value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })}
                   className="w-full px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-[10px] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-500" />
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">الهاتف</label>
+                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">{tr('الهاتف', 'Phone')}</label>
                 <input type="text" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
                   className="w-full px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-[10px] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-500" />
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">السعر</label>
+                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">{tr('السعر', 'Price')}</label>
                 <input type="number" value={editData.subscriptionPrice} onChange={(e) => setEditData({ ...editData, subscriptionPrice: parseInt(e.target.value) || 0 })}
                   className="w-full px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-[10px] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-500" min="0" />
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">البداية</label>
+                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">{tr('البداية', 'Start')}</label>
                 <input type="date" value={editData.startDate} onChange={(e) => setEditData({ ...editData, startDate: e.target.value })}
                   className="w-full px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-[10px] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-500" />
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">الانتهاء</label>
+                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">{tr('الانتهاء', 'Expiry')}</label>
                 <input type="date" value={editData.expiryDate} onChange={(e) => setEditData({ ...editData, expiryDate: e.target.value })}
                   className="w-full px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-[10px] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-500" />
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">فريز</label>
+                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">{tr('فريز', 'Freeze')}</label>
                 <input type="number" value={editData.remainingFreezeDays} onChange={(e) => setEditData({ ...editData, remainingFreezeDays: parseInt(e.target.value) || 0 })}
                   className="w-full px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-[10px] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-500" min="0" />
               </div>
@@ -1069,7 +1069,7 @@ export default function MemberDetailPage() {
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">دعوات</label>
+                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">{tr('دعوات', 'Invites')}</label>
                 <input type="number" value={editData.invitations} onChange={(e) => setEditData({ ...editData, invitations: parseInt(e.target.value) || 0 })}
                   className="w-full px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-[10px] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-500" min="0" />
               </div>
@@ -1081,7 +1081,7 @@ export default function MemberDetailPage() {
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">ملاحظات</label>
+                <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">{tr('ملاحظات', 'Notes')}</label>
                 <input type="text" value={editData.notes} onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
                   className="w-full px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-[10px] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-500" />
               </div>
@@ -1089,11 +1089,11 @@ export default function MemberDetailPage() {
 
             <div className="flex gap-1 mt-1 pt-1 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <button onClick={handleEdit} disabled={loading || !editData.name || !editData.phone}
-                className="flex-1 bg-primary-500 hover:bg-primary-600 text-primary-contrast py-1 rounded disabled:opacity-60 disabled:cursor-not-allowed font-bold text-[10px] transition-colors duration-200">
-                {loading ? 'حفظ...' : 'حفظ'}
+                className="flex-1 bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2 sm:py-1 rounded disabled:opacity-60 disabled:cursor-not-allowed font-bold text-sm sm:text-[10px] transition-colors duration-200">
+                {loading ? tr('حفظ...', 'Saving...') : tr('حفظ', 'Save')}
               </button>
-              <button onClick={() => setActiveModal(null)} className="px-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-[10px] font-bold transition-colors duration-200">
-                إلغاء
+              <button onClick={() => setActiveModal(null)} className="px-4 sm:px-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2 sm:py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-sm sm:text-[10px] font-bold transition-colors duration-200">
+                {tr('إلغاء', 'Cancel')}
               </button>
             </div>
           </div>

@@ -48,7 +48,7 @@ interface NutritionSession {
 export default function NutritionPage({ embedded }: { embedded?: boolean } = {}) {
   const router = useRouter()
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
   const toast = useToast()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const { settings } = useServiceSettings()
@@ -157,7 +157,7 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
       } else if (errorMessage === 'FORBIDDEN') {
         // لا نفعل شيء - PermissionDenied سيظهر
       } else {
-        toast.error(errorMessage || 'حدث خطأ أثناء جلب الجلسات')
+        toast.error(errorMessage || tr('حدث خطأ أثناء جلب الجلسات', 'Error loading sessions'))
       }
     }
   }, [sessionsError, router, toast])
@@ -250,7 +250,7 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
       totalPrice: pkg.price,
       expiryDate: calculatedExpiry || prev.expiryDate // حساب تاريخ الانتهاء تلقائيًا
     }))
-    toast.success(`تم تطبيق باقة: ${pkg.name} (${pkg.durationDays} يوم)`)
+    toast.success(tr(`تم تطبيق باقة: ${pkg.name} (${pkg.durationDays} يوم)`, `Package applied: ${pkg.name} (${pkg.durationDays} days)`))
   }
 
   // دالة جلب بيانات العضو بناءً على رقم العضوية وملء الحقول تلقائياً
@@ -259,7 +259,7 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
 
     // التحقق من صلاحية عرض الأعضاء
     if (!hasPermission('canViewMembers')) {
-      toast.warning('لا تملك صلاحية عرض بيانات الأعضاء')
+      toast.warning(tr('لا تملك صلاحية عرض بيانات الأعضاء', 'You do not have permission to view members'))
       return
     }
 
@@ -276,9 +276,9 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
           clientName: member.name,
           phone: member.phone
         }))
-        toast.success(`تم تحميل بيانات العضو: ${member.name}`)
+        toast.success(tr(`تم تحميل بيانات العضو: ${member.name}`, `Member data loaded: ${member.name}`))
       } else {
-        toast.warning(`لم يتم العثور على عضو برقم ${memberNumber}`)
+        toast.warning(tr(`لم يتم العثور على عضو برقم ${memberNumber}`, `No member found with number ${memberNumber}`))
       }
     } catch (error) {
       console.error('Error fetching member:', error)
@@ -581,7 +581,7 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
 
       {!isCoach && showForm && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) { resetForm() } }}>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6" dir={direction}>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6" dir={direction}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               {editingSession ? t('nutrition.editSession') : t('nutrition.addSession')}
@@ -607,9 +607,9 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
                     onChange={(e) => setFormData({ ...formData, nutritionNumber: e.target.value })}
                     onKeyPress={handleIdKeyPress}
                     className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg disabled:bg-gray-100 dark:disabled:bg-gray-700 dark:bg-gray-700 dark:text-white"
-                    placeholder="اختياري - يمكن تركه فارغ"
+                    placeholder={tr('اختياري - يمكن تركه فارغ', 'Optional - can be left empty')}
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1"> اضغط Enter لتحميل بيانات العضو تلقائياً</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{tr('اضغط Enter لتحميل بيانات العضو تلقائياً', 'Press Enter to load member data automatically')}</p>
                 </div>
               )}
 
@@ -725,10 +725,10 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
                   />
                   <div>
                     <span className="text-sm font-bold text-green-800 dark:text-green-200">
-                       Day Use (استخدام يومي)
+                       {tr('Day Use (استخدام يومي)', 'Day Use')}
                     </span>
                     <p className="text-xs text-green-600 dark:text-green-300 mt-1">
-                      تسجيل مبسط - اسم ورقم وسعر الجلسة فقط
+                      {tr('تسجيل مبسط - اسم ورقم وسعر الجلسة فقط', 'Quick registration - name, phone and session price only')}
                     </p>
                   </div>
                 </label>
@@ -757,7 +757,7 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
                           </div>
                           {pkg.durationDays && (
                             <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                               {pkg.durationDays} يوم
+                               {pkg.durationDays} {tr('يوم', 'days')}
                             </div>
                           )}
                           <div className="text-lg font-bold text-green-600 dark:text-green-400 mt-1">
@@ -793,7 +793,7 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
               {!isDayUse && editingSession && (
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
-                    الجلسات المتبقية <span className="text-red-600 dark:text-red-400">*</span>
+                    {tr('الجلسات المتبقية', 'Remaining sessions')} <span className="text-red-600 dark:text-red-400">*</span>
                   </label>
                   <input
                     type="number"
@@ -802,10 +802,10 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
                     value={formData.sessionsRemaining}
                     onChange={(e) => setFormData({ ...formData, sessionsRemaining: parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 border border-green-300 dark:border-green-700 rounded-lg bg-green-50 dark:bg-green-900/50 dark:text-white"
-                    placeholder="عدد الجلسات المتبقية"
+                    placeholder={tr('عدد الجلسات المتبقية', 'Number of remaining sessions')}
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                     يمكنك تعديل عدد الجلسات المتبقية للعميل
+                     {tr('يمكنك تعديل عدد الجلسات المتبقية للعميل', 'You can edit the client\'s remaining sessions')}
                   </p>
                 </div>
               )}
@@ -940,7 +940,7 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-6 ring-1 ring-purple-200 dark:ring-purple-700">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   
-                  Referral - من سوّق هذا الاشتراك؟
+                  {tr('Referral - من سوّق هذا الاشتراك؟', 'Referral - who referred this subscription?')}
                 </h3>
 
                 <CoachSelector
@@ -952,10 +952,10 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
                 {referralCoachId && formData.totalPrice > 0 && (
                   <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-purple-200 dark:border-purple-700">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                       عمولة Referral: {settings.nutritionReferralPercentage}% من سعر الاشتراك
+                       {tr('عمولة Referral:', 'Referral commission:')} {settings.nutritionReferralPercentage}% {tr('من سعر الاشتراك', 'of subscription price')}
                     </p>
                     <p className="text-sm font-semibold text-purple-600 dark:text-purple-400 mt-1">
-                      = {((formData.totalPrice * settings.nutritionReferralPercentage) / 100).toFixed(2)} ج.م
+                      = {((formData.totalPrice * settings.nutritionReferralPercentage) / 100).toFixed(2)} {tr('ج.م', 'EGP')}
                     </p>
                   </div>
                 )}
@@ -1245,7 +1245,7 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
       {/* Payment Modal */}
       {showPaymentModal && paymentSession && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6" dir={direction}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">{t('nutrition.paymentModal.title')}</h2>
               <button

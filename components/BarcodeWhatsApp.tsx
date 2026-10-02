@@ -16,7 +16,7 @@ interface BarcodeWhatsAppProps {
 type SendStep = 'idle' | 'generating' | 'ready' | 'sending' | 'success' | 'error'
 
 export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone }: BarcodeWhatsAppProps) {
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
   const [showBarcodeModal, setShowBarcodeModal] = useState(false)
   const [barcodeImage, setBarcodeImage] = useState<string>('')
   const [loading, setLoading] = useState(false)
@@ -139,7 +139,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
 
     if (!imageData) {
       setSendStep('error')
-      setProgressError('فشل إنشاء صورة الباركود')
+      setProgressError(tr('فشل إنشاء صورة الباركود', 'Failed to generate barcode image'))
       return
     }
 
@@ -149,7 +149,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
       imageData = (await generateBarcodeImage()) || ''
       if (!imageData || !(await verifyImage(imageData))) {
         setSendStep('error')
-        setProgressError('الصورة غير صالحة للإرسال')
+        setProgressError(tr('الصورة غير صالحة للإرسال', 'Image is not valid for sending'))
         return
       }
     }
@@ -211,7 +211,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
     }, 500)
 
     setSendStep('error')
-    setProgressError('فشل الإرسال التلقائي. تم تحميل الصورة وفتح واتساب - أرفق الصورة يدوياً')
+    setProgressError(tr('فشل الإرسال التلقائي. تم تحميل الصورة وفتح واتساب - أرفق الصورة يدوياً', 'Automatic sending failed. The image was downloaded and WhatsApp opened - attach the image manually'))
   }, [previewImage, buildCaption, memberPhone, handleDownloadBarcode])
 
   // إعادة المحاولة
@@ -302,7 +302,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
             className="bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-lg transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-2"
           >
             {iconWhatsApp}
-            <span>إرسال واتساب</span>
+            <span>{tr('إرسال واتساب', 'Send WhatsApp')}</span>
           </button>
         </div>
       </div>
@@ -314,7 +314,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
           style={{ zIndex: 9999 }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowBarcodeModal(false) }}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full p-6" onClick={(e) => e.stopPropagation()} dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6" onClick={(e) => e.stopPropagation()} dir={direction}>
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center">
@@ -324,8 +324,8 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
               </div>
               <button
                 onClick={() => setShowBarcodeModal(false)}
-                aria-label="إغلاق"
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                aria-label={tr('إغلاق', 'Close')}
+                className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                 type="button"
               >
                 {iconClose}
@@ -338,15 +338,15 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
               <p className="text-3xl font-bold text-primary-600 dark:text-primary-400 mt-2">#{memberNumber}</p>
             </div>
 
-            <div className="bg-white dark:bg-gray-900/40 rounded-lg p-6 mb-6 flex justify-center ring-1 ring-gray-200 dark:ring-gray-700">
+            <div className="bg-white dark:bg-gray-900/40 rounded-lg p-3 sm:p-6 mb-6 flex justify-center ring-1 ring-gray-200 dark:ring-gray-700">
               <div className="relative inline-block">
                 <img
                   src={barcodeImage}
                   alt={`Barcode ${memberNumber}`}
                   className="max-w-full h-auto"
-                  style={{ minWidth: '300px' }}
+                  style={{ minWidth: 'min(300px, 60vw)' }}
                 />
-                <div className="absolute top-1/2 start-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                   <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 ring-1 ring-primary-200 dark:ring-primary-900/50">
                     <img
                       src="/assets/icon.png"
@@ -393,14 +393,14 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
           className="fixed inset-0 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm"
           style={{ zIndex: 10001 }}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-sm w-full p-6" dir="rtl">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-sm w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6" dir={direction}>
 
             {/* === حالة التوليد === */}
             {sendStep === 'generating' && (
               <div className="text-center py-8">
                 <div className="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">جاري إنشاء صورة الباركود...</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">يرجى الانتظار</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">{tr('جاري إنشاء صورة الباركود...', 'Generating barcode image...')}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{tr('يرجى الانتظار', 'Please wait')}</p>
               </div>
             )}
 
@@ -411,7 +411,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
                   <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center shrink-0">
                     {iconCheck}
                   </div>
-                  <h3 className="text-lg font-bold text-green-700 dark:text-green-400">الصورة جاهزة للإرسال</h3>
+                  <h3 className="text-lg font-bold text-green-700 dark:text-green-400">{tr('الصورة جاهزة للإرسال', 'Image ready to send')}</h3>
                 </div>
 
                 <div className="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-4 mb-4 flex justify-center ring-1 ring-green-300 dark:ring-green-700">
@@ -424,7 +424,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
                 </div>
 
                 <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-4">
-                  سيتم إرسال الباركود إلى <span className="font-bold">{memberPhone}</span>
+                  {tr('سيتم إرسال الباركود إلى', 'The barcode will be sent to')} <span className="font-bold">{memberPhone}</span>
                 </p>
 
                 <div className="space-y-2">
@@ -433,13 +433,13 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
                     className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg transition-colors duration-200 font-bold flex items-center justify-center gap-2 text-lg"
                   >
                     {iconWhatsApp}
-                    <span>إرسال عبر واتساب</span>
+                    <span>{tr('إرسال عبر واتساب', 'Send via WhatsApp')}</span>
                   </button>
                   <button
                     onClick={() => { setShowProgressModal(false); setSendStep('idle') }}
                     className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 font-bold"
                   >
-                    إلغاء
+                    {tr('إلغاء', 'Cancel')}
                   </button>
                 </div>
               </>
@@ -449,8 +449,8 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
             {sendStep === 'sending' && (
               <div className="text-center py-8">
                 <div className="w-16 h-16 border-4 border-green-200 border-t-green-600 rounded-full animate-spin mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">جاري الإرسال عبر واتساب...</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">يرجى الانتظار</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">{tr('جاري الإرسال عبر واتساب...', 'Sending via WhatsApp...')}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{tr('يرجى الانتظار', 'Please wait')}</p>
 
                 {previewImage && (
                   <div className="mt-4 opacity-50">
@@ -466,8 +466,8 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
                 <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 flex items-center justify-center">
                   {iconCheckLg}
                 </div>
-                <h3 className="text-xl font-bold text-green-700 dark:text-green-400 mb-2">تم الإرسال بنجاح!</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">تم إنشاء الصورة وإرسالها عبر واتساب</p>
+                <h3 className="text-xl font-bold text-green-700 dark:text-green-400 mb-2">{tr('تم الإرسال بنجاح!', 'Sent successfully!')}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{tr('تم إنشاء الصورة وإرسالها عبر واتساب', 'The image was created and sent via WhatsApp')}</p>
 
                 {previewImage && (
                   <div className="mt-3 mb-4">
@@ -479,19 +479,19 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
                   <span className="w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center">
                     <svg {...stroke} className="w-3 h-3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                   </span>
-                  <span className="text-sm font-medium">الصورة جاهزة</span>
+                  <span className="text-sm font-medium">{tr('الصورة جاهزة', 'Image ready')}</span>
                   <span className="mx-1">—</span>
                   <span className="w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center">
                     <svg {...stroke} className="w-3 h-3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                   </span>
-                  <span className="text-sm font-medium">تم الإرسال</span>
+                  <span className="text-sm font-medium">{tr('تم الإرسال', 'Sent')}</span>
                 </div>
 
                 <button
                   onClick={() => { setShowProgressModal(false); setSendStep('idle'); setShowBarcodeModal(false) }}
                   className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg transition-colors duration-200 font-bold"
                 >
-                  تم
+                  {tr('تم', 'Done')}
                 </button>
               </div>
             )}
@@ -502,7 +502,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
                 <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 flex items-center justify-center">
                   {iconError}
                 </div>
-                <h3 className="text-xl font-bold text-red-600 dark:text-red-400 mb-3">فشل العملية</h3>
+                <h3 className="text-xl font-bold text-red-600 dark:text-red-400 mb-3">{tr('فشل العملية', 'Operation failed')}</h3>
 
                 {progressError && (
                   <div className="bg-red-50 dark:bg-red-900/30 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg p-3 mb-4">
@@ -516,13 +516,13 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
                     className="w-full bg-primary-500 hover:bg-primary-600 text-primary-contrast py-3 rounded-lg transition-colors duration-200 font-bold flex items-center justify-center gap-2"
                   >
                     {iconRetry}
-                    <span>إعادة المحاولة</span>
+                    <span>{tr('إعادة المحاولة', 'Retry')}</span>
                   </button>
                   <button
                     onClick={() => { setShowProgressModal(false); setSendStep('idle') }}
                     className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 font-bold"
                   >
-                    إغلاق
+                    {tr('إغلاق', 'Close')}
                   </button>
                 </div>
               </div>

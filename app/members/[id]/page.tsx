@@ -209,7 +209,7 @@ export default function MemberDetailPage() {
  //  قيد إخفاء أرقام الأعضاء: بنتشيّك على القيمة الخام عشان الأونر/الأدمن يشوفوا الأرقام عادي
  const hideNumbers = permissions?.hideMemberNumbers === true
  const canOverrideInvitationSales = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN'
- const { t, direction, locale } = useLanguage()
+ const { t, tr, direction, locale } = useLanguage()
  const toast = useToast()
  const { settings } = useServiceSettings()
  const queryClient = useQueryClient()
@@ -1334,7 +1334,7 @@ export default function MemberDetailPage() {
 
  const handleUseFreeNutrition = async () => {
  if (!member || (member.freeNutritionSessions ?? 0) <= 0) {
- toast.warning('لا توجد جلسات تغذية متبقية')
+ toast.warning(tr('لا توجد جلسات تغذية متبقية', 'No nutrition sessions left'))
  return
  }
 
@@ -1346,7 +1346,7 @@ export default function MemberDetailPage() {
 
  const handleUseFreePhysio = async () => {
  if (!member || (member.freePhysioSessions ?? 0) <= 0) {
- toast.warning('لا توجد جلسات علاج طبيعي متبقية')
+ toast.warning(tr('لا توجد جلسات علاج طبيعي متبقية', 'No physiotherapy sessions left'))
  return
  }
 
@@ -1358,7 +1358,7 @@ export default function MemberDetailPage() {
 
  const handleUseFreeGroupClass = async () => {
  if (!member || (member.freeGroupClassSessions ?? 0) <= 0) {
- toast.warning('لا توجد جلسات جروب كلاسيس متبقية')
+ toast.warning(tr('لا توجد جلسات جروب كلاسيس متبقية', 'No group class sessions left'))
  return
  }
 
@@ -1563,11 +1563,11 @@ export default function MemberDetailPage() {
  queryClient.invalidateQueries({ queryKey: ['members'] })
  } else {
  const err = await response.json().catch(() => ({}))
- toast.error(err.error || 'فشل التعديل')
+ toast.error(err.error || tr('فشل التعديل', 'Update failed'))
  }
  } catch (error) {
  console.error(error)
- toast.error('حدث خطأ في الاتصال')
+ toast.error(tr('حدث خطأ في الاتصال', 'Connection error'))
  } finally {
  setLoading(false)
  }
@@ -1727,7 +1727,7 @@ export default function MemberDetailPage() {
 
  // التحقق من رصيد الفريز الكافي
  if (freezeData.days > member.remainingFreezeDays) {
- toast.error(`رصيد الفريز غير كافٍ. المتاح: ${member.remainingFreezeDays} يوم`)
+ toast.error(tr(`رصيد الفريز غير كافٍ. المتاح: ${member.remainingFreezeDays} يوم`, `Insufficient freeze balance. Available: ${member.remainingFreezeDays} days`))
  return
  }
 
@@ -1754,11 +1754,11 @@ export default function MemberDetailPage() {
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({ ptNumber: ptSubscription.ptNumber, freezeDays: freezeData.days })
  })
- if (ptRes.ok) ptMsg = ' + الـ PT'
- else { const e = await ptRes.json().catch(() => ({})); toast.error(e.error || 'فشل تجميد الـ PT') }
- } catch { toast.error('فشل تجميد الـ PT') }
+ if (ptRes.ok) ptMsg = tr(' + الـ PT', ' + PT')
+ else { const e = await ptRes.json().catch(() => ({})); toast.error(e.error || tr('فشل تجميد الـ PT', 'Failed to freeze PT')) }
+ } catch { toast.error(tr('فشل تجميد الـ PT', 'Failed to freeze PT')) }
  }
- toast.success(`تم تجميد الاشتراك${ptMsg} لمدة ${freezeData.days} يوم بنجاح`)
+ toast.success(tr(`تم تجميد الاشتراك${ptMsg} لمدة ${freezeData.days} يوم بنجاح`, `Subscription${ptMsg} frozen for ${freezeData.days} days`))
 
  setFreezeData({ days: 0, reason: '' })
  setFreezePTToo(false)
@@ -1766,7 +1766,7 @@ export default function MemberDetailPage() {
  fetchMember()
  fetchPTSubscription()
  } else {
- toast.error(result.error || 'فشل التجميد')
+ toast.error(result.error || tr('فشل التجميد', 'Freeze failed'))
  }
  } catch (error) {
  toast.error(t('memberDetails.error'))
@@ -1806,7 +1806,7 @@ export default function MemberDetailPage() {
  return
  }
  if (backFreezeData.days > member.remainingFreezeDays) {
- toast.error(`رصيد الفريز غير كافٍ. المتاح: ${member.remainingFreezeDays} يوم`)
+ toast.error(tr(`رصيد الفريز غير كافٍ. المتاح: ${member.remainingFreezeDays} يوم`, `Insufficient freeze balance. Available: ${member.remainingFreezeDays} days`))
  return
  }
  setLoading(true)
@@ -2277,7 +2277,7 @@ export default function MemberDetailPage() {
  const data = await res.json()
 
  if (!data.barcode) {
- setBarcodePopup(p => ({ ...p, step: 'error', error: 'فشل إنشاء صورة الباركود' }))
+ setBarcodePopup(p => ({ ...p, step: 'error', error: tr('فشل إنشاء صورة الباركود', 'Failed to generate barcode image') }))
  return
  }
 
@@ -2289,14 +2289,14 @@ export default function MemberDetailPage() {
  })
 
  if (!isValid) {
- setBarcodePopup(p => ({ ...p, step: 'error', error: 'الصورة غير صالحة' }))
+ setBarcodePopup(p => ({ ...p, step: 'error', error: tr('الصورة غير صالحة', 'Invalid image') }))
  return
  }
 
  setBarcodePopup({ show: true, step: 'ready', image: data.barcode, error: '' })
  } catch (error) {
  console.error('Error:', error)
- setBarcodePopup(p => ({ ...p, step: 'error', error: 'حدث خطأ أثناء إنشاء الباركود' }))
+ setBarcodePopup(p => ({ ...p, step: 'error', error: tr('حدث خطأ أثناء إنشاء الباركود', 'Error while generating barcode') }))
  }
  }}
  className="bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors duration-200 backdrop-blur-sm border border-white/20"
@@ -3181,37 +3181,37 @@ export default function MemberDetailPage() {
  <svg className="w-8 h-8 text-teal-700 dark:text-teal-300" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 6l2-2m12 12l-2 2M4 8l4 4m8 4l4-4M8 16l4-4 4 4M4 16l4-4M16 8l4 4"/></svg>
  </div>
  <div className="flex-1">
- <h3 className="text-2xl font-bold">اشتراك التدريب الشخصي (PT)</h3>
- <p className="text-sm opacity-90">معلومات مبسطة عن اشتراك PT</p>
+ <h3 className="text-2xl font-bold">{tr('اشتراك التدريب الشخصي (PT)', 'Personal Training (PT)')}</h3>
+ <p className="text-sm opacity-90">{tr('معلومات مبسطة عن اشتراك PT', 'PT subscription summary')}</p>
  </div>
  <div className="bg-green-500 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 w-fit">
  
- <span>نشط</span>
+ <span>{tr('نشط', 'Active')}</span>
  </div>
  </div>
 
  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-4">
  <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
- <p className="text-xs opacity-80 mb-1">رقم PT</p>
+ <p className="text-xs opacity-80 mb-1">{tr('رقم PT', 'PT #')}</p>
  <p className="text-xl md:text-2xl font-bold">#{ptSubscription.ptNumber}</p>
  </div>
 
  <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
- <p className="text-xs opacity-80 mb-1">الكوتش</p>
+ <p className="text-xs opacity-80 mb-1">{tr('الكوتش', 'Coach')}</p>
  <p className="text-base md:text-lg font-bold truncate">{ptSubscription.coachName}</p>
  </div>
 
  <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
- <p className="text-xs opacity-80 mb-1">الجلسات المتبقية</p>
+ <p className="text-xs opacity-80 mb-1">{tr('الجلسات المتبقية', 'Remaining sessions')}</p>
  <p className="text-xl md:text-2xl font-bold text-yellow-300">
  {ptSubscription.sessionsRemaining} / {ptSubscription.sessionsPurchased}
  </p>
  </div>
 
  <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
- <p className="text-xs opacity-80 mb-1">المبلغ المتبقي</p>
+ <p className="text-xs opacity-80 mb-1">{tr('المبلغ المتبقي', 'Remaining amount')}</p>
  <p className="text-xl md:text-2xl font-bold text-yellow-300">
- {ptSubscription.remainingAmount} ج.م
+ {ptSubscription.remainingAmount} {tr('ج.م', 'EGP')}
  </p>
  </div>
  </div>
@@ -3219,7 +3219,7 @@ export default function MemberDetailPage() {
  {ptSubscription.expiryDate && (
  <div className="mt-4 bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
  <div className="flex items-center justify-between flex-wrap gap-2">
- <span className="text-sm opacity-90">تاريخ الانتهاء</span>
+ <span className="text-sm opacity-90">{tr('تاريخ الانتهاء', 'Expiry date')}</span>
  <span className="font-bold">{new Date(ptSubscription.expiryDate).toLocaleDateString('ar-EG')}</span>
  </div>
  </div>
@@ -3250,7 +3250,7 @@ export default function MemberDetailPage() {
  onClick={() => router.push(ptSubscription?.ptNumber != null ? `/pt?ptNumber=${ptSubscription.ptNumber}` : '/pt')}
  className="bg-white dark:bg-gray-700 text-teal-600 dark:text-teal-400 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-bold flex items-center justify-center gap-2 transition-colors duration-200 active:scale-95"
  >
- <span>عرض تفاصيل PT الكاملة</span>
+ <span>{tr('عرض تفاصيل PT الكاملة', 'View full PT details')}</span>
  </button>
  </div>
  </div>
@@ -3461,7 +3461,7 @@ export default function MemberDetailPage() {
  className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center p-4"
  style={{ zIndex: 9999 }}
  >
- <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto max-w-md w-full p-6" dir={direction}>
  <div className="text-center mb-6">
  <h3 className="text-2xl font-bold mb-3">{confirmModal.title}</h3>
  <p className="text-gray-600 dark:text-white text-lg">{confirmModal.message}</p>
@@ -3498,7 +3498,7 @@ export default function MemberDetailPage() {
  if (e.target === e.currentTarget) setActiveModal(null)
  }}
  >
- <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
  <div className="flex justify-between items-center mb-6">
  <h3 className="text-2xl font-bold">{t('memberDetails.paymentModal.title')}</h3>
  <button
@@ -3593,7 +3593,7 @@ export default function MemberDetailPage() {
  style={{ zIndex: 9999 }}
  onClick={(e) => { if (e.target === e.currentTarget) setActiveModal(null) }}
  >
- <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-5 my-4" onClick={(e) => e.stopPropagation()} dir={direction}>
+ <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto max-w-md w-full p-5 my-4" onClick={(e) => e.stopPropagation()} dir={direction}>
  <div className="flex justify-between items-center mb-4 pb-2 border-b dark:border-gray-700">
  <h3 className="text-base font-bold dark:text-gray-100">{locale === 'ar' ? 'تعديل الاسم / الموبايل' : 'Edit name / phone'}</h3>
  <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" aria-label="close">
@@ -3675,7 +3675,7 @@ export default function MemberDetailPage() {
  {/* تعديل صور البطاقة */}
  <div className="mb-4 grid grid-cols-2 gap-3">
  <div>
- <label className="block text-xs font-medium mb-1 text-center">وجه البطاقة</label>
+ <label className="block text-xs font-medium mb-1 text-center">{tr('وجه البطاقة', 'ID front')}</label>
  <ImageUpload
  currentImage={editBasicInfoData.idCardFront}
  onImageChange={(imageUrl) => setEditBasicInfoData({ ...editBasicInfoData, idCardFront: imageUrl })}
@@ -3684,7 +3684,7 @@ export default function MemberDetailPage() {
  />
  </div>
  <div>
- <label className="block text-xs font-medium mb-1 text-center">خلف البطاقة</label>
+ <label className="block text-xs font-medium mb-1 text-center">{tr('خلف البطاقة', 'ID back')}</label>
  <ImageUpload
  currentImage={editBasicInfoData.idCardBack}
  onImageChange={(imageUrl) => setEditBasicInfoData({ ...editBasicInfoData, idCardBack: imageUrl })}
@@ -3828,7 +3828,7 @@ export default function MemberDetailPage() {
 
  {/* Benefits Section */}
  <div className="col-span-2 md:col-span-3 border-t pt-3 mt-1">
- <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-white">البينفيتس والجلسات المجانية</h4>
+ <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-white">{tr('البينفيتس والجلسات المجانية', 'Benefits & free sessions')}</h4>
  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
  <div>
  <label className="block text-xs font-medium mb-1">
@@ -3875,7 +3875,7 @@ export default function MemberDetailPage() {
  {settings.nutritionEnabled && (
  <div>
  <label className="block text-xs font-medium mb-1">
- جلسات تغذية مجانية
+ {tr('جلسات تغذية مجانية', 'Free nutrition sessions')}
  </label>
  <input
  type="number"
@@ -3890,7 +3890,7 @@ export default function MemberDetailPage() {
 
  <div>
  <label className="block text-xs font-medium mb-1">
- جلسات علاج طبيعي مجانية
+ {tr('جلسات علاج طبيعي مجانية', 'Free physiotherapy sessions')}
  </label>
  <input
  type="number"
@@ -3905,7 +3905,7 @@ export default function MemberDetailPage() {
  {settings.groupClassEnabled && (
  <div>
  <label className="block text-xs font-medium mb-1">
- جلسات كلاسات جماعية مجانية
+ {tr('جلسات كلاسات جماعية مجانية', 'Free group class sessions')}
  </label>
  <input
  type="number"
@@ -3921,7 +3921,7 @@ export default function MemberDetailPage() {
  {settings.poolEnabled && (
  <div>
  <label className="block text-xs font-medium mb-1">
- جلسات حمام سباحة مجانية
+ {tr('جلسات حمام سباحة مجانية', 'Free pool sessions')}
  </label>
  <input
  type="number"
@@ -3937,7 +3937,7 @@ export default function MemberDetailPage() {
  {settings.padelEnabled && (
  <div>
  <label className="block text-xs font-medium mb-1">
- جلسات بادل مجانية
+ {tr('جلسات بادل مجانية', 'Free padel sessions')}
  </label>
  <input
  type="number"
@@ -3953,7 +3953,7 @@ export default function MemberDetailPage() {
  {settings.assessmentEnabled && (
  <div>
  <label className="block text-xs font-medium mb-1">
- جلسات تقييم مجانية
+ {tr('جلسات تقييم مجانية', 'Free assessment sessions')}
  </label>
  <input
  type="number"
@@ -3968,7 +3968,7 @@ export default function MemberDetailPage() {
 
  <div>
  <label className="block text-xs font-medium mb-1">
- جلسات إضافية مجانية
+ {tr('جلسات إضافية مجانية', 'Free extra sessions')}
  </label>
  <input
  type="number"
@@ -3982,7 +3982,7 @@ export default function MemberDetailPage() {
 
  <div>
  <label className="block text-xs font-medium mb-1">
- أيام الفريز
+ {tr('أيام الفريز', 'Freeze days')}
  </label>
  <input
  type="number"
@@ -3996,14 +3996,14 @@ export default function MemberDetailPage() {
 
  <div>
  <label className="block text-xs font-medium mb-1 text-orange-600 dark:text-orange-400">
- الباقي على العضو
+ {tr('الباقي على العضو', 'Member balance due')}
  </label>
  <input
  type="number"
  value={editBasicInfoData.remainingAmount === 0 ? '' : editBasicInfoData.remainingAmount}
  onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, remainingAmount: parseInt(e.target.value) || 0 })}
  className="w-full px-2 py-1.5 ring-1 ring-orange-300 dark:ring-orange-600/60 rounded text-sm dark:bg-gray-700 dark:text-white focus:outline-none focus:border-orange-500"
- placeholder="0 (لا يوجد باقي)"
+ placeholder={tr('0 (لا يوجد باقي)', '0 (no balance)')}
  min="0"
  />
  </div>
@@ -4011,7 +4011,7 @@ export default function MemberDetailPage() {
  {editBasicInfoData.remainingAmount > 0 && (
  <div>
  <label className="block text-xs font-medium mb-1 text-orange-600 dark:text-orange-400">
- موعد سداد الباقي
+ {tr('موعد سداد الباقي', 'Balance due date')}
  </label>
  <input
  type="date"
@@ -4026,7 +4026,7 @@ export default function MemberDetailPage() {
 
  {/* Coach Selector — يظهر دايماً بغض النظر عن إعداد PT Commission */}
  <div className="col-span-2 md:col-span-3 border-t pt-3 mt-1">
- <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-white">🏋️ الكوتش المسؤول</h4>
+ <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-white">🏋️ {tr('الكوتش المسؤول', 'Assigned coach')}</h4>
  <CoachSelector
  value={editBasicInfoData.coachId}
  onChange={(coachId) => setEditBasicInfoData({ ...editBasicInfoData, coachId })}
@@ -4233,11 +4233,11 @@ export default function MemberDetailPage() {
  return (
  <div>
  <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
- موظف السيلز المسؤول
+ {tr('موظف السيلز المسؤول', 'Assigned sales rep')}
  </label>
  {lockToMemberSales && (
  <div className="mb-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
- محجوز للسيلز المسؤول عن العضو: <strong>{memberSalesName}</strong>
+ {tr('محجوز للسيلز المسؤول عن العضو:', 'Reserved for the member\'s sales rep:')} <strong>{memberSalesName}</strong>
  </div>
  )}
  <select
@@ -4250,12 +4250,12 @@ export default function MemberDetailPage() {
  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-400'
  }`}
  >
- <option value="">— بدون تعيين (تلقائي) —</option>
+ <option value="">{tr('— بدون تعيين (تلقائي) —', '— Unassigned (auto) —')}</option>
  {invitationSalesStaff.map(s => {
  const isLeast = s.id === [...invitationSalesStaff].sort((a, b) => a.leadsCount - b.leadsCount)[0]?.id
  return (
  <option key={s.id} value={s.id}>
- {s.name} ({s.leadsCount} ليد){isLeast ? ' مقترح' : ''}
+ {s.name} ({s.leadsCount} {tr('ليد', 'leads')}){isLeast ? tr(' مقترح', ' suggested') : ''}
  </option>
  )
  })}
@@ -4311,7 +4311,7 @@ export default function MemberDetailPage() {
  {/* Freeze Modal */}
  {activeModal === 'freeze' && member && (
  <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center z-50 p-4">
- <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto max-w-md w-full p-6" dir={direction}>
  <div className="flex justify-between items-center mb-6">
  <h3 className="text-2xl font-bold dark:text-white">{t('memberDetails.freezeModal.title')}</h3>
  <button
@@ -4421,7 +4421,7 @@ export default function MemberDetailPage() {
  {/* Back Freeze Modal — تجميد بأثر رجعي لفترة الغياب */}
  {activeModal === 'backFreeze' && member && (
  <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) setActiveModal(null) }}>
- <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto max-w-md w-full p-6" dir={direction}>
  <div className="flex justify-between items-center mb-5">
  <div>
  <h3 className="text-2xl font-bold dark:text-white">{locale === 'ar' ? 'باك فريز' : 'Back Freeze'}</h3>
@@ -4508,7 +4508,7 @@ export default function MemberDetailPage() {
  className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center z-50 p-4"
  onClick={(e) => { if (e.target === e.currentTarget) setActiveModal(null) }}
  >
- <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto max-w-md w-full p-6" dir={direction}>
  <div className="flex items-center gap-3 mb-5">
  <div className="bg-cyan-100 dark:bg-cyan-900/40 p-3 rounded-full">
  
@@ -4581,7 +4581,7 @@ export default function MemberDetailPage() {
  {/* Ban Modal */}
  {activeModal === 'ban' && member && (
  <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center z-50 p-4" dir={direction}>
- <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto max-w-md w-full p-6">
  <div className="flex items-center gap-3 mb-5">
  <div className="bg-gray-800 p-3 rounded-full">
  
@@ -4630,14 +4630,14 @@ export default function MemberDetailPage() {
  {/* Fitness Test Modals */}
  {activeModal === 'fitness-test-coach-select' && (
  <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center z-50 p-4">
- <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
- <h3 className="text-2xl font-bold mb-4 text-center">اختيار المدرب</h3>
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto max-w-md w-full p-6">
+ <h3 className="text-2xl font-bold mb-4 text-center">{tr('اختيار المدرب', 'Select coach')}</h3>
  <select
  value={selectedCoachId}
  onChange={(e) => setSelectedCoachId(e.target.value)}
  className="w-full px-4 py-3 border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white mb-4 text-lg"
  >
- <option value="">-- اختر المدرب --</option>
+ <option value="">{tr('-- اختر المدرب --', '-- Select coach --')}</option>
  {coaches.map(coach => (
  <option key={coach.id} value={coach.id}>{coach.name}</option>
  ))}
@@ -4658,16 +4658,16 @@ export default function MemberDetailPage() {
  })
 
  if (response.ok) {
- toast.success('تم إرسال الطلب للمدرب بنجاح!')
+ toast.success(tr('تم إرسال الطلب للمدرب بنجاح!', 'Request sent to coach successfully!'))
  setActiveModal(null)
  setSelectedCoachId('')
  } else {
  const result = await response.json()
- toast.error(result.error || 'فشل إرسال الطلب')
+ toast.error(result.error || tr('فشل إرسال الطلب', 'Failed to send request'))
  }
  } catch (error) {
  console.error('Error:', error)
- toast.error('حدث خطأ في إرسال الطلب')
+ toast.error(tr('حدث خطأ في إرسال الطلب', 'Error sending request'))
  } finally {
  setLoading(false)
  }
@@ -4676,13 +4676,13 @@ export default function MemberDetailPage() {
  disabled={!selectedCoachId || loading}
  className="flex-1 bg-teal-600 text-white py-3 rounded-lg disabled:bg-gray-400"
  >
- {loading ? 'جاري الإرسال...' : 'إرسال الطلب'}
+ {loading ? tr('جاري الإرسال...', 'Sending...') : tr('إرسال الطلب', 'Send request')}
  </button>
  <button
  onClick={() => setActiveModal(null)}
  className="px-6 bg-gray-200 dark:bg-gray-700 py-3 rounded-lg"
  >
- إلغاء
+ {tr('إلغاء', 'Cancel')}
  </button>
  </div>
  </div>
@@ -4693,29 +4693,29 @@ export default function MemberDetailPage() {
  <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center z-50 p-4">
  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
  <div className="sticky top-0 bg-white dark:bg-gray-800 pb-4 border-b mb-6 z-10">
- <h3 className="text-2xl font-bold text-center">نموذج تقييم اللياقة</h3>
+ <h3 className="text-2xl font-bold text-center">{tr('نموذج تقييم اللياقة', 'Fitness assessment form')}</h3>
  </div>
 
  <div className="bg-primary-50 p-4 rounded-lg mb-6">
- <h4 className="font-bold mb-3 text-lg">معلومات العضو</h4>
- <div className="grid grid-cols-3 gap-4">
+ <h4 className="font-bold mb-3 text-lg">{tr('معلومات العضو', 'Member info')}</h4>
+ <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
  <div>
- <p className="text-gray-600 dark:text-white text-sm">رقم العضوية</p>
+ <p className="text-gray-600 dark:text-white text-sm">{tr('رقم العضوية', 'Member #')}</p>
  <p className="font-bold text-lg">{member?.memberNumber !== null ? `#${member?.memberNumber}` : 'Other'}</p>
  </div>
  <div>
- <p className="text-gray-600 dark:text-white text-sm">الاسم</p>
+ <p className="text-gray-600 dark:text-white text-sm">{tr('الاسم', 'Name')}</p>
  <p className="font-bold text-lg">{member?.name}</p>
  </div>
  <div>
- <p className="text-gray-600 dark:text-white text-sm">الهاتف</p>
+ <p className="text-gray-600 dark:text-white text-sm">{tr('الهاتف', 'Phone')}</p>
  <p className="font-bold text-lg" dir="ltr">{displayPhone(member?.phone, hideNumbers)}</p>
  </div>
  </div>
  </div>
 
  <div className="mb-6">
- <label className="block font-bold mb-2 text-lg">تاريخ الاختبار</label>
+ <label className="block font-bold mb-2 text-lg">{tr('تاريخ الاختبار', 'Test date')}</label>
  <input
  type="date"
  value={fitnessTestForm.testDate}
@@ -4725,22 +4725,22 @@ export default function MemberDetailPage() {
  </div>
 
  <div className="bg-yellow-50 p-4 rounded-lg mb-6 dark:bg-yellow-900/20">
- <h4 className="font-bold mb-4 text-lg">الأسئلة الطبية</h4>
+ <h4 className="font-bold mb-4 text-lg">{tr('الأسئلة الطبية', 'Medical questions')}</h4>
  <div className="space-y-3">
  {[
- { key: 'firstTimeGym', label: 'هل هذه أول مرة في النادي؟' },
- { key: 'inDietPlan', label: 'هل أنت على نظام غذائي؟' },
- { key: 'hernia', label: 'هل تعاني من فتق أو أي حالة قد تتفاقم بسبب رفع الأثقال؟' },
- { key: 'familyHeartHistory', label: 'هل يوجد تاريخ عائلي لأمراض القلب؟' },
- { key: 'heartProblem', label: 'هل لديك أي مشاكل في القلب؟' },
- { key: 'backPain', label: 'هل تعاني من آلام في الظهر؟' },
- { key: 'surgery', label: 'هل أجريت أي عملية جراحية؟' },
- { key: 'breathingProblems', label: 'هل لديك تاريخ من مشاكل التنفس أو الرئة؟' },
- { key: 'bloodPressure', label: 'هل تعاني من ضغط الدم؟' },
- { key: 'kneeProblem', label: 'هل لديك مشاكل في الركبة؟' },
- { key: 'diabetes', label: 'هل تعاني من السكري؟' },
- { key: 'smoker', label: 'هل أنت مدخن؟' },
- { key: 'highCholesterol', label: 'هل لديك مستوى عالي من الكوليسترول؟' },
+ { key: 'firstTimeGym', label: tr('هل هذه أول مرة في النادي؟', 'Is this your first time at a gym?') },
+ { key: 'inDietPlan', label: tr('هل أنت على نظام غذائي؟', 'Are you on a diet plan?') },
+ { key: 'hernia', label: tr('هل تعاني من فتق أو أي حالة قد تتفاقم بسبب رفع الأثقال؟', 'Do you have a hernia or any condition worsened by lifting?') },
+ { key: 'familyHeartHistory', label: tr('هل يوجد تاريخ عائلي لأمراض القلب؟', 'Family history of heart disease?') },
+ { key: 'heartProblem', label: tr('هل لديك أي مشاكل في القلب؟', 'Do you have any heart problems?') },
+ { key: 'backPain', label: tr('هل تعاني من آلام في الظهر؟', 'Do you suffer from back pain?') },
+ { key: 'surgery', label: tr('هل أجريت أي عملية جراحية؟', 'Have you had any surgery?') },
+ { key: 'breathingProblems', label: tr('هل لديك تاريخ من مشاكل التنفس أو الرئة؟', 'History of breathing or lung problems?') },
+ { key: 'bloodPressure', label: tr('هل تعاني من ضغط الدم؟', 'Do you have blood pressure issues?') },
+ { key: 'kneeProblem', label: tr('هل لديك مشاكل في الركبة؟', 'Do you have knee problems?') },
+ { key: 'diabetes', label: tr('هل تعاني من السكري؟', 'Do you have diabetes?') },
+ { key: 'smoker', label: tr('هل أنت مدخن؟', 'Are you a smoker?') },
+ { key: 'highCholesterol', label: tr('هل لديك مستوى عالي من الكوليسترول؟', 'Do you have high cholesterol?') },
  ].map((q) => (
  <label key={q.key} className="flex items-center gap-3 cursor-pointer hover:bg-yellow-100 p-2 rounded">
  <input
@@ -4763,7 +4763,7 @@ export default function MemberDetailPage() {
 
  <div className="bg-orange-50 p-4 rounded-lg mb-6 dark:bg-orange-900/20">
  <div className="flex items-center justify-between">
- <span className="font-bold text-lg">حصص PT المجانية للعضو</span>
+ <span className="font-bold text-lg">{tr('حصص PT المجانية للعضو', 'Free PT sessions for member')}</span>
  <span className="text-4xl font-bold text-orange-600">
  {member?.freePTSessions || 0}
  </span>
@@ -4771,17 +4771,17 @@ export default function MemberDetailPage() {
  </div>
 
  <div className="bg-primary-50 p-4 rounded-lg mb-6">
- <h4 className="font-bold mb-4 text-lg">اختبار المرونة</h4>
+ <h4 className="font-bold mb-4 text-lg">{tr('اختبار المرونة', 'Flexibility test')}</h4>
  <div className="grid grid-cols-2 gap-4">
  {[
- { key: 'shoulder', label: 'الكتف (Shoulder)' },
- { key: 'hip', label: 'الورك (Hip)' },
- { key: 'elbow', label: 'الكوع (Elbow)' },
- { key: 'wrist', label: 'المعصم (Wrist)' },
- { key: 'spine', label: 'العمود الفقري (Spine)' },
- { key: 'scapula', label: 'لوح الكتف (Scapula)' },
- { key: 'knee', label: 'الركبة (Knee)' },
- { key: 'ankle', label: 'الكاحل (Ankle)' },
+ { key: 'shoulder', label: tr('الكتف (Shoulder)', 'Shoulder') },
+ { key: 'hip', label: tr('الورك (Hip)', 'Hip') },
+ { key: 'elbow', label: tr('الكوع (Elbow)', 'Elbow') },
+ { key: 'wrist', label: tr('المعصم (Wrist)', 'Wrist') },
+ { key: 'spine', label: tr('العمود الفقري (Spine)', 'Spine') },
+ { key: 'scapula', label: tr('لوح الكتف (Scapula)', 'Scapula') },
+ { key: 'knee', label: tr('الركبة (Knee)', 'Knee') },
+ { key: 'ankle', label: tr('الكاحل (Ankle)', 'Ankle') },
  ].map((part) => (
  <div key={part.key}>
  <label className="block font-medium mb-2">{part.label}</label>
@@ -4803,19 +4803,19 @@ export default function MemberDetailPage() {
  </div>
 
  <div className="bg-green-50 p-4 rounded-lg mb-6 dark:bg-green-900/20">
- <h4 className="font-bold mb-4 text-lg">اختبار التمارين</h4>
+ <h4 className="font-bold mb-4 text-lg">{tr('اختبار التمارين', 'Exercise test')}</h4>
  <div className="space-y-4">
  {[
- { key: 'pushup', label: 'الضغط (Push up)' },
- { key: 'situp', label: 'البطن (Sit-up)' },
- { key: 'pullup', label: 'العقلة (Pull up)' },
- { key: 'squat', label: 'القرفصاء (Squat)' },
- { key: 'plank', label: 'البلانك (Plank)' },
- { key: 'legpress', label: 'ضغط الأرجل (Leg press)' },
- { key: 'chestpress', label: 'ضغط الصدر (Chest press)' },
+ { key: 'pushup', label: tr('الضغط (Push up)', 'Push up') },
+ { key: 'situp', label: tr('البطن (Sit-up)', 'Sit-up') },
+ { key: 'pullup', label: tr('العقلة (Pull up)', 'Pull up') },
+ { key: 'squat', label: tr('القرفصاء (Squat)', 'Squat') },
+ { key: 'plank', label: tr('البلانك (Plank)', 'Plank') },
+ { key: 'legpress', label: tr('ضغط الأرجل (Leg press)', 'Leg press') },
+ { key: 'chestpress', label: tr('ضغط الصدر (Chest press)', 'Chest press') },
  ].map((ex) => (
- <div key={ex.key} className="flex items-center gap-4">
- <div className="w-48 font-medium">{ex.label}</div>
+ <div key={ex.key} className="flex items-center gap-2 sm:gap-4">
+ <div className="w-28 sm:w-48 shrink-0 font-medium">{ex.label}</div>
  <input
  type="number"
  placeholder="Sets"
@@ -4827,7 +4827,7 @@ export default function MemberDetailPage() {
  [ex.key]: {...fitnessTestForm.exercises[ex.key as any], sets: parseInt(e.target.value) || 0}
  }
  })}
- className="w-24 px-3 py-2 border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ className="w-16 sm:w-24 px-2 sm:px-3 py-2 border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
  min="0"
  />
  <span>×</span>
@@ -4842,7 +4842,7 @@ export default function MemberDetailPage() {
  [ex.key]: {...fitnessTestForm.exercises[ex.key as any], reps: parseInt(e.target.value) || 0}
  }
  })}
- className="w-24 px-3 py-2 border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ className="w-16 sm:w-24 px-2 sm:px-3 py-2 border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
  min="0"
  />
  </div>
@@ -4856,13 +4856,13 @@ export default function MemberDetailPage() {
  disabled={loading}
  className="flex-1 bg-teal-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-teal-700 disabled:bg-gray-400"
  >
- {loading ? 'جاري الحفظ...' : 'حفظ الاختبار'}
+ {loading ? tr('جاري الحفظ...', 'Saving...') : tr('حفظ الاختبار', 'Save test')}
  </button>
  <button
  onClick={() => setActiveModal(null)}
  className="px-8 bg-gray-200 dark:bg-gray-700 py-4 rounded-lg font-bold hover:bg-gray-300 dark:hover:bg-gray-600"
  >
- إلغاء
+ {tr('إلغاء', 'Cancel')}
  </button>
  </div>
  </div>
@@ -4873,20 +4873,20 @@ export default function MemberDetailPage() {
  <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center z-50 p-4">
  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
  <div className="sticky top-0 bg-white dark:bg-gray-800 pb-4 border-b mb-6">
- <h3 className="text-2xl font-bold text-center">عرض اختبار اللياقة</h3>
- <p className="text-center text-gray-600 dark:text-white mt-2">تم إنشاؤه بواسطة: {fitnessTestData.coachName}</p>
+ <h3 className="text-2xl font-bold text-center">{tr('عرض اختبار اللياقة', 'Fitness test details')}</h3>
+ <p className="text-center text-gray-600 dark:text-white mt-2">{tr('تم إنشاؤه بواسطة:', 'Created by:')} {fitnessTestData.coachName}</p>
  </div>
 
  <div className="space-y-6">
  <div className="bg-primary-50 p-4 rounded-lg">
- <h4 className="font-bold mb-3">معلومات العضو</h4>
- <div className="grid grid-cols-3 gap-4 text-sm">
+ <h4 className="font-bold mb-3">{tr('معلومات العضو', 'Member info')}</h4>
+ <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
  <div>
- <p className="text-gray-600 dark:text-white">رقم العضوية</p>
+ <p className="text-gray-600 dark:text-white">{tr('رقم العضوية', 'Member #')}</p>
  <p className="font-bold">{fitnessTestData.memberNumber ? `#${fitnessTestData.memberNumber}` : 'Other'}</p>
  </div>
  <div>
- <p className="text-gray-600 dark:text-white">الاسم</p>
+ <p className="text-gray-600 dark:text-white">{tr('الاسم', 'Name')}</p>
  <p className="font-bold">{fitnessTestData.memberName}</p>
  </div>
  <div>
@@ -4898,13 +4898,13 @@ export default function MemberDetailPage() {
 
  <div className="bg-orange-50 p-4 rounded-lg dark:bg-orange-900/20">
  <div className="flex items-center justify-between">
- <span className="font-bold">حصص PT المجانية</span>
+ <span className="font-bold">{tr('حصص PT المجانية', 'Free PT sessions')}</span>
  <span className="text-3xl font-bold text-orange-600">{fitnessTestData.freePTSessions}</span>
  </div>
  </div>
 
  <div className="bg-yellow-50 p-4 rounded-lg dark:bg-yellow-900/20">
- <h4 className="font-bold mb-3">الحالة الطبية</h4>
+ <h4 className="font-bold mb-3">{tr('الحالة الطبية', 'Medical status')}</h4>
  <div className="grid grid-cols-2 gap-2 text-sm">
  {Object.entries(fitnessTestData.medicalQuestions).map(([key, value]) => (
  <div key={key} className="flex items-center gap-2">
@@ -4916,8 +4916,8 @@ export default function MemberDetailPage() {
  </div>
 
  <div className="bg-primary-50 p-4 rounded-lg">
- <h4 className="font-bold mb-3">تقييم المرونة</h4>
- <div className="grid grid-cols-4 gap-3 text-sm">
+ <h4 className="font-bold mb-3">{tr('تقييم المرونة', 'Flexibility assessment')}</h4>
+ <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
  {Object.entries(fitnessTestData.flexibility).map(([key, value]) => (
  <div key={key} className="bg-white dark:bg-gray-800 p-2 rounded">
  <p className="text-gray-600 dark:text-white text-xs">{key}</p>
@@ -4928,7 +4928,7 @@ export default function MemberDetailPage() {
  </div>
 
  <div className="bg-green-50 p-4 rounded-lg dark:bg-green-900/20">
- <h4 className="font-bold mb-3">نتائج التمارين</h4>
+ <h4 className="font-bold mb-3">{tr('نتائج التمارين', 'Exercise results')}</h4>
  <div className="space-y-2 text-sm">
  {Object.entries(fitnessTestData.exercises).map(([key, value]: [string, any]) => (
  <div key={key} className="flex justify-between bg-white dark:bg-gray-800 p-2 rounded">
@@ -4945,7 +4945,7 @@ export default function MemberDetailPage() {
  onClick={() => setActiveModal(null)}
  className="w-full bg-gray-600 text-white py-3 rounded-lg font-bold hover:bg-gray-700"
  >
- إغلاق
+ {tr('إغلاق', 'Close')}
  </button>
  </div>
  </div>
@@ -5474,7 +5474,7 @@ export default function MemberDetailPage() {
  {/*  🔁 موديل تعديل التجديد المجدول */}
  {showEditRenewalModal && (
  <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => { if (!editRenewalLoading) setShowEditRenewalModal(false) }}>
- <div dir={locale === 'ar' ? 'rtl' : 'ltr'} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-md p-6 animate-modal-in" onClick={(e) => e.stopPropagation()}>
+ <div dir={locale === 'ar' ? 'rtl' : 'ltr'} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-md p-6 animate-modal-in" onClick={(e) => e.stopPropagation()}>
  <h3 className="text-lg font-black text-gray-900 dark:text-gray-100 mb-1">{locale === 'ar' ? 'تعديل التجديد المجدول' : 'Edit scheduled renewal'}</h3>
  <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{locale === 'ar' ? 'التعديل ده على تفاصيل التجديد بس — الإيصال المدفوع مبيتغيّرش.' : 'Edits the renewal details only — the paid receipt is unchanged.'}</p>
  <div className="grid grid-cols-2 gap-3">
@@ -5498,7 +5498,7 @@ export default function MemberDetailPage() {
  {/*  💰 موديل دفع باقي التجديد المجدول قبل ما يبدأ */}
  {showPayRenewalModal && (member as any).pendingRenewal && (
  <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => { if (!payRenewalLoading) setShowPayRenewalModal(false) }}>
- <div dir={locale === 'ar' ? 'rtl' : 'ltr'} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-sm p-6 animate-modal-in" onClick={(e) => e.stopPropagation()}>
+ <div dir={locale === 'ar' ? 'rtl' : 'ltr'} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-sm p-6 animate-modal-in" onClick={(e) => e.stopPropagation()}>
  <h3 className="text-lg font-black text-gray-900 dark:text-gray-100 mb-1">{locale === 'ar' ? 'دفع باقي التجديد' : 'Pay renewal remaining'}</h3>
  <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
  {locale === 'ar'
@@ -5551,7 +5551,7 @@ export default function MemberDetailPage() {
  >
  <div
  dir={locale === 'ar' ? 'rtl' : 'ltr'}
- className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-md p-6 animate-modal-in"
+ className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-md p-6 animate-modal-in"
  onClick={(e) => e.stopPropagation()}
  >
  <div className="flex items-start gap-3 mb-4">
@@ -5952,7 +5952,7 @@ export default function MemberDetailPage() {
  {/* Add Points Modal */}
  {showAddPointsModal && (
  <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center z-50 p-4" dir={direction}>
- <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md">
+ <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto w-full max-w-md">
  {/* Header */}
  <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-6 rounded-t-lg">
  <h2 className="text-2xl font-bold flex items-center gap-2">
@@ -6153,7 +6153,7 @@ export default function MemberDetailPage() {
  if (e.target === e.currentTarget && !missingImageUploading) setMissingImageUpload(null)
  }}
  >
- <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-5" dir={direction}>
+ <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto max-w-md w-full p-5" dir={direction}>
  <div className="flex justify-between items-center mb-4 pb-2 border-b dark:border-gray-700">
  <h3 className="text-base font-bold dark:text-white">
  {locale === 'ar' ? 'إضافة' : 'Add'} {missingImageUpload.label}
@@ -6209,7 +6209,7 @@ export default function MemberDetailPage() {
  style={{ zIndex: 9999 }}
  onClick={(e) => { if (e.target === e.currentTarget && !ptPaySaving) setPtPayOpen(false) }}
  >
- <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm my-4 p-5" onClick={(e) => e.stopPropagation()} dir={direction}>
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto w-full max-w-sm my-4 p-5" onClick={(e) => e.stopPropagation()} dir={direction}>
  <div className="flex items-center justify-between mb-4 pb-2 border-b dark:border-gray-700">
  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? 'دفع باقي الـ PT' : 'Pay PT remaining'}</h3>
  <button onClick={() => setPtPayOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none">×</button>
@@ -6356,7 +6356,7 @@ export default function MemberDetailPage() {
  style={{ zIndex: 9999 }}
  onClick={(e) => { if (e.target === e.currentTarget && !sendingReminder) setReminderModalOpen(false) }}
  >
- <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md my-4 p-5" onClick={(e) => e.stopPropagation()} dir={direction}>
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto w-full max-w-md my-4 p-5" onClick={(e) => e.stopPropagation()} dir={direction}>
  <div className="flex items-center justify-between mb-4 pb-2 border-b dark:border-gray-700">
  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
  <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
@@ -6425,14 +6425,14 @@ export default function MemberDetailPage() {
  className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center p-4"
  style={{ zIndex: 10001 }}
  >
- <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6" dir="rtl">
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto max-w-sm w-full p-6" dir={direction}>
 
  {/* === حالة التوليد === */}
  {barcodePopup.step === 'generating' && (
  <div className="text-center py-8">
  <div className="w-16 h-16 ring-1 ring-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
- <h3 className="text-lg font-bold mb-1">جاري إنشاء صورة الباركود...</h3>
- <p className="text-sm text-gray-500">يرجى الانتظار</p>
+ <h3 className="text-lg font-bold mb-1">{tr('جاري إنشاء صورة الباركود...', 'Generating barcode image...')}</h3>
+ <p className="text-sm text-gray-500">{tr('يرجى الانتظار', 'Please wait')}</p>
  </div>
  )}
 
@@ -6441,7 +6441,7 @@ export default function MemberDetailPage() {
  <>
  <div className="flex items-center gap-2 mb-4">
  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold shrink-0"><svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg></div>
- <h3 className="text-lg font-bold text-green-700 dark:text-green-400">الصورة جاهزة للإرسال</h3>
+ <h3 className="text-lg font-bold text-green-700 dark:text-green-400">{tr('الصورة جاهزة للإرسال', 'Image ready to send')}</h3>
  </div>
 
  <div className="bg-gray-50 dark:bg-gray-700 ring-1 ring-green-300 dark:ring-green-600/60 rounded-xl p-4 mb-4 flex justify-center">
@@ -6454,7 +6454,7 @@ export default function MemberDetailPage() {
  </div>
 
  <p className="text-sm text-gray-600 dark:text-white text-center mb-4">
- سيتم إرسال الباركود إلى <span className="font-bold" dir="ltr">{displayPhone(member.phone, hideNumbers)}</span>
+ {tr('سيتم إرسال الباركود إلى', 'Barcode will be sent to')} <span className="font-bold" dir="ltr">{displayPhone(member.phone, hideNumbers)}</span>
  </p>
 
  <div className="space-y-2">
@@ -6485,20 +6485,20 @@ export default function MemberDetailPage() {
  setBarcodePopup({ show: false, step: 'generating', image: '', error: '' })
  }, 2000)
  } else {
- const errorMessage = sendData.error || 'فشل إرسال الصورة'
+ const errorMessage = sendData.error || tr('فشل إرسال الصورة', 'Failed to send image')
  const msg = errorMessage.includes('not ready') || errorMessage.includes('not initialized')
- ? 'الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code'
+ ? tr('الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code', 'WhatsApp not connected. Open Settings → WhatsApp to scan the QR code')
  : errorMessage
  setBarcodePopup(p => ({ ...p, step: 'error', error: msg }))
  }
  } catch (err) {
- setBarcodePopup(p => ({ ...p, step: 'error', error: 'حدث خطأ أثناء الإرسال' }))
+ setBarcodePopup(p => ({ ...p, step: 'error', error: tr('حدث خطأ أثناء الإرسال', 'Error while sending') }))
  }
  }}
  className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-bold flex items-center justify-center gap-2 text-lg"
  >
  
- <span>إرسال الباركود فقط</span>
+ <span>{tr('إرسال الباركود فقط', 'Send barcode only')}</span>
  </button>
 
  {/* إرسال الباركود + آخر إيصال في رسالة واحدة */}
@@ -6550,20 +6550,20 @@ export default function MemberDetailPage() {
  setBarcodePopup({ show: false, step: 'generating', image: '', error: '' })
  }, 2000)
  } else {
- const errorMessage = sendData.error || 'فشل إرسال الصورة'
+ const errorMessage = sendData.error || tr('فشل إرسال الصورة', 'Failed to send image')
  const msg = errorMessage.includes('not ready') || errorMessage.includes('not initialized')
- ? 'الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code'
+ ? tr('الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code', 'WhatsApp not connected. Open Settings → WhatsApp to scan the QR code')
  : errorMessage
  setBarcodePopup(p => ({ ...p, step: 'error', error: msg }))
  }
  } catch (err) {
- setBarcodePopup(p => ({ ...p, step: 'error', error: 'حدث خطأ أثناء الإرسال' }))
+ setBarcodePopup(p => ({ ...p, step: 'error', error: tr('حدث خطأ أثناء الإرسال', 'Error while sending') }))
  }
  }}
  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-lg hover:from-green-700 hover:to-emerald-700 font-bold flex items-center justify-center gap-2 text-base shadow-md"
  >
  
- <span>إرسال الباركود + آخر إيصال</span>
+ <span>{tr('إرسال الباركود + آخر إيصال', 'Send barcode + last receipt')}</span>
  </button>
  )}
 
@@ -6571,7 +6571,7 @@ export default function MemberDetailPage() {
  onClick={() => setBarcodePopup({ show: false, step: 'generating', image: '', error: '' })}
  className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
  >
- إلغاء
+ {tr('إلغاء', 'Cancel')}
  </button>
  </div>
  </>
@@ -6581,8 +6581,8 @@ export default function MemberDetailPage() {
  {barcodePopup.step === 'sending' && (
  <div className="text-center py-8">
  <div className="w-16 h-16 ring-1 ring-green-200 border-t-green-600 rounded-full animate-spin mx-auto mb-4" />
- <h3 className="text-lg font-bold mb-1">جاري الإرسال عبر واتساب...</h3>
- <p className="text-sm text-gray-500">يرجى الانتظار</p>
+ <h3 className="text-lg font-bold mb-1">{tr('جاري الإرسال عبر واتساب...', 'Sending via WhatsApp...')}</h3>
+ <p className="text-sm text-gray-500">{tr('يرجى الانتظار', 'Please wait')}</p>
  {barcodePopup.image && (
  <div className="mt-4 opacity-50">
  <img src={barcodePopup.image} alt="Sending..." className="max-h-24 mx-auto rounded" />
@@ -6595,8 +6595,8 @@ export default function MemberDetailPage() {
  {barcodePopup.step === 'success' && (
  <div className="text-center py-6">
  <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
- <h3 className="text-xl font-bold text-green-700 dark:text-green-400 mb-2">تم الإرسال بنجاح!</h3>
- <p className="text-sm text-gray-500 mb-1">تم إنشاء الصورة وإرسالها عبر واتساب</p>
+ <h3 className="text-xl font-bold text-green-700 dark:text-green-400 mb-2">{tr('تم الإرسال بنجاح!', 'Sent successfully!')}</h3>
+ <p className="text-sm text-gray-500 mb-1">{tr('تم إنشاء الصورة وإرسالها عبر واتساب', 'Image created and sent via WhatsApp')}</p>
  {barcodePopup.image && (
  <div className="mt-3 mb-4">
  <img src={barcodePopup.image} alt="Sent" className="max-h-24 mx-auto rounded ring-1 ring-green-300" />
@@ -6604,16 +6604,16 @@ export default function MemberDetailPage() {
  )}
  <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400 mb-4">
  
- <span className="text-sm font-medium">الصورة جاهزة</span>
+ <span className="text-sm font-medium">{tr('الصورة جاهزة', 'Image ready')}</span>
  <span className="mx-1">—</span>
  
- <span className="text-sm font-medium">تم الإرسال</span>
+ <span className="text-sm font-medium">{tr('تم الإرسال', 'Sent')}</span>
  </div>
  <button
  onClick={() => setBarcodePopup({ show: false, step: 'generating', image: '', error: '' })}
  className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-bold"
  >
- تم
+ {tr('تم', 'Done')}
  </button>
  </div>
  )}
@@ -6622,7 +6622,7 @@ export default function MemberDetailPage() {
  {barcodePopup.step === 'error' && (
  <div className="text-center py-6">
  <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
- <h3 className="text-xl font-bold text-red-600 dark:text-red-400 mb-3">فشل العملية</h3>
+ <h3 className="text-xl font-bold text-red-600 dark:text-red-400 mb-3">{tr('فشل العملية', 'Operation failed')}</h3>
  {barcodePopup.error && (
  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
  <p className="text-sm text-red-700 dark:text-red-300">{barcodePopup.error}</p>
@@ -6632,7 +6632,7 @@ export default function MemberDetailPage() {
  onClick={() => setBarcodePopup({ show: false, step: 'generating', image: '', error: '' })}
  className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
  >
- إغلاق
+ {tr('إغلاق', 'Close')}
  </button>
  </div>
  )}

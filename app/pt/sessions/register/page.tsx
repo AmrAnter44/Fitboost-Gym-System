@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '../../../../contexts/ToastContext'
 import { usePermissions } from '../../../../hooks/usePermissions'
+import { useLanguage } from '../../../../contexts/LanguageContext'
 import PermissionDenied from '../../../../components/PermissionDenied'
 import { useDebounce } from '../../../../hooks/useDebounce'
 
@@ -21,6 +22,7 @@ export default function RegisterPTSessionPage() {
   const router = useRouter()
   const toast = useToast()
   const { user, loading: permissionsLoading } = usePermissions()
+  const { tr, locale } = useLanguage()
   const [sessions, setSessions] = useState<PTSession[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -29,7 +31,7 @@ export default function RegisterPTSessionPage() {
 
   // منع الكوتش من الوصول لهذه الصفحة
   if (!permissionsLoading && user?.role === 'COACH') {
-    return <PermissionDenied message="ليس لديك صلاحية تسجيل حصص PT. هذه الصفحة للموظفين فقط." />
+    return <PermissionDenied message={tr('ليس لديك صلاحية تسجيل حصص PT. هذه الصفحة للموظفين فقط.', 'You don\'t have permission to register PT sessions. This page is for staff only.')} />
   }
 
   const [formData, setFormData] = useState({
@@ -85,7 +87,7 @@ export default function RegisterPTSessionPage() {
       const result = await response.json()
 
       if (response.ok) {
-        toast.success(`تم تسجيل حضور ${result.session?.clientName || selectedPT?.clientName || ''} بنجاح!`)
+        toast.success(tr(`تم تسجيل حضور ${result.session?.clientName || selectedPT?.clientName || ''} بنجاح!`, `Attendance recorded for ${result.session?.clientName || selectedPT?.clientName || ''}!`))
 
         setFormData({
           ptNumber: '',
@@ -96,11 +98,11 @@ export default function RegisterPTSessionPage() {
 
         fetchPTSessions()
       } else {
-        toast.error(result.error || 'فشل تسجيل الحضور')
+        toast.error(result.error || tr('فشل تسجيل الحضور', 'Failed to record attendance'))
       }
     } catch (error) {
       console.error(error)
-      toast.error('حدث خطأ في الاتصال')
+      toast.error(tr('حدث خطأ في الاتصال', 'Connection error'))
     } finally {
       setSubmitting(false)
     }
@@ -122,15 +124,15 @@ export default function RegisterPTSessionPage() {
   const selectedPT = sessions.find(pt => pt.ptNumber.toString() === formData.ptNumber)
 
   return (
-    <div className="container mx-auto p-6" dir="rtl">
+    <div className="container mx-auto p-4 sm:p-6" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <div className="flex justify-between items-center mb-6 gap-3 flex-wrap">
         <div className="flex items-center gap-3">
           <span className="inline-flex w-10 h-10 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400">
             <svg {...stroke} className="w-6 h-6" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
           </span>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">تسجيل حضور جلسة PT</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">سجل حضور العميل في جلسة التدريب الشخصي</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">{tr('تسجيل حضور جلسة PT', 'Register PT Session Attendance')}</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{tr('سجل حضور العميل في جلسة التدريب الشخصي', 'Record client attendance for a personal training session')}</p>
           </div>
         </div>
         <button
@@ -138,14 +140,14 @@ export default function RegisterPTSessionPage() {
           className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg transition-colors duration-200 inline-flex items-center gap-2 text-sm"
         >
           <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
-          سجل الحضور
+          {tr('سجل الحضور', 'Attendance History')}
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* قائمة الجلسات المتاحة */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">جلسات PT المتاحة</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">{tr('جلسات PT المتاحة', 'Available PT Sessions')}</h2>
 
           <div className="mb-4 relative">
             <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-gray-400 dark:text-gray-500">
@@ -153,7 +155,7 @@ export default function RegisterPTSessionPage() {
             </span>
             <input
               type="text"
-              placeholder="ابحث برقم PT أو الاسم أو الهاتف..."
+              placeholder={tr('ابحث برقم PT أو الاسم أو الهاتف...', 'Search by PT number, name or phone...')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full ps-10 pe-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
@@ -161,14 +163,14 @@ export default function RegisterPTSessionPage() {
           </div>
 
           {loading ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400" aria-busy="true" aria-live="polite">جاري التحميل...</div>
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400" aria-busy="true" aria-live="polite">{tr('جاري التحميل...', 'Loading...')}</div>
           ) : filteredSessions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <svg {...stroke} className="w-12 h-12 text-gray-400" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              <h3 className="mt-3 text-gray-700 dark:text-gray-300 font-bold">{searchTerm ? 'لا توجد نتائج للبحث' : 'لا توجد جلسات متاحة'}</h3>
+              <h3 className="mt-3 text-gray-700 dark:text-gray-300 font-bold">{searchTerm ? tr('لا توجد نتائج للبحث', 'No search results') : tr('لا توجد جلسات متاحة', 'No sessions available')}</h3>
             </div>
           ) : (
-            <div className="space-y-3 max-h-[600px] overflow-y-auto">
+            <div className="space-y-3 max-h-[60vh] lg:max-h-[600px] overflow-y-auto">
               {filteredSessions.map((pt) => (
                 <button
                   type="button"
@@ -190,9 +192,9 @@ export default function RegisterPTSessionPage() {
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-700 dark:text-gray-300">المدرب: {pt.coachName}</span>
+                    <span className="text-gray-700 dark:text-gray-300">{tr('المدرب', 'Coach')}: {pt.coachName}</span>
                     <span className={`font-bold ${pt.sessionsRemaining <= 3 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                      {pt.sessionsRemaining} جلسات متبقية
+                      {pt.sessionsRemaining} {tr('جلسات متبقية', 'sessions left')}
                     </span>
                   </div>
                 </button>
@@ -202,17 +204,17 @@ export default function RegisterPTSessionPage() {
         </div>
 
         {/* نموذج التسجيل */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">بيانات الحضور</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">{tr('بيانات الحضور', 'Attendance Details')}</h2>
 
           {selectedPT && (
             <div className="bg-primary-50 dark:bg-primary-900/30 ring-1 ring-primary-200 dark:ring-primary-700 rounded-lg p-4 mb-6">
-              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-gray-100">الجلسة المحددة:</h3>
+              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-gray-100">{tr('الجلسة المحددة:', 'Selected session:')}</h3>
               <div className="space-y-1 text-gray-700 dark:text-gray-300">
-                <p><span className="font-bold">رقم PT:</span> {selectedPT.ptNumber < 0 ? 'Day Use' : `#${selectedPT.ptNumber}`}</p>
-                <p><span className="font-bold">العميل:</span> {selectedPT.clientName}</p>
-                <p><span className="font-bold">المدرب:</span> {selectedPT.coachName}</p>
-                <p><span className="font-bold">الجلسات المتبقية:</span>
+                <p><span className="font-bold">{tr('رقم PT', 'PT Number')}:</span> {selectedPT.ptNumber < 0 ? 'Day Use' : `#${selectedPT.ptNumber}`}</p>
+                <p><span className="font-bold">{tr('العميل', 'Client')}:</span> {selectedPT.clientName}</p>
+                <p><span className="font-bold">{tr('المدرب', 'Coach')}:</span> {selectedPT.coachName}</p>
+                <p><span className="font-bold">{tr('الجلسات المتبقية', 'Sessions remaining')}:</span>
                   <span className={`font-bold ms-2 ${selectedPT.sessionsRemaining <= 3 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                     {selectedPT.sessionsRemaining}
                   </span>
@@ -224,7 +226,7 @@ export default function RegisterPTSessionPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                رقم PT <span className="text-red-600 dark:text-red-400">*</span>
+                {tr('رقم PT', 'PT Number')} <span className="text-red-600 dark:text-red-400">*</span>
               </label>
               <input
                 type="number"
@@ -232,20 +234,20 @@ export default function RegisterPTSessionPage() {
                 value={formData.ptNumber}
                 onChange={(e) => setFormData({ ...formData, ptNumber: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-bold text-lg placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-                placeholder="أدخل رقم PT أو اختر من القائمة"
+                placeholder={tr('أدخل رقم PT أو اختر من القائمة', 'Enter PT number or pick from the list')}
               />
             </div>
 
-            <div className="bg-primary-50 dark:bg-primary-900/30 ring-1 ring-primary-200 dark:ring-primary-700 rounded-xl p-5">
+            <div className="bg-primary-50 dark:bg-primary-900/30 ring-1 ring-primary-200 dark:ring-primary-700 rounded-xl p-4 sm:p-5">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
                 <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
-                <span>تاريخ ووقت الجلسة</span>
+                <span>{tr('تاريخ ووقت الجلسة', 'Session date & time')}</span>
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                    التاريخ <span className="text-red-600 dark:text-red-400">*</span>
+                    {tr('التاريخ', 'Date')} <span className="text-red-600 dark:text-red-400">*</span>
                   </label>
                   <input
                     type="date"
@@ -258,7 +260,7 @@ export default function RegisterPTSessionPage() {
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                    الوقت <span className="text-red-600 dark:text-red-400">*</span>
+                    {tr('الوقت', 'Time')} <span className="text-red-600 dark:text-red-400">*</span>
                   </label>
                   <input
                     type="time"
@@ -271,9 +273,9 @@ export default function RegisterPTSessionPage() {
               </div>
 
               <div className="mt-4 bg-white dark:bg-gray-800 ring-1 ring-primary-300 dark:ring-primary-700 rounded-lg p-3">
-                <p className="text-sm text-gray-600 dark:text-gray-400">الوقت المحدد:</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{tr('الوقت المحدد:', 'Selected time:')}</p>
                 <p className="text-lg font-mono font-bold text-primary-700 dark:text-primary-400">
-                  {new Date(`${formData.date}T${formData.time}`).toLocaleString('ar-EG', {
+                  {new Date(`${formData.date}T${formData.time}`).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
@@ -291,22 +293,22 @@ export default function RegisterPTSessionPage() {
                   <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
                 </span>
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">تسجيل بواسطة:</p>
-                  <p className="font-bold text-gray-900 dark:text-gray-100">{user?.name || 'غير معروف'}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{tr('تسجيل بواسطة:', 'Registered by:')}</p>
+                  <p className="font-bold text-gray-900 dark:text-gray-100">{user?.name || tr('غير معروف', 'Unknown')}</p>
                 </div>
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                ملاحظات (اختياري)
+                {tr('ملاحظات (اختياري)', 'Notes (optional)')}
               </label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 resize-none"
                 rows={3}
-                placeholder="أضف أي ملاحظات عن الجلسة..."
+                placeholder={tr('أضف أي ملاحظات عن الجلسة...', 'Add any notes about the session...')}
               />
             </div>
 
@@ -318,12 +320,12 @@ export default function RegisterPTSessionPage() {
               {submitting ? (
                 <>
                   <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                  جاري التسجيل...
+                  {tr('جاري التسجيل...', 'Registering...')}
                 </>
               ) : (
                 <>
                   <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                  تسجيل الحضور
+                  {tr('تسجيل الحضور', 'Record Attendance')}
                 </>
               )}
             </button>

@@ -104,7 +104,7 @@ export default function MessageTemplateManager({
   salesName,
   visitorPhone
 }: MessageTemplateManagerProps) {
-  const { direction, t } = useLanguage()
+  const { direction, t, tr } = useLanguage()
   const toast = useToast()
   const [templates, setTemplates] = useState<MessageTemplate[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -205,11 +205,11 @@ export default function MessageTemplateManager({
             setTemplates(templates.filter(t => t.id !== template.id))
           } else {
             console.error('Failed to delete template')
-            toast.error('فشل حذف القالب')
+            toast.error(tr('فشل حذف القالب', 'Failed to delete template'))
           }
         } catch (error) {
           console.error('Error deleting template:', error)
-          toast.error('حدث خطأ أثناء حذف القالب')
+          toast.error(tr('حدث خطأ أثناء حذف القالب', 'Error deleting template'))
         }
       },
     })
@@ -217,7 +217,7 @@ export default function MessageTemplateManager({
 
   const handleSave = async () => {
     if (!formData.title.trim() || !formData.message.trim()) {
-      toast.error(t('followups.templates.form.fillAllFields') || 'املأ جميع الحقول')
+      toast.error(t('followups.templates.form.fillAllFields') || tr('املأ جميع الحقول', 'Fill in all fields'))
       return
     }
 
@@ -242,7 +242,7 @@ export default function MessageTemplateManager({
             t.id === editingTemplate.id ? data.template : t
           ))
         } else {
-          toast.error('فشل تحديث القالب')
+          toast.error(tr('فشل تحديث القالب', 'Failed to update template'))
           return
         }
       } else {
@@ -262,7 +262,7 @@ export default function MessageTemplateManager({
           // إضافة القالب للقائمة محلياً
           setTemplates([...templates, data.template])
         } else {
-          toast.error('فشل إضافة القالب')
+          toast.error(tr('فشل إضافة القالب', 'Failed to add template'))
           return
         }
       }
@@ -272,7 +272,7 @@ export default function MessageTemplateManager({
       setEditingTemplate(null)
     } catch (error) {
       console.error('Error saving template:', error)
-      toast.error('حدث خطأ أثناء حفظ القالب')
+      toast.error(tr('حدث خطأ أثناء حفظ القالب', 'Error saving template'))
     }
   }
 
@@ -295,7 +295,7 @@ export default function MessageTemplateManager({
           await fetchTemplates()
         } catch (error) {
           console.error('Error resetting templates:', error)
-          toast.error('حدث خطأ أثناء إعادة التعيين')
+          toast.error(tr('حدث خطأ أثناء إعادة التعيين', 'Error resetting templates'))
         }
       },
     })

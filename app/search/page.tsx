@@ -20,7 +20,7 @@ type SearchMode = 'id' | 'name'
 
 export default function SearchPage() {
   const router = useRouter()
-  const { t, direction, locale } = useLanguage()
+  const { t, tr, direction, locale } = useLanguage()
   const { settings } = useServiceSettings()
 
   //  🚪 محاولات الدخول المرفوضة على البوابة — بتظهر كبوب-أب هنا عشان
@@ -315,7 +315,7 @@ export default function SearchPage() {
         playWarningSound()
         setAttendanceMessage({
           type: 'error',
-          text: data.error || 'تم تسجيل الحضور مسبقاً اليوم '
+          text: data.error || tr('تم تسجيل الحضور مسبقاً اليوم', 'Attendance already recorded today')
         })
         setTimeout(() => setAttendanceMessage(null), 4000)
       }
@@ -345,7 +345,7 @@ export default function SearchPage() {
         if (!silent) playAlarmSound()
         setAttendanceMessage({
           type: 'error',
-          text: ' رقم الموظف يجب أن يكون 9 أرقام (مثال: 100000022)'
+          text: tr('رقم الموظف يجب أن يكون 9 أرقام (مثال: 100000022)', 'Staff number must be 9 digits (e.g. 100000022)')
         })
         setMemberId('')
         setTimeout(() => setAttendanceMessage(null), 4000)
@@ -382,7 +382,7 @@ export default function SearchPage() {
           if (!silent) playAlarmSound()
           setAttendanceMessage({
             type: 'error',
-            text: data.error || 'فشل تسجيل الحضور'
+            text: data.error || tr('فشل تسجيل الحضور', 'Failed to record attendance')
           })
           setTimeout(() => setAttendanceMessage(null), 5000)
         }
@@ -391,7 +391,7 @@ export default function SearchPage() {
         if (!silent) playAlarmSound()
         setAttendanceMessage({
           type: 'error',
-          text: 'حدث خطأ في تسجيل الحضور'
+          text: tr('حدث خطأ في تسجيل الحضور', 'Error recording attendance')
         })
         setTimeout(() => setAttendanceMessage(null), 5000)
       } finally {
@@ -436,7 +436,7 @@ export default function SearchPage() {
           // عضو مجمد → اسأل لو عايز يفك الفريز
           if (!silent) playFreezeSound()
           const confirmed = window.confirm(
-            ` ${member.name}\n\nالاشتراك مجمد حالياً.\nلو فكيت الفريز الأيام اللي ماتستخدمتش هترجع لرصيد الفريز.\n\nمتأكد تفك الفريز؟`
+            tr(` ${member.name}\n\nالاشتراك مجمد حالياً.\nلو فكيت الفريز الأيام اللي ماتستخدمتش هترجع لرصيد الفريز.\n\nمتأكد تفك الفريز؟`, ` ${member.name}\n\nThis subscription is currently frozen.\nUnfreezing will return the unused days to the freeze balance.\n\nAre you sure you want to unfreeze?`)
           )
           if (confirmed) {
             try {
@@ -448,18 +448,18 @@ export default function SearchPage() {
               const data = await res.json()
               if (res.ok) {
                 playSuccessSound()
-                setAttendanceMessage({ type: 'success', text: data.message || ' تم فك الفريز بنجاح' })
+                setAttendanceMessage({ type: 'success', text: data.message || tr('تم فك الفريز بنجاح', 'Subscription unfrozen successfully') })
                 setTimeout(() => setAttendanceMessage(null), 5000)
                 // بعد فك الفريز → سجل دخول تلقائي
                 handleMemberCheckIn(member.id)
                 refreshResults()
               } else {
                 playAlarmSound()
-                setAttendanceMessage({ type: 'error', text: data.error || 'حدث خطأ' })
+                setAttendanceMessage({ type: 'error', text: data.error || tr('حدث خطأ', 'An error occurred') })
                 setTimeout(() => setAttendanceMessage(null), 4000)
               }
             } catch {
-              setAttendanceMessage({ type: 'error', text: 'حدث خطأ في الاتصال' })
+              setAttendanceMessage({ type: 'error', text: tr('حدث خطأ في الاتصال', 'Connection error') })
               setTimeout(() => setAttendanceMessage(null), 4000)
             }
           }
@@ -495,7 +495,7 @@ export default function SearchPage() {
       if (!silent) playAlarmSound()
       setAttendanceMessage({
         type: 'error',
-        text: 'يرجى إدخال الاسم أو رقم الهاتف للبحث'
+        text: tr('يرجى إدخال الاسم أو رقم الهاتف للبحث', 'Please enter a name or phone number to search')
       })
       setTimeout(() => setAttendanceMessage(null), 3000)
       return
@@ -540,7 +540,7 @@ export default function SearchPage() {
           // عضو مجمد → اسأل لو عايز يفك الفريز
           if (!silent) playFreezeSound()
           const confirmed = window.confirm(
-            ` ${first.data.name}\n\nالاشتراك مجمد حالياً.\nلو فكيت الفريز الأيام اللي ماتستخدمتش هترجع لرصيد الفريز.\n\nمتأكد تفك الفريز؟`
+            tr(` ${first.data.name}\n\nالاشتراك مجمد حالياً.\nلو فكيت الفريز الأيام اللي ماتستخدمتش هترجع لرصيد الفريز.\n\nمتأكد تفك الفريز؟`, ` ${first.data.name}\n\nThis subscription is currently frozen.\nUnfreezing will return the unused days to the freeze balance.\n\nAre you sure you want to unfreeze?`)
           )
           if (confirmed) {
             try {
@@ -552,17 +552,17 @@ export default function SearchPage() {
               const data = await res.json()
               if (res.ok) {
                 playSuccessSound()
-                setAttendanceMessage({ type: 'success', text: data.message || ' تم فك الفريز بنجاح' })
+                setAttendanceMessage({ type: 'success', text: data.message || tr('تم فك الفريز بنجاح', 'Subscription unfrozen successfully') })
                 setTimeout(() => setAttendanceMessage(null), 5000)
                 handleMemberCheckIn(first.data.id)
                 refreshResults()
               } else {
                 playAlarmSound()
-                setAttendanceMessage({ type: 'error', text: data.error || 'حدث خطأ' })
+                setAttendanceMessage({ type: 'error', text: data.error || tr('حدث خطأ', 'An error occurred') })
                 setTimeout(() => setAttendanceMessage(null), 4000)
               }
             } catch {
-              setAttendanceMessage({ type: 'error', text: 'حدث خطأ في الاتصال' })
+              setAttendanceMessage({ type: 'error', text: tr('حدث خطأ في الاتصال', 'Connection error') })
               setTimeout(() => setAttendanceMessage(null), 4000)
             }
           }
@@ -994,7 +994,7 @@ export default function SearchPage() {
 
                               if (days < 0) {
                                 return (
-                                  <div className={`mt-2 pt-2 border-t-2 border-red-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
+                                  <div className={`mt-2 pt-2 border-t-2 border-red-300 text-start`}>
                                     <p className="text-red-600 font-bold text-sm sm:text-base md:text-lg animate-pulse">
                                        {t('search.expiredSince')} {Math.abs(days)} {t('search.day')}
                                     </p>
@@ -1002,7 +1002,7 @@ export default function SearchPage() {
                                 )
                               } else if (days <= 7) {
                                 return (
-                                  <div className={`mt-2 pt-2 border-t-2 border-orange-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
+                                  <div className={`mt-2 pt-2 border-t-2 border-orange-300 text-start`}>
                                     <p className="text-orange-600 font-bold text-sm sm:text-base md:text-lg">
                                        {t('search.daysRemaining')} {days} {t('search.daysOnly')}
                                     </p>
@@ -1010,7 +1010,7 @@ export default function SearchPage() {
                                 )
                               } else {
                                 return (
-                                  <div className={`mt-2 pt-2 border-t-2 border-green-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
+                                  <div className={`mt-2 pt-2 border-t-2 border-green-300 text-start`}>
                                     <p className="text-green-600 font-bold text-sm sm:text-base md:text-lg">
                                        {t('search.daysRemaining')} {days} {t('search.day')}
                                     </p>
@@ -1182,7 +1182,7 @@ export default function SearchPage() {
                                   <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{result.data.points}</p>
                                 </div>
                               </div>
-                              <div className="text-right">
+                              <div className="text-end">
                                 <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.valueInEGP')}</p>
                                 <p className="text-lg font-bold text-green-600 dark:text-green-400">{(result.data.points * settings.pointsValueInEGP).toFixed(2)} {locale === 'ar' ? 'ج.م' : 'EGP'}</p>
                               </div>

@@ -99,7 +99,7 @@ const POSITION_MAP: { [key: string]: string } = {
 
 export default function StaffPage() {
   const router = useRouter()
-  const { t, direction, locale } = useLanguage()
+  const { t, tr, direction, locale } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
 
@@ -236,12 +236,12 @@ export default function StaffPage() {
     if (staffError) {
       const errorMessage = (staffError as Error).message
       if (errorMessage === 'UNAUTHORIZED') {
-        toast.error('يجب تسجيل الدخول أولاً')
+        toast.error(tr('يجب تسجيل الدخول أولاً', 'Please log in first'))
         setTimeout(() => router.push('/login'), 2000)
       } else if (errorMessage === 'FORBIDDEN') {
-        toast.error('ليس لديك صلاحية عرض الموظفين')
+        toast.error(tr('ليس لديك صلاحية عرض الموظفين', 'You do not have permission to view staff'))
       } else {
-        toast.error(errorMessage || 'حدث خطأ أثناء جلب بيانات الموظفين')
+        toast.error(errorMessage || tr('حدث خطأ أثناء جلب بيانات الموظفين', 'Error loading staff data'))
       }
     }
   }, [staffError, toast, router])
@@ -429,7 +429,7 @@ const handleSelfieCapture = async (file: File) => {
     if (!minutes) return '-'
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
-    return hours > 0 ? `${hours} س ${mins} د` : `${mins} د`
+    return hours > 0 ? `${hours} ${tr('س', 'h')} ${mins} ${tr('د', 'm')}` : `${mins} ${tr('د', 'm')}`
   }
 
   const resetForm = () => {
@@ -742,7 +742,7 @@ const handleSelfieCapture = async (file: File) => {
   }
 
   if (!hasPermission('canViewStaff')) {
-    return <PermissionDenied message="ليس لديك صلاحية عرض الموظفين" />
+    return <PermissionDenied message={tr('ليس لديك صلاحية عرض الموظفين', 'You do not have permission to view staff')} />
   }
 
   return (
@@ -903,17 +903,17 @@ const handleSelfieCapture = async (file: File) => {
                           </div>
                         ) : (
                           <div className="inline-block bg-amber-50 dark:bg-amber-900/30 ring-1 ring-amber-200 dark:ring-amber-900/50 px-3 py-1.5 rounded-lg">
-                            <div className="text-xs font-bold text-amber-700 dark:text-amber-300">لم ينصرف بعد</div>
-                            <div className="text-[10px] text-amber-600 dark:text-amber-400">جاري العمل</div>
+                            <div className="text-xs font-bold text-amber-700 dark:text-amber-300">{tr('لم ينصرف بعد', 'Not checked out')}</div>
+                            <div className="text-[10px] text-amber-600 dark:text-amber-400">{tr('جاري العمل', 'Working')}</div>
                           </div>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {hours === 0 && minutes === 0 ? (
-                          <span className="text-sm text-gray-600 dark:text-gray-400">بدأ للتو</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{tr('بدأ للتو', 'Just started')}</span>
                         ) : (
                           <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                            {hours > 0 && `${hours} س`}{hours > 0 && minutes > 0 ? ' ' : ''}{minutes > 0 && `${minutes} د`}
+                            {hours > 0 && `${hours} ${tr('س', 'h')}`}{hours > 0 && minutes > 0 ? ' ' : ''}{minutes > 0 && `${minutes} ${tr('د', 'm')}`}
                           </span>
                         )}
                       </td>
@@ -1027,7 +1027,7 @@ const handleSelfieCapture = async (file: File) => {
       {/* Add/Edit Modal */}
       {showForm && (
         <div className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="staff-form-title" onClick={(e) => { if (e.target === e.currentTarget) resetForm() }}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-3xl w-full p-6 my-4 sm:my-8 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto" dir={direction} onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-3xl w-full p-4 sm:p-6 my-4 sm:my-8 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto" dir={direction} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h2 id="staff-form-title" className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
                 <svg {...stroke} className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true">
@@ -1129,7 +1129,7 @@ const handleSelfieCapture = async (file: File) => {
               {showCoachTargetSection && (formData.position?.split(',') || []).map(p => p.trim()).includes('مدرب') && (
                 <div>
                   <label className="block text-sm font-bold mb-2 text-purple-700 dark:text-purple-300 inline-flex items-center gap-1.5">
-                    🎯 التارجت الشهري للكوتش (ج.م)
+                    🎯 {tr('التارجت الشهري للكوتش (ج.م)', 'Coach monthly target (EGP)')}
                   </label>
                   <input
                     type="number"
@@ -1140,10 +1140,10 @@ const handleSelfieCapture = async (file: File) => {
                       setFormData({ ...formData, coachTarget: parseFloat(e.target.value) || 0 })
                     }
                     className="w-full px-3 py-2 rounded-lg border-2 border-purple-200 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-900/10 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors duration-200 font-bold"
-                    placeholder="مثلاً: 15000"
+                    placeholder={tr('مثلاً: 15000', 'e.g. 15000')}
                   />
                   <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                    💡 إجمالي الإيراد المطلوب شهرياً من الـ subscriptions اللي بيعها المدرب
+                    💡 {tr('إجمالي الإيراد المطلوب شهرياً من الـ subscriptions اللي بيعها المدرب', 'Total monthly revenue required from subscriptions sold by the coach')}
                   </p>
                 </div>
               )}

@@ -89,7 +89,7 @@ const GROUP_CLASS_RECEIPT_TYPES = [
 export default function ReceiptsPage() {
  const router = useRouter()
  const { hasPermission, loading: permissionsLoading, user } = usePermissions()
- const { t, direction } = useLanguage()
+ const { t, tr, direction } = useLanguage()
  const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
  const toast = useToast()
  const queryClient = useQueryClient()
@@ -204,12 +204,12 @@ export default function ReceiptsPage() {
  const errorMessage = (receiptsError as Error).message
 
  if (errorMessage === 'UNAUTHORIZED') {
- toast.error('يجب تسجيل الدخول أولاً')
+ toast.error(tr('يجب تسجيل الدخول أولاً', 'Please log in first'))
  setTimeout(() => router.push('/login'), 2000)
  } else if (errorMessage === 'FORBIDDEN') {
- toast.error('ليس لديك صلاحية عرض الإيصالات')
+ toast.error(tr('ليس لديك صلاحية عرض الإيصالات', 'You do not have permission to view receipts'))
  } else {
- toast.error(errorMessage || 'حدث خطأ أثناء جلب الإيصالات')
+ toast.error(errorMessage || tr('حدث خطأ أثناء جلب الإيصالات', 'Error loading receipts'))
  }
  }
  }, [receiptsError, toast, router])
@@ -312,7 +312,7 @@ export default function ReceiptsPage() {
  <div key={idx}>
  {emojis[m.method] || ''} {Math.round(m.amount)}
  {m.method === 'points' && m.pointsUsed && (
- <span className="text-yellow-600 font-bold"> ({m.pointsUsed} نقطة)</span>
+ <span className="text-yellow-600 font-bold"> ({m.pointsUsed} {tr('نقطة', 'pts')})</span>
  )}
  </div>
  ))}
@@ -334,7 +334,7 @@ export default function ReceiptsPage() {
  //  فتح مودال الإلغاء — نجمع فيه طريقة استرجاع الفلوس والسبب
  const handleCancelReceipt = (receiptId: string) => {
  if (!canCancel) {
- toast.error('ليس لديك صلاحية إلغاء الإيصالات')
+ toast.error(tr('ليس لديك صلاحية إلغاء الإيصالات', 'You do not have permission to cancel receipts'))
  return
  }
  const receipt = currentReceipts.find((r: any) => r.id === receiptId)
@@ -351,7 +351,7 @@ export default function ReceiptsPage() {
  const confirmCancelReceipt = async () => {
  if (!cancelModal) return
  if (!cancelForm.amount || cancelForm.amount <= 0) {
- toast.warning('اكتب مبلغ المرتجع')
+ toast.warning(tr('اكتب مبلغ المرتجع', 'Enter the refund amount'))
  return
  }
  const receiptId = cancelModal.receiptId
@@ -375,7 +375,7 @@ export default function ReceiptsPage() {
  })
 
  if (response.ok) {
- toast.success('تم إلغاء الإيصال بنجاح')
+ toast.success(tr('تم إلغاء الإيصال بنجاح', 'Receipt cancelled successfully'))
  setCancelModal(null)
  queryClient.invalidateQueries({ queryKey: ['receipts'] })
  //  حدّث بيانات الأعضاء عشان حالة الاشتراك (منتهي) تظهر بعد الإلغاء
@@ -385,12 +385,12 @@ export default function ReceiptsPage() {
  } else {
  queryClient.setQueryData(['receipts'], previousData)
  const error = await response.json()
- toast.error(error.error || 'فشل إلغاء الإيصال')
+ toast.error(error.error || tr('فشل إلغاء الإيصال', 'Failed to cancel receipt'))
  }
  } catch (error) {
  queryClient.setQueryData(['receipts'], previousData)
  console.error('Error:', error)
- toast.error('حدث خطأ أثناء إلغاء الإيصال')
+ toast.error(tr('حدث خطأ أثناء إلغاء الإيصال', 'Error cancelling receipt'))
  } finally {
  setCancelling(false)
  }
@@ -682,7 +682,7 @@ export default function ReceiptsPage() {
  const phoneNumber = details.phone || details.memberPhone || ''
 
  if (!phoneNumber) {
- toast.error('رقم الهاتف غير موجود في الإيصال')
+ toast.error(tr('رقم الهاتف غير موجود في الإيصال', 'No phone number on this receipt'))
  return
  }
 
@@ -716,20 +716,20 @@ export default function ReceiptsPage() {
  const pdfPath = pdfResult && typeof pdfResult === 'object' ? pdfResult.filePath : undefined
  if (pdfPath) {
  await (window as any).electron.openWhatsAppWithPDF(message, pdfPath, formattedPhone)
- toast.success('تم فتح واتساب - اسحب ملف PDF من المجلد المفتوح إلى واتساب ')
+ toast.success(tr('تم فتح واتساب - اسحب ملف PDF من المجلد المفتوح إلى واتساب ', 'WhatsApp opened - drag the PDF from the opened folder into WhatsApp'))
  } else {
  // Fallback: فتح واتساب عادي
  window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank')
- toast.success('تم تحميل PDF وفتح واتساب ')
+ toast.success(tr('تم تحميل PDF وفتح واتساب ', 'PDF downloaded and WhatsApp opened'))
  }
  } else {
  // في المتصفح العادي
  window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank')
- toast.success('تم تحميل PDF وفتح واتساب ')
+ toast.success(tr('تم تحميل PDF وفتح واتساب ', 'PDF downloaded and WhatsApp opened'))
  }
  } catch (error) {
  console.error('Error in download and WhatsApp:', error)
- toast.error('حدث خطأ أثناء العملية')
+ toast.error(tr('حدث خطأ أثناء العملية', 'Something went wrong'))
  }
  }
 
@@ -755,7 +755,7 @@ export default function ReceiptsPage() {
  toast.error(direction === 'rtl' ? 'فشل تجهيز ملف التصدير' : 'Failed to prepare export')
  return
  }
- const headers = ['رقم الإيصال', 'النوع', 'العميل', 'المبلغ', 'طريقة الدفع', 'الموظف', 'التاريخ', 'ملغي']
+ const headers = [tr('رقم الإيصال', 'Receipt #'), tr('النوع', 'Type'), tr('العميل', 'Client'), tr('المبلغ', 'Amount'), tr('طريقة الدفع', 'Payment Method'), tr('الموظف', 'Staff'), tr('التاريخ', 'Date'), tr('ملغي', 'Cancelled')]
  const rows = all.map(r => {
  let clientName = ''
  try {
@@ -770,7 +770,7 @@ export default function ReceiptsPage() {
  r.paymentMethod,
  r.staffName || '',
  new Date(r.createdAt).toLocaleDateString('ar-EG'),
- r.isCancelled ? 'نعم' : 'لا',
+ r.isCancelled ? tr('نعم', 'Yes') : tr('لا', 'No'),
  ]
  })
  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
@@ -1649,7 +1649,7 @@ export default function ReceiptsPage() {
  {/* Edit Modal */}
  {showEditModal && editingReceipt && (
  <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in">
- <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-5xl w-full p-5 max-h-[90vh] overflow-y-auto" dir={direction}>
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-5xl w-full p-4 sm:p-5 max-h-[90vh] overflow-y-auto" dir={direction}>
  <div className="flex items-center justify-between mb-4">
  <div>
  <h2 className="text-2xl font-bold">{t('receipts.edit.title')}</h2>
@@ -1767,22 +1767,22 @@ export default function ReceiptsPage() {
  <div className="bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-700/60 rounded-lg p-4 space-y-3">
  <h3 className="font-bold text-base text-primary-800 dark:text-primary-200 flex items-center gap-2">
 
- <span>بيانات الاشتراك</span>
+ <span>{tr('بيانات الاشتراك', 'Subscription Details')}</span>
  </h3>
 
  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
  <div>
- <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">الاسم</label>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">{tr('الاسم', 'Name')}</label>
  <input
  type="text"
  value={editFormData.subscriptionName}
  onChange={(e) => setEditFormData({ ...editFormData, subscriptionName: e.target.value })}
  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
- placeholder="اسم العميل"
+ placeholder={tr('اسم العميل', 'Client name')}
  />
  </div>
  <div>
- <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">رقم التليفون</label>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">{tr('رقم التليفون', 'Phone Number')}</label>
  <input
  type="tel"
  value={editFormData.subscriptionPhone}
@@ -1797,7 +1797,7 @@ export default function ReceiptsPage() {
  <div>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
  <div>
- <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">سعر الاشتراك (إجمالي الباقة)</label>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">{tr('سعر الاشتراك (إجمالي الباقة)', 'Subscription Price (package total)')}</label>
  <input
  type="number"
  step="0.01"
@@ -1808,11 +1808,11 @@ export default function ReceiptsPage() {
  />
  </div>
  <div>
- <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">المبلغ المدفوع</label>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">{tr('المبلغ المدفوع', 'Amount Paid')}</label>
  <div className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 font-mono">
  {Number(editFormData.amount) || 0}
  </div>
- <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">= خانة "المبلغ" فوق. المتبقي: <strong>{Math.max(0, (Number(editFormData.subscriptionPrice) || 0) - (Number(editFormData.amount) || 0))}</strong></p>
+ <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{tr('= خانة "المبلغ" فوق. المتبقي:', '= the "Amount" field above. Remaining:')} <strong>{Math.max(0, (Number(editFormData.subscriptionPrice) || 0) - (Number(editFormData.amount) || 0))}</strong></p>
  </div>
  </div>
  </div>
@@ -1821,7 +1821,7 @@ export default function ReceiptsPage() {
  {canEditFull && editFormData.hasSubscriptionDates && (
  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
  <div>
- <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">تاريخ البداية</label>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">{tr('تاريخ البداية', 'Start Date')}</label>
  <input
  type="date"
  value={editFormData.subscriptionStartDate}
@@ -1830,7 +1830,7 @@ export default function ReceiptsPage() {
  />
  </div>
  <div>
- <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">تاريخ النهاية</label>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">{tr('تاريخ النهاية', 'End Date')}</label>
  <input
  type="date"
  value={editFormData.subscriptionExpiryDate}
@@ -1844,19 +1844,19 @@ export default function ReceiptsPage() {
  {/* الكوتش — يظهر بس للإيصالات اللي فيها coachName */}
  {canEditFull && editFormData.hasCoachField && (
  <div>
- <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">الكوتش</label>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">{tr('الكوتش', 'Coach')}</label>
  {coachOptions.length > 0 ? (
  <select
  value={editFormData.subscriptionCoachName}
  onChange={(e) => setEditFormData({ ...editFormData, subscriptionCoachName: e.target.value })}
  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
  >
- <option value="">— بدون كوتش —</option>
+ <option value="">{tr('— بدون كوتش —', '— No coach —')}</option>
  {/* لو الـ value الحالي مش في القائمة (كوتش متعطّل/محذوف) نضيفه عشان ميختفيش */}
  {editFormData.subscriptionCoachName &&
  !coachOptions.some(c => c.name === editFormData.subscriptionCoachName) && (
  <option value={editFormData.subscriptionCoachName}>
- {editFormData.subscriptionCoachName} (غير نشط)
+ {editFormData.subscriptionCoachName} {tr('(غير نشط)', '(inactive)')}
  </option>
  )}
  {coachOptions.map(c => (
@@ -1869,11 +1869,11 @@ export default function ReceiptsPage() {
  value={editFormData.subscriptionCoachName}
  onChange={(e) => setEditFormData({ ...editFormData, subscriptionCoachName: e.target.value })}
  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
- placeholder="اسم الكوتش"
+ placeholder={tr('اسم الكوتش', 'Coach name')}
  />
  )}
  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
- لو cascade مفعّل، الـ PT المرتبط هيتحدّث (coachName + coachUserId).
+ {tr('لو cascade مفعّل، الـ PT المرتبط هيتحدّث (coachName + coachUserId).', 'If cascade is on, the linked PT will be updated (coachName + coachUserId).')}
  </p>
  </div>
  )}
@@ -1884,10 +1884,10 @@ export default function ReceiptsPage() {
  <SalesStaffSelector
  value={editFormData.salesStaffId}
  onChange={(sid) => setEditFormData({ ...editFormData, salesStaffId: sid })}
- locked={!hasPermission('canEditMembers') ? { reason: 'محتاج صلاحية canEditMembers' } : undefined}
+ locked={!hasPermission('canEditMembers') ? { reason: tr('محتاج صلاحية canEditMembers', 'Requires canEditMembers permission') } : undefined}
  />
  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
- تغيير موظف السيلز هيتحدّث على سجل العضو على طول.
+ {tr('تغيير موظف السيلز هيتحدّث على سجل العضو على طول.', 'Changing the sales staff updates the member record immediately.')}
  </p>
  </div>
  )}
@@ -1908,12 +1908,12 @@ export default function ReceiptsPage() {
  />
  <div className="flex-1">
  <p className="text-sm font-bold text-gray-800 dark:text-gray-100">
- حدّث بيانات العضو/PT الأصلي كمان
+ {tr('حدّث بيانات العضو/PT الأصلي كمان', 'Also update the original member/PT record')}
  </p>
  <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
  {hasPermission('canEditMembers')
- ? 'لو مفعّل، التعديلات هتترسم على سجل العضو/PT المرتبط بالإيصال (الاسم/التليفون/التواريخ). أنواع تانية: الإيصال بس بيتحدّث.'
- : 'محتاج صلاحية canEditMembers — التعديل هيتم على الإيصال بس.'}
+ ? tr('لو مفعّل، التعديلات هتترسم على سجل العضو/PT المرتبط بالإيصال (الاسم/التليفون/التواريخ). أنواع تانية: الإيصال بس بيتحدّث.', 'If enabled, changes are applied to the member/PT record linked to this receipt (name/phone/dates). Other types: only the receipt is updated.')
+ : tr('محتاج صلاحية canEditMembers — التعديل هيتم على الإيصال بس.', 'Requires canEditMembers — only the receipt will be edited.')}
  </p>
  </div>
  </label>
@@ -1978,12 +1978,12 @@ export default function ReceiptsPage() {
  aria-modal="true"
  onClick={(e) => { if (e.target === e.currentTarget && !cancelling) setCancelModal(null) }}
  >
- <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-md animate-modal-in">
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-md max-h-[90vh] overflow-y-auto animate-modal-in">
  {/* Header */}
  <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
- <h3 className="text-lg font-bold text-red-600 dark:text-red-400">إلغاء الإيصال #{cancelModal.receiptNumber}</h3>
+ <h3 className="text-lg font-bold text-red-600 dark:text-red-400">{tr('إلغاء الإيصال', 'Cancel Receipt')} #{cancelModal.receiptNumber}</h3>
  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
- مبلغ الإيصال: <strong className="text-gray-800 dark:text-gray-100">{cancelModal.amount}</strong> ج
+ {tr('مبلغ الإيصال:', 'Receipt amount:')} <strong className="text-gray-800 dark:text-gray-100">{cancelModal.amount}</strong> {tr('ج.م', 'EGP')}
  </p>
  </div>
 
@@ -1991,7 +1991,7 @@ export default function ReceiptsPage() {
  <div className="p-6 space-y-4">
  <div>
  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
- المبلغ اللي هيطلع (المرتجع) <span className="text-red-600">*</span>
+ {tr('المبلغ اللي هيطلع (المرتجع)', 'Refund amount')} <span className="text-red-600">*</span>
  </label>
  <input
  type="number"
@@ -1999,21 +1999,21 @@ export default function ReceiptsPage() {
  value={cancelForm.amount || ''}
  onChange={(e) => setCancelForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors duration-200"
- placeholder="المبلغ المسترجع"
+ placeholder={tr('المبلغ المسترجع', 'Refunded amount')}
  />
  {cancelForm.amount > cancelModal.amount && (
- <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">المبلغ أكبر من مبلغ الإيصال ({cancelModal.amount} ج)</p>
+ <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{tr('المبلغ أكبر من مبلغ الإيصال', 'Amount exceeds the receipt amount')} ({cancelModal.amount} {tr('ج.م', 'EGP')})</p>
  )}
  </div>
 
  <div>
  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
- الفلوس المسترجعة طلعت إزاي؟ <span className="text-red-600">*</span>
+ {tr('الفلوس المسترجعة طلعت إزاي؟', 'How was the refund paid?')} <span className="text-red-600">*</span>
  </label>
  <div className="grid grid-cols-2 gap-2">
  {([
- { key: 'cash', label: 'كاش' },
- { key: 'instapay', label: 'إنستاباي' },
+ { key: 'cash', label: tr('كاش', 'Cash') },
+ { key: 'instapay', label: tr('إنستاباي', 'InstaPay') },
  ] as const).map(opt => (
  <button
  key={opt.key}
@@ -2032,12 +2032,12 @@ export default function ReceiptsPage() {
  </div>
 
  <div>
- <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">سبب الإلغاء</label>
+ <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{tr('سبب الإلغاء', 'Cancellation Reason')}</label>
  <textarea
  value={cancelForm.reason}
  onChange={(e) => setCancelForm(f => ({ ...f, reason: e.target.value }))}
  rows={2}
- placeholder="اختياري"
+ placeholder={tr('اختياري', 'Optional')}
  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors duration-200"
  />
  </div>
@@ -2051,7 +2051,7 @@ export default function ReceiptsPage() {
  disabled={cancelling}
  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-60 transition-colors duration-200"
  >
- رجوع
+ {tr('رجوع', 'Back')}
  </button>
  <button
  type="button"
@@ -2059,7 +2059,7 @@ export default function ReceiptsPage() {
  disabled={cancelling}
  className="flex-1 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200"
  >
- {cancelling ? 'جاري الإلغاء...' : 'تأكيد الإلغاء'}
+ {cancelling ? tr('جاري الإلغاء...', 'Cancelling...') : tr('تأكيد الإلغاء', 'Confirm Cancellation')}
  </button>
  </div>
  </div>

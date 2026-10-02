@@ -48,7 +48,7 @@ interface GroupClassSession {
 export default function GroupClassPage() {
   const router = useRouter()
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
-  const { t, direction, locale } = useLanguage()
+  const { t, tr, direction, locale } = useLanguage()
   const toast = useToast()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const { settings } = useServiceSettings()
@@ -178,7 +178,7 @@ export default function GroupClassPage() {
       } else if (errorMessage === 'FORBIDDEN') {
         // لا نفعل شيء - PermissionDenied سيظهر
       } else {
-        toast.error(errorMessage || 'حدث خطأ أثناء جلب الجلسات')
+        toast.error(errorMessage || tr('حدث خطأ أثناء جلب الجلسات', 'Error loading sessions'))
       }
     }
   }, [sessionsError, router, toast])
@@ -270,7 +270,7 @@ export default function GroupClassPage() {
       totalPrice: pkg.price,
       expiryDate: calculatedExpiry || prev.expiryDate // حساب تاريخ الانتهاء تلقائيًا
     }))
-    toast.success(`تم تطبيق باقة: ${pkg.name} (${pkg.durationDays} يوم)`)
+    toast.success(tr(`تم تطبيق باقة: ${pkg.name} (${pkg.durationDays} يوم)`, `Package applied: ${pkg.name} (${pkg.durationDays} days)`))
   }
 
   // دالة جلب بيانات العضو بناءً على رقم العضوية وملء الحقول تلقائياً
@@ -279,7 +279,7 @@ export default function GroupClassPage() {
 
     // التحقق من صلاحية عرض الأعضاء
     if (!hasPermission('canViewMembers')) {
-      toast.warning('لا تملك صلاحية عرض بيانات الأعضاء')
+      toast.warning(tr('لا تملك صلاحية عرض بيانات الأعضاء', 'You do not have permission to view members'))
       return
     }
 
@@ -296,9 +296,9 @@ export default function GroupClassPage() {
           clientName: member.name,
           phone: member.phone
         }))
-        toast.success(`تم تحميل بيانات العضو: ${member.name}`)
+        toast.success(tr(`تم تحميل بيانات العضو: ${member.name}`, `Member data loaded: ${member.name}`))
       } else {
-        toast.warning(`لم يتم العثور على عضو برقم ${memberNumber}`)
+        toast.warning(tr(`لم يتم العثور على عضو برقم ${memberNumber}`, `No member found with number ${memberNumber}`))
       }
     } catch (error) {
       console.error('Error fetching member:', error)
@@ -775,7 +775,7 @@ export default function GroupClassPage() {
 
       {!isCoach && showForm && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) { resetForm() } }}>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6" dir={direction}>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6" dir={direction}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               {editingSession ? t('groupClass.editSession') : t('groupClass.addSession')}
@@ -801,9 +801,9 @@ export default function GroupClassPage() {
                     onChange={(e) => setFormData({ ...formData, groupClassNumber: e.target.value })}
                     onKeyPress={handleIdKeyPress}
                     className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg disabled:bg-gray-100 dark:disabled:bg-gray-700 dark:bg-gray-700 dark:text-white"
-                    placeholder="اختياري - يمكن تركه فارغ"
+                    placeholder={tr('اختياري - يمكن تركه فارغ', 'Optional - can be left empty')}
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1"> اضغط Enter لتحميل بيانات العضو تلقائياً</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{tr('اضغط Enter لتحميل بيانات العضو تلقائياً', 'Press Enter to load member data automatically')}</p>
                 </div>
               )}
 
@@ -864,10 +864,10 @@ export default function GroupClassPage() {
                   />
                   <div>
                     <span className="text-sm font-bold text-primary-800 dark:text-primary-200">
-                       Day Use (استخدام يومي)
+                       {tr('Day Use (استخدام يومي)', 'Day Use')}
                     </span>
                     <p className="text-xs text-primary-600 dark:text-primary-300 mt-1">
-                      تسجيل مبسط - اسم ورقم وسعر الجلسة فقط
+                      {tr('تسجيل مبسط - اسم ورقم وسعر الجلسة فقط', 'Quick registration - name, phone and session price only')}
                     </p>
                   </div>
                 </label>
@@ -896,7 +896,7 @@ export default function GroupClassPage() {
                           </div>
                           {pkg.durationDays && (
                             <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                               {pkg.durationDays} يوم
+                               {pkg.durationDays} {tr('يوم', 'days')}
                             </div>
                           )}
                           <div className="text-lg font-bold text-fuchsia-600 dark:text-fuchsia-400 mt-1">
@@ -932,7 +932,7 @@ export default function GroupClassPage() {
               {!isDayUse && editingSession && (
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
-                    الجلسات المتبقية <span className="text-red-600 dark:text-red-400">*</span>
+                    {tr('الجلسات المتبقية', 'Remaining sessions')} <span className="text-red-600 dark:text-red-400">*</span>
                   </label>
                   <input
                     type="number"
@@ -941,10 +941,10 @@ export default function GroupClassPage() {
                     value={formData.sessionsRemaining}
                     onChange={(e) => setFormData({ ...formData, sessionsRemaining: parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 border border-primary-300 dark:border-primary-700 rounded-lg bg-primary-50 dark:bg-primary-900/50 dark:text-primary-contrast"
-                    placeholder="عدد الجلسات المتبقية"
+                    placeholder={tr('عدد الجلسات المتبقية', 'Number of remaining sessions')}
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                     يمكنك تعديل عدد الجلسات المتبقية للعميل
+                     {tr('يمكنك تعديل عدد الجلسات المتبقية للعميل', 'You can edit the client\'s remaining sessions')}
                   </p>
                 </div>
               )}
@@ -1341,7 +1341,7 @@ export default function GroupClassPage() {
       {/* Payment Modal */}
       {showPaymentModal && paymentSession && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6" dir={direction}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">{t('groupClass.paymentModal.title')}</h2>
               <button
@@ -1501,8 +1501,8 @@ export default function GroupClassPage() {
               <h2 className="text-2xl font-bold dark:text-white"> {t('settingsPage.groupClassSchedules.pageTitle')}</h2>
               <button
                 onClick={() => { setShowScheduleModal(false); resetScheduleForm() }}
-                aria-label="إغلاق"
-                title="إغلاق"
+                aria-label={tr('إغلاق', 'Close')}
+                title={tr('إغلاق', 'Close')}
                 className="w-9 h-9 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
               >
                 <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5">

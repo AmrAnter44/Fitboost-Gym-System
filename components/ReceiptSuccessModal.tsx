@@ -81,7 +81,7 @@ export default function ReceiptSuccessModal({
   isOpen,
   onClose
 }: ReceiptSuccessModalProps) {
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
   const toast = useToast()
   const [sending, setSending] = useState(false)
   const [hasElectron, setHasElectron] = useState(false)
@@ -117,30 +117,30 @@ export default function ReceiptSuccessModal({
 
   const getReceiptTypeLabel = (type: string): { label: string; icon: JSX.Element } => {
     const typeMap: Record<string, { label: string; icon: JSX.Element }> = {
-      membership: { label: 'اشتراك عضوية', icon: receiptTypeIconFor.membership },
-      membership_renewal: { label: 'تجديد اشتراك', icon: receiptTypeIconFor.renew },
-      pt_new: { label: 'اشتراك PT جديد', icon: receiptTypeIconFor.pt },
-      pt_renew: { label: 'تجديد PT', icon: receiptTypeIconFor.renew },
-      nutrition_new: { label: 'اشتراك تغذية جديد', icon: receiptTypeIconFor.nutrition },
-      nutrition_renew: { label: 'تجديد تغذية', icon: receiptTypeIconFor.renew },
-      physio_new: { label: 'اشتراك علاج طبيعي', icon: receiptTypeIconFor.physio },
-      physio_renew: { label: 'تجديد علاج', icon: receiptTypeIconFor.renew },
-      class_new: { label: 'اشتراك جروب كلاس', icon: receiptTypeIconFor.class },
-      class_renew: { label: 'تجديد جروب كلاس', icon: receiptTypeIconFor.renew }
+      membership: { label: tr('اشتراك عضوية', 'Membership'), icon: receiptTypeIconFor.membership },
+      membership_renewal: { label: tr('تجديد اشتراك', 'Membership Renewal'), icon: receiptTypeIconFor.renew },
+      pt_new: { label: tr('اشتراك PT جديد', 'New PT'), icon: receiptTypeIconFor.pt },
+      pt_renew: { label: tr('تجديد PT', 'PT Renewal'), icon: receiptTypeIconFor.renew },
+      nutrition_new: { label: tr('اشتراك تغذية جديد', 'New Nutrition'), icon: receiptTypeIconFor.nutrition },
+      nutrition_renew: { label: tr('تجديد تغذية', 'Nutrition Renewal'), icon: receiptTypeIconFor.renew },
+      physio_new: { label: tr('اشتراك علاج طبيعي', 'Physiotherapy'), icon: receiptTypeIconFor.physio },
+      physio_renew: { label: tr('تجديد علاج', 'Physio Renewal'), icon: receiptTypeIconFor.renew },
+      class_new: { label: tr('اشتراك جروب كلاس', 'Group Class'), icon: receiptTypeIconFor.class },
+      class_renew: { label: tr('تجديد جروب كلاس', 'Group Class Renewal'), icon: receiptTypeIconFor.renew }
     }
     return typeMap[type] || { label: type, icon: receiptTypeIconFor.membership }
   }
 
   const getPaymentMethodLabelLocal = (method: string): { label: string; icon: JSX.Element } => {
-    if (method === 'cash') return { label: 'كاش', icon: cashIcon }
-    if (method === 'visa') return { label: 'فيزا', icon: visaIcon }
-    if (method === 'instapay') return { label: 'إنستاباي', icon: phoneIcon }
+    if (method === 'cash') return { label: tr('كاش', 'Cash'), icon: cashIcon }
+    if (method === 'visa') return { label: tr('فيزا', 'Visa'), icon: visaIcon }
+    if (method === 'instapay') return { label: tr('إنستاباي', 'InstaPay'), icon: phoneIcon }
     return { label: method, icon: cashIcon }
   }
 
   const handleSendWhatsApp = async () => {
     if (!phone) {
-      toast.error('رقم الهاتف غير متوفر')
+      toast.error(tr('رقم الهاتف غير متوفر', 'Phone number not available'))
       return
     }
 
@@ -152,9 +152,9 @@ export default function ReceiptSuccessModal({
         const result = await electron.whatsapp.sendReceipt(receipt.id)
 
         if (result.success) {
-          toast.success('تم إرسال الإيصال عبر WhatsApp')
+          toast.success(tr('تم إرسال الإيصال عبر WhatsApp', 'Receipt sent via WhatsApp'))
         } else {
-          toast.error(result.error || 'فشل إرسال الإيصال')
+          toast.error(result.error || tr('فشل إرسال الإيصال', 'Failed to send receipt'))
         }
       } else {
         const response = await fetch('/api/whatsapp/send-receipt', {
@@ -166,14 +166,14 @@ export default function ReceiptSuccessModal({
         const data = await response.json()
 
         if (data.success) {
-          toast.success('تم إرسال الإيصال عبر WhatsApp')
+          toast.success(tr('تم إرسال الإيصال عبر WhatsApp', 'Receipt sent via WhatsApp'))
         } else {
-          toast.error(data.error || 'فشل إرسال الإيصال')
+          toast.error(data.error || tr('فشل إرسال الإيصال', 'Failed to send receipt'))
         }
       }
     } catch (error) {
       console.error('Error sending WhatsApp:', error)
-      toast.error('حدث خطأ أثناء الإرسال')
+      toast.error(tr('حدث خطأ أثناء الإرسال', 'Error while sending'))
     } finally {
       setSending(false)
     }
@@ -209,15 +209,15 @@ export default function ReceiptSuccessModal({
       aria-labelledby="receipt-success-title"
     >
       <div
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden ring-1 ring-emerald-200 dark:ring-emerald-900/50 animate-modal-in"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto ring-1 ring-emerald-200 dark:ring-emerald-900/50 animate-modal-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-emerald-600 dark:bg-emerald-700 p-6 text-white text-center relative">
           <button
             type="button"
             onClick={onClose}
-            aria-label="إغلاق"
-            className="absolute top-4 end-4 text-white hover:bg-white/20 rounded-lg w-8 h-8 flex items-center justify-center transition-colors duration-200"
+            aria-label={tr('إغلاق', 'Close')}
+            className="absolute top-4 end-4 text-white hover:bg-white/20 rounded-lg w-10 h-10 flex items-center justify-center transition-colors duration-200"
           >
             <svg className="w-5 h-5" {...stroke}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -229,8 +229,8 @@ export default function ReceiptSuccessModal({
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h2 id="receipt-success-title" className="text-2xl font-bold mb-1">تمت العملية بنجاح!</h2>
-          <p className="text-emerald-100 text-sm">تم إنشاء الإيصال وحفظه في النظام</p>
+          <h2 id="receipt-success-title" className="text-2xl font-bold mb-1">{tr('تمت العملية بنجاح!', 'Success!')}</h2>
+          <p className="text-emerald-100 text-sm">{tr('تم إنشاء الإيصال وحفظه في النظام', 'The receipt was created and saved')}</p>
         </div>
 
         <div className="p-6 space-y-4">
@@ -239,17 +239,17 @@ export default function ReceiptSuccessModal({
               <svg className="w-5 h-5 text-primary-600 dark:text-primary-400" {...stroke}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
               </svg>
-              <span>تفاصيل الإيصال</span>
+              <span>{tr('تفاصيل الإيصال', 'Receipt Details')}</span>
             </h3>
 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">رقم الإيصال:</span>
+                <span className="text-gray-600 dark:text-gray-400">{tr('رقم الإيصال:', 'Receipt #:')}</span>
                 <span className="font-bold font-mono text-gray-900 dark:text-gray-100">{receipt.receiptNumber}</span>
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">نوع الخدمة:</span>
+                <span className="text-gray-600 dark:text-gray-400">{tr('نوع الخدمة:', 'Service:')}</span>
                 <span className="font-bold text-gray-900 dark:text-gray-100 inline-flex items-center gap-1.5">
                   {typeInfo.icon}
                   <span>{typeInfo.label}</span>
@@ -258,27 +258,27 @@ export default function ReceiptSuccessModal({
 
               {memberName && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">اسم العميل:</span>
+                  <span className="text-gray-600 dark:text-gray-400">{tr('اسم العميل:', 'Client:')}</span>
                   <span className="font-bold text-gray-900 dark:text-gray-100">{memberName}</span>
                 </div>
               )}
 
               {phone && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">رقم الهاتف:</span>
+                  <span className="text-gray-600 dark:text-gray-400">{tr('رقم الهاتف:', 'Phone:')}</span>
                   <span className="font-mono text-gray-900 dark:text-gray-100">{phone}</span>
                 </div>
               )}
 
               <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
-                <span className="text-gray-600 dark:text-gray-400">المبلغ المدفوع:</span>
+                <span className="text-gray-600 dark:text-gray-400">{tr('المبلغ المدفوع:', 'Amount Paid:')}</span>
                 <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
-                  {receipt.amount.toFixed(0)} جنيه
+                  {receipt.amount.toFixed(0)} {tr('جنيه', 'EGP')}
                 </span>
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">طريقة الدفع:</span>
+                <span className="text-gray-600 dark:text-gray-400">{tr('طريقة الدفع:', 'Payment:')}</span>
                 <span className="font-bold text-gray-900 dark:text-gray-100 inline-flex items-center gap-1.5">
                   {paymentInfo.icon}
                   <span>{paymentInfo.label}</span>
@@ -300,14 +300,14 @@ export default function ReceiptSuccessModal({
                     <svg className="w-5 h-5 animate-spin" {...stroke}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06" />
                     </svg>
-                    <span>جاري الإرسال...</span>
+                    <span>{tr('جاري الإرسال...', 'Sending...')}</span>
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5" {...stroke}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
                     </svg>
-                    <span>إرسال عبر WhatsApp</span>
+                    <span>{tr('إرسال عبر WhatsApp', 'Send via WhatsApp')}</span>
                   </>
                 )}
               </button>
@@ -322,7 +322,7 @@ export default function ReceiptSuccessModal({
               <svg className="w-5 h-5" {...stroke}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" />
               </svg>
-              <span>طباعة الإيصال</span>
+              <span>{tr('طباعة الإيصال', 'Print Receipt')}</span>
             </button>
 
             <button
@@ -330,7 +330,7 @@ export default function ReceiptSuccessModal({
               onClick={onClose}
               className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 font-bold py-2.5 px-5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
             >
-              إغلاق
+              {tr('إغلاق', 'Close')}
             </button>
           </div>
         </div>

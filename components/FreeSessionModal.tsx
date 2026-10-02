@@ -49,7 +49,7 @@ export default function FreeSessionModal({
   onClose,
   onSuccess
 }: FreeSessionModalProps) {
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
   const toast = useToast()
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
@@ -72,14 +72,14 @@ export default function FreeSessionModal({
 
   const serviceNames = {
     PT: 'PT',
-    Nutrition: 'تغذية',
-    Physiotherapy: 'علاج طبيعي',
-    GroupClass: 'جروب كلاسيس'
+    Nutrition: tr('تغذية', 'Nutrition'),
+    Physiotherapy: tr('علاج طبيعي', 'Physiotherapy'),
+    GroupClass: tr('جروب كلاسيس', 'Group Class')
   }
 
   const handleSubmit = async () => {
     if (!selectedStaffId) {
-      toast.warning('يرجى اختيار الموظف')
+      toast.warning(tr('يرجى اختيار الموظف', 'Please select a staff member'))
       return
     }
 
@@ -103,11 +103,11 @@ export default function FreeSessionModal({
         onSuccess()
         onClose()
       } else {
-        toast.error(data.error || 'فشل تسجيل الجلسة')
+        toast.error(data.error || tr('فشل تسجيل الجلسة', 'Failed to record session'))
       }
     } catch (error) {
       console.error('Error:', error)
-      toast.error('حدث خطأ أثناء التسجيل')
+      toast.error(tr('حدث خطأ أثناء التسجيل', 'An error occurred while recording'))
     } finally {
       setLoading(false)
     }
@@ -126,7 +126,7 @@ export default function FreeSessionModal({
         dir={direction}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 flex items-center justify-center flex-shrink-0">
@@ -134,10 +134,10 @@ export default function FreeSessionModal({
               </div>
               <div>
                 <h2 id="free-session-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  تسجيل جلسة {serviceNames[serviceType]} مجانية
+                  {tr(`تسجيل جلسة ${serviceNames[serviceType]} مجانية`, `Record free ${serviceNames[serviceType]} session`)}
                 </h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  العضو: {memberName}
+                  {tr('العضو:', 'Member:')} {memberName}
                 </p>
               </div>
             </div>
@@ -145,7 +145,7 @@ export default function FreeSessionModal({
               type="button"
               onClick={onClose}
               disabled={loading}
-              aria-label="إغلاق"
+              aria-label={tr('إغلاق', 'Close')}
               className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50"
             >
               <svg className="w-5 h-5" {...stroke}>
@@ -155,18 +155,18 @@ export default function FreeSessionModal({
           </div>
           <div className="mt-3 bg-primary-50 dark:bg-primary-900/30 ring-1 ring-primary-200 dark:ring-primary-800 p-3 rounded-lg">
             <p className="text-sm font-bold text-primary-800 dark:text-primary-300">
-              الجلسات المتبقية: {remainingSessions}
+              {tr('الجلسات المتبقية:', 'Remaining sessions:')} {remainingSessions}
             </p>
           </div>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-4">
           <div>
             <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
               <svg className="w-4 h-4" {...stroke}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
               </svg>
-              <span>اختر الموظف الذي سيقدم الخدمة *</span>
+              <span>{tr('اختر الموظف الذي سيقدم الخدمة *', 'Select the staff member providing the service *')}</span>
             </label>
             <StaffSelector
               serviceType={serviceType}
@@ -181,19 +181,19 @@ export default function FreeSessionModal({
               <svg className="w-4 h-4" {...stroke}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
               </svg>
-              <span>ملاحظات (اختياري)</span>
+              <span>{tr('ملاحظات (اختياري)', 'Notes (optional)')}</span>
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
               rows={3}
-              placeholder="ملاحظات عن الجلسة..."
+              placeholder={tr('ملاحظات عن الجلسة...', 'Session notes...')}
             />
           </div>
         </div>
 
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 flex-row-reverse">
+        <div className="p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 flex-row-reverse">
           <button
             type="button"
             onClick={handleSubmit}
@@ -206,14 +206,14 @@ export default function FreeSessionModal({
                 <svg className="w-4 h-4 animate-spin" {...stroke}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06" />
                 </svg>
-                <span>جاري التسجيل...</span>
+                <span>{tr('جاري التسجيل...', 'Recording...')}</span>
               </>
             ) : (
               <>
                 <svg className="w-4 h-4" {...stroke}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>تسجيل الجلسة</span>
+                <span>{tr('تسجيل الجلسة', 'Record session')}</span>
               </>
             )}
           </button>
@@ -223,7 +223,7 @@ export default function FreeSessionModal({
             disabled={loading}
             className="px-5 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 font-bold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
           >
-            إلغاء
+            {tr('إلغاء', 'Cancel')}
           </button>
         </div>
       </div>
