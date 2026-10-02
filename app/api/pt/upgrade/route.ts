@@ -139,6 +139,7 @@ export async function POST(request: Request) {
             isFrozen: false,
             freezeUntil: null,
             remainingAmount: 0,
+            unpaidSessionsLockAt: null, //  🔒 مفيش باقي → مفيش قفل
           } as any
         })
 

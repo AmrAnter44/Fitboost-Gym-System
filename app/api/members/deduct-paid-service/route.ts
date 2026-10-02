@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { verifyAuth } from '../../../../lib/auth'
+import { isPaymentLocked, paymentLockMessage } from '../../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -154,8 +155,15 @@ async function deductFromPTSubscription(phone: string) {
     }
   }
 
-  // الخصم من أقدم اشتراك
-  const targetPT = activePTs[0]
+  //  🔒 حد الحصص لحد دفع الباقي — الخصم من أقدم اشتراك مش مقفول (FIFO)،
+  //  ولو كل الاشتراكات مقفولة نرجّع رسالة القفل
+  const targetPT = activePTs.find((s) => !isPaymentLocked(s))
+  if (!targetPT) {
+    return {
+      success: false,
+      error: paymentLockMessage(activePTs[0])
+    }
+  }
 
   const updated = await prisma.pT.update({
     where: { ptNumber: targetPT.ptNumber },
@@ -201,7 +209,14 @@ async function deductFromNutritionSubscription(phone: string) {
     }
   }
 
-  const target = activeNutrition[0]
+  //  🔒 حد الحصص لحد دفع الباقي — أقدم اشتراك مش مقفول، ولو كلهم مقفولين نرجّع رسالة القفل
+  const target = activeNutrition.find((s) => !isPaymentLocked(s))
+  if (!target) {
+    return {
+      success: false,
+      error: paymentLockMessage(activeNutrition[0])
+    }
+  }
 
   const updated = await prisma.nutrition.update({
     where: { nutritionNumber: target.nutritionNumber },
@@ -247,7 +262,14 @@ async function deductFromPhysioSubscription(phone: string) {
     }
   }
 
-  const target = activePhysio[0]
+  //  🔒 حد الحصص لحد دفع الباقي — أقدم اشتراك مش مقفول، ولو كلهم مقفولين نرجّع رسالة القفل
+  const target = activePhysio.find((s) => !isPaymentLocked(s))
+  if (!target) {
+    return {
+      success: false,
+      error: paymentLockMessage(activePhysio[0])
+    }
+  }
 
   const updated = await prisma.physiotherapy.update({
     where: { physioNumber: target.physioNumber },

@@ -11,6 +11,7 @@ import RenewalForm from '../../../components/RenewalForm'
 import UpgradeForm from '../../../components/UpgradeForm'
 import TransferMembershipForm from '../../../components/TransferMembershipForm'
 import QuickMemberFollowUpModal from '../../../components/QuickMemberFollowUpModal'
+import { sessionsLeftBeforePayment, isPaymentLocked } from '../../../lib/sessionPaymentLimit'
 import ImageUpload from '../../../components/ImageUpload'
 import { LoadingScreen } from '../../../components/Spinner'
 import { formatDateYMD, calculateRemainingDays, calculateDaysBetween } from '../../../lib/dateFormatter'
@@ -253,7 +254,8 @@ export default function MemberDetailPage() {
  const [ptSubscription, setPtSubscription] = useState<any>(null)
  //  🥋 مودال تعديل تفاصيل الـ PT (الكوتش + الحصص + السعر + الانتهاء)
  const [showPTEdit, setShowPTEdit] = useState(false)
- const [ptEditForm, setPtEditForm] = useState({ coachName: '', sessionsPurchased: 0, sessionsRemaining: 0, remainingAmount: 0, expiryDate: '' })
+ const [ptEditForm, setPtEditForm] = useState({ coachName: '', sessionsPurchased: 0, sessionsRemaining: 0, remainingAmount: 0, expiryDate: '', sessionsLimitUntilPaid: '' })
+ const [ptLimitTouched, setPtLimitTouched] = useState(false) //  🔒 الموظف غيّر خانة حد الحصص؟
  const [ptEditSaving, setPtEditSaving] = useState(false)
  const [ptCoaches, setPtCoaches] = useState<any[]>([]) //  قايمة كباتن الـ PT (كل الكباتن — زي صفحة الـ PT)
  const openPTEdit = () => {
@@ -266,7 +268,10 @@ export default function MemberDetailPage() {
      sessionsRemaining: ptSubscription.sessionsRemaining || 0,
      remainingAmount: ptSubscription.remainingAmount || 0,
      expiryDate: ptSubscription.expiryDate ? formatDateYMD(ptSubscription.expiryDate) : '',
+     //  اشتراك مقفول (0) بيتعرض فاضي — "0" معناها "من غير حد" وكانت هتفك القفل
+     sessionsLimitUntilPaid: sessionsLeftBeforePayment(ptSubscription) ? String(sessionsLeftBeforePayment(ptSubscription)) : '',
    })
+   setPtLimitTouched(false)
    setShowPTEdit(true)
  }
  const savePTEdit = async () => {
@@ -282,6 +287,10 @@ export default function MemberDetailPage() {
          sessionsRemaining: ptEditForm.sessionsRemaining,
          remainingAmount: ptEditForm.remainingAmount,
          expiryDate: ptEditForm.expiryDate || undefined,
+         //  🔒 حد الحصص بيتبعت بس لو الموظف غيّره (أو الباقي بقى صفر → يتمسح)
+         ...(ptLimitTouched || !(ptEditForm.remainingAmount > 0)
+           ? { sessionsLimitUntilPaid: ptEditForm.remainingAmount > 0 ? ptEditForm.sessionsLimitUntilPaid : '' }
+           : {}),
        }),
      })
      if (!res.ok) { const e = await res.json().catch(() => ({})); toast.error(e.error || 'فشل تعديل الـ PT'); return }
@@ -410,6 +419,7 @@ export default function MemberDetailPage() {
  startDate: '',
  expiryDate: '',
  gender: '' as string,
+ source: '' as string, //  📣 مصدر العضو (تعديله للمالك/الأدمن بس)
  birthDate: '' as string,
  allowedCheckInStart: '' as string,
  allowedCheckInEnd: '' as string,
@@ -1612,6 +1622,7 @@ export default function MemberDetailPage() {
  salesStaffId: editBasicInfoData.salesStaffId || null,
  notes: editBasicInfoData.notes.trim() || null,
  gender: editBasicInfoData.gender || null,
+ ...(currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN' ? { source: editBasicInfoData.source || null } : {}),
  birthDate: editBasicInfoData.birthDate || null,
  startDate: editBasicInfoData.startDate || null,
  expiryDate: editBasicInfoData.expiryDate || null,
@@ -1659,6 +1670,7 @@ export default function MemberDetailPage() {
  expiryDate: '',
  salesStaffId: null,
  gender: '',
+ source: '',
  birthDate: '',
  allowedCheckInStart: '',
  allowedCheckInEnd: '',
@@ -2356,6 +2368,7 @@ export default function MemberDetailPage() {
  idCardFront: member.idCardFront || null,
  idCardBack: member.idCardBack || null,
  gender: (member as any).gender || '',
+ source: member.source || '',
  birthDate: (member as any).birthDate ? formatDateYMD((member as any).birthDate) : '',
  allowedCheckInStart: (member as any).allowedCheckInStart || '',
  allowedCheckInEnd: (member as any).allowedCheckInEnd || '',
@@ -2442,21 +2455,19 @@ export default function MemberDetailPage() {
  <p className="text-xs opacity-80 mb-1">{t('memberDetails.memberSource')}</p>
  <p className="text-base font-semibold">
  {(() => {
- const sourcesAr: { [key: string]: string } = {
- 'facebook': 'فيسبوك',
- 'instagram': 'انستجرام',
- 'tiktok': 'تيك توك',
- 'google_maps': 'خرائط جوجل',
- 'friend_referral': 'إحالة من صديق'
+ //  نفس أسماء فورم الإضافة — عشان كل المصادر تظهر باسمها مش بالكود (walk-in ...)
+ const sources: { [key: string]: string } = {
+ 'walk-in': t('members.form.sourceWalkIn'),
+ 'call-in': t('members.form.sourceCallIn'),
+ 'suggestion': t('members.form.sourceSuggestion'),
+ 'facebook': t('members.form.sourceFacebook'),
+ 'instagram': t('members.form.sourceInstagram'),
+ 'tiktok': t('members.form.sourceTiktok'),
+ 'chatgpt': t('members.form.sourceChatGPT'),
+ 'google_maps': locale === 'ar' ? 'خرائط جوجل' : 'Google Maps',
+ 'website': t('members.form.sourceWebsite'),
+ 'friend_referral': t('members.form.sourceFriendReferral'),
  }
- const sourcesEn: { [key: string]: string } = {
- 'facebook': 'Facebook',
- 'instagram': 'Instagram',
- 'tiktok': 'TikTok',
- 'google_maps': 'Google Maps',
- 'friend_referral': 'Friend Referral'
- }
- const sources = locale === 'ar' ? sourcesAr : sourcesEn
  return sources[member.source!] || member.source
  })()}
  </p>
@@ -3225,6 +3236,15 @@ export default function MemberDetailPage() {
  </div>
  )}
 
+ {/* 🔒 حد الحصص لحد دفع الباقي */}
+ {sessionsLeftBeforePayment(ptSubscription) !== null && (
+ <div className={`mt-4 rounded-lg p-3 text-center text-sm font-bold ${isPaymentLocked(ptSubscription) ? 'bg-red-600/80 text-white' : 'bg-amber-400/90 text-gray-900'}`}>
+ {isPaymentLocked(ptSubscription)
+ ? (locale === 'ar' ? 'مقفول — لازم يدفع الباقي عشان يكمل الحصص' : 'Locked — remaining must be paid to continue')
+ : (locale === 'ar' ? `باقي ${sessionsLeftBeforePayment(ptSubscription)} حصة قبل دفع الباقي` : `${sessionsLeftBeforePayment(ptSubscription)} sessions left before payment`)}
+ </div>
+ )}
+
  {/* 💰 دفع باقي الـ PT — بيظهر بس لو عليه باقي */}
  {(ptSubscription.remainingAmount || 0) > 0 && currentUser?.role !== 'COACH' && (
  <button
@@ -3793,6 +3813,36 @@ export default function MemberDetailPage() {
  />
  </div>
  </div>
+
+ {/* 📣 مصدر العضو — للمالك/الأدمن بس */}
+ {(currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN') && (
+ <div>
+ <label className="block text-xs font-medium mb-1">
+ {t('memberDetails.memberSource')}
+ </label>
+ <select
+ value={editBasicInfoData.source}
+ onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, source: e.target.value })}
+ className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ >
+ <option value="">{direction === 'rtl' ? '— غير محدد —' : '— Not set —'}</option>
+ <option value="walk-in">{t('members.form.sourceWalkIn')}</option>
+ <option value="call-in">{t('members.form.sourceCallIn')}</option>
+ <option value="suggestion">{t('members.form.sourceSuggestion')}</option>
+ <option value="facebook">{t('members.form.sourceFacebook')}</option>
+ <option value="instagram">{t('members.form.sourceInstagram')}</option>
+ <option value="tiktok">{t('members.form.sourceTiktok')}</option>
+ <option value="chatgpt">{t('members.form.sourceChatGPT')}</option>
+ <option value="google_maps">{direction === 'rtl' ? 'جوجل ماب / Google Maps' : 'Google Maps'}</option>
+ <option value="website">{t('members.form.sourceWebsite')}</option>
+ <option value="friend_referral">{t('members.form.sourceFriendReferral')}</option>
+ {/* قيمة قديمة مش في القائمة — نحافظ عليها */}
+ {editBasicInfoData.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','chatgpt','google_maps','website','friend_referral'].includes(editBasicInfoData.source) && (
+ <option value={editBasicInfoData.source}>{editBasicInfoData.source}</option>
+ )}
+ </select>
+ </div>
+ )}
 
  {/* 🚻 الجنس — للجيم المكس فقط */}
  {settings.mixedGymEnabled && (
@@ -6773,6 +6823,17 @@ export default function MemberDetailPage() {
  <input type="date" value={ptEditForm.expiryDate} onChange={(e) => setPtEditForm({ ...ptEditForm, expiryDate: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" />
  </div>
  </div>
+ {/* 🔒 حد الحصص لحد دفع الباقي — بيظهر بس لو فيه باقي */}
+ {ptEditForm.remainingAmount > 0 && (
+ <div>
+ <label className="block text-sm font-bold mb-1.5 dark:text-gray-200">{locale === 'ar' ? 'حد الحصص لحد دفع الباقي' : 'Sessions allowed before paying remaining'}</label>
+ <input type="number" min="1" max={ptEditForm.sessionsRemaining || undefined} step="1" value={ptEditForm.sessionsLimitUntilPaid} placeholder={locale === 'ar' ? 'من غير حد' : 'No limit'} onChange={(e) => { setPtLimitTouched(true); setPtEditForm({ ...ptEditForm, sessionsLimitUntilPaid: e.target.value }) }} className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/40 dark:text-white text-sm" />
+ <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{locale === 'ar' ? 'بعد الحصص دي لازم العميل يدفع الباقي عشان يكمل — سيبها فاضية = من غير حد' : 'After these sessions the client must pay the remaining to continue — leave empty for no limit'}</p>
+ {isPaymentLocked(ptSubscription) && !ptLimitTouched && (
+ <p className="text-xs font-bold text-red-600 dark:text-red-400 mt-1">{locale === 'ar' ? 'الاشتراك مقفول دلوقتي لحد دفع الباقي — اكتب رقم جديد لو عايز تسمح بحصص زيادة' : 'Currently locked until the remaining is paid — type a new number to allow more sessions'}</p>
+ )}
+ </div>
+ )}
  <button onClick={savePTEdit} disabled={ptEditSaving} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2.5 rounded-lg disabled:opacity-50 transition-colors">
  {ptEditSaving ? (locale === 'ar' ? 'جارٍ الحفظ…' : 'Saving…') : (locale === 'ar' ? 'حفظ' : 'Save')}
  </button>

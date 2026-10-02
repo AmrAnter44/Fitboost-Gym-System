@@ -129,6 +129,7 @@ model PT {
   qrCode            String?     @unique
   qrCodeImage       String?
   remainingAmount   Int?
+  unpaidSessionsLockAt Int?  // 🔒 حد الحصص لحد دفع الباقي: لو عليه باقي والحصص الباقية وصلت للرقم ده (أو أقل) → تسجيل الحصص يتقفل
   //  🔁 تجديد مؤجّل: باقة جديدة متدفوعة بس معلّقة لحد ما الحصص الحالية تخلص، وقتها تتفعّل تلقائي.
   //  JSON فيه { sessions, pricePerSession, startDate, expiryDate, coachName, subscriptionDays }
   pendingRenewalData String?
@@ -978,6 +979,7 @@ model Nutrition {
   qrCode            String?     @unique
   qrCodeImage       String?
   remainingAmount   Int?
+  unpaidSessionsLockAt Int?  // 🔒 حد الحصص لحد دفع الباقي: لو عليه باقي والحصص الباقية وصلت للرقم ده (أو أقل) → تسجيل الحصص يتقفل
   sessions          NutritionSession[]
   receipts          Receipt[]
 
@@ -1031,6 +1033,7 @@ model Physiotherapy {
   qrCode            String?     @unique
   qrCodeImage       String?
   remainingAmount   Int?
+  unpaidSessionsLockAt Int?  // 🔒 حد الحصص لحد دفع الباقي: لو عليه باقي والحصص الباقية وصلت للرقم ده (أو أقل) → تسجيل الحصص يتقفل
   sessions          PhysiotherapySession[]
   receipts          Receipt[]
 
@@ -1135,6 +1138,7 @@ model More {
   startDate         DateTime    @default(now())
   expiryDate        DateTime
   remainingAmount   Float       @default(0)
+  unpaidSessionsLockAt Int?  // 🔒 حد الحصص لحد دفع الباقي: لو عليه باقي والحصص الباقية وصلت للرقم ده (أو أقل) → تسجيل الحصص يتقفل
   notes             String?
   isActive          Boolean     @default(true)
   createdAt         DateTime    @default(now())

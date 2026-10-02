@@ -13,6 +13,7 @@ import { round2 } from '../../../../lib/money'
 import { PtRenewInputSchema, firstIssue } from '../../../../lib/schemas/financialSchemas'
 import { logError } from '../../../../lib/errorLogger'
 import { stashPendingRenewal } from '../../../../lib/ptPendingRenewal'
+import { computeUnpaidLockAt } from '../../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,8 +46,11 @@ export async function POST(request: Request) {
       startDate,
       expiryDate,
       paymentMethod,
-      staffName
+      staffName,
+      sessionsLimitUntilPaid //  🔒 حد الحصص لحد دفع الباقي (اختياري — بيتقري من الـ body الخام)
     } = body
+    const parsedSessionsLimit = Math.floor(Number(sessionsLimitUntilPaid))
+    const sessionsLimit = Number.isFinite(parsedSessionsLimit) && parsedSessionsLimit > 0 ? parsedSessionsLimit : null
     //  المبلغ المتبقي في التجديد الجديد — لازم يكون رقم بين 0 و totalPrice
     //  ⚠️ Math.round مهم: عمود remainingAmount في الـ schema نوعه Int،
     //     ولو اتكتب فيه كسر عشري Prisma بترفض والترانزاكشن كلها بترجع (التجديد مايتسجلش)
@@ -130,6 +134,7 @@ export async function POST(request: Request) {
             coachName: coachName || existingPT.coachName,
             subscriptionDays,
             remainingAmount: parsedRemaining, //  باقي الباقة الجديدة — يتطبّق وقت التفعيل
+            sessionsLimitUntilPaid: sessionsLimit, //  🔒 حد الحصص — يتطبّق وقت التفعيل
             createdAt: new Date().toISOString(),
           })
         } else {
@@ -145,6 +150,12 @@ export async function POST(request: Request) {
               startDate: startDate ? new Date(startDate) : existingPT.startDate,
               expiryDate: expiryDate ? new Date(expiryDate) : existingPT.expiryDate,
               remainingAmount: Math.round(parsedRemaining + oldRemainingAmount),
+              //  🔒 حد الحصص لحد دفع الباقي
+              unpaidSessionsLockAt: computeUnpaidLockAt(
+                newPackageSessions,
+                sessionsLimit,
+                Math.round(parsedRemaining + oldRemainingAmount)
+              ),
             },
           })
         }

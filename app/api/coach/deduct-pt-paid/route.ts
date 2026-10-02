@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { activatePendingPTIfNeeded } from '../../../../lib/ptPendingRenewal'
 import { verifyAuth } from '../../../../lib/auth'
+import { isPaymentLocked, paymentLockMessage } from '../../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,23 +57,36 @@ export async function POST(request: Request) {
     }
 
     // لو اتبعت ptNumber محدد نستخدمه (بعد التأكد إنه بتاع نفس العضو)، وإلا أحدث باقة فيها رصيد
+    const ptSelect = {
+      ptNumber: true, clientName: true, coachName: true, phone: true,
+      sessionsRemaining: true, remainingAmount: true, unpaidSessionsLockAt: true,
+    } as const
     let pt: { ptNumber: number; clientName: string; coachName: string; phone: string | null } | null = null
+    //  🔒 باقة مقفولة (حد الحصص لحد دفع الباقي) — لو مفيش غيرها نرجّع رسالة القفل
+    let lockedPT: { sessionsRemaining: number; remainingAmount: number; unpaidSessionsLockAt: number | null } | null = null
     if (ptNumber !== undefined && ptNumber !== null) {
       const found = await prisma.pT.findUnique({
         where: { ptNumber: parseInt(String(ptNumber), 10) },
-        select: { ptNumber: true, clientName: true, coachName: true, phone: true, sessionsRemaining: true },
+        select: ptSelect,
       })
       // لازم يكون بتاع نفس العضو (نفس آخر 10 أرقام) وفيه رصيد
       if (found && phoneTailOf(found.phone) === tail && (found.sessionsRemaining || 0) > 0) {
-        pt = found
+        if (isPaymentLocked(found)) lockedPT = found
+        else pt = found
       }
     }
     if (!pt) {
-      pt = await prisma.pT.findFirst({
+      const candidates = await prisma.pT.findMany({
         where: { phone: { contains: tail }, sessionsRemaining: { gt: 0 } },
         orderBy: { ptNumber: 'desc' },
-        select: { ptNumber: true, clientName: true, coachName: true, phone: true },
+        select: ptSelect,
       })
+      //  نفضّل أحدث باقة مش مقفولة
+      pt = candidates.find((c) => !isPaymentLocked(c)) || null
+      if (!pt && !lockedPT && candidates.length > 0) lockedPT = candidates[0]
+    }
+    if (!pt && lockedPT) {
+      return NextResponse.json({ error: paymentLockMessage(lockedPT) }, { status: 400 })
     }
     if (!pt) {
       return NextResponse.json({ error: 'لا توجد حصص PT مدفوعة متبقية' }, { status: 400 })
@@ -80,6 +94,17 @@ export async function POST(request: Request) {
 
     // 5. خصم ذرّي محمي + إنشاء PTSession
     const result = await prisma.$transaction(async (tx) => {
+      //  🔒 إعادة فحص القفل ببيانات طازة جوّه الترانزاكشن
+      const current = await tx.pT.findUnique({
+        where: { ptNumber: pt!.ptNumber },
+        select: { sessionsRemaining: true, remainingAmount: true, unpaidSessionsLockAt: true },
+      })
+      if (current && isPaymentLocked(current)) {
+        const e: any = new Error('PAYMENT_LOCKED')
+        e.lockMessage = paymentLockMessage(current)
+        throw e
+      }
+
       const dec = await tx.pT.updateMany({
         where: { ptNumber: pt!.ptNumber, sessionsRemaining: { gt: 0 } },
         data: { sessionsRemaining: { decrement: 1 } },
@@ -125,6 +150,9 @@ export async function POST(request: Request) {
   } catch (error: any) {
     if (error?.message === 'NO_SESSIONS') {
       return NextResponse.json({ error: 'لا توجد حصص PT مدفوعة متبقية' }, { status: 400 })
+    }
+    if (error?.message === 'PAYMENT_LOCKED') {
+      return NextResponse.json({ error: error.lockMessage }, { status: 400 })
     }
     console.error('Error deducting paid PT session (coach):', error)
     return NextResponse.json({ error: 'فشل تسجيل الحصة' }, { status: 500 })

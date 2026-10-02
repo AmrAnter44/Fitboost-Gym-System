@@ -2,6 +2,8 @@
 //  وأول ما الرصيد يوصل صفر تتفعّل الباقة المعلّقة تلقائيًا.
 //  بنستخدم raw SQL لعمود pendingRenewalData لأن الـ Prisma client ممكن يكون قديم عنه.
 
+import { computeUnpaidLockAt } from './sessionPaymentLimit'
+
 export interface PendingRenewal {
   sessions: number
   pricePerSession: number
@@ -10,6 +12,7 @@ export interface PendingRenewal {
   coachName?: string | null
   subscriptionDays?: number | null
   remainingAmount?: number | null //  باقي الباقة الجديدة — يتطبّق وقت التفعيل
+  sessionsLimitUntilPaid?: number | null //  🔒 حد الحصص لحد دفع الباقي — يتطبّق وقت التفعيل
   createdAt?: string
 }
 
@@ -73,6 +76,8 @@ export async function activatePendingPTIfNeeded(db: any, ptNumber: number, opts:
         sessionsRemaining: Number(p.sessions),
         pricePerSession: Number(p.pricePerSession) || 0,
         remainingAmount: newRemainingAmount,
+        //  🔒 حد الحصص لحد دفع الباقي (null لو مفيش حد)
+        unpaidSessionsLockAt: computeUnpaidLockAt(Number(p.sessions), p.sessionsLimitUntilPaid, newRemainingAmount),
         ...(p.coachName ? { coachName: p.coachName } : {}),
         ...(p.startDate ? { startDate: new Date(p.startDate) } : {}),
         ...(p.expiryDate ? { expiryDate: new Date(p.expiryDate) } : {}),

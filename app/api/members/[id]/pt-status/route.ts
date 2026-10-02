@@ -47,6 +47,7 @@ export async function GET(
         sessionsPurchased: true,
         sessionsRemaining: true,
         remainingAmount: true,
+        unpaidSessionsLockAt: true, //  🔒 حد الحصص لحد دفع الباقي
         startDate: true,
         expiryDate: true,
       },

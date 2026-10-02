@@ -25,6 +25,7 @@ import { LoadingScreen } from '../../components/Spinner'
 import { createWhatsAppUrl } from '@/lib/whatsappHelper'
 import type { MessageTemplate } from '../followups/MessageTemplateManager'
 import CoachConversionsPanel from '../../components/CoachConversionsPanel'
+import { sessionsLeftBeforePayment, isPaymentLocked } from '../../lib/sessionPaymentLimit'
 
 const SignaturePad = dynamic(() => import('../../components/SignaturePad'), { ssr: false })
 //  مودال اختيار قالب الواتساب — reuse من صفحة المتابعات
@@ -53,6 +54,8 @@ interface PTSession {
   pricePerSession: number
   ptCommissionAmount?: number
   remainingAmount?: number
+  //  🔒 حد الحصص لحد دفع الباقي — قيمة sessionsRemaining اللي عندها القفل يبدأ
+  unpaidSessionsLockAt?: number | null
   startDate: string | null
   expiryDate: string | null
   createdAt: string
@@ -193,6 +196,7 @@ function PTPageContent() {
     coachName: string
     totalPrice: number
     remainingAmount: number
+    sessionsLimitUntilPaid: string //  🔒 حد الحصص لحد دفع الباقي (فاضي = من غير حد)
     startDate: string
     expiryDate: string
     paymentMethod: string | PaymentMethod[]
@@ -207,6 +211,7 @@ function PTPageContent() {
     coachName: '',
     totalPrice: 0,
     remainingAmount: 0,
+    sessionsLimitUntilPaid: '',
     startDate: formatDateYMD(new Date()),
     expiryDate: '',
     paymentMethod: 'cash',
@@ -368,6 +373,7 @@ function PTPageContent() {
       coachName: '',
       totalPrice: 0,
       remainingAmount: 0,
+      sessionsLimitUntilPaid: '',
       startDate: formatDateYMD(new Date()),
       expiryDate: '',
       paymentMethod: 'cash',
@@ -393,6 +399,7 @@ function PTPageContent() {
     }))
   }
 
+  const [limitTouched, setLimitTouched] = useState(false) //  🔒 الموظف غيّر خانة حد الحصص في فورم التعديل؟
   const handleEdit = (session: PTSession) => {
     const totalPrice = session.sessionsPurchased * session.pricePerSession
     setFormData({
@@ -404,12 +411,15 @@ function PTPageContent() {
       coachName: session.coachName,
       totalPrice: totalPrice,
       remainingAmount: session.remainingAmount || 0,
+      //  اشتراك مقفول (0) بيتعرض فاضي — عشان "0" معناها "من غير حد" وكانت هتفك القفل
+      sessionsLimitUntilPaid: sessionsLeftBeforePayment(session) ? String(sessionsLeftBeforePayment(session)) : '',
       startDate: session.startDate ? formatDateYMD(session.startDate) : '',
       expiryDate: session.expiryDate ? formatDateYMD(session.expiryDate) : '',
       paymentMethod: 'cash',
       staffName: user?.name || '',
       ptCommissionAmount: session.ptCommissionAmount || 0,
     })
+    setLimitTouched(false)
     setEditingSession(session)
     setShowForm(true)
     // تحديد إذا كان Day Use
@@ -423,8 +433,18 @@ function PTPageContent() {
     try {
       const url = '/api/pt'
       const method = editingSession ? 'PUT' : 'POST'
+      //  🔒 في التعديل: حد الحصص بيتبعت بس لو الموظف غيّره (أو الباقي بقى صفر → يتمسح) —
+      //     عشان تعديل أي حاجة تانية (تليفون مثلاً) ما يغيّرش القفل ولا يفكّه
+      const { sessionsLimitUntilPaid: limitValue, ...formRest } = formData
       const body = editingSession
-        ? { ptNumber: editingSession.ptNumber, ...formData, staffName: user?.name || '' }
+        ? {
+            ptNumber: editingSession.ptNumber,
+            ...formRest,
+            ...(limitTouched || !(formData.remainingAmount > 0)
+              ? { sessionsLimitUntilPaid: formData.remainingAmount > 0 ? limitValue : '' }
+              : {}),
+            staffName: user?.name || '',
+          }
         : { ...formData, staffName: user?.name || '' }
 
       const response = await fetch(url, {
@@ -1296,6 +1316,37 @@ function PTPageContent() {
                 </div>
               )}
 
+              {/*  🔒 حد الحصص لحد دفع الباقي — بيظهر بس لو فيه باقي */}
+              {!isDayUse && formData.remainingAmount > 0 && (
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    {locale === 'ar' ? 'حد الحصص لحد دفع الباقي' : 'Sessions allowed before paying remaining'}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={(editingSession ? formData.sessionsRemaining : formData.sessionsPurchased) || undefined}
+                    step="1"
+                    value={formData.sessionsLimitUntilPaid}
+                    onChange={(e) => { setLimitTouched(true); setFormData({ ...formData, sessionsLimitUntilPaid: e.target.value }) }}
+                    className="w-full px-3 py-2 border rounded-lg bg-orange-50 dark:bg-orange-900/50 border-orange-300 dark:border-orange-600 dark:text-white"
+                    placeholder={locale === 'ar' ? 'من غير حد' : 'No limit'}
+                  />
+                  {editingSession && isPaymentLocked(editingSession) && !limitTouched && (
+                    <p className="text-xs font-bold text-red-600 dark:text-red-400 mt-1">
+                      {locale === 'ar'
+                        ? 'الاشتراك مقفول دلوقتي لحد دفع الباقي — اكتب رقم جديد لو عايز تسمح بحصص زيادة'
+                        : 'Currently locked until the remaining is paid — type a new number to allow more sessions'}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {locale === 'ar'
+                      ? 'بعد الحصص دي لازم العميل يدفع الباقي عشان يكمل — سيبها فاضية = من غير حد'
+                      : 'After these sessions the client must pay the remaining to continue — leave empty for no limit'}
+                  </p>
+                </div>
+              )}
+
               {!isDayUse && (
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
@@ -1794,6 +1845,21 @@ function PTPageContent() {
                       </div>
                     </div>
 
+                    {/*  🔒 حد الحصص لحد دفع الباقي */}
+                    {sessionsLeftBeforePayment(session) !== null && (
+                      isPaymentLocked(session) ? (
+                        <div className="rounded-lg px-2 py-1 text-center text-[11px] font-bold bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300">
+                          {locale === 'ar' ? 'مقفول — لازم يدفع الباقي' : 'Locked — remaining must be paid'}
+                        </div>
+                      ) : (
+                        <div className="rounded-lg px-2 py-1 text-center text-[11px] font-bold bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-300">
+                          {locale === 'ar'
+                            ? `باقي ${sessionsLeftBeforePayment(session)} حصة قبل دفع الباقي`
+                            : `${sessionsLeftBeforePayment(session)} sessions left before payment`}
+                        </div>
+                      )
+                    )}
+
                     {/* Dates */}
                     {(session.startDate || session.expiryDate) && (
                       <div className={`border rounded-lg p-2 text-xs font-mono ${
@@ -1819,7 +1885,10 @@ function PTPageContent() {
                       {session.ptNumber >= 0 && !isExpired && (
                         <button
                           onClick={() => handleRegisterSession(session)}
-                          disabled={session.sessionsRemaining === 0}
+                          disabled={session.sessionsRemaining === 0 || isPaymentLocked(session)}
+                          title={isPaymentLocked(session)
+                            ? (locale === 'ar' ? 'مقفول — العميل استخدم الحصص المسموحة ولازم يدفع الباقي الأول' : 'Locked — the client used the allowed sessions and must pay the remaining first')
+                            : undefined}
                           className={`${isCoach ? 'col-span-5' : 'col-span-2'} bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm disabled:opacity-60 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900`}
                         >
                           <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>

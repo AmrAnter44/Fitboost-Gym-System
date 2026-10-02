@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../../lib/prisma'
 import { requirePermission } from '../../../../../lib/auth'
+import { isPaymentLocked, paymentLockMessage } from '../../../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -74,6 +75,11 @@ export async function POST(request: Request) {
         },
         { status: 400 }
       )
+    }
+
+    // 🔒 حد الحصص لحد دفع الباقي
+    if (isPaymentLocked(physiotherapy)) {
+      return NextResponse.json({ error: paymentLockMessage(physiotherapy) }, { status: 400 })
     }
 
     // إنشاء session جديدة وتسجيل الحضور
@@ -172,7 +178,7 @@ export async function GET(request: Request) {
         therapistName: physiotherapy.therapistName,
         sessionsRemaining: physiotherapy.sessionsRemaining,
         sessionsPurchased: physiotherapy.sessionsPurchased,
-        canCheckIn: physiotherapy.sessionsRemaining > 0
+        canCheckIn: physiotherapy.sessionsRemaining > 0 && !isPaymentLocked(physiotherapy)
       }
     }, { status: 200 })
 

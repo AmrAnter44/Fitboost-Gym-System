@@ -1763,10 +1763,18 @@ function migrateDatabase(dbPath) {
       { col: 'freezeUntil',   def: 'DATETIME' },
       //  🔁 تجديد PT مؤجّل — باقة معلّقة تتفعّل لما الحصص الحالية تخلص
       { col: 'pendingRenewalData', def: 'TEXT' },
+      { col: 'unpaidSessionsLockAt', def: 'INTEGER' }, // 🔒 حد الحصص لحد دفع الباقي
     ];
     for (const { col, def } of ptCols) {
       if (!columnExists(db, 'PT', col)) {
         db.prepare(`ALTER TABLE PT ADD COLUMN ${col} ${def}`).run();
+      }
+    }
+
+    // 🔒 حد الحصص لحد دفع الباقي — نفس العمود في التغذية / العلاج الطبيعي / مزيد
+    for (const table of ['Nutrition', 'Physiotherapy', 'More']) {
+      if (tableExists(db, table) && !columnExists(db, table, 'unpaidSessionsLockAt')) {
+        db.prepare(`ALTER TABLE ${table} ADD COLUMN unpaidSessionsLockAt INTEGER`).run();
       }
     }
 

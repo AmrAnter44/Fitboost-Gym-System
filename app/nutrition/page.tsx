@@ -18,6 +18,7 @@ import { useDebounce } from '../../hooks/useDebounce'
 import CoachSelector from '../../components/CoachSelector'
 import NutritionRenewalForm from '../../components/NutritionRenewalForm'
 import { LoadingScreen } from '../../components/Spinner'
+import { sessionsLeftBeforePayment } from '../../lib/sessionPaymentLimit'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -38,6 +39,7 @@ interface NutritionSession {
   nutritionistName: string
   pricePerSession: number
   remainingAmount?: number
+  unpaidSessionsLockAt?: number | null
   startDate: string | null
   expiryDate: string | null
   createdAt: string
@@ -146,6 +148,10 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
   })
 
   const [referralCoachId, setReferralCoachId] = useState<string | null>(null)
+
+  // 🔒 حد الحصص لحد دفع الباقي (N اللي الموظف بيكتبه) + القيمة الأصلية وقت فتح التعديل
+  const [sessionsLimitUntilPaid, setSessionsLimitUntilPaid] = useState('')
+  const [sessionsLimitPrefill, setSessionsLimitPrefill] = useState('')
 
   // معالجة أخطاء جلسات Nutrition
   useEffect(() => {
@@ -309,6 +315,8 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
       staffName: user?.name || '',
     })
     setReferralCoachId(null)
+    setSessionsLimitUntilPaid('')
+    setSessionsLimitPrefill('')
     setEditingSession(null)
     setShowForm(false)
     setIsDayUse(false)
@@ -344,6 +352,11 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
       paymentMethod: 'cash',
       staffName: user?.name || '',
     })
+    // 🔒 لو مقفول (0) بنسيب الخانة فاضية — الحد الحالي بيفضل زي ما هو إلا لو الموظف كتب رقم جديد
+    const limitLeft = sessionsLeftBeforePayment(session)
+    const limitPrefill = limitLeft !== null && limitLeft > 0 ? String(limitLeft) : ''
+    setSessionsLimitUntilPaid(limitPrefill)
+    setSessionsLimitPrefill(limitPrefill)
     setEditingSession(session)
     setShowForm(true)
     // تحديد إذا كان Day Use
@@ -357,9 +370,17 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
     try {
       const url = '/api/nutrition'
       const method = editingSession ? 'PUT' : 'POST'
+      // 🔒 حد الحصص لحد دفع الباقي
+      // إضافة: بيتبعت دايمًا. تعديل: بيتبعت بس لو الموظف غيّره أو الباقي بقى صفر (عشان الحد الحالي ما يتمسحش بالغلط)
+      const limitPayload: { sessionsLimitUntilPaid?: number } = {}
+      const limitValue = formData.remainingAmount > 0 ? (parseInt(sessionsLimitUntilPaid) || 0) : 0
+      if (!editingSession || !(formData.remainingAmount > 0) || sessionsLimitUntilPaid !== sessionsLimitPrefill) {
+        limitPayload.sessionsLimitUntilPaid = limitValue
+      }
+
       const body = editingSession
-        ? { nutritionNumber: editingSession.nutritionNumber, ...formData, staffName: user?.name || '' }
-        : { ...formData, staffName: user?.name || '', referralCoachId: referralCoachId || null }
+        ? { nutritionNumber: editingSession.nutritionNumber, ...formData, ...limitPayload, staffName: user?.name || '' }
+        : { ...formData, ...limitPayload, staffName: user?.name || '', referralCoachId: referralCoachId || null }
 
       const response = await fetch(url, {
         method,
@@ -846,6 +867,36 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
                 </div>
               )}
 
+              {/* 🔒 حد الحصص لحد دفع الباقي */}
+              {!isDayUse && formData.remainingAmount > 0 && (
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
+                    {direction === 'rtl' ? 'حد الحصص لحد دفع الباقي' : 'Sessions allowed before paying remaining'}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={Math.max(1, editingSession ? formData.sessionsRemaining : formData.sessionsPurchased)}
+                    step="1"
+                    value={sessionsLimitUntilPaid}
+                    onChange={(e) => setSessionsLimitUntilPaid(e.target.value)}
+                    className="w-full px-3 py-2 border border-orange-300 dark:border-orange-700 rounded-lg bg-orange-50 dark:bg-orange-900/50 dark:text-white"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {direction === 'rtl'
+                      ? 'بعد الحصص دي لازم العميل يدفع الباقي عشان يكمل — سيبها فاضية = من غير حد'
+                      : 'After these sessions the client must pay the remaining to continue — leave empty for no limit'}
+                  </p>
+                  {editingSession && sessionsLeftBeforePayment(editingSession) === 0 && (
+                    <p className="text-xs font-semibold text-red-600 dark:text-red-400 mt-1">
+                      {direction === 'rtl'
+                        ? 'مقفول حاليًا — لازم يدفع الباقي. اكتب رقم جديد لو عايز تسمح بحصص زيادة قبل الدفع'
+                        : 'Currently locked — remaining must be paid. Enter a new number to allow more sessions before payment'}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {!isDayUse && (
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
@@ -1159,6 +1210,21 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
                       </div>
                     </div>
 
+                    {/* 🔒 حد الحصص لحد دفع الباقي */}
+                    {sessionsLeftBeforePayment(session) !== null && (
+                      sessionsLeftBeforePayment(session) === 0 ? (
+                        <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg px-2 py-1 text-xs font-bold text-center">
+                          {direction === 'rtl' ? 'مقفول — لازم يدفع الباقي' : 'Locked — remaining must be paid'}
+                        </div>
+                      ) : (
+                        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 rounded-lg px-2 py-1 text-xs font-bold text-center">
+                          {direction === 'rtl'
+                            ? `باقي ${sessionsLeftBeforePayment(session)} حصة قبل دفع الباقي`
+                            : `${sessionsLeftBeforePayment(session)} sessions left before payment`}
+                        </div>
+                      )
+                    )}
+
                     {/* Dates */}
                     {(session.startDate || session.expiryDate) && (
                       <div className={`border rounded-lg p-2 text-xs font-mono ${
@@ -1186,7 +1252,12 @@ export default function NutritionPage({ embedded }: { embedded?: boolean } = {})
                           <>
                             <button
                               onClick={() => handleRegisterSession(session)}
-                              disabled={session.sessionsRemaining === 0}
+                              disabled={session.sessionsRemaining === 0 || sessionsLeftBeforePayment(session) === 0}
+                              title={sessionsLeftBeforePayment(session) === 0
+                                ? (direction === 'rtl'
+                                  ? 'مقفول — العميل استخدم الحصص المسموحة ولازم يدفع الباقي الأول'
+                                  : 'Locked — the allowed sessions were used; the remaining must be paid first')
+                                : undefined}
                               className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm disabled:opacity-60 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                             >
                               <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>

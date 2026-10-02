@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { guard } from '../../../../lib/routeGuard'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
+import { isPaymentLocked, paymentLockMessage } from '../../../../lib/sessionPaymentLimit'
 
 // GET - جلب سجلات حضور جلسات Nutrition
 
@@ -135,6 +136,11 @@ export async function POST(request: Request) {
         { error: 'لا توجد جلسات متبقية' },
         { status: 400 }
       )
+    }
+
+    // 🔒 حد الحصص لحد دفع الباقي
+    if (isPaymentLocked(nutrition)) {
+      return NextResponse.json({ error: paymentLockMessage(nutrition) }, { status: 400 })
     }
 
     // تسجيل جلسة جديدة مع الحضور
