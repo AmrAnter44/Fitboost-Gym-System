@@ -24,6 +24,7 @@ import BarcodeInputDetector from './BarcodeInputDetector'
 import FloatingSearchButton from './FloatingSearchButton'
 import UpdateNotification from './UpdateNotification'
 import OutdatedBanner from './OutdatedBanner'
+import SessionGuard from './SessionGuard'
 import InstallPrompt from './InstallPrompt'
 import KeyboardShortcuts from './KeyboardShortcuts'
 import Breadcrumb from './Breadcrumb'
@@ -59,6 +60,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
 
   return (
     <>
+      <SessionGuard />
       <PreventInputScroll />
       <BarcodeInputDetector />
       {!isEmbedded && <UpdateNotification />}
