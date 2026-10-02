@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { guard } from '../../../../lib/routeGuard'
 import { prisma } from '../../../../lib/prisma'
 import { activatePendingPTIfNeeded } from '../../../../lib/ptPendingRenewal'
-import { requirePermission } from '../../../../lib/auth'
+import { requirePermission, isPtCommissionManagerScope } from '../../../../lib/auth'
+import { isPaymentLocked, paymentLockMessage } from '../../../../lib/sessionPaymentLimit'
 
 // GET - جلب سجلات حضور جلسات PT
 
@@ -77,7 +78,8 @@ export async function GET(request: Request) {
       })
 
       // فلترة حسب الدور: الكوتش يرى جلسات عملائه بس. «رؤية الكل» بقت للمشرف/الإدارة بالدور.
-      if (user.role === 'COACH') {
+      //  (الفتنس مانجر من جوّه حاسبة العمولات بيشوف جلسات كل الكباتن)
+      if (user.role === 'COACH' && !isPtCommissionManagerScope(user, request)) {
         const filteredSessions = sessions.filter(session => {
           if (session.isFreeSession) return true
           return session.pt?.coachUserId === user.userId
@@ -136,6 +138,11 @@ export async function POST(request: Request) {
         { error: 'لا توجد جلسات متبقية' },
         { status: 400 }
       )
+    }
+
+    //  🔒 حد الحصص لحد دفع الباقي
+    if (isPaymentLocked(pt)) {
+      return NextResponse.json({ error: paymentLockMessage(pt) }, { status: 400 })
     }
 
     // تسجيل جلسة جديدة مع الحضور

@@ -4,6 +4,7 @@ import { activatePendingPTIfNeeded } from '@/lib/ptPendingRenewal'
 import { apiCache } from '@/lib/cache'
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit'
 import { verifyMemberPhone, memberPhoneFrom } from '@/lib/memberVerify'
+import { isPaymentLocked, paymentLockMessage } from '@/lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -125,17 +126,36 @@ export async function POST(
     }
 
     // أحدث باكدج PT فيه حصص متبقية
-    const pt = await prisma.pT.findFirst({
+    const candidates = await prisma.pT.findMany({
       where: { phone: { contains: tail }, sessionsRemaining: { gt: 0 } },
       orderBy: { ptNumber: 'desc' },
-      select: { ptNumber: true, clientName: true, coachName: true },
+      select: {
+        ptNumber: true, clientName: true, coachName: true,
+        sessionsRemaining: true, remainingAmount: true, unpaidSessionsLockAt: true,
+      },
     })
-    if (!pt) {
+    if (candidates.length === 0) {
       return NextResponse.json({ error: 'لا توجد حصص متبقية' }, { status: 400 })
+    }
+    //  🔒 حد الحصص لحد دفع الباقي — نفضّل باكدج مش مقفول، ولو كلهم مقفولين نرجّع رسالة القفل
+    const pt = candidates.find((c) => !isPaymentLocked(c))
+    if (!pt) {
+      return NextResponse.json({ error: paymentLockMessage(candidates[0]) }, { status: 400 })
     }
 
     // خصم ذرّي: نُنقص فقط لو لسه فيه رصيد (>0)، وإلا نرمي NO_SESSIONS
     const result = await prisma.$transaction(async (tx) => {
+      //  🔒 إعادة فحص القفل ببيانات طازة جوّه الترانزاكشن
+      const current = await tx.pT.findUnique({
+        where: { ptNumber: pt.ptNumber },
+        select: { sessionsRemaining: true, remainingAmount: true, unpaidSessionsLockAt: true },
+      })
+      if (current && isPaymentLocked(current)) {
+        const e: any = new Error('PAYMENT_LOCKED')
+        e.lockMessage = paymentLockMessage(current)
+        throw e
+      }
+
       const dec = await tx.pT.updateMany({
         where: { ptNumber: pt.ptNumber, sessionsRemaining: { gt: 0 } },
         data: { sessionsRemaining: { decrement: 1 } },
@@ -182,6 +202,9 @@ export async function POST(
   } catch (error: any) {
     if (error?.message === 'NO_SESSIONS') {
       return NextResponse.json({ error: 'لا توجد حصص متبقية' }, { status: 400 })
+    }
+    if (error?.message === 'PAYMENT_LOCKED') {
+      return NextResponse.json({ error: error.lockMessage }, { status: 400 })
     }
     console.error('Member deduct PT session error:', error)
     return NextResponse.json({ error: 'فشل خصم الحصة' }, { status: 500 })

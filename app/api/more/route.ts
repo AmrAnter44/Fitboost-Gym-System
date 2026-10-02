@@ -12,6 +12,7 @@ import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
 import { getNextReceiptNumber, runReceiptTransaction } from '../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
+import { computeUnpaidLockAt } from '../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -116,7 +117,8 @@ export async function POST(request: Request) {
       paymentMethod,
       staffName,
       moreCommissionAmount,  // 💰 عمولة المدرب من الباقة (اختياري)
-      packageName            // 📦 اسم الباقة اللي اتباعت — يظهر في الإيصال
+      packageName,           // 📦 اسم الباقة اللي اتباعت — يظهر في الإيصال
+      sessionsLimitUntilPaid // 🔒 حد الحصص لحد دفع الباقي (اختياري)
     } = body
 
     // تحويل القيم إلى Numbers
@@ -214,6 +216,8 @@ export async function POST(request: Request) {
       pricePerSession,
       totalAmount: totalPrice,
       remainingAmount: remainingAmount,
+      // 🔒 حد الحصص لحد دفع الباقي
+      unpaidSessionsLockAt: computeUnpaidLockAt(sessionsPurchased, sessionsLimitUntilPaid, remainingAmount),
       startDate: finalStartDate,
       expiryDate: finalExpiryDate,
       notes: notes || null
@@ -454,6 +458,21 @@ export async function PUT(request: Request) {
     if (updateData.startDate) allowedFields.startDate = new Date(updateData.startDate)
     if (updateData.expiryDate) allowedFields.expiryDate = new Date(updateData.expiryDate)
     if (updateData.isActive !== undefined) allowedFields.isActive = Boolean(updateData.isActive)
+
+    // 🔒 حد الحصص لحد دفع الباقي — بنلمس العمود بس لو الحقل اتبعت
+    if (updateData.sessionsLimitUntilPaid !== undefined) {
+      const nextSessionsRemaining = Number.isFinite(allowedFields.sessionsRemaining)
+        ? allowedFields.sessionsRemaining
+        : existingMore.sessionsRemaining
+      const nextRemainingAmount = Number.isFinite(allowedFields.remainingAmount)
+        ? allowedFields.remainingAmount
+        : existingMore.remainingAmount
+      allowedFields.unpaidSessionsLockAt = computeUnpaidLockAt(
+        nextSessionsRemaining,
+        updateData.sessionsLimitUntilPaid,
+        nextRemainingAmount
+      )
+    }
 
     const updatedMore = await prisma.more.update({
       where: { moreNumber: parseInt(moreNumber) },

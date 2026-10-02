@@ -1084,7 +1084,10 @@ export async function PUT(request: Request) {
       updateData.birthDate = data.birthDate ? new Date(data.birthDate) : null
     }
     if (data.gender !== undefined) updateData.gender = data.gender || null
-    if (data.source !== undefined) updateData.source = data.source || null
+    // 📣 مصدر العضو — تعديله للمالك/الأدمن بس
+    if (data.source !== undefined && (user.role === 'OWNER' || user.role === 'ADMIN')) {
+      updateData.source = data.source || null
+    }
     if (data.notes !== undefined) updateData.notes = data.notes
 
     if (data.startDate) {

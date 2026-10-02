@@ -13,6 +13,7 @@ import PaymentMethodSelector from '@/components/Paymentmethodselector'
 import type { PaymentMethod as PaymentMethodType } from '@/lib/paymentHelpers'
 import { LoadingScreen } from '@/components/Spinner'
 import MoreScanPanel from '@/components/MoreScanPanel'
+import { sessionsLeftBeforePayment } from '@/lib/sessionPaymentLimit'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -82,6 +83,7 @@ interface More {
   startDate: string
   expiryDate: string
   remainingAmount: number
+  unpaidSessionsLockAt?: number | null
   notes?: string
   isActive: boolean
   createdAt: string
@@ -134,6 +136,9 @@ export default function MorePage() {
     notes: ''
   })
   const [editSubmitting, setEditSubmitting] = useState(false)
+  // 🔒 حد الحصص لحد دفع الباقي — بيتبعت للـ API بس لو الموظف غيّره (عشان الحفظ العادي ما يفكّش القفل)
+  const [editSessionsLimit, setEditSessionsLimit] = useState('')
+  const [editSessionsLimitTouched, setEditSessionsLimitTouched] = useState(false)
 
   const [paymentMore, setPaymentMore] = useState<More | null>(null)
   const [paymentAmount, setPaymentAmount] = useState(0)
@@ -596,6 +601,9 @@ export default function MorePage() {
       expiryDate: formatDateYMD(sub.expiryDate),
       notes: sub.notes || ''
     })
+    const leftBeforePayment = sessionsLeftBeforePayment(sub)
+    setEditSessionsLimit(leftBeforePayment === null ? '' : String(leftBeforePayment))
+    setEditSessionsLimitTouched(false)
   }
 
   const handleSaveEdit = async () => {
@@ -607,7 +615,13 @@ export default function MorePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           moreNumber: editingMore.moreNumber,
-          ...editFormData
+          ...editFormData,
+          // 🔒 الحد بيتبعت لو اتغيّر، أو لو الباقي بقى صفر (يتمسح)
+          ...(!((editFormData.remainingAmount || 0) > 0)
+            ? { sessionsLimitUntilPaid: '' }
+            : editSessionsLimitTouched
+              ? { sessionsLimitUntilPaid: editSessionsLimit }
+              : {})
         })
       })
       const data = await response.json()
@@ -1098,6 +1112,9 @@ export default function MorePage() {
               new Date(sub.expiryDate) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
             const noSessions = sub.sessionsRemaining === 0
             const inactive = !sub.isActive
+            // 🔒 حد الحصص لحد دفع الباقي
+            const leftBeforePayment = sessionsLeftBeforePayment(sub)
+            const paymentLocked = leftBeforePayment === 0
             const sessionsUsed = sub.sessionsPurchased - sub.sessionsRemaining
             const progressPercent = sub.sessionsPurchased > 0 ? (sessionsUsed / sub.sessionsPurchased) * 100 : 0
 
@@ -1219,6 +1236,21 @@ export default function MorePage() {
                     </div>
                   </div>
 
+                  {/* 🔒 حد الحصص لحد دفع الباقي */}
+                  {leftBeforePayment !== null && (
+                    <div
+                      className={`rounded-lg px-2 py-1.5 text-xs font-bold text-center ring-1 ${
+                        paymentLocked
+                          ? 'bg-red-50 dark:bg-red-900/30 ring-red-200 dark:ring-red-900/50 text-red-700 dark:text-red-300'
+                          : 'bg-amber-50 dark:bg-amber-900/30 ring-amber-200 dark:ring-amber-900/50 text-amber-700 dark:text-amber-300'
+                      }`}
+                    >
+                      {paymentLocked
+                        ? (locale === 'ar' ? 'مقفول — لازم يدفع الباقي' : 'Locked — remaining must be paid')
+                        : (locale === 'ar' ? `باقي ${leftBeforePayment} حصة قبل دفع الباقي` : `${leftBeforePayment} sessions left before payment`)}
+                    </div>
+                  )}
+
                   {/* Dates */}
                   {(sub.startDate || sub.expiryDate) && (
                     <div
@@ -1257,7 +1289,8 @@ export default function MorePage() {
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <button
                       onClick={() => handleQuickAttendance(sub.moreNumber)}
-                      disabled={noSessions || expired || inactive}
+                      disabled={noSessions || expired || inactive || paymentLocked}
+                      title={paymentLocked ? (locale === 'ar' ? 'مقفول — العميل استخدم الحصص المسموحة ولازم يدفع الباقي عشان يكمل' : 'Locked — the client used the allowed sessions and must pay the remaining to continue') : undefined}
                       className="inline-flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed font-bold"
                     >
                       {IconCheck}
@@ -1557,6 +1590,27 @@ export default function MorePage() {
                   className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200"
                 />
               </div>
+              {/* 🔒 حد الحصص لحد دفع الباقي — بيظهر بس لو فيه باقي */}
+              {(editFormData.remainingAmount || 0) > 0 && (
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    {locale === 'ar' ? 'حد الحصص لحد دفع الباقي' : 'Sessions allowed before paying remaining'}
+                  </label>
+                  <input
+                    type="number"
+                    value={editSessionsLimit}
+                    onChange={(e) => { setEditSessionsLimit(e.target.value); setEditSessionsLimitTouched(true) }}
+                    min="1"
+                    max={editFormData.sessionsRemaining || undefined}
+                    className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {locale === 'ar'
+                      ? 'بعد الحصص دي لازم العميل يدفع الباقي عشان يكمل — سيبها فاضية = من غير حد'
+                      : 'After these sessions the client must pay the remaining to continue — leave empty for no limit'}
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{locale === 'ar' ? 'تاريخ البداية' : 'Start Date'}</label>
                 <input

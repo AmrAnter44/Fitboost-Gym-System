@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { activatePendingPTIfNeeded } from '../../../lib/ptPendingRenewal'
-import { requirePermission, verifyAuth } from '../../../lib/auth'
+import { requirePermission, verifyAuth, isPtCommissionManagerScope } from '../../../lib/auth'
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -13,6 +13,7 @@ import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
 import { getNextReceiptNumber, runReceiptTransaction } from '../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
+import { computeUnpaidLockAt, isPaymentLocked, paymentLockMessage } from '../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,8 +34,8 @@ export async function GET(request: Request) {
     //  «رؤية كل الـ PT» بقت للمشرف (MANAGER) والإدارة بالدور — مش صلاحية منفصلة.
     const canViewAll = user.role === 'OWNER' || user.role === 'ADMIN' || user.role === 'MANAGER'
 
-    if (user.role === 'COACH' && !canViewAll) {
-      // الكوتش يرى عملائه فقط (إلا لو عنده canViewAllPT)
+    if (user.role === 'COACH' && !canViewAll && !isPtCommissionManagerScope(user, request)) {
+      // الكوتش يرى عملائه فقط — إلا الفتنس مانجر من جوّه حاسبة العمولات (scope=pt-commission)
       // جلب اسم الكوتش من جدول Staff
       const coachStaff = await prisma.staff.findFirst({
         where: {
@@ -179,7 +180,8 @@ export async function POST(request: Request) {
       expiryDate,
       paymentMethod,
       staffName,
-      ptCommissionAmount  // 💰 عمولة الكوتش من الباقة (اختياري)
+      ptCommissionAmount,  // 💰 عمولة الكوتش من الباقة (اختياري)
+      sessionsLimitUntilPaid  // 🔒 حد الحصص لحد دفع الباقي (اختياري)
     } = body
 
     // حساب سعر الحصة الواحدة من السعر الإجمالي
@@ -266,6 +268,8 @@ export async function POST(request: Request) {
       coachUserId,  // ✅ ربط الكوتش بـ userId
       pricePerSession,
       remainingAmount: remainingAmount || 0,  // ✅ الباقي من الفلوس
+      //  🔒 حد الحصص لحد دفع الباقي
+      unpaidSessionsLockAt: computeUnpaidLockAt(sessionsPurchased, sessionsLimitUntilPaid, remainingAmount || 0),
       startDate: startDate ? new Date(startDate) : null,
       expiryDate: expiryDate ? new Date(expiryDate) : null
     }
@@ -523,6 +527,11 @@ export async function PUT(request: Request) {
         return NextResponse.json({ error: 'لا توجد جلسات متبقية' }, { status: 400 })
       }
 
+      //  🔒 حد الحصص لحد دفع الباقي
+      if (isPaymentLocked(pt)) {
+        return NextResponse.json({ error: paymentLockMessage(pt) }, { status: 400 })
+      }
+
       const updatedPT = await prisma.pT.update({
         where: { ptNumber: parseInt(ptNumber) },
         data: { sessionsRemaining: pt.sessionsRemaining - 1 },
@@ -561,6 +570,28 @@ export async function PUT(request: Request) {
         }
       }
       if (data.remainingAmount !== undefined) updateData.remainingAmount = parseFloat(data.remainingAmount)
+
+      //  🔒 حد الحصص لحد دفع الباقي — بنلمس العمود بس لو الفورم بعت الحقل
+      if (data.sessionsLimitUntilPaid !== undefined) {
+        const current = await prisma.pT.findUnique({
+          where: { ptNumber: parseInt(ptNumber) },
+          select: { sessionsRemaining: true, remainingAmount: true }
+        })
+        if (!current) {
+          return NextResponse.json({ error: 'جلسة PT غير موجودة' }, { status: 404 })
+        }
+        const finalSessionsRemaining = Number.isFinite(updateData.sessionsRemaining)
+          ? updateData.sessionsRemaining
+          : current.sessionsRemaining
+        const finalRemainingAmount = Number.isFinite(updateData.remainingAmount)
+          ? updateData.remainingAmount
+          : current.remainingAmount
+        updateData.unpaidSessionsLockAt = computeUnpaidLockAt(
+          finalSessionsRemaining,
+          data.sessionsLimitUntilPaid,
+          finalRemainingAmount
+        )
+      }
 
       // التواريخ
       if (data.startDate) {

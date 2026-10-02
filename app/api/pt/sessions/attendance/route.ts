@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../../lib/prisma'
 import { requirePermission } from '../../../../../lib/auth'
 import { activatePendingPTIfNeeded } from '../../../../../lib/ptPendingRenewal'
+import { isPaymentLocked, paymentLockMessage } from '../../../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,6 +80,11 @@ export async function POST(request: Request) {
         },
         { status: 400 }
       )
+    }
+
+    //  🔒 حد الحصص لحد دفع الباقي
+    if (isPaymentLocked(pt)) {
+      return NextResponse.json({ error: paymentLockMessage(pt) }, { status: 400 })
     }
 
     // إنشاء session جديدة وتسجيل الحضور

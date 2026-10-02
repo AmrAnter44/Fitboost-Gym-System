@@ -50,6 +50,8 @@ interface MemberRow {
     physio: 'subscribed' | 'free' | 'none'
     more: 'subscribed' | 'free' | 'none'
   }
+  viaPT?: boolean    //  ظاهر تحت الكوتش بسبب اشتراك PT معاه (مش متعيّن له كعضو)
+  isPtOnly?: boolean //  عميل PT مش عضو في الجيم — مالوش بروفايل
 }
 
 interface CoachGroup {
@@ -69,6 +71,9 @@ interface CoachGroup {
     still_has_free: number
     conversionRate: number | null
     revenue: number
+    subscriptionsCount?: number
+    newSubscriptions?: number
+    renewals?: number
   }
   members: MemberRow[]
 }
@@ -154,8 +159,11 @@ export default function CoachConversionsPanel() {
       pending_decision: acc.pending_decision + c.stats.pending_decision,
       still_has_free: acc.still_has_free + c.stats.still_has_free,
       revenue: acc.revenue + (c.stats.revenue || 0),
+      subscriptionsCount: acc.subscriptionsCount + (c.stats.subscriptionsCount || 0),
+      newSubscriptions: acc.newSubscriptions + (c.stats.newSubscriptions || 0),
+      renewals: acc.renewals + (c.stats.renewals || 0),
     }),
-    { total: 0, subscribed: 0, didnt_subscribe: 0, pending_decision: 0, still_has_free: 0, revenue: 0 }
+    { total: 0, subscribed: 0, didnt_subscribe: 0, pending_decision: 0, still_has_free: 0, revenue: 0, subscriptionsCount: 0, newSubscriptions: 0, renewals: 0 }
   )
   //  تنسيق المبلغ
   const fmtMoney = (n: number) =>
@@ -192,6 +200,43 @@ export default function CoachConversionsPanel() {
         <p className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-300 whitespace-nowrap">
           {fmtMoney(totalsAll.revenue)}
         </p>
+      </div>
+
+      {/* 🧾 عدد اشتراكات الـ PT اللي دخلت لكل كوتش في الفترة */}
+      <div className="mb-6 rounded-xl p-4 bg-white dark:bg-gray-800 ring-1 ring-blue-200 dark:ring-blue-800">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
+              {locale === 'ar' ? 'عدد اشتراكات الـ PT اللي دخلت لكل كوتش' : 'PT subscriptions per coach'}
+            </p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">
+              {locale === 'ar' ? 'اشتراك جديد + تجديد (من غير دفع الباقي) · ' : 'New + renewals (excluding remaining payments) · '}{periodLabel}
+            </p>
+          </div>
+          <div className="text-end whitespace-nowrap">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              {locale === 'ar' ? 'الإجمالي (كل الكباتن)' : 'Total (all coaches)'}
+            </p>
+            <p className="text-xl sm:text-2xl font-black text-blue-700 dark:text-blue-300 tabular-nums leading-tight">
+              {totalsAll.subscriptionsCount}
+              <span className="ms-1 text-sm font-bold">{locale === 'ar' ? 'اشتراك' : 'subscriptions'}</span>
+            </p>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400">
+              {locale === 'ar' ? `جديد ${totalsAll.newSubscriptions} · تجديد ${totalsAll.renewals}` : `new ${totalsAll.newSubscriptions} · renew ${totalsAll.renewals}`}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {[...data].sort((a, b) => (b.stats.subscriptionsCount || 0) - (a.stats.subscriptionsCount || 0)).map(g => (
+            <div key={g.coach.id} className="rounded-lg px-3 py-2 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-100 dark:ring-blue-900/50">
+              <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{g.coach.name}</p>
+              <p className="text-lg font-black text-blue-700 dark:text-blue-300 tabular-nums leading-tight">{g.stats.subscriptionsCount || 0}</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                {locale === 'ar' ? `جديد ${g.stats.newSubscriptions || 0} · تجديد ${g.stats.renewals || 0}` : `new ${g.stats.newSubscriptions || 0} · renew ${g.stats.renewals || 0}`}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {error && (
@@ -270,7 +315,7 @@ export default function CoachConversionsPanel() {
             />
           </div>
           <span className="text-xs text-gray-400 dark:text-gray-500 ms-auto">
-            {locale === 'ar' ? 'بيأثّر على المبلغ بس' : 'Affects revenue only'}
+            {locale === 'ar' ? 'بيأثّر على المبلغ وعدد الاشتراكات' : 'Affects revenue and subscription counts'}
           </span>
         </div>
       </div>
@@ -633,10 +678,12 @@ export default function CoachConversionsPanel() {
 
               <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-end">
                 <Link
-                  href={`/members/${selectedMember.id}`}
+                  href={selectedMember.isPtOnly ? '/pt' : `/members/${selectedMember.id}`}
                   className="inline-flex items-center gap-1.5 text-sm font-bold text-primary-600 dark:text-primary-400 hover:underline"
                 >
-                  {locale === 'ar' ? 'فتح صفحة العضو' : 'Open member page'}
+                  {selectedMember.isPtOnly
+                    ? (locale === 'ar' ? 'فتح صفحة الـ PT' : 'Open PT page')
+                    : (locale === 'ar' ? 'فتح صفحة العضو' : 'Open member page')}
                   <svg {...stroke} className={`w-4 h-4 ${direction === 'rtl' ? 'rotate-180' : ''}`}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                   </svg>
@@ -748,6 +795,14 @@ function MemberRowItem({ member, locale, onClick }: { member: MemberRow; locale:
         <div className="min-w-0">
           <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{member.name}</p>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {/* ظاهر هنا بسبب اشتراك PT مع الكوتش (مش متعيّن له) / عميل PT مش عضو */}
+            {member.viaPT && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                {member.isPtOnly
+                  ? (locale === 'ar' ? 'PT فقط (مش عضو)' : 'PT only (non-member)')
+                  : (locale === 'ar' ? 'اشتراك PT معاه' : 'PT with this coach')}
+              </span>
+            )}
             {/* حالة الـ PT: دفع / فري — عشان نميّز بسرعة مين دفع ومين لسه فري */}
             {member.hasPaidPT ? (
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">

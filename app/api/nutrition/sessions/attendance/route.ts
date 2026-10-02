@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../../lib/prisma'
 import { requirePermission } from '../../../../../lib/auth'
+import { isPaymentLocked, paymentLockMessage } from '../../../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -74,6 +75,11 @@ export async function POST(request: Request) {
         },
         { status: 400 }
       )
+    }
+
+    // 🔒 حد الحصص لحد دفع الباقي
+    if (isPaymentLocked(nutrition)) {
+      return NextResponse.json({ error: paymentLockMessage(nutrition) }, { status: 400 })
     }
 
     // إنشاء session جديدة وتسجيل الحضور
@@ -172,7 +178,7 @@ export async function GET(request: Request) {
         nutritionistName: nutrition.nutritionistName,
         sessionsRemaining: nutrition.sessionsRemaining,
         sessionsPurchased: nutrition.sessionsPurchased,
-        canCheckIn: nutrition.sessionsRemaining > 0
+        canCheckIn: nutrition.sessionsRemaining > 0 && !isPaymentLocked(nutrition)
       }
     }, { status: 200 })
 

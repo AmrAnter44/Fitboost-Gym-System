@@ -12,6 +12,7 @@ import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
 import { getNextReceiptNumber, runReceiptTransaction } from '../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
+import { computeUnpaidLockAt, isPaymentLocked, paymentLockMessage } from '../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -113,6 +114,7 @@ export async function POST(request: Request) {
       therapistName,
       totalPrice,
       remainingAmount,
+      sessionsLimitUntilPaid,
       startDate,
       expiryDate,
       paymentMethod,
@@ -199,6 +201,8 @@ export async function POST(request: Request) {
       therapistUserId,  // ✅ ربط أخصائي العلاج الطبيعي بـ userId
       pricePerSession,
       remainingAmount: remainingAmount || 0,  // ✅ الباقي من الفلوس
+      // 🔒 حد الحصص لحد دفع الباقي
+      unpaidSessionsLockAt: computeUnpaidLockAt(sessionsPurchased, sessionsLimitUntilPaid, remainingAmount || 0),
       startDate: startDate ? new Date(startDate) : null,
       expiryDate: expiryDate ? new Date(expiryDate) : null
     }
@@ -480,6 +484,11 @@ export async function PUT(request: Request) {
         return NextResponse.json({ error: 'لا توجد جلسات متبقية' }, { status: 400 })
       }
 
+      // 🔒 حد الحصص لحد دفع الباقي
+      if (isPaymentLocked(physiotherapy)) {
+        return NextResponse.json({ error: paymentLockMessage(physiotherapy) }, { status: 400 })
+      }
+
       const updatedPhysiotherapy = await prisma.physiotherapy.update({
         where: { physioNumber: parseInt(physioNumber) },
         data: { sessionsRemaining: physiotherapy.sessionsRemaining - 1 },
@@ -515,6 +524,20 @@ export async function PUT(request: Request) {
         }
       }
       if (data.remainingAmount !== undefined) updateData.remainingAmount = parseFloat(data.remainingAmount)
+
+      // 🔒 حد الحصص لحد دفع الباقي — بيتحسب على القيم اللي هتبقى في الصف بعد التعديل
+      if (data.sessionsLimitUntilPaid !== undefined) {
+        const current = await prisma.physiotherapy.findUnique({
+          where: { physioNumber: parseInt(physioNumber) },
+          select: { sessionsRemaining: true, remainingAmount: true }
+        })
+        const nextSessionsRemaining = updateData.sessionsRemaining ?? current?.sessionsRemaining ?? 0
+        const nextRemainingAmount = updateData.remainingAmount ?? current?.remainingAmount ?? 0
+        updateData.unpaidSessionsLockAt = computeUnpaidLockAt(nextSessionsRemaining, data.sessionsLimitUntilPaid, nextRemainingAmount)
+      } else if (updateData.remainingAmount !== undefined && !(updateData.remainingAmount > 0)) {
+        // الباقي اتصفّر من التعديل → الحد ملوش معنى
+        updateData.unpaidSessionsLockAt = null
+      }
 
       // التواريخ
       if (data.startDate) {

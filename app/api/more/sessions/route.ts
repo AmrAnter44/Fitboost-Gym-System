@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
+import { isPaymentLocked, paymentLockMessage } from '../../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -96,6 +97,14 @@ export async function POST(request: Request) {
     if (more.sessionsRemaining <= 0) {
       return NextResponse.json(
         { error: 'لا توجد جلسات متبقية' },
+        { status: 400 }
+      )
+    }
+
+    // 🔒 حد الحصص لحد دفع الباقي
+    if (isPaymentLocked(more)) {
+      return NextResponse.json(
+        { error: paymentLockMessage(more) },
         { status: 400 }
       )
     }

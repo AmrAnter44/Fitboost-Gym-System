@@ -4,7 +4,7 @@
 // (نفس طريقة حاسبة التحصيل بالظبط)
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
-import { verifyAuth } from '../../../../lib/auth'
+import { verifyAuth, isPtCommissionManagerScope } from '../../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,7 +35,8 @@ export async function GET(request: Request) {
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
 
     //  Coach بيشوف نفسه بس، Admin/Manager بيشوف الكل
-    const isCoach = user.role === 'COACH'
+    //  (الفتنس مانجر من جوّه حاسبة العمولات بيشوف تارجت كل الكباتن)
+    const isCoach = user.role === 'COACH' && !isPtCommissionManagerScope(user, request)
     if (isCoach && !user.staffId) {
       return NextResponse.json({ error: 'حساب الكوتش غير مربوط بموظف' }, { status: 400 })
     }

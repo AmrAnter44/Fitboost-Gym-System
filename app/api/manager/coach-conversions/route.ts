@@ -45,8 +45,10 @@ export async function GET(request: Request) {
       },
       orderBy: { name: 'asc' },
     })
+    //  أي وظيفة فيها "مدرب" (مدرب / مدربة / مدرب سباحة...) — نفس منطق حاسبة العمولات،
+    //  عشان المدربات مايسقطوش من المتابعة ولا من عدّ الاشتراكات
     const trainers = coaches.filter(c =>
-      (c.position?.split(',') || []).map(p => p.trim()).includes('مدرب')
+      (c.position?.split(',') || []).some(p => p.trim().includes('مدرب'))
     )
 
     if (trainers.length === 0) {
@@ -84,9 +86,35 @@ export async function GET(request: Request) {
       }
     } catch (e) { /* الأعمدة ممكن تكون لسه مش موجودة — نتعامل كـ null */ }
 
-    //  2. جلب كل الأعضاء المعينين للكباتن دول
+    //  🧩 اشتراكات الـ PT بتاعة كل كوتش (بالاسم المسجّل على الاشتراك).
+    //     إنشاء الـ PT مش بيعيّن الكوتش على العضو (Member.coachId) — فمن غير ده، أي حد اشترى
+    //     برايفت مع كوتش وهو مش متعيّن له (أو متعيّن لكوتش تاني / مش عضو أصلاً) ماكانش بيظهر
+    //     تحت الكوتش في المتابعة.
+    const trainerNameSet = new Set(trainers.map(t => (t.name || '').trim()).filter(Boolean))
+    const coachPTsRaw = await prisma.pT.findMany({
+      select: {
+        ptNumber: true, clientName: true, phone: true, coachName: true,
+        sessionsPurchased: true, sessionsRemaining: true, startDate: true, expiryDate: true, createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    const ptsByCoachName = new Map<string, typeof coachPTsRaw>()
+    for (const pt of coachPTsRaw) {
+      const cn = (pt.coachName || '').trim()
+      if (!cn || !trainerNameSet.has(cn) || !pt.phone) continue
+      if (!ptsByCoachName.has(cn)) ptsByCoachName.set(cn, [])
+      ptsByCoachName.get(cn)!.push(pt)
+    }
+    const coachPtPhones = Array.from(new Set(Array.from(ptsByCoachName.values()).flat().map(p => p.phone)))
+
+    //  2. جلب كل الأعضاء المعينين للكباتن دول + أي عضو عنده اشتراك PT مع واحد منهم
     const members = await prisma.member.findMany({
-      where: { coachId: { in: trainerIds } },
+      where: {
+        OR: [
+          { coachId: { in: trainerIds } },
+          ...(coachPtPhones.length ? [{ phone: { in: coachPtPhones } }] : []),
+        ],
+      },
       select: {
         id: true,
         memberNumber: true,
@@ -184,6 +212,11 @@ export async function GET(request: Request) {
     cvPtRows.forEach(p => { if (p.coachName) cvPtNumToCoach.set(p.ptNumber, p.coachName.trim()) })
 
     const revenueByCoach = new Map<string, number>()
+    //  🧾 عدد اشتراكات الـ PT اللي دخلت لكل كوتش في الفترة (جديد + تجديد).
+    //     «دفع باقي» و Day Use مش اشتراك جديد → مش بيتعدّوا (بس مبلغهم داخل في الإيراد فوق).
+    const NEW_PT_TYPES = ['newPT', 'PT', 'برايفت جديد', 'اشتراك برايفت']
+    const RENEW_PT_TYPES = ['ptRenewal', 'تجديد برايفت']
+    const subsByCoach = new Map<string, { newCount: number; renewCount: number }>()
     for (const r of ptReceipts) {
       if (!isPTReceipt(r.type)) continue
       let coachName = ''
@@ -198,6 +231,12 @@ export async function GET(request: Request) {
       }
       if (!coachName) continue
       revenueByCoach.set(coachName, (revenueByCoach.get(coachName) || 0) + (r.amount || 0))
+      const isNew = NEW_PT_TYPES.includes(r.type), isRenew = RENEW_PT_TYPES.includes(r.type)
+      if (isNew || isRenew) {
+        const cur = subsByCoach.get(coachName) || { newCount: 0, renewCount: 0 }
+        if (isNew) cur.newCount++; else cur.renewCount++
+        subsByCoach.set(coachName, cur)
+      }
     }
 
     //  حالة خدمة لكل عضو: subscribed (اشترى) / free (لسه عنده مجاني) / none
@@ -206,8 +245,11 @@ export async function GET(request: Request) {
 
     //  4. تجميع البيانات حسب الكوتش
     const result = trainers.map(coach => {
-      const coachMembers = members
-        .filter(m => m.coachId === coach.id)
+      const coachPTs = ptsByCoachName.get((coach.name || '').trim()) || []
+      const coachPtPhoneSet = new Set(coachPTs.map(p => p.phone))
+      const memberPhonesAll = new Set(members.map(m => m.phone).filter(Boolean))
+      const coachMembers: any[] = members
+        .filter(m => m.coachId === coach.id || (!!m.phone && coachPtPhoneSet.has(m.phone)))
         .map(m => {
           const activePT = m.phone ? ptByPhone.get(m.phone) || null : null
           const everSubscribedPT = m.phone ? everSubscribedPTPhones.has(m.phone) : false
@@ -245,6 +287,8 @@ export async function GET(request: Request) {
             hasPaidPT: everSubscribedPT,
             activePT,
             status,
+            //  ظاهر تحت الكوتش بسبب اشتراك PT معاه (مش متعيّن له كعضو)
+            viaPT: m.coachId !== coach.id,
             //  حالة العضو في باقي الخدمات (عرض مدمج)
             services: {
               nutrition: serviceStatus(m.phone ? nutritionPhones.has(m.phone) : false, m.freeNutritionSessions || 0),
@@ -253,6 +297,39 @@ export async function GET(request: Request) {
             },
           }
         })
+
+      //  عملاء PT مع الكوتش ده ومش أعضاء في الجيم (مفيش Member بنفس التليفون) — صف لكل تليفون
+      const seenPtOnly = new Set<string>()
+      for (const pt of coachPTs) { // مترتبة بالأحدث أولاً
+        if (memberPhonesAll.has(pt.phone) || seenPtOnly.has(pt.phone)) continue
+        seenPtOnly.add(pt.phone)
+        const stillActive = !pt.expiryDate || new Date(pt.expiryDate) >= nowDate
+        coachMembers.push({
+          id: `pt-${pt.ptNumber}`,
+          memberNumber: null,
+          name: pt.clientName,
+          phone: pt.phone,
+          profileImage: null,
+          isActive: stillActive,
+          startDate: pt.startDate,
+          expiryDate: pt.expiryDate,
+          freePTSessions: 0,
+          subscriptionPrice: 0,
+          coachConversionNote: null,
+          coachConversionNoteAt: null,
+          joinedCoachAt: pt.createdAt,
+          ptSessions: [],
+          hasPaidPT: true,
+          activePT: stillActive ? {
+            ptNumber: pt.ptNumber, phone: pt.phone, sessionsPurchased: pt.sessionsPurchased,
+            sessionsRemaining: pt.sessionsRemaining, startDate: pt.startDate, expiryDate: pt.expiryDate,
+          } : null,
+          status: 'subscribed',
+          services: { nutrition: 'none', physio: 'none', more: 'none' },
+          viaPT: true,
+          isPtOnly: true, //  مش عضو — مالوش بروفايل
+        })
+      }
 
       //  Stats
       const stats = {
@@ -269,6 +346,10 @@ export async function GET(request: Request) {
         })(),
         //  إجمالي المبلغ اللي دخله الكابتن من إيصالات PT
         revenue: revenueByCoach.get((coach.name || '').trim()) || 0,
+        //  عدد اشتراكات الـ PT اللي دخلت للكابتن في الفترة (جديد / تجديد)
+        newSubscriptions: subsByCoach.get((coach.name || '').trim())?.newCount || 0,
+        renewals: subsByCoach.get((coach.name || '').trim())?.renewCount || 0,
+        subscriptionsCount: (subsByCoach.get((coach.name || '').trim())?.newCount || 0) + (subsByCoach.get((coach.name || '').trim())?.renewCount || 0),
       }
 
       return {

@@ -11,6 +11,7 @@ import { addPointsForPayment } from '../../../../lib/points'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
 import { getNextReceiptNumber, runReceiptTransaction } from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
+import { computeUnpaidLockAt } from '../../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -107,6 +108,8 @@ export async function POST(request: Request) {
       pricePerSession,
       totalAmount: totalPrice,
       remainingAmount: remainingAmount || 0,
+      // 🔒 حد الحصص لحد دفع الباقي — التجديد بيرسِت الحد (null لو مفيش حد / مفيش باقي)
+      unpaidSessionsLockAt: computeUnpaidLockAt(sessionsPurchased, body.sessionsLimitUntilPaid, remainingAmount || 0),
       startDate: startDate ? new Date(startDate) : new Date(),
       expiryDate: expiryDate ? new Date(expiryDate) : new Date(),
       notes: notes || oldMore.notes

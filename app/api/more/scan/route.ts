@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
+import { isPaymentLocked, paymentLockMessage } from '../../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
       if (m.sessionsRemaining <= 0) return false
       if (m.startDate && new Date(new Date(m.startDate).setHours(0, 0, 0, 0)) > today) return false
       if (m.expiryDate && new Date(new Date(m.expiryDate).setHours(0, 0, 0, 0)) < today) return false
+      if (isPaymentLocked(m)) return false  // 🔒 حد الحصص لحد دفع الباقي
       return true
     }
     //  نفضّل اشتراك صالح، وإلا نعرض أول واحد عشان الكارت يبان
@@ -48,8 +50,14 @@ export async function POST(request: Request) {
     if (!isUsable(target)) {
       const expired = target.expiryDate && new Date(new Date(target.expiryDate).setHours(0, 0, 0, 0)) < today
       const notStarted = target.startDate && new Date(new Date(target.startDate).setHours(0, 0, 0, 0)) > today
-      const status = target.sessionsRemaining <= 0 ? 'no-sessions' : expired ? 'expired' : notStarted ? 'not-started' : 'blocked'
-      return NextResponse.json({ found: true, success: false, status, ...card })
+      const paymentLocked = isPaymentLocked(target)
+      const status = target.sessionsRemaining <= 0 ? 'no-sessions' : expired ? 'expired' : notStarted ? 'not-started' : paymentLocked ? 'payment-required' : 'blocked'
+      return NextResponse.json({
+        found: true, success: false, status, ...card,
+        ...(status === 'payment-required'
+          ? { message: paymentLockMessage(target), remainingAmount: target.remainingAmount }
+          : {}),
+      })
     }
 
     //  🛡️ مرة واحدة في اليوم — لو سجّل النهاردة مايتخصمش تاني

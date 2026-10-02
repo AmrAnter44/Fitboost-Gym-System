@@ -259,7 +259,7 @@ export default function CoachCommissionPage() {
   // جلب إيصالات الفترة المختارة فقط — بيعاد جلبها عند تغيير الفترة
   const fetchReceiptsForRange = async () => {
     try {
-      const receiptsResponse = await fetch(`/api/receipts?startDate=${dateFrom}&endDate=${dateTo}`)
+      const receiptsResponse = await fetch(`/api/receipts?startDate=${dateFrom}&endDate=${dateTo}&scope=pt-commission`)
       const receiptsData: Receipt[] = await receiptsResponse.json()
       if (Array.isArray(receiptsData)) setReceipts(receiptsData)
     } catch { /* نحتفظ بآخر بيانات */ }
@@ -349,20 +349,23 @@ export default function CoachCommissionPage() {
   const fetchData = async () => {
     try {
       // جلب الكوتشات
-      const staffResponse = await fetch('/api/staff')
-      const staffData: Staff[] = await staffResponse.json()
+      const staffResponse = await fetch('/api/staff?scope=pt-commission')
+      //  لو الـ API رجّع خطأ صلاحيات (object مش array) مانوقّعش الصفحة
+      const staffJson = await staffResponse.json()
+      const staffData: Staff[] = Array.isArray(staffJson) ? staffJson : []
       const activeCoaches = staffData.filter(
         (staff) => staff.isActive && staff.position?.toLowerCase().includes('مدرب')
       )
       setCoaches(activeCoaches)
 
       // جلب جلسات PT (الاشتراكات)
-      const ptResponse = await fetch('/api/pt')
-      const ptData: PTSession[] = await ptResponse.json()
+      const ptResponse = await fetch('/api/pt?scope=pt-commission')
+      const ptJson = await ptResponse.json()
+      const ptData: PTSession[] = Array.isArray(ptJson) ? ptJson : []
       setPtSessions(ptData)
 
       // جلب سجلات الحضور الفعلية (attendance records)
-      const attendanceResponse = await fetch('/api/pt/sessions')
+      const attendanceResponse = await fetch('/api/pt/sessions?scope=pt-commission')
       if (attendanceResponse.ok) {
         const attendanceData = await attendanceResponse.json()
         // تصفية فقط الجلسات المدفوعة (غير المجانية) واللي تم حضورها
@@ -410,7 +413,7 @@ export default function CoachCommissionPage() {
 
   const fetchFreeSessions = async () => {
     try {
-      const response = await fetch('/api/pt/sessions')
+      const response = await fetch('/api/pt/sessions?scope=pt-commission')
       if (response.ok) {
         const data = await response.json()
         // فلترة الجلسات المجانية فقط (واللي لم يتم تحصيلها)
@@ -426,7 +429,7 @@ export default function CoachCommissionPage() {
 
   const fetchMemberSignupCommissions = async () => {
     try {
-      const response = await fetch(`/api/commissions/member-signups?startDate=${dateFrom}&endDate=${dateTo}`)
+      const response = await fetch(`/api/commissions/member-signups?startDate=${dateFrom}&endDate=${dateTo}&scope=pt-commission`)
       if (response.ok) {
         const data = await response.json()
         setMemberSignupCommissions(data)
@@ -439,7 +442,7 @@ export default function CoachCommissionPage() {
   // جلب عمولات Referral (nutrition_referral + physio_referral) للكوتش المختار
   const fetchReferralCommissions = async (coachName: string) => {
     try {
-      const response = await fetch('/api/commissions')
+      const response = await fetch('/api/commissions?scope=pt-commission')
       if (!response.ok) return
 
       const allCommissions = await response.json()
@@ -476,7 +479,7 @@ export default function CoachCommissionPage() {
   const fetchPTCommissions = async (coachName: string, startDate: string, endDate: string): Promise<PTCommission[]> => {
     try {
       // جلب جميع العمولات
-      const response = await fetch('/api/commissions')
+      const response = await fetch('/api/commissions?scope=pt-commission')
       if (!response.ok) return []
 
       const allCommissions = await response.json()
@@ -637,7 +640,7 @@ export default function CoachCommissionPage() {
   useEffect(() => {
     if (!useSeparateCoachTarget) { setCoachTargets([]); return }
     let cancelled = false
-    fetch('/api/coach/monthly-revenue')
+    fetch('/api/coach/monthly-revenue?scope=pt-commission')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (cancelled || !data) return
@@ -970,7 +973,7 @@ export default function CoachCommissionPage() {
 
     // جلب عمولات Referral للكوتش المحدد
     try {
-      const response = await fetch('/api/commissions')
+      const response = await fetch('/api/commissions?scope=pt-commission')
 
       if (response.ok) {
         const allCommissions = await response.json()

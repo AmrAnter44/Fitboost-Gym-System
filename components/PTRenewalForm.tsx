@@ -71,6 +71,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
     coachName: string
     totalPrice: number
     remainingAmount: number //  مبلغ متبقي على الميمبر في التجديد الجديد
+    sessionsLimitUntilPaid: string //  🔒 حد الحصص لحد دفع الباقي (فاضي = من غير حد)
     startDate: string
     expiryDate: string
     paymentMethod: string | PaymentMethod[]
@@ -81,6 +82,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
     coachName: session.coachName,
     totalPrice: 0,
     remainingAmount: 0,
+    sessionsLimitUntilPaid: '',
     startDate: getDefaultStartDate(),
     expiryDate: '',
     paymentMethod: 'cash',
@@ -211,6 +213,8 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
         body: JSON.stringify({
           ptNumber: session.ptNumber,
           ...formData,
+          //  🔒 الحد بيتبعت بس لو فيه باقي
+          sessionsLimitUntilPaid: formData.remainingAmount > 0 ? formData.sessionsLimitUntilPaid : '',
           staffName: user?.name || ''
         }),
       })
@@ -492,6 +496,30 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                     </p>
                   )}
                 </div>
+                {/*  🔒 حد الحصص لحد دفع الباقي — بيظهر بس لو فيه باقي */}
+                {formData.remainingAmount > 0 && (
+                  <div className="sm:col-start-2">
+                    <label htmlFor="pt-renew-sessions-limit" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                      {direction === 'rtl' ? 'حد الحصص لحد دفع الباقي' : 'Sessions allowed before paying remaining'}
+                    </label>
+                    <input
+                      id="pt-renew-sessions-limit"
+                      type="number"
+                      min="1"
+                      max={formData.sessionsPurchased || undefined}
+                      step="1"
+                      value={formData.sessionsLimitUntilPaid}
+                      onChange={(e) => setFormData({ ...formData, sessionsLimitUntilPaid: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-orange-400 dark:border-orange-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 font-bold"
+                      placeholder={direction === 'rtl' ? 'من غير حد' : 'No limit'}
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {direction === 'rtl'
+                        ? 'بعد الحصص دي لازم العميل يدفع الباقي عشان يكمل — سيبها فاضية = من غير حد'
+                        : 'After these sessions the client must pay the remaining to continue — leave empty for no limit'}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

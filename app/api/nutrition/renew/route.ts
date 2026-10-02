@@ -84,6 +84,7 @@ export async function POST(request: Request) {
         startDate: startDate ? new Date(startDate) : existingNutrition.startDate,
         expiryDate: expiryDate ? new Date(expiryDate) : existingNutrition.expiryDate,
         remainingAmount: 0, // ✅ تصفير المبلغ المتبقي عند التجديد
+        unpaidSessionsLockAt: null, // 🔒 مفيش باقي → مفيش حد حصص
       },
     })
 

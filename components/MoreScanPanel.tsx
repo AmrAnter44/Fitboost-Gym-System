@@ -6,7 +6,7 @@ import { formatDateYMD } from '../lib/dateFormatter'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
-type Status = 'attended' | 'already' | 'no-sessions' | 'expired' | 'not-started' | 'blocked' | 'not-found'
+type Status = 'attended' | 'already' | 'no-sessions' | 'expired' | 'not-started' | 'blocked' | 'payment-required' | 'not-found'
 
 interface ScanCard {
   found: boolean
@@ -18,6 +18,7 @@ interface ScanCard {
   expiryDate?: string
   sessionsPurchased?: number
   sessionsRemaining?: number
+  remainingAmount?: number
   errorMsg?: string
 }
 
@@ -93,12 +94,14 @@ export default function MoreScanPanel({ autoFocus = true, title, onClose }: { au
     if (ar) return ({
       attended: 'تم تسجيل الحضور وخصم حصة', already: 'مسجّل حضوره النهاردة بالفعل — مفيش خصم',
       'no-sessions': 'خلصت الحصص — لازم يجدد', expired: 'الاشتراك منتهي — لازم يجدد',
-      'not-started': 'الاشتراك لسه ما بدأش', blocked: 'الاشتراك موقوف', 'not-found': 'مفيش اشتراك بالرقم ده',
+      'not-started': 'الاشتراك لسه ما بدأش', blocked: 'الاشتراك موقوف',
+      'payment-required': 'مقفول — لازم يدفع الباقي عشان يكمل', 'not-found': 'مفيش اشتراك بالرقم ده',
     } as Record<Status, string>)[s]
     return ({
       attended: 'Checked in — 1 session deducted', already: 'Already attended today — no deduction',
       'no-sessions': 'No sessions left', expired: 'Expired', 'not-started': 'Not started yet',
-      blocked: 'Blocked', 'not-found': 'No subscription for this phone',
+      blocked: 'Blocked', 'payment-required': 'Locked — remaining must be paid to continue',
+      'not-found': 'No subscription for this phone',
     } as Record<Status, string>)[s]
   }
 
@@ -171,6 +174,13 @@ export default function MoreScanPanel({ autoFocus = true, title, onClose }: { au
                 </svg>
                 {statusText(card.status)}
               </div>
+              {card.status === 'payment-required' && (
+                <p className="mb-3 text-sm font-bold text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-800 rounded-lg px-3 py-2">
+                  {ar
+                    ? `استخدم الحصص المسموحة قبل الدفع — الباقي عليه: ${Math.round(Number(card.remainingAmount) || 0)}`
+                    : `Used all sessions allowed before payment — remaining due: ${Math.round(Number(card.remainingAmount) || 0)}`}
+                </p>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-center">
                   <p className="text-xs text-gray-500 dark:text-gray-400">{ar ? 'الحصص المتبقية' : 'Sessions left'}</p>
