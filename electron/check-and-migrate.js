@@ -636,6 +636,11 @@ function migrateDatabase(dbPath) {
       // 💆 مواعيد تشغيل الاسبا — يمنع الحجز بره الميعاد (السيستم + الأبليكشن)
       { col: 'spaOpenTime',                def: "TEXT DEFAULT '10:00'" },
       { col: 'spaCloseTime',               def: "TEXT DEFAULT '22:00'" },
+      // 📍 الحضور الذكي (FB Team) — مقفول افتراضياً، الطريقة القديمة شغالة زي ما هي
+      { col: 'smartAttendanceEnabled',     def: 'INTEGER NOT NULL DEFAULT 0' },
+      { col: 'smartAttendanceRadiusM',     def: 'INTEGER NOT NULL DEFAULT 150' },
+      { col: 'branchLat',                  def: 'REAL' },
+      { col: 'branchLng',                  def: 'REAL' },
     ];
     for (const { col, def } of settingsCols) {
       if (!columnExists(db, 'SystemSettings', col)) {

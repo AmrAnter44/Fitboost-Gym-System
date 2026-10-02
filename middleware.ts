@@ -121,7 +121,7 @@ export function middleware(request: NextRequest) {
   ].join('; ')
   response.headers.set('Content-Security-Policy', cspDirectives)
 
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()')
+  response.headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(), interest-cohort=()')
 
   return response
 }

@@ -28,7 +28,7 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
         if (!linked) return getCachedLicenseStatus()
       }
 
-      const data = await gw<{ system_license: unknown; gymName?: string; branchName?: string; cloudBackup?: boolean; remoteSupport?: boolean }>(
+      const data = await gw<{ system_license: unknown; gymName?: string; branchName?: string; cloudBackup?: boolean; remoteSupport?: boolean; branchLocation?: { lat: number; lng: number; attendanceRadiusM?: number } }>(
         'license',
         { timeoutMs: 3000 }
       )
@@ -51,6 +51,14 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
         const { applyRemoteCloudBackup } = await import('./cloudBackup')
         await applyRemoteCloudBackup(data.cloudBackup).catch((e) =>
           console.error('applyRemoteCloudBackup:', e?.message || e)
+        )
+      }
+
+      // 📍 مكان الفرع (مصدره Control) — للحضور الذكي من FB Team
+      if (data?.branchLocation) {
+        const { applyRemoteBranchLocation } = await import('./smartAttendance')
+        await applyRemoteBranchLocation(data.branchLocation).catch((e) =>
+          console.error('applyRemoteBranchLocation:', e?.message || e)
         )
       }
 

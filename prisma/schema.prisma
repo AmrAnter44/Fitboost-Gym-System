@@ -1260,6 +1260,13 @@ model SystemSettings {
   //  Anti buddy-punching: لما ON، الموظف لازم يتصور سيلفي مع كل سكان
   requireSelfieOnCheckIn  Boolean   @default(false)
 
+  // 📍 طريقة الحضور الذكية (FB Team): الموظف بيسجّل من موبايله وهو جوه نطاق الفرع.
+  //    الطريقة القديمة (الكود/الكارت) فضلت زي ما هي — دي إضافة بتتقفل وتتفتح من الإعدادات.
+  smartAttendanceEnabled  Boolean   @default(false)
+  smartAttendanceRadiusM  Int       @default(150)   // نطاق الحضور بالمتر (بيتزامن من Control)
+  branchLat               Float?                    // مكان الفرع (مصدره Control — branch_locations)
+  branchLng               Float?
+
   // ☁️ النسخ الاحتياطي السحابي (Backblaze B2) — بيرفع نسخة يومية مضغوطة لحساب الأونر
   cloudBackupEnabled    Boolean   @default(false)  // تفعيل/إقفال الرفع السحابي من السيستم
   lastCloudBackupAt     DateTime?                   // آخر رفعة ناجحة

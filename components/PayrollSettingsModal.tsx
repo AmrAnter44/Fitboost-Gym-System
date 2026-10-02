@@ -13,6 +13,7 @@ interface PayrollFields {
   payrollSuggestedLatePerMinute: number
   payrollMonthEndDay: number
   requireSelfieOnCheckIn: boolean
+  smartAttendanceEnabled: boolean
 }
 
 const DEFAULTS: PayrollFields = {
@@ -21,6 +22,7 @@ const DEFAULTS: PayrollFields = {
   payrollSuggestedLatePerMinute: 2,
   payrollMonthEndDay: 28,
   requireSelfieOnCheckIn: false,
+  smartAttendanceEnabled: false,
 }
 
 // إعدادات الرواتب — منقولة من صفحة الإعدادات لصفحة الموظفين
@@ -32,6 +34,7 @@ export default function PayrollSettingsModal({ onClose }: { onClose: () => void 
   const [fields, setFields] = useState<PayrollFields>(DEFAULTS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [hasBranchLocation, setHasBranchLocation] = useState(false)
 
   useEffect(() => {
     fetch('/api/settings/services')
@@ -44,7 +47,9 @@ export default function PayrollSettingsModal({ onClose }: { onClose: () => void 
             payrollSuggestedLatePerMinute: d.payrollSuggestedLatePerMinute ?? DEFAULTS.payrollSuggestedLatePerMinute,
             payrollMonthEndDay: d.payrollMonthEndDay ?? DEFAULTS.payrollMonthEndDay,
             requireSelfieOnCheckIn: d.requireSelfieOnCheckIn ?? DEFAULTS.requireSelfieOnCheckIn,
+            smartAttendanceEnabled: d.smartAttendanceEnabled ?? DEFAULTS.smartAttendanceEnabled,
           })
+          setHasBranchLocation(d.branchLat != null && d.branchLng != null)
         }
       })
       .finally(() => setLoading(false))
@@ -161,6 +166,39 @@ export default function PayrollSettingsModal({ onClose }: { onClose: () => void 
                 >
                   <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-300 mt-1 ${
                     fields.requireSelfieOnCheckIn ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'
+                  }`} />
+                </button>
+              </div>
+            </div>
+
+            {/* 📍 طريقة الحضور الذكية (FB Team) — إضافة؛ الطريقة القديمة شغالة زي ما هي */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <label className="block text-sm font-bold text-gray-800 dark:text-gray-100 mb-1">
+                    📍 {locale === 'ar' ? 'طريقة الحضور الذكية' : 'Smart attendance'}
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {locale === 'ar'
+                      ? 'الموظف يسجّل حضوره وانصرافه من أبلكيشن FB Team وهو جوه الجيم (اللوكيشن بيتأكد منه، واللوكيشن المزيّف بيترفض). السيلفي حسب الإعداد اللي فوق. الطريقة القديمة بالكود شغالة عادي.'
+                      : 'Staff check in/out from the FB Team app while inside the gym (location is verified; fake GPS is rejected). Selfie follows the setting above. The old code method keeps working.'}
+                  </p>
+                  <p className={`text-xs mt-1.5 font-semibold ${hasBranchLocation ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                    {hasBranchLocation
+                      ? (locale === 'ar' ? '✓ مكان الفرع متحدد' : '✓ Branch location is set')
+                      : (locale === 'ar' ? '⚠ مكان الفرع لسه متحددش — من صفحة «يومي» اضغط «حدّد مكان الفرع» وإنت في الجيم' : '⚠ Branch location not set — open “My Day” and tap “Set branch location” while at the gym')}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => set('smartAttendanceEnabled', !fields.smartAttendanceEnabled)}
+                  aria-pressed={fields.smartAttendanceEnabled}
+                  className={`relative inline-flex h-8 w-14 shrink-0 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+                    fields.smartAttendanceEnabled ? 'bg-emerald-600' : 'bg-gray-300 dark:bg-gray-600'
+                  } cursor-pointer`}
+                >
+                  <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-300 mt-1 ${
+                    fields.smartAttendanceEnabled ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'
                   }`} />
                 </button>
               </div>

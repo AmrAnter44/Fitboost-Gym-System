@@ -108,6 +108,7 @@ async function updateSettings(request: Request) {
       'payrollMonthEndDay',
       'payrollSuggestedLatePerMinute',
       'requireSelfieOnCheckIn', //  Anti buddy-punching
+      'smartAttendanceEnabled', // 📍 الحضور الذكي (FB Team)
       'salesCommissionBySourceEnabled', // 💰 تفعيل ميزة عمولة السيلز بالمصدر
       'salesCommissionSources', // 💰 مصادر عمولة السيلز (JSON)
     ]

@@ -215,6 +215,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       title: t('nav.management'),
       links: [
         { href: '/staff', label: t('nav.staff'), icon: NavIcons.staff, permission: 'canViewStaff' as keyof Permissions },
+        // 📅 «يومي» — شيفتي، حضوري الذكي، مهامي، فلوسي (نفس الصفحة اللي في أبلكيشن FB Team)
+        ...(user?.staffId || user?.role === 'MANAGER' ? [
+          { href: '/me', label: t('me.myDay'), icon: NavIcons.myPayslips, permission: null },
+        ] : []),
         ...(user?.staffId && user?.role !== 'OWNER' && user?.role !== 'ADMIN' ? [
           { href: '/my-payslips', label: locale === 'ar' ? 'مرتباتي' : 'My Payslips', icon: NavIcons.myPayslips, permission: null },
         ] : []),
