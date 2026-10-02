@@ -402,6 +402,10 @@ function migrateDatabase(dbPath) {
     if (!columnExists(db, 'Member', 'allowedCheckInEnd')) {
       db.prepare('ALTER TABLE Member ADD COLUMN allowedCheckInEnd TEXT').run();
     }
+    // 🎂 Member.birthdayGreetYear — تهنئة عيد الميلاد مرة واحدة في السنة
+    if (!columnExists(db, 'Member', 'birthdayGreetYear')) {
+      db.prepare('ALTER TABLE Member ADD COLUMN birthdayGreetYear INTEGER').run();
+    }
 
     // 🕐 Offer.allowedCheckInStart/End — ساعات الدخول المسموح بها (template للعرض)
     if (tableExists(db, 'Offer') && !columnExists(db, 'Offer', 'allowedCheckInStart')) {

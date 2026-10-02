@@ -44,6 +44,7 @@ model Member {
   points            Int          @default(0)
   notes             String?
   pushToken         String?      // Expo push notification token
+  birthdayGreetYear Int?         // 🎂 آخر سنة اتبعتله فيها إشعار تهنئة عيد الميلاد (مرة في السنة)
   termsAcceptedAt   DateTime?    // 📜 وقت موافقة العضو على الشروط والأحكام في التطبيق
   isActive          Boolean      @default(true)
   isFrozen          Boolean      @default(false)

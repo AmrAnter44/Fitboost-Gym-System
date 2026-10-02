@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useState } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { AdminDateProvider } from '../contexts/AdminDateContext'
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext'
 import { ToastProvider } from '../contexts/ToastContext'
@@ -41,6 +41,21 @@ function LayoutContent({ children }: { children: ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const { t, locale } = useLanguage()
   const { isEmbedded } = useTabs()
+
+  // 🎂 فحص أعياد الميلاد (نقاط + تهنئة على الأبلكيشن) مرة في اليوم من أي صفحة —
+  // مش بس الداشبورد، عشان الريسبشن/الكوتش اللي بيفتحوا على صفحات تانية.
+  // السيرفر نفسه بيمنع التكرار في نفس اليوم.
+  useEffect(() => {
+    if (isEmbedded || typeof window === 'undefined') return
+    const key = 'birthdayCheck:' + new Date().toDateString()
+    try { if (sessionStorage.getItem(key)) return } catch {}
+    const t = setTimeout(() => {
+      fetch('/api/auto-birthday-check')
+        .then(r => { if (r.ok) try { sessionStorage.setItem(key, '1') } catch {} })
+        .catch(() => {})
+    }, 4000)
+    return () => clearTimeout(t)
+  }, [isEmbedded])
 
   return (
     <>
