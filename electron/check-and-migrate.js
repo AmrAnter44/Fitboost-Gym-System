@@ -950,6 +950,26 @@ function migrateDatabase(dbPath) {
       `);
     }
 
+    // 📣 GymEvent — إيفنتات الجيم للأبلكيشن
+    if (!tableExists(db, 'GymEvent')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS GymEvent (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT,
+          startsAt DATETIME NOT NULL,
+          endsAt DATETIME,
+          isActive INTEGER NOT NULL DEFAULT 1,
+          notifiedAt DATETIME,
+          notifiedCount INTEGER,
+          createdBy TEXT,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS GymEvent_startsAt_idx ON GymEvent(startsAt);
+      `);
+    }
+
     // 📱 StaffPushToken — إشعارات أبلكيشن FB Team
     if (!tableExists(db, 'StaffPushToken')) {
       db.exec(`

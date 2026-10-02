@@ -2127,6 +2127,18 @@ export default function SettingsPage() {
                     </svg>
                   </div>
                 </Link>
+                <Link href="/settings/events" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 hover:ring-primary-300 dark:hover:ring-primary-700 transition-colors duration-200 group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 flex items-center justify-center flex-shrink-0 text-xl">📣</div>
+                    <div className="flex-1">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{tr('الإيفنتات', 'Events')}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{tr('إيفنت يظهر في أبلكيشن الأعضاء + إشعار لكل أعضاء الفرع', 'Show an event in the member app + notify all members')}</p>
+                    </div>
+                    <svg {...stroke} className={`w-5 h-5 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors ${direction === 'rtl' ? 'rotate-180' : ''}`} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </div>
+                </Link>
                 <Link href="/settings/system" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 hover:ring-primary-300 dark:hover:ring-primary-700 transition-colors duration-200 group">
                   <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">

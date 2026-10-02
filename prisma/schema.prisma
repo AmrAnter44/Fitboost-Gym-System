@@ -1748,3 +1748,21 @@ model StaffPushToken {
 
   @@index([userId])
 }
+
+// 📣 إيفنتات الجيم — بتتعمل من الإعدادات، بتظهر للأعضاء في الأبلكيشن (تحت الكارنيه)
+// ومع النشر ممكن يتبعت إشعار لكل أعضاء الفرع اللي عندهم الأبلكيشن
+model GymEvent {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  isActive    Boolean   @default(true)
+  notifiedAt  DateTime?
+  notifiedCount Int?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([startsAt])
+}
