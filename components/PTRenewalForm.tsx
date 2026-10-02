@@ -76,6 +76,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
     expiryDate: string
     paymentMethod: string | PaymentMethod[]
     staffName: string
+    packageName: string //  اسم الباقة المختارة — بيتحفظ في الإيصال
   }>({
     phone: session.phone,
     sessionsPurchased: 0,
@@ -87,6 +88,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
     expiryDate: '',
     paymentMethod: 'cash',
     staffName: user?.name || '',
+    packageName: '',
   })
   const [loading, setLoading] = useState(false)
 
@@ -166,6 +168,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
       ...prev,
       sessionsPurchased: pkg.sessions,
       totalPrice: pkg.price,
+      packageName: pkg.name || '',
       expiryDate: calculatedExpiry || prev.expiryDate
     }))
 

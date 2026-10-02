@@ -74,6 +74,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
     expiryDate: string
     paymentMethod: string | PaymentMethod[]
     staffName: string
+    packageName: string //  اسم الباقة المختارة — بيتحفظ في الإيصال
   }>({
     phone: session.phone,
     sessionsPurchased: 0,
@@ -83,6 +84,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
     expiryDate: '',
     paymentMethod: 'cash',
     staffName: user?.name || '',
+    packageName: '',
   })
   const [loading, setLoading] = useState(false)
 
@@ -161,6 +163,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
       ...prev,
       sessionsPurchased: pkg.sessions || 0,
       totalPrice: pkg.price || 0,
+      packageName: pkg.name || '',
       expiryDate: calculatedExpiry || prev.expiryDate
     }))
 

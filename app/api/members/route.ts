@@ -528,9 +528,11 @@ export async function POST(request: Request) {
     //  entriesOnly = باقة بعدد دخلات بس (من غير مدة) → مفيش انتهاء بالوقت، الدخول يتمنع بالدخلات بس
     let remainingCheckIns: number | null = null
     let entriesOnly = false
+    let offerName: string | null = null //  📦 اسم الباقة — بيتحفظ في الإيصال (packageName) ويتطبع
     if (offerId) {
       try {
-        const selectedOffer = await prisma.offer.findUnique({ where: { id: offerId }, select: { maxCheckIns: true, duration: true } as any })
+        const selectedOffer = await prisma.offer.findUnique({ where: { id: offerId }, select: { maxCheckIns: true, duration: true, name: true } as any })
+        offerName = ((selectedOffer as any)?.name || '').trim() || null
         const mc = Number((selectedOffer as any)?.maxCheckIns) || 0
         const dur = Number((selectedOffer as any)?.duration) || 0
         remainingCheckIns = mc > 0 ? mc : null
@@ -632,6 +634,7 @@ export async function POST(request: Request) {
           memberNumber: cleanMemberNumber,
           memberName: name,
           phone: phone,
+          ...(offerName ? { packageName: offerName } : {}), //  📦 اسم الباقة
           nationalId: nationalId || null,
           birthDate: birthDate || null,
           notes: notes || null,

@@ -135,9 +135,11 @@ export async function POST(request: Request) {
     //  عدد حصص الدخول من الباقة الجديدة (باقة محدودة الدخلات)
     let renewOfferMaxCheckIns = 0
     let renewEntriesOnly = false
+    let renewOfferName: string | null = null //  📦 اسم الباقة — بيتحفظ في الإيصال (packageName) ويتطبع
     if (offerId) {
       try {
-        const renewOffer = await prisma.offer.findUnique({ where: { id: offerId }, select: { maxCheckIns: true, duration: true } as any })
+        const renewOffer = await prisma.offer.findUnique({ where: { id: offerId }, select: { maxCheckIns: true, duration: true, name: true } as any })
+        renewOfferName = ((renewOffer as any)?.name || '').trim() || null
         renewOfferMaxCheckIns = Number((renewOffer as any)?.maxCheckIns) || 0
         const renewDur = Number((renewOffer as any)?.duration) || 0
         renewEntriesOnly = renewOfferMaxCheckIns > 0 && renewDur <= 0
@@ -236,6 +238,7 @@ export async function POST(request: Request) {
                 memberNumber: member.memberNumber,
                 memberName: member.name,
                 phone: member.phone,
+                ...(renewOfferName ? { packageName: renewOfferName } : {}), //  📦 اسم الباقة
                 nationalId: (member as any).nationalId || null,
                 birthDate: (member as any).birthDate || null,
                 notes: notes || member.notes || null,
@@ -370,6 +373,7 @@ export async function POST(request: Request) {
               memberNumber: member.memberNumber,
               memberName: member.name,
               phone: member.phone,
+              ...(renewOfferName ? { packageName: renewOfferName } : {}), //  📦 اسم الباقة
               nationalId: (member as any).nationalId || null,
               birthDate: (member as any).birthDate || null,
               notes: notes || member.notes || null,
