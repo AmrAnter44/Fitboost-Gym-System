@@ -1730,3 +1730,16 @@ model GateEvent {
   @@index([gateId])
   @@index([allowed])
 }
+
+// 📱 توكنات إشعارات أبلكيشن FB Team (موظف ممكن يبقى عنده أكتر من موبايل)
+// origin = لينك السيستم اللي الموظف فاتحه منه — الأبلكيشن بيفتح الفرع الصح لما يضغط على الإشعار
+model StaffPushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  origin    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}

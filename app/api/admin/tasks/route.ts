@@ -49,6 +49,7 @@ export async function POST(request: Request) {
         assignments: { create: users.map((u) => ({ userId: u.id })) },
       },
     })
+    ;(await import('../../../../lib/teamPush')).pushTaskAssigned(users.map((u) => u.id), title)
 
     return NextResponse.json({ task, assignedCount: users.length }, { status: 201 })
   } catch (error: any) {

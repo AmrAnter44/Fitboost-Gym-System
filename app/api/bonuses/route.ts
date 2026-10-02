@@ -67,6 +67,7 @@ export async function POST(request: Request) {
     const bonus = await prisma.bonus.create({
       data: { staffId, amount: finalAmount, reason, month, year, notes: finalNotes },
     })
+    ;(await import('../../../lib/teamPush')).pushMoney([staffId], 'bonus', finalAmount, reason)
     return NextResponse.json(bonus, { status: 201 })
   } catch (e: any) {
     if (e.message === 'Unauthorized') return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })

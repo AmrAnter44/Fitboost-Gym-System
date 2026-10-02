@@ -19,6 +19,7 @@ export async function POST(request: Request) {
         staffId, amount, reason, month, year, notes: notes || null,
       })),
     })
+    ;(await import('../../../../lib/teamPush')).pushMoney(staffIds, 'bonus', Number(amount), reason)
     return NextResponse.json({ count: result.count }, { status: 201 })
   } catch (e: any) {
     if (e.message === 'Unauthorized') return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })

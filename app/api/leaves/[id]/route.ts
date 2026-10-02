@@ -29,7 +29,11 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
     if (body.isPaid !== undefined) data.isPaid = body.isPaid
     if (body.reason !== undefined) data.reason = body.reason
     if (body.status !== undefined) data.status = body.status
+    const before = body.status !== undefined ? await prisma.leave.findUnique({ where: { id }, select: { status: true } }) : null
     const updated = await prisma.leave.update({ where: { id }, data })
+    if (before && before.status !== updated.status) {
+      ;(await import('../../../../lib/teamPush')).pushLeaveDecision(updated.staffId, updated.status)
+    }
     return NextResponse.json(updated)
   } catch (e: any) {
     if (e.message === 'Unauthorized') return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })

@@ -55,9 +55,12 @@ export default function LoginPage() {
       if (response.ok) {
         // Redirect user based on role
         //  السيلز يروح على الداشبورد عشان يشوف تارجت المكالمات وتقدّمه
-        const redirectUrl = data.user?.role === 'COACH'
-          ? '/coach'
-          : (data.user?.isSales ? '/' : '/members')
+        //  📱 جوه أبلكيشن FB Team → «يومي» على طول
+        const redirectUrl = /FBTeam\//.test(navigator.userAgent)
+          ? '/me'
+          : data.user?.role === 'COACH'
+            ? '/coach'
+            : (data.user?.isSales ? '/' : '/members')
 
         // Use window.location instead of router.push for full reload
         // This ensures permissions are reloaded in the Navbar

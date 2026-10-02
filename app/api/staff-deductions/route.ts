@@ -86,6 +86,7 @@ export async function POST(request: Request) {
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 
+    ;(await import('../../../lib/teamPush')).pushMoney([staffId], 'deduction', finalAmount, reason)
     return NextResponse.json(deduction, { status: 201 })
   } catch (error: any) {
     if (error.message === 'Unauthorized') {

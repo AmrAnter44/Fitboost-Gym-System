@@ -12,6 +12,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     const body = await request.json().catch(() => ({}))
     const newStatus = body?.reject ? 'rejected' : 'approved'
     const updated = await prisma.leave.update({ where: { id }, data: { status: newStatus } })
+    ;(await import('../../../../../lib/teamPush')).pushLeaveDecision(updated.staffId, newStatus)
     return NextResponse.json(updated)
   } catch (e: any) {
     if (e.message === 'Unauthorized') return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })

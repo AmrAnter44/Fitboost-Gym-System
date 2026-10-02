@@ -946,6 +946,22 @@ function migrateDatabase(dbPath) {
       `);
     }
 
+    // 📱 StaffPushToken — إشعارات أبلكيشن FB Team
+    if (!tableExists(db, 'StaffPushToken')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS StaffPushToken (
+          id TEXT PRIMARY KEY,
+          userId TEXT NOT NULL,
+          token TEXT NOT NULL,
+          origin TEXT NOT NULL,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS StaffPushToken_token_key ON StaffPushToken(token);
+        CREATE INDEX IF NOT EXISTS StaffPushToken_userId_idx ON StaffPushToken(userId);
+      `);
+    }
+
     // MaintenanceRecord — صيانة الأجهزة
     if (!tableExists(db, 'MaintenanceRecord')) {
       db.exec(`
