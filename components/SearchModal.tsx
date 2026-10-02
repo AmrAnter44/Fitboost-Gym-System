@@ -176,7 +176,7 @@ const StatusIcon = ({ name, className = 'w-4 h-4' }: { name: string; className?:
 export default function SearchModal() {
   const router = useRouter()
   const { isOpen, searchValue, closeSearch } = useSearch()
-  const { t, direction, locale } = useLanguage()
+  const { t, tr, direction, locale } = useLanguage()
   const { settings } = useServiceSettings()
 
   const getPositionLabel = (position: string | null | undefined): string => {
@@ -554,7 +554,7 @@ export default function SearchModal() {
         playWarningSound()
         setAttendanceMessage({
           type: 'error',
-          text: data.error || 'تم تسجيل الحضور مسبقاً اليوم '
+          text: data.error || tr('تم تسجيل الحضور مسبقاً اليوم', 'Already checked in today')
         })
         setTimeout(() => setAttendanceMessage(null), 4000)
       } else if (response.status === 403) {
@@ -562,7 +562,7 @@ export default function SearchModal() {
         playBannedHornSound()
         setAttendanceMessage({
           type: 'error',
-          text: data.error || 'هذا العضو محظور '
+          text: data.error || tr('هذا العضو محظور', 'This member is banned')
         })
         setTimeout(() => setAttendanceMessage(null), 5000)
       } else if (!response.ok) {
@@ -570,7 +570,7 @@ export default function SearchModal() {
         playAlarmSound()
         setAttendanceMessage({
           type: 'error',
-          text: data.error || 'حدث خطأ'
+          text: data.error || tr('حدث خطأ', 'Something went wrong')
         })
         setTimeout(() => setAttendanceMessage(null), 4000)
       }
@@ -594,7 +594,7 @@ export default function SearchModal() {
         if (!silent) playAlarmSound()
         setAttendanceMessage({
           type: 'error',
-          text: ' رقم الموظف يجب أن يكون 9 أرقام (مثال: 100000022)'
+          text: tr('رقم الموظف يجب أن يكون 9 أرقام (مثال: 100000022)', 'Staff number must be 9 digits (e.g. 100000022)')
         })
         setMemberId('')
         setTimeout(() => setAttendanceMessage(null), 4000)
@@ -628,7 +628,7 @@ export default function SearchModal() {
           if (!silent) playAlarmSound()
           setAttendanceMessage({
             type: 'error',
-            text: data.error || 'فشل تسجيل الحضور'
+            text: data.error || tr('فشل تسجيل الحضور', 'Check-in failed')
           })
           setTimeout(() => setAttendanceMessage(null), 5000)
         }
@@ -637,7 +637,7 @@ export default function SearchModal() {
         if (!silent) playAlarmSound()
         setAttendanceMessage({
           type: 'error',
-          text: 'حدث خطأ في تسجيل الحضور'
+          text: tr('حدث خطأ في تسجيل الحضور', 'Error recording attendance')
         })
         setTimeout(() => setAttendanceMessage(null), 5000)
       } finally {
@@ -743,7 +743,7 @@ export default function SearchModal() {
       if (!silent) playAlarmSound()
       setAttendanceMessage({
         type: 'error',
-        text: 'يرجى إدخال الاسم أو رقم الهاتف للبحث'
+        text: tr('يرجى إدخال الاسم أو رقم الهاتف للبحث', 'Enter a name or phone number to search')
       })
       setTimeout(() => setAttendanceMessage(null), 3000)
       return

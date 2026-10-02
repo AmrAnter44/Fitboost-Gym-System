@@ -129,7 +129,7 @@ interface MoreSubscription {
 
 export default function CoachDashboard() {
   const router = useRouter()
-  const { t, locale } = useLanguage()
+  const { t, tr, locale } = useLanguage()
   const { addToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [myPTs, setMyPTs] = useState<PTData[]>([])
@@ -182,16 +182,16 @@ export default function CoachDashboard() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setSessionMessage({ type: 'error', text: data.error || 'فشل الخصم' })
+        setSessionMessage({ type: 'error', text: data.error || tr('فشل الخصم', 'Deduction failed') })
       } else {
-        setSessionMessage({ type: 'success', text: data.message || 'تم الخصم' })
+        setSessionMessage({ type: 'success', text: data.message || tr('تم الخصم', 'Deducted') })
         //  حدّث الرصيد محليًا
         setMyPTs(prev => prev.map(p => p.ptNumber === ptServicePopup.pt!.ptNumber
           ? { ...p, inBodyScans: data.inBodyScans ?? p.inBodyScans, freeAssessmentSessions: data.freeAssessmentSessions ?? p.freeAssessmentSessions }
           : p))
       }
     } catch {
-      setSessionMessage({ type: 'error', text: 'حدث خطأ في الاتصال' })
+      setSessionMessage({ type: 'error', text: tr('حدث خطأ في الاتصال', 'Connection error') })
     } finally {
       setPtServicePopup({ show: false, pt: null, service: 'inBody', step: 'confirm' })
       setTimeout(() => setSessionMessage(null), 3000)
@@ -372,21 +372,21 @@ export default function CoachDashboard() {
       ;(data.renewals || []).forEach((r: RenewalNotification) => {
         const id = `renewal-${r.type}-${r.subscriptionId}`
         if (seenIds.has(id)) return
-        addToast(`${r.memberName} جدّد اشتراك ${subTypeName(r.type)}`, 'success', 0)
+        addToast(locale === 'ar' ? `${r.memberName} جدّد اشتراك ${subTypeName(r.type)}` : `${r.memberName} renewed ${subTypeName(r.type)}`, 'success', 0)
         newlySeen.push(id)
       })
       //  Expiring soon
       ;(data.expiringSoon || []).forEach((e: ExpiringNotification) => {
         const id = `expiring-${e.type}-${e.subscriptionId}`
         if (seenIds.has(id)) return
-        addToast(`${e.memberName} — اشتراك ${subTypeName(e.type)} ينتهي خلال ${e.daysLeft} يوم`, 'warning', 0)
+        addToast(locale === 'ar' ? `${e.memberName} — اشتراك ${subTypeName(e.type)} ينتهي خلال ${e.daysLeft} يوم` : `${e.memberName} — ${subTypeName(e.type)} expires in ${e.daysLeft} days`, 'warning', 0)
         newlySeen.push(id)
       })
       //  Half-time with balance
       ;(data.halfTimeWithBalance || []).forEach((h: HalfTimeNotification) => {
         const id = `halftime-${h.type}-${h.subscriptionId}`
         if (seenIds.has(id)) return
-        addToast(`${h.memberName} — استخدم نص جلسات ${subTypeName(h.type)} وعليه ${Math.round(h.remainingAmount)} ج`, 'warning', 0)
+        addToast(locale === 'ar' ? `${h.memberName} — استخدم نص جلسات ${subTypeName(h.type)} وعليه ${Math.round(h.remainingAmount)} ج` : `${h.memberName} — used half of ${subTypeName(h.type)} sessions with ${Math.round(h.remainingAmount)} EGP still due`, 'warning', 0)
         newlySeen.push(id)
       })
       //  New assignments — اللي بنبني عليها التنبيه
@@ -523,14 +523,14 @@ export default function CoachDashboard() {
           ))
           setShowSignatureModal(false)
           setSelectedPTForSession(null)
-          setSessionMessage({ type: 'success', text: `تم تسجيل حصة ${selectedPTForSession.clientName} بنجاح ` })
+          setSessionMessage({ type: 'success', text: tr(`تم تسجيل حصة ${selectedPTForSession.clientName} بنجاح`, `Session recorded for ${selectedPTForSession.clientName}`) })
           setTimeout(() => setSessionMessage(null), 4000)
         } else {
-          setSessionMessage({ type: 'error', text: data.error || 'فشل تسجيل الحصة' })
+          setSessionMessage({ type: 'error', text: data.error || tr('فشل تسجيل الحصة', 'Failed to record session') })
           setShowSignatureModal(false)
         }
       } catch {
-        setSessionMessage({ type: 'error', text: 'حدث خطأ في الاتصال' })
+        setSessionMessage({ type: 'error', text: tr('حدث خطأ في الاتصال', 'Connection error') })
         setShowSignatureModal(false)
       } finally {
         setRegisteringSession(false)
@@ -558,14 +558,14 @@ export default function CoachDashboard() {
           ))
           setShowSignatureModal(false)
           setSelectedMoreForSession(null)
-          setSessionMessage({ type: 'success', text: `تم تسجيل حصة ${selectedMoreForSession.clientName} بنجاح ` })
+          setSessionMessage({ type: 'success', text: tr(`تم تسجيل حصة ${selectedMoreForSession.clientName} بنجاح`, `Session recorded for ${selectedMoreForSession.clientName}`) })
           setTimeout(() => setSessionMessage(null), 4000)
         } else {
-          setSessionMessage({ type: 'error', text: data.error || 'فشل تسجيل الحصة' })
+          setSessionMessage({ type: 'error', text: data.error || tr('فشل تسجيل الحصة', 'Failed to record session') })
           setShowSignatureModal(false)
         }
       } catch {
-        setSessionMessage({ type: 'error', text: 'حدث خطأ في الاتصال' })
+        setSessionMessage({ type: 'error', text: tr('حدث خطأ في الاتصال', 'Connection error') })
         setShowSignatureModal(false)
       } finally {
         setRegisteringSession(false)
@@ -899,7 +899,7 @@ export default function CoachDashboard() {
                       </div>
                       <div className="text-3xl sm:text-4xl font-extrabold mt-1">
                         {targetInfo.collectedThisMonth.toLocaleString()}
-                        <span className="text-base sm:text-lg font-bold opacity-80 ms-1">/ {targetInfo.coachTarget.toLocaleString()} ج</span>
+                        <span className="text-base sm:text-lg font-bold opacity-80 ms-1">/ {targetInfo.coachTarget.toLocaleString()} {tr('ج', 'EGP')}</span>
                       </div>
                       <div className="text-xs opacity-85 mt-1">
                         {locale === 'ar' ? `${targetInfo.commissionsCount} عملية هذا الشهر` : `${targetInfo.commissionsCount} commissions this month`}
@@ -1497,8 +1497,8 @@ export default function CoachDashboard() {
       {/* SignaturePad Modal */}
       {showSignatureModal && (selectedPTForSession || selectedMoreForSession) && (
         <SignaturePad
-          title={`تسجيل حصة - ${(selectedPTForSession || selectedMoreForSession)!.clientName}`}
-          subtitle={`الحصص المتبقية: ${(selectedPTForSession || selectedMoreForSession)!.sessionsRemaining} من ${(selectedPTForSession || selectedMoreForSession)!.sessionsPurchased}`}
+          title={`${tr('تسجيل حصة', 'Record session')} - ${(selectedPTForSession || selectedMoreForSession)!.clientName}`}
+          subtitle={`${tr('الحصص المتبقية', 'Sessions left')}: ${(selectedPTForSession || selectedMoreForSession)!.sessionsRemaining} ${tr('من', 'of')} ${(selectedPTForSession || selectedMoreForSession)!.sessionsPurchased}`}
           onConfirm={handleSignatureConfirm}
           onCancel={() => {
             setShowSignatureModal(false)

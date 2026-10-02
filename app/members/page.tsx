@@ -113,7 +113,7 @@ function MembersPageContent() {
   //  عشان الأدمن/الأونر يشوفوا الأرقام عادي، والموظف اللي عليه القيد بس هو اللي تتخفي عنه.
   const hideMemberNumbers = permissions?.hideMemberNumbers === true
   const { customCreatedAt } = useAdminDate()
-  const { t, locale, direction } = useLanguage()
+  const { t, tr, locale, direction } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
@@ -141,7 +141,7 @@ function MembersPageContent() {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, gender }),
       })
-      if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'فشل الحفظ'); return }
+      if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || tr('فشل الحفظ', 'Save failed')); return }
       //  نشيل العضو من القائمة وننقص العدّاد
       setNoGenderList(prev => {
         const next = prev.filter(m => m.id !== id)
@@ -536,12 +536,12 @@ function MembersPageContent() {
       const errorMessage = (membersError as Error).message
 
       if (errorMessage === 'UNAUTHORIZED') {
-        toast.error('يجب تسجيل الدخول أولاً')
+        toast.error(tr('يجب تسجيل الدخول أولاً', 'Please log in first'))
         setTimeout(() => router.push('/login'), 2000)
       } else if (errorMessage === 'FORBIDDEN') {
-        toast.error('ليس لديك صلاحية عرض الأعضاء')
+        toast.error(tr('ليس لديك صلاحية عرض الأعضاء', "You don't have permission to view members"))
       } else {
-        toast.error(errorMessage || 'حدث خطأ أثناء جلب بيانات الأعضاء')
+        toast.error(errorMessage || tr('حدث خطأ أثناء جلب بيانات الأعضاء', 'Failed to load members'))
       }
     }
   }, [membersError, toast, router])
@@ -886,7 +886,7 @@ function MembersPageContent() {
 
   const handleAddBan = async () => {
     if (!banForm.phone && !banForm.nationalId) {
-      setBanError('يجب إدخال رقم الهاتف أو الرقم القومي على الأقل')
+      setBanError(tr('يجب إدخال رقم الهاتف أو الرقم القومي على الأقل', 'Enter a phone number or national ID'))
       return
     }
     setBanSubmitting(true)
@@ -903,10 +903,10 @@ function MembersPageContent() {
         fetchBannedMembers()
       } else {
         const err = await res.json()
-        setBanError(err.error || 'فشل الإضافة')
+        setBanError(err.error || tr('فشل الإضافة', 'Failed to add'))
       }
     } catch {
-      setBanError('خطأ في الاتصال')
+      setBanError(tr('خطأ في الاتصال', 'Connection error'))
     } finally {
       setBanSubmitting(false)
     }
@@ -942,17 +942,19 @@ function MembersPageContent() {
 
   // تصدير CSV
   const exportToCSV = () => {
-    const headers = ['رقم العضو', 'الاسم', 'الهاتف', 'الحالة', 'تاريخ البداية', 'تاريخ الانتهاء', 'المبلغ المدفوع', 'المبلغ المتبقي', 'مجمد']
+    const headers = locale === 'ar'
+      ? ['رقم العضو', 'الاسم', 'الهاتف', 'الحالة', 'تاريخ البداية', 'تاريخ الانتهاء', 'المبلغ المدفوع', 'المبلغ المتبقي', 'مجمد']
+      : ['Member #', 'Name', 'Phone', 'Status', 'Start date', 'End date', 'Paid', 'Remaining', 'Frozen']
     const rows = filteredMembers.map(m => [
       m.memberNumber ?? 'Other',
       m.name,
       m.phone,
-      m.isActive ? 'نشط' : 'منتهي',
+      m.isActive ? tr('نشط', 'Active') : tr('منتهي', 'Expired'),
       m.startDate || '',
       m.expiryDate || '',
       m.subscriptionPrice,
       m.remainingAmount,
-      m.isFrozen ? 'نعم' : 'لا',
+      m.isFrozen ? tr('نعم', 'Yes') : tr('لا', 'No'),
     ])
     const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
@@ -1885,9 +1887,9 @@ function MembersPageContent() {
                 <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5 text-green-600 dark:text-green-400" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
                 </svg>
-                <span>WhatsApp جماعي</span>
+                <span>{tr('WhatsApp جماعي', 'Bulk WhatsApp')}</span>
               </h3>
-              <button onClick={() => setShowBulkWA(false)} type="button" aria-label="إغلاق" className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg w-8 h-8 flex items-center justify-center transition-colors duration-200">
+              <button onClick={() => setShowBulkWA(false)} type="button" aria-label={tr('إغلاق', 'Close')} className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg w-8 h-8 flex items-center justify-center transition-colors duration-200">
                 <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                 </svg>
@@ -1895,8 +1897,8 @@ function MembersPageContent() {
             </div>
             <div className="p-6">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                سيتم إرسال رسالة لـ <strong className="text-green-600 dark:text-green-400">{filteredMembers.filter(m => m.phone).length}</strong> عضو.
-                استخدم <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs">{'{name}'}</code> لاسم العضو.
+                {tr('سيتم إرسال رسالة لـ', 'A message will be sent to')} <strong className="text-green-600 dark:text-green-400">{filteredMembers.filter(m => m.phone).length}</strong> {tr('عضو.', 'members.')}{' '}
+                {tr('استخدم', 'Use')} <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs">{'{name}'}</code> {tr('لاسم العضو.', "for the member's name.")}
               </p>
               <textarea
                 value={bulkWAMessage}
@@ -1910,7 +1912,7 @@ function MembersPageContent() {
                   <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                   </svg>
-                  <span>تم إرسال {bulkWASent} من {filteredMembers.filter(m => m.phone).length}...</span>
+                  <span>{tr('تم إرسال', 'Sent')} {bulkWASent} {tr('من', 'of')} {filteredMembers.filter(m => m.phone).length}...</span>
                 </div>
               )}
               <div className="flex gap-3">
@@ -1923,14 +1925,14 @@ function MembersPageContent() {
                   <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
                   </svg>
-                  <span>بدء الإرسال</span>
+                  <span>{tr('بدء الإرسال', 'Start sending')}</span>
                 </button>
                 <button
                   onClick={() => setShowBulkWA(false)}
                   type="button"
                   className="px-5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-bold transition-colors duration-200"
                 >
-                  إغلاق
+                  {tr('إغلاق', 'Close')}
                 </button>
               </div>
             </div>
@@ -2167,12 +2169,12 @@ function MembersPageContent() {
         const exportRemainingToExcel = async () => {
           const { default: ExcelJS } = await import('exceljs')
           const wb = new ExcelJS.Workbook()
-          const ws = wb.addWorksheet('البواقي', { views: [{ rightToLeft: true }] })
+          const ws = wb.addWorksheet(tr('البواقي', 'Remaining'), { views: [{ rightToLeft: locale === 'ar' }] })
           ws.columns = [
-            { header: 'الاسم', key: 'name', width: 30 },
-            { header: 'رقم الهاتف', key: 'phone', width: 18 },
-            { header: 'المبلغ الباقي', key: 'amount', width: 16 },
-            { header: 'الموعد', key: 'dueDate', width: 16 },
+            { header: tr('الاسم', 'Name'), key: 'name', width: 30 },
+            { header: tr('رقم الهاتف', 'Phone'), key: 'phone', width: 18 },
+            { header: tr('المبلغ الباقي', 'Remaining'), key: 'amount', width: 16 },
+            { header: tr('الموعد', 'Due date'), key: 'dueDate', width: 16 },
           ]
           ws.getRow(1).font = { bold: true }
           for (const m of [...overdue, ...dueToday, ...upcoming, ...noDate]) {
@@ -2183,7 +2185,7 @@ function MembersPageContent() {
               dueDate: m.remainingDueDate ? formatDateYMD(m.remainingDueDate) : '',
             })
           }
-          const totalRow = ws.addRow({ name: 'الإجمالي', amount: totalRemaining })
+          const totalRow = ws.addRow({ name: tr('الإجمالي', 'Total'), amount: totalRemaining })
           totalRow.font = { bold: true }
           const buffer = await wb.xlsx.writeBuffer()
           const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
@@ -2203,7 +2205,7 @@ function MembersPageContent() {
                 <span className="text-xl">{icon}</span>
                 <h3 className="text-lg font-bold dark:text-white">{title}</h3>
                 <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-bold px-2 py-0.5 rounded-full">{members.length}</span>
-                <span className="text-sm font-bold text-orange-600 dark:text-orange-400 mr-auto">{sectionTotal.toLocaleString()} ج.م</span>
+                <span className="text-sm font-bold text-orange-600 dark:text-orange-400 ms-auto">{sectionTotal.toLocaleString()} {tr('ج.م', 'EGP')}</span>
               </div>
               <div className="space-y-2">
                 {members.map(m => (
@@ -2216,15 +2218,15 @@ function MembersPageContent() {
                       <div className="font-bold text-gray-900 dark:text-gray-100 truncate">{m.name}</div>
                       <div className="text-sm text-gray-500 dark:text-gray-400 font-mono" dir="ltr">{m.phone}</div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <div className="font-bold text-orange-600 dark:text-orange-400">{m.remainingAmount.toLocaleString()} ج.م</div>
+                    <div className="text-end shrink-0">
+                      <div className="font-bold text-orange-600 dark:text-orange-400">{m.remainingAmount.toLocaleString()} {tr('ج.م', 'EGP')}</div>
                       {m.remainingDueDate
                         ? <div className="text-xs text-gray-500 dark:text-gray-400">{formatDateYMD(m.remainingDueDate)}</div>
-                        : <div className="text-xs text-gray-400">بدون موعد</div>
+                        : <div className="text-xs text-gray-400">{tr('بدون موعد', 'No due date')}</div>
                       }
                     </div>
                     <a href={`tel:${m.phone}`} onClick={e => e.stopPropagation()}
-                      className="text-2xl transition-colors duration-200 transition-transform shrink-0" title="اتصال"></a>
+                      className="text-2xl transition-colors duration-200 transition-transform shrink-0" title={tr('اتصال', 'Call')}></a>
                   </div>
                 ))}
               </div>
@@ -2239,10 +2241,10 @@ function MembersPageContent() {
               <div className="flex items-center gap-3 mb-3">
                 
                 <div>
-                  <div className="text-sm text-orange-700 dark:text-orange-300 font-medium">إجمالي البواقي</div>
-                  <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{totalRemaining.toLocaleString()} ج.م</div>
+                  <div className="text-sm text-orange-700 dark:text-orange-300 font-medium">{tr('إجمالي البواقي', 'Total remaining')}</div>
+                  <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{totalRemaining.toLocaleString()} {tr('ج.م', 'EGP')}</div>
                 </div>
-                <div className="mr-auto text-right text-sm text-gray-500 dark:text-gray-400">{withRemaining.length} عضو</div>
+                <div className="ms-auto text-end text-sm text-gray-500 dark:text-gray-400">{withRemaining.length} {tr('عضو', 'members')}</div>
                 {canExportRemaining && withRemaining.length > 0 && (
                   <button
                     onClick={exportRemainingToExcel}
@@ -2257,17 +2259,17 @@ function MembersPageContent() {
                 )}
               </div>
               <div className="flex flex-wrap gap-2 text-sm">
-                {overdue.length > 0 && <span className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 px-3 py-1 rounded-lg font-bold"> {overdue.length} متأخر</span>}
-                {dueToday.length > 0 && <span className="bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 px-3 py-1 rounded-lg font-bold"> {dueToday.length} اليوم</span>}
-                {upcoming.length > 0 && <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-3 py-1 rounded-lg font-bold"> {upcoming.length} قادم</span>}
-                {noDate.length > 0 && <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-lg font-bold"> {noDate.length} بدون موعد</span>}
+                {overdue.length > 0 && <span className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 px-3 py-1 rounded-lg font-bold"> {overdue.length} {tr('متأخر', 'overdue')}</span>}
+                {dueToday.length > 0 && <span className="bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 px-3 py-1 rounded-lg font-bold"> {dueToday.length} {tr('اليوم', 'today')}</span>}
+                {upcoming.length > 0 && <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-3 py-1 rounded-lg font-bold"> {upcoming.length} {tr('قادم', 'upcoming')}</span>}
+                {noDate.length > 0 && <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-lg font-bold"> {noDate.length} {tr('بدون موعد', 'no date')}</span>}
               </div>
             </div>
 
-            {renderSection('فات موعدهم — متأخرون', '', overdue, 'border-red-400 bg-red-50 dark:bg-red-900/20')}
-            {renderSection('موعدهم اليوم', '', dueToday, 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20')}
-            {renderSection('موعدهم قادم', '', upcoming, 'border-green-400 bg-green-50 dark:bg-green-900/20')}
-            {renderSection('بدون موعد محدد', '', noDate, 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800')}
+            {renderSection(tr('فات موعدهم — متأخرون', 'Overdue'), '', overdue, 'border-red-400 bg-red-50 dark:bg-red-900/20')}
+            {renderSection(tr('موعدهم اليوم', 'Due today'), '', dueToday, 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20')}
+            {renderSection(tr('موعدهم قادم', 'Upcoming'), '', upcoming, 'border-green-400 bg-green-50 dark:bg-green-900/20')}
+            {renderSection(tr('بدون موعد محدد', 'No due date'), '', noDate, 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800')}
           </div>
         )
       })() : (

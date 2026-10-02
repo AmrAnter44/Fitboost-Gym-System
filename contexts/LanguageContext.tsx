@@ -13,6 +13,8 @@ interface LanguageContextType {
   direction: Direction
   setLanguage: (lang: Language) => void
   t: (key: string, params?: Record<string, string>) => string
+  /** نص قصير بلغتين في نفس المكان: tr('عربي', 'English') */
+  tr: (ar: string, en: string) => string
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
@@ -111,9 +113,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }
 
   const direction: Direction = locale === 'ar' ? 'rtl' : 'ltr'
+  const tr = (ar: string, en: string) => (locale === 'ar' ? ar : en)
 
   return (
-    <LanguageContext.Provider value={{ locale, language: locale, direction, setLanguage, t }}>
+    <LanguageContext.Provider value={{ locale, language: locale, direction, setLanguage, t, tr }}>
       {children}
     </LanguageContext.Provider>
   )
