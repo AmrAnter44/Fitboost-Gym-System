@@ -36,11 +36,11 @@ export default function SuccessDialog({
   isOpen,
   title,
   message,
-  buttonText = 'حسناً',
+  buttonText,
   onClose,
   type = 'success'
 }: SuccessDialogProps) {
-  const { direction } = useLanguage()
+  const { direction, tr } = useLanguage()
 
   useEffect(() => {
     if (isOpen) {
@@ -94,7 +94,7 @@ export default function SuccessDialog({
         onClick={(e) => e.stopPropagation()}
         dir={direction}
       >
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="flex items-start gap-4">
             <div className={`${colors.iconBg} p-3 rounded-full flex items-center justify-center flex-shrink-0`}>
               {iconFor[type]}
@@ -115,7 +115,7 @@ export default function SuccessDialog({
             autoFocus
             className={`w-full ${colors.button} text-white py-2.5 px-5 rounded-lg font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800`}
           >
-            {buttonText}
+            {buttonText ?? tr('حسناً', 'OK')}
           </button>
         </div>
       </div>

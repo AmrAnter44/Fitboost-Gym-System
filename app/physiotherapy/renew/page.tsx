@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import PhysiotherapyRenewalForm from '../../../components/PhysiotherapyRenewalForm'
 import { LoadingScreen } from '../../../components/Spinner'
+import { useLanguage } from '../../../contexts/LanguageContext'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -21,6 +22,7 @@ interface PhysiotherapySession {
 }
 
 function PhysiotherapyRenewContent() {
+  const { tr, direction } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()
   const physioNumber = searchParams.get('physioNumber')
@@ -44,11 +46,11 @@ function PhysiotherapyRenewContent() {
       if (foundSession) {
         setSession(foundSession)
       } else {
-        setError('جلسة العلاج الطبيعي غير موجودة')
+        setError(tr('جلسة العلاج الطبيعي غير موجودة', 'Physiotherapy session not found'))
       }
     } catch (error) {
       console.error('Error:', error)
-      setError('حدث خطأ في تحميل البيانات')
+      setError(tr('حدث خطأ في تحميل البيانات', 'Failed to load data'))
     } finally {
       setLoading(false)
     }
@@ -64,16 +66,16 @@ function PhysiotherapyRenewContent() {
 
   if (!physioNumber) {
     return (
-      <div className="container mx-auto p-6" dir="rtl">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-red-200 dark:ring-red-900/50 p-8 flex flex-col items-center justify-center text-center">
+      <div className="container mx-auto p-4 sm:p-6" dir={direction}>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-red-200 dark:ring-red-900/50 p-4 sm:p-8 flex flex-col items-center justify-center text-center">
           <svg {...stroke} className="w-12 h-12 text-red-500" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-          <h2 className="mt-3 text-2xl font-bold text-gray-900 dark:text-gray-100">رقم Physiotherapy غير محدد</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-4">يرجى تحديد رقم Physiotherapy للتجديد</p>
+          <h2 className="mt-3 text-2xl font-bold text-gray-900 dark:text-gray-100">{tr('رقم Physiotherapy غير محدد', 'Physiotherapy number not specified')}</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-4">{tr('يرجى تحديد رقم Physiotherapy للتجديد', 'Please specify a Physiotherapy number to renew')}</p>
           <button
             onClick={() => router.push('/physiotherapy')}
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
-            العودة لصفحة العلاج الطبيعي
+            {tr('العودة لصفحة العلاج الطبيعي', 'Back to Physiotherapy')}
           </button>
         </div>
       </div>
@@ -86,15 +88,15 @@ function PhysiotherapyRenewContent() {
 
   if (error || !session) {
     return (
-      <div className="container mx-auto p-6" dir="rtl">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-red-200 dark:ring-red-900/50 p-8 flex flex-col items-center justify-center text-center">
+      <div className="container mx-auto p-4 sm:p-6" dir={direction}>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-red-200 dark:ring-red-900/50 p-4 sm:p-8 flex flex-col items-center justify-center text-center">
           <svg {...stroke} className="w-12 h-12 text-red-500" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-          <h2 className="mt-3 text-2xl font-bold text-gray-900 dark:text-gray-100">{error || 'جلسة العلاج الطبيعي غير موجودة'}</h2>
+          <h2 className="mt-3 text-2xl font-bold text-gray-900 dark:text-gray-100">{error || tr('جلسة العلاج الطبيعي غير موجودة', 'Physiotherapy session not found')}</h2>
           <button
             onClick={() => router.push('/physiotherapy')}
             className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
-            العودة لصفحة العلاج الطبيعي
+            {tr('العودة لصفحة العلاج الطبيعي', 'Back to Physiotherapy')}
           </button>
         </div>
       </div>
@@ -111,8 +113,9 @@ function PhysiotherapyRenewContent() {
 }
 
 export default function PhysiotherapyRenewPage() {
+  const { tr } = useLanguage()
   return (
-    <Suspense fallback={<div className="container mx-auto p-6 text-center text-sm text-gray-600 dark:text-gray-400">جاري التحميل...</div>}>
+    <Suspense fallback={<div className="container mx-auto p-6 text-center text-sm text-gray-600 dark:text-gray-400">{tr('جاري التحميل...', 'Loading...')}</div>}>
       <PhysiotherapyRenewContent />
     </Suspense>
   )

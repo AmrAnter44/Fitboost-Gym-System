@@ -309,7 +309,7 @@ function SystemUpdateSection() {
 
 export default function SettingsPage() {
   const router = useRouter()
-  const { locale, setLanguage, t, direction } = useLanguage()
+  const { locale, setLanguage, t, tr, direction } = useLanguage()
   const { isDarkMode, toggleDarkMode } = useDarkMode()
   const { refetch: refetchServiceSettings } = useServiceSettings()
   const toast = useToast()
@@ -550,13 +550,13 @@ export default function SettingsPage() {
       if (res.ok) {
         setNextReceiptNumber(tempReceiptNumber)
         setEditingReceiptNumber(false)
-        setSaveMessage({ type: 'success', text: 'تم تحديث رقم الإيصال القادم' })
+        setSaveMessage({ type: 'success', text: tr('تم تحديث رقم الإيصال القادم', 'Next receipt number updated') })
       } else {
         const data = await res.json()
-        setSaveMessage({ type: 'error', text: data.error || 'فشل تحديث الرقم' })
+        setSaveMessage({ type: 'error', text: data.error || tr('فشل تحديث الرقم', 'Failed to update number') })
       }
     } catch {
-      setSaveMessage({ type: 'error', text: 'حدث خطأ' })
+      setSaveMessage({ type: 'error', text: tr('حدث خطأ', 'An error occurred') })
     } finally {
       setSavingReceiptNumber(false)
       setTimeout(() => setSaveMessage(null), 3000)
@@ -575,13 +575,13 @@ export default function SettingsPage() {
       if (res.ok) {
         setNextMemberNumber(tempMemberNumber)
         setEditingMemberNumber(false)
-        setSaveMessage({ type: 'success', text: 'تم تحديث رقم العضوية القادم' })
+        setSaveMessage({ type: 'success', text: tr('تم تحديث رقم العضوية القادم', 'Next membership number updated') })
       } else {
         const data = await res.json()
-        setSaveMessage({ type: 'error', text: data.error || 'فشل تحديث الرقم' })
+        setSaveMessage({ type: 'error', text: data.error || tr('فشل تحديث الرقم', 'Failed to update number') })
       }
     } catch {
-      setSaveMessage({ type: 'error', text: 'حدث خطأ' })
+      setSaveMessage({ type: 'error', text: tr('حدث خطأ', 'An error occurred') })
     } finally {
       setSavingMemberNumber(false)
       setTimeout(() => setSaveMessage(null), 3000)
@@ -866,8 +866,8 @@ export default function SettingsPage() {
   const handleSyncDatabase = async () => {
     setConfirmState({
       open: true,
-      message: 'هل تريد تحديث قاعدة البيانات؟\n\nسيتم:\n• إصلاح الصلاحيات\n• مزامنة Schema\n• تطبيق Migrations\n• تحديث Prisma Client',
-      title: 'تحديث قاعدة البيانات',
+      message: tr('هل تريد تحديث قاعدة البيانات؟\n\nسيتم:\n• إصلاح الصلاحيات\n• مزامنة Schema\n• تطبيق Migrations\n• تحديث Prisma Client', 'Update the database?\n\nThis will:\n• Fix permissions\n• Sync schema\n• Apply migrations\n• Regenerate Prisma Client'),
+      title: tr('تحديث قاعدة البيانات', 'Update Database'),
       type: 'warning',
       onConfirm: async () => {
         setSyncingDatabase(true)
@@ -898,14 +898,14 @@ export default function SettingsPage() {
 
             setSyncMessage({
               type: 'error',
-              text: `${data.error || 'فشل التحديث'}${stepsText}`,
+              text: `${data.error || tr('فشل التحديث', 'Update failed')}${stepsText}`,
               steps: data.steps
             })
           }
         } catch (error) {
           setSyncMessage({
             type: 'error',
-            text: 'حدث خطأ أثناء تحديث قاعدة البيانات'
+            text: tr('حدث خطأ أثناء تحديث قاعدة البيانات', 'An error occurred while updating the database')
           })
         } finally {
           setSyncingDatabase(false)
@@ -928,7 +928,7 @@ export default function SettingsPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setApplyFeaturesError(data.error || 'فشل تطبيق المميزات')
+        setApplyFeaturesError(data.error || tr('فشل تطبيق المميزات', 'Failed to apply features'))
       } else {
         setApplyFeaturesResult({
           processed: data.processed,
@@ -939,7 +939,7 @@ export default function SettingsPage() {
         })
       }
     } catch (err: any) {
-      setApplyFeaturesError(err?.message || 'خطأ في الاتصال بالسيرفر')
+      setApplyFeaturesError(err?.message || tr('خطأ في الاتصال بالسيرفر', 'Server connection error'))
     } finally {
       setApplyingFeatures(false)
     }
@@ -965,15 +965,15 @@ export default function SettingsPage() {
   const handleOptimizeDb = async (target?: string, all?: boolean) => {
     const isLive = !target || target === dbFileName
     const confirmMsg = all
-      ? `هل تريد تنظيف كل النسخ الاحتياطية القديمة؟\n\nالعملية بتشغّل VACUUM على كل ملفات ${dbFileName}.backup-* وبتصغّر حجمها.\nالملف الأساسي (${dbFileName}) مش هيتأثر.`
+      ? tr(`هل تريد تنظيف كل النسخ الاحتياطية القديمة؟\n\nالعملية بتشغّل VACUUM على كل ملفات ${dbFileName}.backup-* وبتصغّر حجمها.\nالملف الأساسي (${dbFileName}) مش هيتأثر.`, `Clean up all old backups?\n\nThis runs VACUUM on every ${dbFileName}.backup-* file to shrink it.\nThe main file (${dbFileName}) won't be affected.`)
       : isLive
-        ? `هل تريد تنظيف ملف قاعدة البيانات الأساسي (${dbFileName})؟\n\nالعملية آمنة وبتصغّر الحجم من غير ما تغيّر في البيانات.\nيُفضَّل عمل نسخة احتياطية قبلها من زر "النسخ الاحتياطي".`
-        : `هل تريد تنظيف الملف "${target}"؟`
+        ? tr(`هل تريد تنظيف ملف قاعدة البيانات الأساسي (${dbFileName})؟\n\nالعملية آمنة وبتصغّر الحجم من غير ما تغيّر في البيانات.\nيُفضَّل عمل نسخة احتياطية قبلها من زر "النسخ الاحتياطي".`, `Clean up the main database file (${dbFileName})?\n\nThis is safe and shrinks the file without changing any data.\nIt's best to take a backup first using the "Backup" button.`)
+        : tr(`هل تريد تنظيف الملف "${target}"؟`, `Clean up the file "${target}"?`)
 
     setConfirmState({
       open: true,
       message: confirmMsg,
-      title: 'تنظيف قاعدة البيانات',
+      title: tr('تنظيف قاعدة البيانات', 'Database Cleanup'),
       type: 'warning',
       onConfirm: async () => {
         setOptimizingDb(true)
@@ -987,30 +987,30 @@ export default function SettingsPage() {
           const data = await res.json()
 
           if (!res.ok || data.success === false) {
-            setOptimizeMessage({ type: 'error', text: data.error || 'فشل تنظيف الملف' })
+            setOptimizeMessage({ type: 'error', text: data.error || tr('فشل تنظيف الملف', 'Failed to clean up file') })
             return
           }
 
           if (all) {
             const lines = (data.results || []).map((r: any) =>
               r.success
-                ? `[OK] ${r.name}: ${r.before?.mb} MB → ${r.after?.mb} MB (وفّر ${r.saved?.mb} MB)`
-                : `[X] ${r.name}: ${r.error || 'فشل'}`
+                ? `[OK] ${r.name}: ${r.before?.mb} MB → ${r.after?.mb} MB (${tr('وفّر', 'saved')} ${r.saved?.mb} MB)`
+                : `[X] ${r.name}: ${r.error || tr('فشل', 'Failed')}`
             )
             setOptimizeMessage({
               type: 'success',
-              text: `تم تنظيف ${data.results?.length || 0} ملف\nالإجمالي المُوفَّر: ${data.totalSavedMB} MB\n\n${lines.join('\n')}`,
+              text: `${tr('تم تنظيف', 'Cleaned')} ${data.results?.length || 0} ${tr('ملف', 'file(s)')}\n${tr('الإجمالي المُوفَّر', 'Total saved')}: ${data.totalSavedMB} MB\n\n${lines.join('\n')}`,
             })
           } else {
             const msg = data.success
-              ? `${data.target}: ${data.before?.mb} MB → ${data.after?.mb} MB\nوفّر ${data.saved?.mb} MB (${data.saved?.percent}%)`
-              : data.error || 'فشل التنظيف'
+              ? `${data.target}: ${data.before?.mb} MB → ${data.after?.mb} MB\n${tr('وفّر', 'Saved')} ${data.saved?.mb} MB (${data.saved?.percent}%)`
+              : data.error || tr('فشل التنظيف', 'Cleanup failed')
             setOptimizeMessage({ type: data.success ? 'success' : 'error', text: msg })
           }
 
           fetchDbFiles()
         } catch (err: any) {
-          setOptimizeMessage({ type: 'error', text: err.message || 'حدث خطأ أثناء التنظيف' })
+          setOptimizeMessage({ type: 'error', text: err.message || tr('حدث خطأ أثناء التنظيف', 'An error occurred during cleanup') })
         } finally {
           setOptimizingDb(false)
         }
@@ -1044,14 +1044,21 @@ export default function SettingsPage() {
     if (!cleanupInfo || cleanupInfo.candidates === 0) return
     setConfirmState({
       open: true,
-      message:
+      message: tr(
         `هذه العملية ستقوم بالتالي:\n\n` +
         `1️⃣ حفظ نسخة احتياطية من قاعدة البيانات\n` +
         `2️⃣ نقل ${cleanupInfo.candidates} صورة من قاعدة البيانات لملفات\n` +
         `3️⃣ ضغط قاعدة البيانات (VACUUM)\n\n` +
         `الوقت المتوقع: ١-٢ دقيقة. تأكد إن مفيش حد بيستخدم النظام.\n\n` +
         `هل تريد المتابعة؟`,
-      title: 'تنظيف الصور',
+        `This will:\n\n` +
+        `1️⃣ Back up the database\n` +
+        `2️⃣ Move ${cleanupInfo.candidates} images from the database to files\n` +
+        `3️⃣ Compact the database (VACUUM)\n\n` +
+        `Expected time: 1-2 minutes. Make sure nobody is using the system.\n\n` +
+        `Continue?`
+      ),
+      title: tr('تنظيف الصور', 'Image Cleanup'),
       type: 'warning',
       onConfirm: async () => {
         setCleanupRunning(true)
@@ -1063,10 +1070,10 @@ export default function SettingsPage() {
             setCleanupResult(data)
             await fetchCleanupInfo()
           } else {
-            toast.error(`فشل التنظيف: ${data.error || 'خطأ غير معروف'}`)
+            toast.error(`${tr('فشل التنظيف', 'Cleanup failed')}: ${data.error || tr('خطأ غير معروف', 'Unknown error')}`)
           }
         } catch (err: any) {
-          toast.error(`حدث خطأ أثناء التنظيف: ${err.message}`)
+          toast.error(`${tr('حدث خطأ أثناء التنظيف', 'An error occurred during cleanup')}: ${err.message}`)
         } finally {
           setCleanupRunning(false)
         }
@@ -1110,7 +1117,7 @@ export default function SettingsPage() {
   const activateDevice = async () => {
     const code = activationCode.trim()
     if (!code) {
-      setSaveMessage({ type: 'error', text: 'اكتب كود التفعيل' })
+      setSaveMessage({ type: 'error', text: tr('اكتب كود التفعيل', 'Enter the activation code') })
       return
     }
     setSavingLicense(true)
@@ -1124,14 +1131,14 @@ export default function SettingsPage() {
       if (response.ok) {
         setCurrentLicense({ ...data.license, linked: true })
         setActivationCode('')
-        setSaveMessage({ type: 'success', text: `تم ربط الجهاز: ${data.license?.gymName} — ${data.license?.branchName}` })
+        setSaveMessage({ type: 'success', text: `${tr('تم ربط الجهاز', 'Device linked')}: ${data.license?.gymName} — ${data.license?.branchName}` })
         setTimeout(() => setSaveMessage(null), 4000)
       } else {
-        setSaveMessage({ type: 'error', text: data.error || 'فشل التفعيل' })
+        setSaveMessage({ type: 'error', text: data.error || tr('فشل التفعيل', 'Activation failed') })
       }
     } catch (error) {
       console.error('Error activating device:', error)
-      setSaveMessage({ type: 'error', text: 'حدث خطأ أثناء التفعيل' })
+      setSaveMessage({ type: 'error', text: tr('حدث خطأ أثناء التفعيل', 'An error occurred during activation') })
     } finally {
       setSavingLicense(false)
     }
@@ -1224,10 +1231,10 @@ export default function SettingsPage() {
     ...(user?.role === 'OWNER' ? [
       { id: 'license', label: t('settingsPage.navigation.license') },
       { id: 'database', label: t('settingsPage.navigation.database') },
-      { id: 'tunnel', label: 'تانل' },
-      { id: 'gates', label: 'البوابات' },
-      { id: 'apply-features', label: 'تطبيق مميزات الباقات' },
-      { id: 'import-sheet', label: 'استيراد شيت' }
+      { id: 'tunnel', label: tr('تانل', 'Tunnel') },
+      { id: 'gates', label: tr('البوابات', 'Gates') },
+      { id: 'apply-features', label: tr('تطبيق مميزات الباقات', 'Apply Package Features') },
+      { id: 'import-sheet', label: tr('استيراد شيت', 'Import Sheet') }
     ] : []),
     ...(typeof window !== 'undefined' && (window as any).electron?.isElectron ? [{ id: 'updates', label: t('settingsPage.navigation.updates') }] : []),
     { id: 'support', label: t('settingsPage.navigation.support') }
@@ -1375,7 +1382,7 @@ export default function SettingsPage() {
                 <p className={`flex-1 text-sm font-bold ${saveMessage.type === 'success' ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'}`}>{saveMessage.text}</p>
                 <button
                   onClick={() => setSaveMessage(null)}
-                  className={`flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200 ${saveMessage.type === 'success' ? 'hover:bg-green-200 dark:hover:bg-green-700/50 text-green-700 dark:text-green-200' : 'hover:bg-red-200 dark:hover:bg-red-700/50 text-red-700 dark:text-red-200'}`}
+                  className={`flex-shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg transition-colors duration-200 ${saveMessage.type === 'success' ? 'hover:bg-green-200 dark:hover:bg-green-700/50 text-green-700 dark:text-green-200' : 'hover:bg-red-200 dark:hover:bg-red-700/50 text-red-700 dark:text-red-200'}`}
                   aria-label="Dismiss"
                 >
                   <svg {...stroke} className="w-4 h-4" aria-hidden="true">
@@ -1805,8 +1812,8 @@ export default function SettingsPage() {
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-bold text-gray-900 dark:text-gray-100">عرض QR التطبيق في الإيصال المطبوع والواتساب</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">يظهر QR code الأندرويد والـ iOS في أسفل الإيصال</p>
+                      <h4 className="font-bold text-gray-900 dark:text-gray-100">{tr('عرض QR التطبيق في الإيصال المطبوع والواتساب', 'Show app QR on printed and WhatsApp receipts')}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{tr('يظهر QR code الأندرويد والـ iOS في أسفل الإيصال', 'Android and iOS QR codes appear at the bottom of the receipt')}</p>
                     </div>
                   </div>
                   <label className="toggle-switch toggle-indigo">
@@ -2458,20 +2465,20 @@ export default function SettingsPage() {
                   {/* ألوان جاهزة */}
                   <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 sm:gap-3 mb-4">
                     {[
-                      { hex: '#fbe003', label: 'أصفر' },
-                      { hex: '#ef4444', label: 'أحمر' },
-                      { hex: '#3b82f6', label: 'أزرق' },
-                      { hex: '#10b981', label: 'أخضر' },
-                      { hex: '#f97316', label: 'برتقالي' },
-                      { hex: '#8b5cf6', label: 'بنفسجي' },
-                      { hex: '#14b8a6', label: 'تركواز' },
-                      { hex: '#ec4899', label: 'وردي' },
+                      { hex: '#fbe003', label: tr('أصفر', 'Yellow') },
+                      { hex: '#ef4444', label: tr('أحمر', 'Red') },
+                      { hex: '#3b82f6', label: tr('أزرق', 'Blue') },
+                      { hex: '#10b981', label: tr('أخضر', 'Green') },
+                      { hex: '#f97316', label: tr('برتقالي', 'Orange') },
+                      { hex: '#8b5cf6', label: tr('بنفسجي', 'Purple') },
+                      { hex: '#14b8a6', label: tr('تركواز', 'Teal') },
+                      { hex: '#ec4899', label: tr('وردي', 'Pink') },
                     ].map(c => (
                       <button
                         key={c.hex}
                         onClick={() => handleColorChange(c.hex)}
                         disabled={isSavingColor}
-                        aria-label={`Set primary color to ${c.label}`}
+                        aria-label={`${tr('اختيار اللون', 'Set primary color to')} ${c.label}`}
                         className={`w-full aspect-square rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-500 ${
                           primaryColor === c.hex || (!primaryColor && c.hex === '#fbe003')
                             ? 'ring-2 ring-offset-2 ring-gray-800 dark:ring-white shadow-sm'
@@ -2702,7 +2709,7 @@ export default function SettingsPage() {
                   <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
                   </svg>
-                  {currentLicense?.linked ? 'الجهاز مربوط' : 'تفعيل الجهاز'}
+                  {currentLicense?.linked ? tr('الجهاز مربوط', 'Device linked') : tr('تفعيل الجهاز', 'Activate Device')}
                 </h3>
 
                 {deviceInfo && !currentLicense?.linked && (
@@ -2710,25 +2717,25 @@ export default function SettingsPage() {
                     ? 'bg-red-50 dark:bg-red-900/20 ring-red-200 dark:ring-red-900/50 text-red-800 dark:text-red-300'
                     : 'bg-amber-50 dark:bg-amber-900/20 ring-amber-200 dark:ring-amber-900/50 text-amber-800 dark:text-amber-300'}`}>
                     <p className="font-bold mb-1">
-                      رقم الجهاز: <span dir="ltr" className="font-mono tracking-wider">#{deviceInfo.id}</span>
+                      {tr('رقم الجهاز:', 'Device ID:')} <span dir="ltr" className="font-mono tracking-wider">#{deviceInfo.id}</span>
                     </p>
                     {deviceInfo.status === 'offline' ? (
-                      <p>مفيش اتصال بسحابة فيت بوست — اتأكد من النت.</p>
+                      <p>{tr('مفيش اتصال بسحابة فيت بوست — اتأكد من النت.', 'No connection to FitBoost cloud — check your internet.')}</p>
                     ) : deviceInfo.status === 'rejected' ? (
-                      <p>فيت بوست رفضت ربط الجهاز ده. كلّمهم أو استخدم كود تفعيل.</p>
+                      <p>{tr('فيت بوست رفضت ربط الجهاز ده. كلّمهم أو استخدم كود تفعيل.', 'FitBoost rejected linking this device. Contact them or use an activation code.')}</p>
                     ) : (
-                      <p>الجهاز ظاهر عند فيت بوست ومستني الربط بالجيم والفرع — بيتربط لوحده أول ما يتوافق عليه (خلال دقيقتين). أو اكتب كود تفعيل تحت.</p>
+                      <p>{tr('الجهاز ظاهر عند فيت بوست ومستني الربط بالجيم والفرع — بيتربط لوحده أول ما يتوافق عليه (خلال دقيقتين). أو اكتب كود تفعيل تحت.', 'The device is visible to FitBoost and awaiting assignment to a gym and branch — it links automatically once approved (within 2 minutes). Or enter an activation code below.')}</p>
                     )}
                     {currentLicense && (
-                      <p className="mt-1 opacity-80">لحد ما يتربط شغال بالرخصة المحفوظة — لازم يتربط خلال ١٤ يوم من آخر تحقق ناجح.</p>
+                      <p className="mt-1 opacity-80">{tr('لحد ما يتربط شغال بالرخصة المحفوظة — لازم يتربط خلال ١٤ يوم من آخر تحقق ناجح.', 'Until linked, it runs on the saved license — it must be linked within 14 days of the last successful check.')}</p>
                     )}
                   </div>
                 )}
 
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   {currentLicense?.linked
-                    ? 'لو عايز تنقل الجهاز لفرع تاني أو تعيد الربط، اكتب كود تفعيل جديد من فيت بوست.'
-                    : 'اطلب كود التفعيل من فيت بوست واكتبه هنا — الكود بيحدد الجيم والفرع أوتوماتيك.'}
+                    ? tr('لو عايز تنقل الجهاز لفرع تاني أو تعيد الربط، اكتب كود تفعيل جديد من فيت بوست.', 'To move this device to another branch or re-link it, enter a new activation code from FitBoost.')
+                    : tr('اطلب كود التفعيل من فيت بوست واكتبه هنا — الكود بيحدد الجيم والفرع أوتوماتيك.', 'Request an activation code from FitBoost and enter it here — the code sets the gym and branch automatically.')}
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -2753,15 +2760,15 @@ export default function SettingsPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                     ) : (
-                      <span>تفعيل</span>
+                      <span>{tr('تفعيل', 'Activate')}</span>
                     )}
                   </button>
                 </div>
 
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                  <p>• الكود لجهاز واحد وصالح ٧٢ ساعة</p>
-                  <p>• الترخيص بيتراجع أوتوماتيك كل ربع ساعة</p>
-                  <p>• لو النت قطع، السيستم بيشتغل بالترخيص المحفوظ لحد ١٤ يوم</p>
+                  <p>{tr('• الكود لجهاز واحد وصالح ٧٢ ساعة', '• Each code is for one device and valid for 72 hours')}</p>
+                  <p>{tr('• الترخيص بيتراجع أوتوماتيك كل ربع ساعة', '• The license is re-checked automatically every 15 minutes')}</p>
+                  <p>{tr('• لو النت قطع، السيستم بيشتغل بالترخيص المحفوظ لحد ١٤ يوم', '• If the internet drops, the system runs on the saved license for up to 14 days')}</p>
                 </div>
               </div>
             </div>
@@ -2882,7 +2889,7 @@ export default function SettingsPage() {
                   <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  مزامنة قاعدة البيانات (الكل في واحد)
+                  {tr('مزامنة قاعدة البيانات (الكل في واحد)', 'Database Sync (All-in-One)')}
                 </h3>
 
                 <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
@@ -2890,27 +2897,27 @@ export default function SettingsPage() {
                     <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
                     </svg>
-                    ماذا يفعل هذا الزر؟
+                    {tr('ماذا يفعل هذا الزر؟', 'What does this button do?')}
                   </h4>
                   <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                    زر واحد يقوم بجميع عمليات التحديث بشكل تلقائي:
+                    {tr('زر واحد يقوم بجميع عمليات التحديث بشكل تلقائي:', 'One button that runs all update steps automatically:')}
                   </p>
                   <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2 ms-4">
                     <li className="flex items-start gap-2">
                       <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 text-xs font-bold flex-shrink-0">1</span>
-                      <span><strong>إصلاح الصلاحيات:</strong> يتحقق من صلاحيات قاعدة البيانات ويصلحها تلقائياً</span>
+                      <span><strong>{tr('إصلاح الصلاحيات:', 'Fix permissions:')}</strong> {tr('يتحقق من صلاحيات قاعدة البيانات ويصلحها تلقائياً', 'Checks database permissions and fixes them automatically')}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold flex-shrink-0">2</span>
-                      <span><strong>مزامنة Schema:</strong> يطبق التغييرات من schema.prisma على قاعدة البيانات</span>
+                      <span><strong>{tr('مزامنة Schema:', 'Sync schema:')}</strong> {tr('يطبق التغييرات من schema.prisma على قاعدة البيانات', 'Applies changes from schema.prisma to the database')}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-bold flex-shrink-0">3</span>
-                      <span><strong>تطبيق Migrations:</strong> يشغل جميع التحديثات الجديدة من مجلد migrations/</span>
+                      <span><strong>{tr('تطبيق Migrations:', 'Apply migrations:')}</strong> {tr('يشغل جميع التحديثات الجديدة من مجلد migrations/', 'Runs all new updates from the migrations/ folder')}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 text-xs font-bold flex-shrink-0">4</span>
-                      <span><strong>تحديث Prisma Client:</strong> يولد Prisma Client الجديد للتعامل مع قاعدة البيانات</span>
+                      <span><strong>{tr('تحديث Prisma Client:', 'Update Prisma Client:')}</strong> {tr('يولد Prisma Client الجديد للتعامل مع قاعدة البيانات', 'Generates the new Prisma Client for database access')}</span>
                     </li>
                   </ul>
                 </div>
@@ -2920,14 +2927,14 @@ export default function SettingsPage() {
                     <svg {...stroke} className="w-5 h-5 text-blue-700 dark:text-blue-300" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                     </svg>
-                    متى تستخدم هذا الزر؟
+                    {tr('متى تستخدم هذا الزر؟', 'When should you use it?')}
                   </h4>
                   <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ms-4">
-                    <li>• بعد تحديث النظام لإصدار جديد</li>
-                    <li>• إذا ظهرت رسالة خطأ: &quot;attempt to write a readonly database&quot;</li>
-                    <li>• إذا ظهرت رسالة خطأ عن جدول أو عمود مفقود</li>
-                    <li>• لتفعيل مزايا جديدة تحتاج تحديثات في قاعدة البيانات</li>
-                    <li>• عند مواجهة أي مشكلة في قاعدة البيانات</li>
+                    <li>{tr('• بعد تحديث النظام لإصدار جديد', '• After updating the system to a new version')}</li>
+                    <li>{tr('• إذا ظهرت رسالة خطأ: "attempt to write a readonly database"', '• If you see the error: "attempt to write a readonly database"')}</li>
+                    <li>{tr('• إذا ظهرت رسالة خطأ عن جدول أو عمود مفقود', '• If you see an error about a missing table or column')}</li>
+                    <li>{tr('• لتفعيل مزايا جديدة تحتاج تحديثات في قاعدة البيانات', '• To enable new features that need database updates')}</li>
+                    <li>{tr('• عند مواجهة أي مشكلة في قاعدة البيانات', '• When facing any database issue')}</li>
                   </ul>
                 </div>
 
@@ -2936,12 +2943,12 @@ export default function SettingsPage() {
                     <svg {...stroke} className="w-5 h-5 text-amber-700 dark:text-amber-300" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                     </svg>
-                    قبل الضغط على الزر:
+                    {tr('قبل الضغط على الزر:', 'Before pressing the button:')}
                   </h4>
                   <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ms-4">
-                    <li>• أغلق Prisma Studio إذا كان مفتوحاً</li>
-                    <li>• أغلق أي برامج أخرى تستخدم قاعدة البيانات</li>
-                    <li>• في Mac: قد تحتاج منح Full Disk Access للتطبيق في إعدادات النظام</li>
+                    <li>{tr('• أغلق Prisma Studio إذا كان مفتوحاً', '• Close Prisma Studio if it\'s open')}</li>
+                    <li>{tr('• أغلق أي برامج أخرى تستخدم قاعدة البيانات', '• Close any other programs using the database')}</li>
+                    <li>{tr('• في Mac: قد تحتاج منح Full Disk Access للتطبيق في إعدادات النظام', '• On Mac: you may need to grant the app Full Disk Access in System Settings')}</li>
                   </ul>
                 </div>
 
@@ -2955,21 +2962,21 @@ export default function SettingsPage() {
                       <svg {...stroke} className="w-5 h-5 animate-spin" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      <span>جاري المزامنة... (قد يستغرق دقيقة)</span>
+                      <span>{tr('جاري المزامنة... (قد يستغرق دقيقة)', 'Syncing... (may take a minute)')}</span>
                     </>
                   ) : (
                     <>
                       <svg {...stroke} className="w-5 h-5" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
                       </svg>
-                      <span>مزامنة وتحديث قاعدة البيانات (الكل في واحد)</span>
+                      <span>{tr('مزامنة وتحديث قاعدة البيانات (الكل في واحد)', 'Sync & Update Database (All-in-One)')}</span>
                     </>
                   )}
                 </button>
 
                 <div className="p-3 bg-gray-50 dark:bg-gray-900/40 rounded-lg">
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    <strong>آمن تماماً:</strong> هذا الزر يقوم بجميع العمليات بالترتيب الصحيح ولن يؤثر على بياناتك الموجودة. إذا فشلت أي خطوة، سيتوقف تلقائياً ويعرض رسالة الخطأ. يُنصح بتطبيق التحديثات بعد كل تحديث للنظام.
+                    <strong>{tr('آمن تماماً:', 'Completely safe:')}</strong> {tr('هذا الزر يقوم بجميع العمليات بالترتيب الصحيح ولن يؤثر على بياناتك الموجودة. إذا فشلت أي خطوة، سيتوقف تلقائياً ويعرض رسالة الخطأ. يُنصح بتطبيق التحديثات بعد كل تحديث للنظام. ', 'This button runs all steps in the right order and won\'t affect your existing data. If any step fails, it stops automatically and shows the error. Run it after every system update. ')}
                   </p>
                 </div>
               </div>
@@ -2980,32 +2987,32 @@ export default function SettingsPage() {
                   <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m7.875 14.25 1.214 1.942a2.25 2.25 0 0 0 1.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 0 1 1.872 1.002l.164.246a2.25 2.25 0 0 0 1.872 1.002h2.092a2.25 2.25 0 0 0 1.872-1.002l.164-.246A2.25 2.25 0 0 1 16.954 9h4.636M2.41 9a2.25 2.25 0 0 0-.16.832V12a2.25 2.25 0 0 0 2.25 2.25h15a2.25 2.25 0 0 0 2.25-2.25V9.832c0-.287-.055-.57-.16-.832M2.41 9a2.25 2.25 0 0 1 .382-.632l3.285-3.832a2.25 2.25 0 0 1 1.708-.786h8.43c.66 0 1.288.29 1.708.786l3.285 3.832c.163.19.291.404.382.632M4.5 20.25h15A2.25 2.25 0 0 0 21.75 18v-2.625c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125V18a2.25 2.25 0 0 0 2.25 2.25Z" />
                   </svg>
-                  <span>تنظيف وتصغير ملف قاعدة البيانات</span>
+                  <span>{tr('تنظيف وتصغير ملف قاعدة البيانات', 'Clean Up & Shrink Database File')}</span>
                 </h3>
 
                 <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg space-y-2">
                   <p className="text-sm text-gray-700 dark:text-gray-300">
-                    مع مرور الوقت، ملف قاعدة البيانات بيحتوي على صفحات فارغة (free pages) ناتجة عن الحذف والتعديل.
-                    الزر ده بيشغّل <strong>VACUUM</strong> اللي بيعيد بناء الملف بدون الصفحات الفاضية — بيصغّر الحجم بنسبة 50-90% أحياناً.
+                    {tr('مع مرور الوقت، ملف قاعدة البيانات بيحتوي على صفحات فارغة (free pages) ناتجة عن الحذف والتعديل.', 'Over time, the database file accumulates empty pages (free pages) from deletes and edits.')}{' '}
+                    {tr('الزر ده بيشغّل', 'This button runs')} <strong>VACUUM</strong> {tr('اللي بيعيد بناء الملف بدون الصفحات الفاضية — بيصغّر الحجم بنسبة 50-90% أحياناً. ', 'which rebuilds the file without the empty pages — sometimes shrinking it by 50-90%. ')}
                   </p>
                   <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                     <li className="flex items-start gap-1.5">
                       <svg {...stroke} className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                       </svg>
-                      آمن تماماً — البيانات بتفضل زي ما هي.
+                      {tr('آمن تماماً — البيانات بتفضل زي ما هي.', 'Completely safe — your data stays as is.')}
                     </li>
                     <li className="flex items-start gap-1.5">
                       <svg {...stroke} className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                       </svg>
-                      بيعمل فحص سلامة (integrity check) قبل التنظيف، ولو الملف فيه مشكلة بيوقف.
+                      {tr('بيعمل فحص سلامة (integrity check) قبل التنظيف، ولو الملف فيه مشكلة بيوقف.', 'Runs an integrity check before cleanup and stops if the file has a problem.')}
                     </li>
                     <li className="flex items-start gap-1.5">
                       <svg {...stroke} className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                       </svg>
-                      يُفضَّل عمل Backup (من زر النسخ الاحتياطي) قبل تنظيف الملف الأساسي.
+                      {tr('يُفضَّل عمل Backup (من زر النسخ الاحتياطي) قبل تنظيف الملف الأساسي.', 'It\'s best to take a backup (using the Backup button) before cleaning the main file.')}
                     </li>
                   </ul>
                 </div>
@@ -3015,23 +3022,23 @@ export default function SettingsPage() {
                     <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    جاري تحميل قائمة الملفات...
+                    {tr('جاري تحميل قائمة الملفات...', 'Loading file list...')}
                   </div>
                 ) : dbFiles.length > 0 ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 px-2">
-                      <span>عدد الملفات: <strong>{dbFiles.length}</strong></span>
-                      <span>الحجم الإجمالي: <strong>{dbFilesTotalMB} MB</strong></span>
+                      <span>{tr('عدد الملفات:', 'Files:')} <strong>{dbFiles.length}</strong></span>
+                      <span>{tr('الحجم الإجمالي:', 'Total size:')} <strong>{dbFilesTotalMB} MB</strong></span>
                     </div>
 
-                    <div className="ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg overflow-hidden">
+                    <div className="ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase text-xs">
                           <tr>
-                            <th className="px-3 py-3 text-start font-bold">الملف</th>
-                            <th className="px-3 py-3 text-start font-bold">الحجم</th>
-                            <th className="px-3 py-3 text-start font-bold">آخر تعديل</th>
-                            <th className="px-3 py-3 text-start font-bold">الإجراء</th>
+                            <th className="px-3 py-3 text-start font-bold">{tr('الملف', 'File')}</th>
+                            <th className="px-3 py-3 text-start font-bold">{tr('الحجم', 'Size')}</th>
+                            <th className="px-3 py-3 text-start font-bold">{tr('آخر تعديل', 'Last modified')}</th>
+                            <th className="px-3 py-3 text-start font-bold">{tr('الإجراء', 'Action')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -3041,7 +3048,7 @@ export default function SettingsPage() {
                                 <div className="flex items-center gap-2">
                                   <span className="text-gray-900 dark:text-gray-200 font-mono text-xs">{f.name}</span>
                                   {f.isLive && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">الأساسي</span>
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{tr('الأساسي', 'Main')}</span>
                                   )}
                                 </div>
                               </td>
@@ -3058,7 +3065,7 @@ export default function SettingsPage() {
                                   <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="m7.875 14.25 1.214 1.942a2.25 2.25 0 0 0 1.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 0 1 1.872 1.002l.164.246a2.25 2.25 0 0 0 1.872 1.002h2.092a2.25 2.25 0 0 0 1.872-1.002l.164-.246A2.25 2.25 0 0 1 16.954 9h4.636" />
                                   </svg>
-                                  تنظيف
+                                  {tr('تنظيف', 'Clean up')}
                                 </button>
                               </td>
                             </tr>
@@ -3068,7 +3075,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-600 dark:text-gray-400">مفيش ملفات.</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">{tr('مفيش ملفات.', 'No files.')}</div>
                 )}
 
                 {optimizeMessage && (
@@ -3094,14 +3101,14 @@ export default function SettingsPage() {
                         <svg {...stroke} className="w-5 h-5 animate-spin" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        <span>جاري التنظيف...</span>
+                        <span>{tr('جاري التنظيف...', 'Cleaning up...')}</span>
                       </>
                     ) : (
                       <>
                         <svg {...stroke} className="w-5 h-5" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="m7.875 14.25 1.214 1.942a2.25 2.25 0 0 0 1.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 0 1 1.872 1.002l.164.246a2.25 2.25 0 0 0 1.872 1.002h2.092a2.25 2.25 0 0 0 1.872-1.002l.164-.246A2.25 2.25 0 0 1 16.954 9h4.636" />
                         </svg>
-                        <span>تنظيف الملف الأساسي ({dbFileName})</span>
+                        <span>{tr('تنظيف الملف الأساسي (', 'Clean up main file (')}{dbFileName})</span>
                       </>
                     )}
                   </button>
@@ -3114,7 +3121,7 @@ export default function SettingsPage() {
                     <svg {...stroke} className="w-5 h-5" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
                     </svg>
-                    <span>تنظيف كل النسخ القديمة ({dbFiles.filter((f) => !f.isLive).length})</span>
+                    <span>{tr('تنظيف كل النسخ القديمة (', 'Clean up all old backups (')}{dbFiles.filter((f) => !f.isLive).length})</span>
                   </button>
                 </div>
               </div>
@@ -3125,7 +3132,7 @@ export default function SettingsPage() {
                   <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                   </svg>
-                  تنظيف قاعدة البيانات (الصور القديمة)
+                  {tr('تنظيف قاعدة البيانات (الصور القديمة)', 'Database Cleanup (Old Images)')}
                 </h3>
 
                 <div className="p-4 bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg text-sm">
@@ -3133,10 +3140,10 @@ export default function SettingsPage() {
                     <svg {...stroke} className="w-4 h-4 text-amber-700 dark:text-amber-300" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
                     </svg>
-                    ايه ده؟
+                    {tr('ايه ده؟', 'What is this?')}
                   </p>
                   <p className="text-gray-700 dark:text-gray-200 leading-relaxed">
-                    النظام بيخزن صور الأعضاء القديمة كنصوص <strong>base64</strong> جوه قاعدة البيانات نفسها — ده بيخلي ملف <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">{dbFileName}</code> يكبر بشكل كبير. التنظيف ده بينقل الصور دي لملفات منفصلة في فولدر <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">uploads/</code> ويرجّع حجم قاعدة البيانات لطبيعته. مفيش بيانات هتضيع.
+                    {tr('النظام بيخزن صور الأعضاء القديمة كنصوص', 'The system stores old member photos as')} <strong>base64</strong> {tr('جوه قاعدة البيانات نفسها — ده بيخلي ملف', 'text inside the database itself — this makes the')} <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">{dbFileName}</code> {tr('يكبر بشكل كبير. التنظيف ده بينقل الصور دي لملفات منفصلة في فولدر', 'file grow a lot. This cleanup moves those images to separate files in the')} <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">uploads/</code> {tr('ويرجّع حجم قاعدة البيانات لطبيعته. مفيش بيانات هتضيع. ', 'folder and brings the database back to normal size. No data will be lost. ')}
                   </p>
                 </div>
 
@@ -3145,7 +3152,7 @@ export default function SettingsPage() {
                     <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    جاري فحص حالة قاعدة البيانات...
+                    {tr('جاري فحص حالة قاعدة البيانات...', 'Checking database status...')}
                   </div>
                 )}
 
@@ -3156,9 +3163,9 @@ export default function SettingsPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                       </svg>
                       <span>
-                        قاعدة البيانات نضيفة، مفيش صور قديمة تحتاج نقل.
+                        {tr('قاعدة البيانات نضيفة، مفيش صور قديمة تحتاج نقل.', 'The database is clean — no old images need moving.')}
                         <br />
-                        الحجم الحالي: <strong>{cleanupInfo.currentDbSizeMb} MB</strong>
+                        {tr('الحجم الحالي:', 'Current size:')} <strong>{cleanupInfo.currentDbSizeMb} MB</strong>
                       </span>
                     </p>
                   </div>
@@ -3170,13 +3177,13 @@ export default function SettingsPage() {
                       <svg {...stroke} className="w-4 h-4 text-amber-700 dark:text-amber-300" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                       </svg>
-                      وُجدت بيانات قديمة:
+                      {tr('وُجدت بيانات قديمة:', 'Old data found:')}
                     </p>
                     <ul className="list-disc list-inside space-y-1 text-amber-900 dark:text-amber-200">
-                      <li>عدد الصور القديمة: <strong>{cleanupInfo.candidates}</strong></li>
-                      <li>الحجم في قاعدة البيانات: <strong>{cleanupInfo.estimatedBase64Mb} MB</strong></li>
-                      <li>الحجم الكلي لـ <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">{dbFileName}</code>: <strong>{cleanupInfo.currentDbSizeMb} MB</strong></li>
-                      <li>الحجم المتوقع بعد التنظيف: <strong>~{Math.max(0.5, +(cleanupInfo.currentDbSizeMb - cleanupInfo.estimatedBase64Mb).toFixed(1))} MB</strong></li>
+                      <li>{tr('عدد الصور القديمة:', 'Old images:')} <strong>{cleanupInfo.candidates}</strong></li>
+                      <li>{tr('الحجم في قاعدة البيانات:', 'Size in database:')} <strong>{cleanupInfo.estimatedBase64Mb} MB</strong></li>
+                      <li>{tr('الحجم الكلي لـ', 'Total size of')} <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">{dbFileName}</code>: <strong>{cleanupInfo.currentDbSizeMb} MB</strong></li>
+                      <li>{tr('الحجم المتوقع بعد التنظيف:', 'Expected size after cleanup:')} <strong>~{Math.max(0.5, +(cleanupInfo.currentDbSizeMb - cleanupInfo.estimatedBase64Mb).toFixed(1))} MB</strong></li>
                     </ul>
                   </div>
                 )}
@@ -3187,17 +3194,17 @@ export default function SettingsPage() {
                       <svg {...stroke} className="w-4 h-4 text-green-700 dark:text-green-300" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
                       </svg>
-                      نتيجة آخر عملية تنظيف:
+                      {tr('نتيجة آخر عملية تنظيف:', 'Last cleanup result:')}
                     </p>
                     <ul className="list-disc list-inside space-y-1 text-green-900 dark:text-green-200">
-                      <li>تم نقل: <strong>{cleanupResult.migrated}</strong> صورة</li>
+                      <li>{tr('تم نقل:', 'Moved:')} <strong>{cleanupResult.migrated}</strong> {tr('صورة', 'images')}</li>
                       {cleanupResult.failed > 0 && (
-                        <li>فشل: <strong>{cleanupResult.failed}</strong> صورة</li>
+                        <li>{tr('فشل:', 'Failed:')} <strong>{cleanupResult.failed}</strong> {tr('صورة', 'images')}</li>
                       )}
-                      <li>قبل: <strong>{cleanupResult.before.mb} MB</strong> ← بعد: <strong>{cleanupResult.after.mb} MB</strong></li>
-                      <li>وفّرت: <strong>{cleanupResult.saved.mb} MB</strong> ({cleanupResult.saved.percent}%)</li>
+                      <li>{tr('قبل:', 'Before:')} <strong>{cleanupResult.before.mb} MB</strong> {tr('← بعد:', '→ After:')} <strong>{cleanupResult.after.mb} MB</strong></li>
+                      <li>{tr('وفّرت:', 'Saved:')} <strong>{cleanupResult.saved.mb} MB</strong> ({cleanupResult.saved.percent}%)</li>
                       {cleanupResult.backup && (
-                        <li>النسخة الاحتياطية: <code className="bg-green-100 dark:bg-green-900/40 px-1 rounded text-xs">{cleanupResult.backup.filename}</code></li>
+                        <li>{tr('النسخة الاحتياطية:', 'Backup:')} <code className="bg-green-100 dark:bg-green-900/40 px-1 rounded text-xs">{cleanupResult.backup.filename}</code></li>
                       )}
                     </ul>
                     {cleanupResult.vacuumError && (
@@ -3205,12 +3212,12 @@ export default function SettingsPage() {
                         <svg {...stroke} className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                         </svg>
-                        <span>تحذير: VACUUM فشل ({cleanupResult.vacuumError}). البيانات اتنقلت بس الحجم ما اتقللش — اعمل &quot;تنظيف الملف الأساسي&quot; يدوياً من الـ section اللي فوق.</span>
+                        <span>{tr('تحذير: VACUUM فشل (', 'Warning: VACUUM failed (')}{cleanupResult.vacuumError}{tr('). البيانات اتنقلت بس الحجم ما اتقللش — اعمل "تنظيف الملف الأساسي" يدوياً من الـ section اللي فوق.', '). Data was moved but the size didn\'t shrink — run "Clean up main file" manually from the section above.')}</span>
                       </p>
                     )}
                     {cleanupResult.failures.length > 0 && (
                       <details className="mt-3">
-                        <summary className="cursor-pointer text-amber-700 dark:text-amber-400 font-bold">عرض الأعضاء اللي فشل نقلهم ({cleanupResult.failures.length})</summary>
+                        <summary className="cursor-pointer text-amber-700 dark:text-amber-400 font-bold">{tr('عرض الأعضاء اللي فشل نقلهم (', 'Show members that failed to move (')}{cleanupResult.failures.length})</summary>
                         <ul className="mt-2 ms-4 space-y-1 text-xs text-gray-700 dark:text-gray-300">
                           {cleanupResult.failures.map((f) => (
                             <li key={f.id}>
@@ -3233,14 +3240,14 @@ export default function SettingsPage() {
                       <svg {...stroke} className="w-5 h-5 animate-spin" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      <span>جاري التنظيف... (ممكن ياخد دقيقة أو اتنين)</span>
+                      <span>{tr('جاري التنظيف... (ممكن ياخد دقيقة أو اتنين)', 'Cleaning up... (may take a minute or two)')}</span>
                     </>
                   ) : (
                     <>
                       <svg {...stroke} className="w-5 h-5" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z" />
                       </svg>
-                      <span>ابدأ التنظيف</span>
+                      <span>{tr('ابدأ التنظيف', 'Start Cleanup')}</span>
                     </>
                   )}
                 </button>
@@ -3270,9 +3277,9 @@ export default function SettingsPage() {
                     </svg>
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">تطبيق مميزات الباقات على الأعضاء</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{tr('تطبيق مميزات الباقات على الأعضاء', 'Apply Package Features to Members')}</h2>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      السكريبت بيمشي على كل الأعضاء اللي عندهم باقة محفوظة، ويطبق عليهم الحصص + الفريز + الدعوات + InBody.
+                      {tr('السكريبت بيمشي على كل الأعضاء اللي عندهم باقة محفوظة، ويطبق عليهم الحصص + الفريز + الدعوات + InBody.', 'Goes through every member with a saved package and applies its sessions + freeze + invitations + InBody.')}
                     </p>
                   </div>
                 </div>
@@ -3284,11 +3291,11 @@ export default function SettingsPage() {
                     <svg {...stroke} className="w-5 h-5 text-blue-700 dark:text-blue-300" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                     </svg>
-                    إزاي بيعرف الباقة بتاعت العضو؟
+                    {tr('إزاي بيعرف الباقة بتاعت العضو؟', 'How does it know a member\'s package?')}
                   </h4>
                   <p className="text-sm text-gray-700 dark:text-gray-300">
-                    لما تضيف عضو جديد (أو تجدد) وتختار باقة من الفورم، الباقة بتتخزن على العضو (<code className="text-xs">offerId</code>).
-                    الزرار ده بيمشي على كل عضو عنده باقة محفوظة، يجيب الباقة من جدول العروض، ويطبق مميزاتها.
+                    {tr('لما تضيف عضو جديد (أو تجدد) وتختار باقة من الفورم، الباقة بتتخزن على العضو (', 'When you add (or renew) a member and pick a package in the form, the package is saved on the member (')}<code className="text-xs">offerId</code>).{' '}
+                    {tr('الزرار ده بيمشي على كل عضو عنده باقة محفوظة، يجيب الباقة من جدول العروض، ويطبق مميزاتها.', 'This button goes through every member with a saved package, loads it from the offers table, and applies its features.')}
                   </p>
                 </div>
 
@@ -3296,11 +3303,11 @@ export default function SettingsPage() {
                   <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-200 dark:ring-emerald-900/50 rounded-lg">
                     <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
                       <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                      وضع آمن (الأعضاء الجدد بس)
+                      {tr('وضع آمن (الأعضاء الجدد بس)', 'Safe mode (new members only)')}
                     </h4>
                     <p className="text-xs text-gray-700 dark:text-gray-300 mb-3">
-                      يطبق المميزات بس على الأعضاء اللي الحصص/الفريز/الدعوات بتاعتهم لسه 0.
-                      مش هيلمس أي عضو مستخدم حصصه بالفعل.
+                      {tr('يطبق المميزات بس على الأعضاء اللي الحصص/الفريز/الدعوات بتاعتهم لسه 0.', 'Applies features only to members whose sessions/freeze/invitations are still 0.')}{' '}
+                      {tr('مش هيلمس أي عضو مستخدم حصصه بالفعل.', 'Won\'t touch any member who has already used sessions.')}
                     </p>
                     <button
                       onClick={() => setApplyFeaturesConfirm('fresh')}
@@ -3316,7 +3323,7 @@ export default function SettingsPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
                         </svg>
                       )}
-                      <span>تطبيق على الأعضاء الجدد</span>
+                      <span>{tr('تطبيق على الأعضاء الجدد', 'Apply to New Members')}</span>
                     </button>
                   </div>
 
@@ -3325,11 +3332,11 @@ export default function SettingsPage() {
                       <svg {...stroke} className="w-4 h-4 text-red-700 dark:text-red-300" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                       </svg>
-                      استبدال القيم (لكل الأعضاء)
+                      {tr('استبدال القيم (لكل الأعضاء)', 'Replace values (all members)')}
                     </h4>
                     <p className="text-xs text-gray-700 dark:text-gray-300 mb-3">
-                      يستبدل الحصص/الفريز/الدعوات الحالية بقيم الباقة. مفيد بعد استيراد جديد.
-                      <strong className="text-red-700 dark:text-red-300"> خطر:</strong> هيمسح الاستخدام الحالي.
+                      {tr('يستبدل الحصص/الفريز/الدعوات الحالية بقيم الباقة. مفيد بعد استيراد جديد.', 'Replaces current sessions/freeze/invitations with the package values. Useful after a fresh import.')}
+                      <strong className="text-red-700 dark:text-red-300"> {tr('خطر:', 'Danger:')}</strong> {tr('هيمسح الاستخدام الحالي. ', 'This erases current usage. ')}
                     </p>
                     <button
                       onClick={() => setApplyFeaturesConfirm('force')}
@@ -3345,7 +3352,7 @@ export default function SettingsPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                       )}
-                      <span>استبدال لكل الأعضاء</span>
+                      <span>{tr('استبدال لكل الأعضاء', 'Replace for All Members')}</span>
                     </button>
                   </div>
                 </div>
@@ -3365,23 +3372,23 @@ export default function SettingsPage() {
                       <svg {...stroke} className="w-5 h-5" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                       </svg>
-                      <span>تم — النتيجة:</span>
+                      <span>{tr('تم — النتيجة:', 'Done — result:')}</span>
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-gray-200 dark:ring-gray-700">
-                        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">اتعالج</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{tr('اتعالج', 'Processed')}</p>
                         <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{applyFeaturesResult.processed}</p>
                       </div>
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-emerald-200 dark:ring-emerald-900/50">
-                        <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">اتحدّث</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">{tr('اتحدّث', 'Updated')}</p>
                         <p className="mt-1 text-2xl font-bold text-emerald-700 dark:text-emerald-300">{applyFeaturesResult.updated}</p>
                       </div>
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-amber-200 dark:ring-amber-900/50">
-                        <p className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">اتخطّى</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">{tr('اتخطّى', 'Skipped')}</p>
                         <p className="mt-1 text-2xl font-bold text-amber-700 dark:text-amber-300">{applyFeaturesResult.skipped}</p>
                       </div>
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-red-200 dark:ring-red-900/50">
-                        <p className="text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400">مفيش باقة بنفس المدة</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400">{tr('مفيش باقة بنفس المدة', 'No package with same duration')}</p>
                         <p className="mt-1 text-2xl font-bold text-red-700 dark:text-red-300">{applyFeaturesResult.noDurationMatch}</p>
                       </div>
                     </div>
@@ -3389,16 +3396,16 @@ export default function SettingsPage() {
                     {applyFeaturesResult.results.length > 0 && (
                       <details className="bg-white dark:bg-gray-800 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
                         <summary className="px-4 py-2 cursor-pointer text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900/40 rounded-lg">
-                          عرض تفاصيل كل عضو ({applyFeaturesResult.results.length})
+                          {tr('عرض تفاصيل كل عضو (', 'Show per-member details (')}{applyFeaturesResult.results.length})
                         </summary>
-                        <div className="max-h-96 overflow-y-auto border-t border-gray-200 dark:border-gray-700">
+                        <div className="max-h-96 overflow-auto border-t border-gray-200 dark:border-gray-700">
                           <table className="w-full text-xs">
                             <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase sticky top-0">
                               <tr>
-                                <th className="px-3 py-2 text-start font-bold">رقم العضوية</th>
-                                <th className="px-3 py-2 text-start font-bold">الاسم</th>
-                                <th className="px-3 py-2 text-start font-bold">الحالة</th>
-                                <th className="px-3 py-2 text-start font-bold">السبب</th>
+                                <th className="px-3 py-2 text-start font-bold">{tr('رقم العضوية', 'Member #')}</th>
+                                <th className="px-3 py-2 text-start font-bold">{tr('الاسم', 'Name')}</th>
+                                <th className="px-3 py-2 text-start font-bold">{tr('الحالة', 'Status')}</th>
+                                <th className="px-3 py-2 text-start font-bold">{tr('السبب', 'Reason')}</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -3407,9 +3414,9 @@ export default function SettingsPage() {
                                   <td className="px-3 py-1.5 font-mono text-gray-700 dark:text-gray-300">{r.memberNumber || '—'}</td>
                                   <td className="px-3 py-1.5 text-gray-700 dark:text-gray-300">{r.name}</td>
                                   <td className="px-3 py-1.5">
-                                    {r.status === 'updated' && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">اتحدّث</span>}
-                                    {r.status === 'skipped' && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">اتخطّى</span>}
-                                    {r.status === 'no-duration-match' && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">مفيش باقة بنفس المدة</span>}
+                                    {r.status === 'updated' && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">{tr('اتحدّث', 'Updated')}</span>}
+                                    {r.status === 'skipped' && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">{tr('اتخطّى', 'Skipped')}</span>}
+                                    {r.status === 'no-duration-match' && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{tr('مفيش باقة بنفس المدة', 'No package with same duration')}</span>}
                                   </td>
                                   <td className="px-3 py-1.5 text-gray-600 dark:text-gray-400">{r.reason || '—'}</td>
                                 </tr>
@@ -3424,8 +3431,8 @@ export default function SettingsPage() {
 
                 <div className="p-3 bg-gray-50 dark:bg-gray-900/40 rounded-lg">
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    <strong>إزاي بيشتغل:</strong> السكريبت بيطابق كل عضو بالباقة المناسبة بناءً على <strong>مدة الاشتراك</strong> (الفرق بين تاريخ البداية والنهاية) مع تسامح ±3 أيام —
-                    يعني عضو مشترك 28 أو 29 أو 30 أو 31 يوم بياخد مميزات الباقة الشهرية تلقائياً، حتى لو الـ <code>offerId</code> فاضي عنده.
+                    <strong>{tr('إزاي بيشتغل:', 'How it works:')}</strong> {tr('السكريبت بيطابق كل عضو بالباقة المناسبة بناءً على', 'Each member is matched to the right package based on')} <strong>{tr('مدة الاشتراك', 'subscription duration')}</strong> {tr('(الفرق بين تاريخ البداية والنهاية) مع تسامح ±3 أيام — ', '(difference between start and end dates) with ±3 days tolerance — ')}
+                    {tr('يعني عضو مشترك 28 أو 29 أو 30 أو 31 يوم بياخد مميزات الباقة الشهرية تلقائياً، حتى لو الـ', 'so a 28, 29, 30 or 31-day member gets the monthly package features automatically, even if their')} <code>offerId</code> {tr('فاضي عنده. ', 'is empty. ')}
                   </p>
                 </div>
               </div>
@@ -3440,7 +3447,7 @@ export default function SettingsPage() {
                   onKeyDown={(e) => { if (e.key === 'Escape' && !applyingFeatures) setApplyFeaturesConfirm(null) }}
                 >
                   <div
-                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full overflow-hidden animate-modal-in"
+                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full max-h-[90vh] overflow-y-auto animate-modal-in"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div
@@ -3459,8 +3466,8 @@ export default function SettingsPage() {
                       </svg>
                       <h3 id="apply-features-confirm-title" className="text-xl font-bold">
                         {applyFeaturesConfirm === 'force'
-                          ? 'تأكيد استبدال القيم'
-                          : 'تأكيد تطبيق المميزات'}
+                          ? tr('تأكيد استبدال القيم', 'Confirm Value Replacement')
+                          : tr('تأكيد تطبيق المميزات', 'Confirm Applying Features')}
                       </h3>
                     </div>
 
@@ -3468,21 +3475,21 @@ export default function SettingsPage() {
                       {applyFeaturesConfirm === 'force' ? (
                         <>
                           <p className="text-gray-900 dark:text-gray-100 font-bold">
-                            هل تريد تطبيق مميزات الباقات على <strong>كل الأعضاء</strong> (استبدال القيم الحالية)؟
+                            {tr('هل تريد تطبيق مميزات الباقات على', 'Apply package features to')} <strong>{tr('كل الأعضاء', 'all members')}</strong> {tr('(استبدال القيم الحالية)؟ ', '(replacing current values)? ')}
                           </p>
                           <div className="p-3 bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg text-sm text-red-800 dark:text-red-200">
-                            القيم الحالية للحصص/الفريز/الدعوات هتتمسح وتترجع لقيم الباقة.
+                            {tr('القيم الحالية للحصص/الفريز/الدعوات هتتمسح وتترجع لقيم الباقة.', 'Current sessions/freeze/invitations will be reset to the package values.')}
                             <br />
-                            ده مناسب لو لسه عاملين استيراد جديد.
+                            {tr('ده مناسب لو لسه عاملين استيراد جديد.', 'This is suitable if you just did a fresh import.')}
                           </div>
                         </>
                       ) : (
                         <>
                           <p className="text-gray-900 dark:text-gray-100 font-bold">
-                            تطبيق مميزات الباقات على <strong>الأعضاء الجدد</strong> (اللي قيمهم لسه 0)؟
+                            {tr('تطبيق مميزات الباقات على', 'Apply package features to')} <strong>{tr('الأعضاء الجدد', 'new members')}</strong> {tr('(اللي قيمهم لسه 0)؟ ', '(whose values are still 0)? ')}
                           </p>
                           <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-200 dark:ring-emerald-900/50 rounded-lg text-sm text-emerald-800 dark:text-emerald-200">
-                            مش هيلمس أي عضو مستخدم حصصه بالفعل.
+                            {tr('مش هيلمس أي عضو مستخدم حصصه بالفعل.', 'Won\'t touch any member who has already used sessions.')}
                           </div>
                         </>
                       )}
@@ -3494,7 +3501,7 @@ export default function SettingsPage() {
                         disabled={applyingFeatures}
                         className="px-4 py-2.5 rounded-lg font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50"
                       >
-                        إلغاء
+                        {tr('إلغاء', 'Cancel')}
                       </button>
                       <button
                         autoFocus
@@ -3511,7 +3518,7 @@ export default function SettingsPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                           </svg>
                         )}
-                        <span>{applyFeaturesConfirm === 'force' ? 'تأكيد الاستبدال' : 'تأكيد التطبيق'}</span>
+                        <span>{applyFeaturesConfirm === 'force' ? tr('تأكيد الاستبدال', 'Confirm Replace') : tr('تأكيد التطبيق', 'Confirm Apply')}</span>
                       </button>
                     </div>
                   </div>

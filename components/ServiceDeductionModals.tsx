@@ -101,7 +101,7 @@ const serviceIconFor: Record<string, JSX.Element> = {
 }
 
 export function InvitationModal({ isOpen, memberName, memberId, memberSalesStaffId, onClose, onSuccess }: InvitationModalProps) {
-  const { direction, t } = useLanguage()
+  const { direction, t, tr } = useLanguage()
   const toast = useToast()
   const { user } = usePermissions()
   const canOverrideInvitationSales = user?.role === 'OWNER' || user?.role === 'ADMIN'
@@ -231,7 +231,7 @@ export function InvitationModal({ isOpen, memberName, memberId, memberSalesStaff
             type="button"
             onClick={handleClose}
             disabled={submitting}
-            aria-label="إغلاق"
+            aria-label={tr('إغلاق', 'Close')}
             className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50 shrink-0"
           >
             {closeIcon}
@@ -273,12 +273,12 @@ export function InvitationModal({ isOpen, memberName, memberId, memberSalesStaff
             <div>
               <label className="flex items-center gap-1.5 text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                 {briefcaseIcon}
-                <span>موظف السيلز المسؤول</span>
+                <span>{tr('موظف السيلز المسؤول', 'Assigned sales rep')}</span>
               </label>
               {isLocked && (
                 <div className="mb-1.5 bg-amber-50 dark:bg-amber-900/30 ring-1 ring-amber-200 dark:ring-amber-800 rounded-lg px-2.5 py-1.5 text-xs text-amber-800 dark:text-amber-200 flex items-center gap-1.5">
                   {lockIcon}
-                  <span>محجوز: <strong>{salesStaffList.find(s => s.id === memberSalesStaffId)?.name || '—'}</strong></span>
+                  <span>{tr('محجوز:', 'Locked:')} <strong>{salesStaffList.find(s => s.id === memberSalesStaffId)?.name || '—'}</strong></span>
                 </div>
               )}
               <select
@@ -291,11 +291,11 @@ export function InvitationModal({ isOpen, memberName, memberId, memberSalesStaff
                     : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent'
                 }`}
               >
-                <option value="">— بدون تعيين (تلقائي) —</option>
+                <option value="">{tr('— بدون تعيين (تلقائي) —', '— Unassigned (auto) —')}</option>
                 {salesStaffList.map(s => (
                   <option key={s.id} value={s.id}>
-                    {s.name} ({s.leadsCount} ليد)
-                    {s.id === salesStaffList.slice().sort((a, b) => a.leadsCount - b.leadsCount)[0]?.id ? ' (مقترح)' : ''}
+                    {s.name} ({s.leadsCount} {tr('ليد', 'leads')})
+                    {s.id === salesStaffList.slice().sort((a, b) => a.leadsCount - b.leadsCount)[0]?.id ? tr(' (مقترح)', ' (suggested)') : ''}
                   </option>
                 ))}
               </select>
@@ -354,7 +354,7 @@ interface SimpleServiceModalProps {
 }
 
 export function SimpleServiceModal({ isOpen, serviceType, memberName, memberId, onClose, onSuccess }: SimpleServiceModalProps) {
-  const { direction, t } = useLanguage()
+  const { direction, t, tr } = useLanguage()
   const toast = useToast()
   const [submitting, setSubmitting] = useState(false)
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null)
@@ -470,7 +470,7 @@ export function SimpleServiceModal({ isOpen, serviceType, memberName, memberId, 
                 type="button"
                 onClick={handleClose}
                 disabled={submitting}
-                aria-label="إغلاق"
+                aria-label={tr('إغلاق', 'Close')}
                 className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50"
               >
                 {closeIcon}
@@ -553,7 +553,7 @@ export function SimpleServiceModal({ isOpen, serviceType, memberName, memberId, 
       dir={direction}
     >
       <div
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center mb-6">

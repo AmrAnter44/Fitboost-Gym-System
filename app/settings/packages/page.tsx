@@ -42,7 +42,7 @@ const SERVICE_TONES: Record<string, string> = {
 }
 
 export default function PackagesManagementPage() {
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
   const toast = useToast()
   const router = useRouter()
   const { settings } = useServiceSettings()
@@ -86,7 +86,7 @@ export default function PackagesManagementPage() {
     e.preventDefault()
 
     if (!formData.name || !formData.sessions || !formData.price) {
-      toast.error('جميع الحقول مطلوبة')
+      toast.error(tr('جميع الحقول مطلوبة', 'All fields are required'))
       return
     }
 
@@ -105,7 +105,7 @@ export default function PackagesManagementPage() {
       })
 
       if (response.ok) {
-        toast.success(editingPackage ? 'تم تحديث الباقة' : 'تمت إضافة الباقة')
+        toast.success(editingPackage ? tr('تم تحديث الباقة', 'Package updated') : tr('تمت إضافة الباقة', 'Package added'))
         fetchPackages()
         resetForm()
       } else {
@@ -143,7 +143,7 @@ export default function PackagesManagementPage() {
           })
 
           if (response.ok) {
-            toast.success('تم حذف الباقة')
+            toast.success(tr('تم حذف الباقة', 'Package deleted'))
             fetchPackages()
           } else {
             toast.error(t('common.error'))
@@ -191,7 +191,7 @@ export default function PackagesManagementPage() {
   }
 
   return (
-    <div className="container mx-auto p-6" dir={direction}>
+    <div className="container mx-auto p-4 sm:p-6" dir={direction}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
@@ -244,7 +244,7 @@ export default function PackagesManagementPage() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-                placeholder="مثال: 8 جلسات"
+                placeholder={tr('مثال: 8 جلسات', 'e.g. 8 sessions')}
                 required
               />
             </div>
@@ -297,7 +297,7 @@ export default function PackagesManagementPage() {
 
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                مدة الاشتراك (يوم)
+                {tr('مدة الاشتراك (يوم)', 'Duration (days)')}
               </label>
               <input
                 type="number"
@@ -377,7 +377,7 @@ export default function PackagesManagementPage() {
                         <td className="px-4 py-3">
                           {pkg.durationDays ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
-                              {pkg.durationDays} يوم
+                              {pkg.durationDays} {tr('يوم', 'days')}
                             </span>
                           ) : <span className="text-gray-400">—</span>}
                         </td>

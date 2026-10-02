@@ -39,7 +39,7 @@ function AlertIcon({ className = 'w-5 h-5' }: { className?: string }) {
 }
 
 export default function StaffSelector({ serviceType, value, onChange, required = false }: StaffSelectorProps) {
-  const { t } = useLanguage()
+  const { t, tr } = useLanguage()
   const [staff, setStaff] = useState<Staff[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -84,7 +84,7 @@ export default function StaffSelector({ serviceType, value, onChange, required =
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center text-gray-600 dark:text-gray-400">
         <AlertIcon className="w-8 h-8 text-amber-500 mb-2" />
-        <p className="text-sm">لا يوجد موظفين متاحين لهذه الخدمة</p>
+        <p className="text-sm">{tr('لا يوجد موظفين متاحين لهذه الخدمة', 'No staff available for this service')}</p>
       </div>
     )
   }

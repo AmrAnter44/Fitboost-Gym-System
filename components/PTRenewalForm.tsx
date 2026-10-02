@@ -42,7 +42,7 @@ interface PTRenewalFormProps {
 
 export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewalFormProps) {
   const { user } = usePermissions()
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
   const [memberPoints, setMemberPoints] = useState(0)
@@ -169,7 +169,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
       expiryDate: calculatedExpiry || prev.expiryDate
     }))
 
-    setSuccessMessage(`تم تطبيق باقة ${pkg.name} (${pkg.durationDays} يوم)`)
+    setSuccessMessage(tr(`تم تطبيق باقة ${pkg.name} (${pkg.durationDays} يوم)`, `Package ${pkg.name} applied (${pkg.durationDays} days)`))
     setTimeout(() => setSuccessMessage(''), 2000)
   }
 

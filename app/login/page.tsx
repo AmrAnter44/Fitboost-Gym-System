@@ -3,10 +3,12 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '../../contexts/LanguageContext'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 export default function LoginPage() {
+  const { tr } = useLanguage()
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -218,7 +220,7 @@ export default function LoginPage() {
           {needsCode && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                كود التحقق (من تطبيق الـ Authenticator)
+                {tr('كود التحقق (من تطبيق الـ Authenticator)', 'Verification code (from your Authenticator app)')}
               </label>
               <input
                 value={code}
@@ -237,7 +239,7 @@ export default function LoginPage() {
                 onClick={() => { setNeedsCode(false); setCode(''); setError('') }}
                 className="mt-1.5 text-xs text-gray-500 hover:text-primary-600"
               >
-                رجوع
+                {tr('رجوع', 'Back')}
               </button>
             </div>
           )}

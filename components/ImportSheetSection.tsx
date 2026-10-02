@@ -53,7 +53,7 @@ export default function ImportSheetSection() {
       fd.append('mode', 'validate')
       const res = await fetch('/api/settings/import-sheet', { method: 'POST', body: fd })
       const data = await res.json()
-      if (!res.ok) { setError(data.error || 'فشل التحقق'); return }
+      if (!res.ok) { setError(data.error || (locale === 'ar' ? 'فشل التحقق' : 'Validation failed')); return }
       setValidation(data)
     } catch {
       setError(locale === 'ar' ? 'حدث خطأ في الاتصال' : 'Connection error')
@@ -76,7 +76,7 @@ export default function ImportSheetSection() {
       }
       const res = await fetch('/api/settings/import-sheet', { method: 'POST', body: fd })
       const data = await res.json()
-      if (!res.ok) { setError(data.error || 'فشل الاستيراد'); return }
+      if (!res.ok) { setError(data.error || (locale === 'ar' ? 'فشل الاستيراد' : 'Import failed')); return }
       setResult({ inserted: data.inserted || 0, skipped: data.skipped || 0 })
     } catch {
       setError(locale === 'ar' ? 'حدث خطأ في الاتصال' : 'Connection error')

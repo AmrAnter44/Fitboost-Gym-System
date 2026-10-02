@@ -106,7 +106,7 @@ export default function PaymentMethodSelector({
   pointsValueInEGP = 0,
   pointsEnabled = false
 }: PaymentMethodSelectorProps) {
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
   const [amounts, setAmounts] = useState<PaymentAmounts>({
     cash: 0,
     visa: 0,
@@ -146,7 +146,7 @@ export default function PaymentMethodSelector({
       if (remaining > 0.01) {
         setErrorMessage(t('multiPayment.validation.amountExceeds'))
       } else if (remaining < -0.01) {
-        setErrorMessage(`المبلغ المدفوع ${paidTotal} أكبر من المطلوب ${totalAmount}`)
+        setErrorMessage(tr(`المبلغ المدفوع ${paidTotal} أكبر من المطلوب ${totalAmount}`, `Paid amount ${paidTotal} exceeds the required ${totalAmount}`))
       } else {
         setErrorMessage('')
         handleMultiPaymentApply()
@@ -203,7 +203,7 @@ export default function PaymentMethodSelector({
 
     const validation = validatePaymentDistribution(methods, totalAmount)
     if (!validation.valid) {
-      setErrorMessage(validation.message || 'خطأ في التوزيع')
+      setErrorMessage(validation.message || tr('خطأ في التوزيع', 'Distribution error'))
       return
     }
 
@@ -388,7 +388,7 @@ export default function PaymentMethodSelector({
           {isValid && !errorMessage && (
             <div className="bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-800 rounded-lg p-3 text-green-700 dark:text-green-300 text-center font-semibold text-sm inline-flex items-center justify-center gap-1.5 w-full">
               <CheckIcon className="w-4 h-4" />
-              المبلغ مطابق! يمكنك المتابعة الآن
+              {tr('المبلغ مطابق! يمكنك المتابعة الآن', 'Amount matches! You can continue now')}
             </div>
           )}
         </div>

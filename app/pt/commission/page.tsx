@@ -112,7 +112,7 @@ interface SessionBasedCommission {
 const normName = (s: any): string => String(s ?? '').trim().toLowerCase()
 
 export default function CoachCommissionPage() {
-  const { t, locale } = useLanguage()
+  const { t, tr, locale, direction } = useLanguage()
   const toast = useToast()
   const { refetch: refetchServiceSettings } = useServiceSettings()
   const localeString = locale === 'ar' ? 'ar-EG' : 'en-US'
@@ -689,7 +689,7 @@ export default function CoachCommissionPage() {
     }
 
     if (!method) {
-      toast.error('يرجى اختيار طريقة حساب أولاً')
+      toast.error(tr('يرجى اختيار طريقة حساب أولاً', 'Please choose a calculation method first'))
       return
     }
 
@@ -1208,7 +1208,7 @@ export default function CoachCommissionPage() {
   }
 
   return (
-    <div className="container mx-auto p-3 sm:p-4 md:p-6" dir="rtl">
+    <div className="container mx-auto p-3 sm:p-4 md:p-6" dir={direction}>
       {/* Header */}
       <div className="mb-4 md:mb-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
@@ -1232,7 +1232,7 @@ export default function CoachCommissionPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               <span className="hidden sm:inline">{t('pt.commission.calculationSettings')}</span>
-              <span className="sm:hidden">الإعدادات</span>
+              <span className="sm:hidden">{tr('الإعدادات', 'Settings')}</span>
             </button>
           )}
         </div>
@@ -1432,7 +1432,7 @@ export default function CoachCommissionPage() {
                           <div className="min-w-0">
                             <div className={`text-xs font-bold ${styles.text}`}>{message}</div>
                             <div className="text-[11px] text-gray-600 dark:text-gray-300">
-                              {info.collectedThisMonth.toLocaleString(localeString)} / {info.coachTarget.toLocaleString(localeString)} ج.م
+                              {info.collectedThisMonth.toLocaleString(localeString)} / {info.coachTarget.toLocaleString(localeString)} {tr('ج.م', 'EGP')}
                             </div>
                           </div>
                         </div>
@@ -1645,23 +1645,23 @@ export default function CoachCommissionPage() {
                             
                             <div className="flex-1">
                               <p className="text-xs sm:text-sm font-bold text-orange-700 dark:text-orange-300 mb-2">
-                                تفاصيل الجلسات المجانية
+                                {tr('تفاصيل الجلسات المجانية', 'Free sessions details')}
                               </p>
                               <div className="space-y-2">
                                 <div className="flex justify-between items-center">
-                                  <span className="text-xs text-gray-600 dark:text-gray-300">عدد الجلسات:</span>
+                                  <span className="text-xs text-gray-600 dark:text-gray-300">{tr('عدد الجلسات:', 'Sessions:')}</span>
                                   <span className="font-bold text-orange-600 dark:text-orange-400">{freeSessionsDetails.count}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                  <span className="text-xs text-gray-600 dark:text-gray-300">سعر الجلسة:</span>
+                                  <span className="text-xs text-gray-600 dark:text-gray-300">{tr('سعر الجلسة:', 'Session price:')}</span>
                                   <span className="font-bold text-orange-600 dark:text-orange-400">
-                                    {freeSessionsSettings.freePTSessionPrice.toLocaleString(localeString)} ج.م
+                                    {freeSessionsSettings.freePTSessionPrice.toLocaleString(localeString)} {tr('ج.م', 'EGP')}
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center pt-2 border-t border-orange-200 dark:border-orange-700">
-                                  <span className="text-xs font-bold text-gray-700 dark:text-gray-200">القيمة الإجمالية:</span>
+                                  <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{tr('القيمة الإجمالية:', 'Total value:')}</span>
                                   <span className="text-lg font-black text-orange-700 dark:text-orange-300">
-                                    {freeSessionsDetails.value.toLocaleString(localeString)} ج.م
+                                    {freeSessionsDetails.value.toLocaleString(localeString)} {tr('ج.م', 'EGP')}
                                   </span>
                                 </div>
                               </div>
@@ -1705,11 +1705,11 @@ export default function CoachCommissionPage() {
                           {calculatedSessionCommission.toLocaleString(localeString, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
-                          })} ج.م
+                          })} {tr('ج.م', 'EGP')}
                         </p>
                         <p className="text-white/70 text-xs mt-1 break-words">
                           = {coachData.paidSessionsValue.toLocaleString(localeString)} × {customSessionPercentage}%
-                          {coachData.freeSessionsValue > 0 && ` + ${coachData.freeSessionsValue.toLocaleString(localeString)} (مجاني)`}
+                          {coachData.freeSessionsValue > 0 && ` + ${coachData.freeSessionsValue.toLocaleString(localeString)} (${tr('مجاني', 'free')})`}
                         </p>
                       </div>
                     </div>
@@ -2071,7 +2071,7 @@ export default function CoachCommissionPage() {
                               <p className="text-base sm:text-lg font-bold text-gray-500 dark:text-gray-400">+</p>
                               <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 break-words">
                                 <span className="font-bold text-purple-600">{referralCommissions.nutrition.toLocaleString(localeString)}</span>
-                                <span className="text-gray-500 dark:text-gray-400"> ( Referral تغذية - {referralSettings.nutritionReferralPercentage}%)</span>
+                                <span className="text-gray-500 dark:text-gray-400"> ( {tr('Referral تغذية', 'Nutrition referral')} - {referralSettings.nutritionReferralPercentage}%)</span>
                               </p>
                             </>
                           )}
@@ -2082,7 +2082,7 @@ export default function CoachCommissionPage() {
                               <p className="text-base sm:text-lg font-bold text-gray-500 dark:text-gray-400">+</p>
                               <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 break-words">
                                 <span className="font-bold text-pink-600">{referralCommissions.physio.toLocaleString(localeString)}</span>
-                                <span className="text-gray-500 dark:text-gray-400"> ( Referral علاج طبيعي - {referralSettings.physioReferralPercentage}%)</span>
+                                <span className="text-gray-500 dark:text-gray-400"> ( {tr('Referral علاج طبيعي', 'Physio referral')} - {referralSettings.physioReferralPercentage}%)</span>
                               </p>
                             </>
                           )}
@@ -2229,12 +2229,12 @@ export default function CoachCommissionPage() {
                       <div className="mb-4 pb-4 border-b border-dashed">
                         <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-700 dark:text-gray-200">
                           
-                          عمولات Referral
+                          {tr('عمولات Referral', 'Referral commissions')}
                         </h4>
                         <div className="grid grid-cols-2 gap-3">
                           {referralCommissions.nutrition > 0 && (
                             <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg p-3 text-center border border-purple-200 dark:border-purple-700">
-                              <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">Referral تغذية</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">{tr('Referral تغذية', 'Nutrition referral')}</p>
                               <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
                                 {referralCommissions.nutrition.toLocaleString(localeString)} {t('pt.commission.egp')}
                               </p>
@@ -2242,7 +2242,7 @@ export default function CoachCommissionPage() {
                           )}
                           {referralCommissions.physio > 0 && (
                             <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg p-3 text-center border border-purple-200 dark:border-purple-700">
-                              <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">Referral علاج طبيعي</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">{tr('Referral علاج طبيعي', 'Physio referral')}</p>
                               <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
                                 {referralCommissions.physio.toLocaleString(localeString)} {t('pt.commission.egp')}
                               </p>
@@ -2628,17 +2628,17 @@ export default function CoachCommissionPage() {
         <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <span></span>
-            <span>الجلسات المجانية ({new Date(dateFrom).toLocaleDateString(localeString)} - {new Date(dateTo).toLocaleDateString(localeString)})</span>
+            <span>{tr('الجلسات المجانية', 'Free sessions')} ({new Date(dateFrom).toLocaleDateString(localeString)} - {new Date(dateTo).toLocaleDateString(localeString)})</span>
           </h2>
 
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gradient-to-r from-purple-100 to-violet-200 dark:from-purple-900/50 dark:to-violet-900/50">
                 <tr>
-                  <th className="px-4 py-3 text-right dark:text-gray-200">الكوتش</th>
-                  <th className="px-4 py-3 text-center dark:text-gray-200">عدد الجلسات</th>
-                  <th className="px-4 py-3 text-center dark:text-gray-200">سعر الجلسة</th>
-                  <th className="px-4 py-3 text-center dark:text-gray-200">القيمة الإجمالية</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{tr('الكوتش', 'Coach')}</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">{tr('عدد الجلسات', 'Sessions')}</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">{tr('سعر الجلسة', 'Session price')}</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">{tr('القيمة الإجمالية', 'Total value')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -2659,10 +2659,10 @@ export default function CoachCommissionPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-200">
-                          {freeSessionsSettings.freePTSessionPrice} ج.م
+                          {freeSessionsSettings.freePTSessionPrice} {tr('ج.م', 'EGP')}
                         </td>
                         <td className="px-4 py-3 text-center font-bold text-purple-600 dark:text-purple-400 text-lg">
-                          {coach.value.toLocaleString(localeString)} ج.م
+                          {coach.value.toLocaleString(localeString)} {tr('ج.م', 'EGP')}
                         </td>
                       </tr>
                     ))
@@ -2670,7 +2670,7 @@ export default function CoachCommissionPage() {
                     <tr>
                       <td colSpan={4} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
                         
-                        <p className="text-xl">لا توجد جلسات مجانية في هذه الفترة</p>
+                        <p className="text-xl">{tr('لا توجد جلسات مجانية في هذه الفترة', 'No free sessions in this period')}</p>
                       </td>
                     </tr>
                   )
@@ -2688,7 +2688,7 @@ export default function CoachCommissionPage() {
                 return totalCount > 0 ? (
                   <tfoot className="bg-gradient-to-r from-purple-50 to-violet-100 dark:from-purple-900/50 dark:to-violet-900/50 font-bold">
                     <tr>
-                      <td className="px-4 py-3 dark:text-gray-200">الإجمالي</td>
+                      <td className="px-4 py-3 dark:text-gray-200">{tr('الإجمالي', 'Total')}</td>
                       <td className="px-4 py-3 text-center">
                         <span className="inline-block bg-purple-500 dark:bg-purple-600 text-white font-bold px-3 py-1 rounded-full">
                           {totalCount}
@@ -2696,7 +2696,7 @@ export default function CoachCommissionPage() {
                       </td>
                       <td className="px-4 py-3 text-center dark:text-gray-200">-</td>
                       <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 text-xl">
-                        {totalValue.toLocaleString(localeString)} ج.م
+                        {totalValue.toLocaleString(localeString)} {tr('ج.م', 'EGP')}
                       </td>
                     </tr>
                   </tfoot>
@@ -2710,7 +2710,7 @@ export default function CoachCommissionPage() {
       {/* مودال التحصيل */}
       {showPayrollModal && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="bg-gradient-to-r from-violet-600 to-purple-600 text-white p-5 rounded-t-2xl">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <span></span>
@@ -2915,9 +2915,9 @@ export default function CoachCommissionPage() {
                   { bg: 'bg-red-50 dark:bg-red-900/50', border: 'border-red-200 dark:border-red-700', text: 'text-red-700 dark:text-red-300', inputBorder: 'border-red-300 dark:border-red-700', focus: 'focus:border-red-500 focus:ring-red-200', accent: 'text-red-600 dark:text-red-400' },
                 ]
                 const describeTier = (i: number): string => {
-                  if (i === 0) return `أقل من ${limits[0].toLocaleString(localeString)} ج.م`
-                  if (i === n - 1) return `${limits[n - 2].toLocaleString(localeString)} ج.م أو أكثر`
-                  return `${limits[i - 1].toLocaleString(localeString)} - ${(limits[i] - 1).toLocaleString(localeString)} ج.م`
+                  if (i === 0) return tr(`أقل من ${limits[0].toLocaleString(localeString)} ج.م`, `Under ${limits[0].toLocaleString(localeString)} EGP`)
+                  if (i === n - 1) return tr(`${limits[n - 2].toLocaleString(localeString)} ج.م أو أكثر`, `${limits[n - 2].toLocaleString(localeString)} EGP or more`)
+                  return `${limits[i - 1].toLocaleString(localeString)} - ${(limits[i] - 1).toLocaleString(localeString)} ${tr('ج.م', 'EGP')}`
                 }
                 return (
                   <>
@@ -2925,7 +2925,7 @@ export default function CoachCommissionPage() {
                     <div className="mb-6 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl ring-1 ring-indigo-200 dark:ring-indigo-700">
                       <h3 className="text-lg font-bold mb-3 flex items-center gap-2 dark:text-gray-100">
                         <span></span>
-                        <span>عدد المستويات</span>
+                        <span>{tr('عدد المستويات', 'Number of tiers')}</span>
                       </h3>
                       <div className="flex gap-2 flex-wrap">
                         {[2, 3, 4, 5].map(count => {
@@ -2941,13 +2941,13 @@ export default function CoachCommissionPage() {
                                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:border-indigo-400'
                               }`}
                             >
-                              {count} مستويات
+                              {count} {tr('مستويات', 'tiers')}
                             </button>
                           )
                         })}
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                         لو اخترت 3 مستويات مثلاً، هتحتاج تدخل حدّين (يفصلوا بين المستويات) و3 نسب
+                         {tr('لو اخترت 3 مستويات مثلاً، هتحتاج تدخل حدّين (يفصلوا بين المستويات) و3 نسب', 'E.g. with 3 tiers you enter 2 limits (separating the tiers) and 3 rates')}
                       </p>
                     </div>
 
@@ -2961,7 +2961,7 @@ export default function CoachCommissionPage() {
                         {Array.from({ length: n - 1 }).map((_, i) => (
                           <div key={i} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg ring-1 ring-gray-200 dark:ring-gray-600">
                             <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
-                              الحد {['الأول', 'الثاني', 'الثالث', 'الرابع'][i]} (أقل من)
+                              {tr(`الحد ${['الأول', 'الثاني', 'الثالث', 'الرابع'][i]} (أقل من)`, `Limit ${i + 1} (less than)`)}
                             </label>
                             <input
                               type="number"
@@ -2987,7 +2987,7 @@ export default function CoachCommissionPage() {
                           return (
                             <div key={i} className={`${s.bg} p-4 rounded-lg ring-1 ${s.border}`}>
                               <label className={`block text-sm font-medium mb-2 ${s.text}`}>
-                                نسبة المستوى {i + 1}
+                                {tr('نسبة المستوى', 'Tier rate')} {i + 1}
                               </label>
                               <div className="relative">
                                 <input
@@ -3010,7 +3010,7 @@ export default function CoachCommissionPage() {
                     <div className="mb-6 p-4 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-xl ring-1 ring-amber-200 dark:ring-amber-700">
                       <h3 className="text-base font-bold mb-2 flex items-center gap-2 dark:text-gray-100">
                         <span></span>
-                        <span>الوصف</span>
+                        <span>{tr('الوصف', 'Description')}</span>
                       </h3>
                       <ul className="space-y-1 text-sm text-amber-900 dark:text-amber-200">
                         {Array.from({ length: n }).map((_, i) => (
@@ -3028,7 +3028,7 @@ export default function CoachCommissionPage() {
               <div className="mb-6">
                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                   <span></span>
-                  إعدادات جلسات PT المجانية
+                  {tr('إعدادات جلسات PT المجانية', 'Free PT sessions settings')}
                 </h3>
 
                 {/* Toggle */}
@@ -3036,8 +3036,8 @@ export default function CoachCommissionPage() {
                   <div className="flex items-center gap-3">
                     
                     <div>
-                      <h4 className="font-bold text-gray-800 dark:text-gray-100">احتساب تكلفة الجلسات المجانية</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">تفعيل/تعطيل حساب تكلفة جلسات PT المجانية في التحصيل</p>
+                      <h4 className="font-bold text-gray-800 dark:text-gray-100">{tr('احتساب تكلفة الجلسات المجانية', 'Track free sessions cost')}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{tr('تفعيل/تعطيل حساب تكلفة جلسات PT المجانية في التحصيل', 'Enable/disable counting free PT sessions cost in payouts')}</p>
                     </div>
                   </div>
                   <button
@@ -3063,7 +3063,7 @@ export default function CoachCommissionPage() {
                 <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="flex items-center gap-2 mb-3">
                     
-                    <h4 className="font-bold text-gray-800 dark:text-gray-100">سعر جلسة PT المجانية</h4>
+                    <h4 className="font-bold text-gray-800 dark:text-gray-100">{tr('سعر جلسة PT المجانية', 'Free PT session price')}</h4>
                   </div>
                   <div className="relative">
                     <input
@@ -3079,10 +3079,10 @@ export default function CoachCommissionPage() {
                       className="w-full px-4 py-3 ring-1 ring-gray-300 dark:ring-gray-600 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:bg-gray-800 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="0.00"
                     />
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">ج.م</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">{tr('ج.م', 'EGP')}</span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                     هذا السعر يُستخدم لحساب قيمة جلسات PT المجانية في التحصيل
+                     {tr('هذا السعر يُستخدم لحساب قيمة جلسات PT المجانية في التحصيل', 'This price is used to value free PT sessions in payouts')}
                   </p>
                 </div>
               </div>
@@ -3093,8 +3093,8 @@ export default function CoachCommissionPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">‍</span>
                     <div>
-                      <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">عمولة الكوتش عند إضافة عضو</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">تفعيل إضافة عمولة تلقائية للكوتش عند تسجيل عضو جديد</p>
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{tr('عمولة الكوتش عند إضافة عضو', 'Coach commission on new member')}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{tr('تفعيل إضافة عمولة تلقائية للكوتش عند تسجيل عضو جديد', 'Automatically add a coach commission when a new member is registered')}</p>
                     </div>
                   </div>
                   {/*  Toggle Switch — controlled by React state، شغّال بـ RTL وLTR بدون مشاكل
@@ -3127,7 +3127,7 @@ export default function CoachCommissionPage() {
                 {freeSessionsSettings.ptCommissionEnabled !== false && (
                   <div className="mt-4 bg-white/60 dark:bg-gray-800/40 rounded-lg p-4 ring-1 ring-indigo-200 dark:ring-indigo-700">
                     <label className="block text-sm font-bold text-gray-800 dark:text-gray-100 mb-2">
-                      💰 القيمة الافتراضية للعمولة (لو الباقة مش متظبطة)
+                      💰 {tr('القيمة الافتراضية للعمولة (لو الباقة مش متظبطة)', 'Default commission (if the package has none set)')}
                     </label>
                     <div className="flex items-center gap-2">
                       <input
@@ -3142,17 +3142,17 @@ export default function CoachCommissionPage() {
                         className="flex-1 px-3 py-2 rounded-lg border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         placeholder="50"
                       />
-                      <span className="text-gray-600 dark:text-gray-300 font-bold">ج.م</span>
+                      <span className="text-gray-600 dark:text-gray-300 font-bold">{tr('ج.م', 'EGP')}</span>
                     </div>
                     <p className="text-xs text-gray-600 dark:text-gray-300 mt-2">
-                      💡 ده اللي بيتطبق لما الباقة <strong>ما فيهاش قيمة عمولة محدّدة</strong>. لو كل باقة فيها قيمتها الخاصة، القيمة دي مش هتظهر.
+                      💡 {tr('ده اللي بيتطبق لما الباقة', 'Applied when the package')} <strong>{tr('ما فيهاش قيمة عمولة محدّدة', 'has no commission value set')}</strong>. {tr('لو كل باقة فيها قيمتها الخاصة، القيمة دي مش هتظهر.', 'If every package has its own value, this one won\'t be used.')}
                     </p>
                   </div>
                 )}
 
                 <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/30 border-l-4 border-amber-500 dark:border-amber-600 rounded">
                   <p className="text-sm text-amber-800 dark:text-amber-200">
-                     <strong>ملاحظة:</strong> القيمة الخاصة بكل باقة (في صفحة العروض) لها الأولوية على القيمة الافتراضية فوق.
+                     <strong>{tr('ملاحظة:', 'Note:')}</strong> {tr('القيمة الخاصة بكل باقة (في صفحة العروض) لها الأولوية على القيمة الافتراضية فوق.', 'Each package\'s own value (on the offers page) takes priority over the default above.')}
                   </p>
                 </div>
               </div>

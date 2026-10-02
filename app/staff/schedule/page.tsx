@@ -1000,7 +1000,7 @@ function DayEditModal({
           aria-modal="true"
           onClick={(e) => { if (e.target === e.currentTarget) setConfirmDialog(null) }}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-sm w-full animate-modal-in" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-sm w-full max-h-[90vh] overflow-y-auto animate-modal-in" dir={direction}>
             <div className="p-5 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <svg {...stroke} className="w-5 h-5 text-red-500">

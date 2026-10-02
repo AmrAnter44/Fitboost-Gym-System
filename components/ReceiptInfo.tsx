@@ -1,5 +1,7 @@
 'use client'
 
+import { useLanguage } from '../contexts/LanguageContext'
+
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 interface ReceiptInfoProps {
@@ -9,6 +11,7 @@ interface ReceiptInfoProps {
 }
 
 export function ReceiptInfo({ receiptNumber, memberNumber, amount }: ReceiptInfoProps) {
+  const { tr } = useLanguage()
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -16,9 +19,9 @@ export function ReceiptInfo({ receiptNumber, memberNumber, amount }: ReceiptInfo
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">رقم الإيصال</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{tr('رقم الإيصال', 'Receipt No.')}</div>
               <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">#{receiptNumber}</div>
-              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">مستقل عن رقم العضوية</div>
+              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">{tr('مستقل عن رقم العضوية', 'Independent of membership no.')}</div>
             </div>
             <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center">
               <svg {...stroke} className="w-6 h-6" strokeLinecap="round" strokeLinejoin="round">
@@ -33,9 +36,9 @@ export function ReceiptInfo({ receiptNumber, memberNumber, amount }: ReceiptInfo
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">رقم العضوية</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{tr('رقم العضوية', 'Membership No.')}</div>
                 <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">#{memberNumber}</div>
-                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">خاص بالعضو</div>
+                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">{tr('خاص بالعضو', 'Member specific')}</div>
               </div>
               <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center">
                 <svg {...stroke} className="w-6 h-6" strokeLinecap="round" strokeLinejoin="round">
@@ -51,9 +54,9 @@ export function ReceiptInfo({ receiptNumber, memberNumber, amount }: ReceiptInfo
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">المبلغ المدفوع</div>
-              <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{amount} ج.م</div>
-              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">إجمالي المدفوع</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{tr('المبلغ المدفوع', 'Amount paid')}</div>
+              <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{amount} {tr('ج.م', 'EGP')}</div>
+              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">{tr('إجمالي المدفوع', 'Total paid')}</div>
             </div>
             <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center">
               <svg {...stroke} className="w-6 h-6" strokeLinecap="round" strokeLinejoin="round">
@@ -73,10 +76,12 @@ export function ReceiptInfo({ receiptNumber, memberNumber, amount }: ReceiptInfo
             </svg>
           </div>
           <div className="flex-1">
-            <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-1">نظام الترقيم</h4>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-1">{tr('نظام الترقيم', 'Numbering system')}</h4>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              <strong>رقم الإيصال</strong> يتم توليده تلقائياً بشكل تسلسلي (1000، 1001، 1002...)
-              وهو <strong>مستقل تماماً</strong> عن رقم العضوية. يمكنك تغيير رقم البداية من صفحة الإعدادات.
+              {tr(
+                'رقم الإيصال يتم توليده تلقائياً بشكل تسلسلي (1000، 1001، 1002...) وهو مستقل تماماً عن رقم العضوية. يمكنك تغيير رقم البداية من صفحة الإعدادات.',
+                'The receipt number is generated automatically in sequence (1000, 1001, 1002...) and is completely independent of the membership number. You can change the starting number from the settings page.'
+              )}
             </p>
           </div>
         </div>

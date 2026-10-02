@@ -38,7 +38,7 @@ interface Staff {
 
 export default function AdminUsersPage() {
   const router = useRouter()
-  const { direction, t } = useLanguage()
+  const { direction, t, tr, locale } = useLanguage()
   const toast = useToast()
   const [users, setUsers] = useState<User[]>([])
   const [staff, setStaff] = useState<Staff[]>([])
@@ -185,7 +185,7 @@ export default function AdminUsersPage() {
     }
 
     if (newUserData.password !== newUserData.confirmPassword) {
-      toast.error('كلمتا المرور غير متطابقتين')
+      toast.error(tr('كلمتا المرور غير متطابقتين', 'Passwords do not match'))
       return
     }
 
@@ -195,7 +195,7 @@ export default function AdminUsersPage() {
     }
 
     if (newUserData.isSales && !newUserData.staffId) {
-      toast.warning('اكونت السيلز لازم يتربط بموظف سيلز')
+      toast.warning(tr('اكونت السيلز لازم يتربط بموظف سيلز', 'A sales account must be linked to a sales staff member'))
       return
     }
 
@@ -414,7 +414,7 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="container mx-auto p-6" dir={direction}>
+    <div className="container mx-auto p-4 sm:p-6" dir={direction}>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
           {/*  زرار رجوع — يرجع للصفحة اللي جه منها (مثلاً صفحة الإعدادات/الروابط السريعة) */}
@@ -620,14 +620,14 @@ export default function AdminUsersPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
                         </svg>
-                        سيلز
+                        {tr('سيلز', 'Sales')}
                       </span>
                     )}
                     <span className="inline-flex items-center gap-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2.5 py-0.5 rounded-full font-bold">
                       <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                       </svg>
-                      {new Date(user.createdAt).toLocaleDateString('ar-EG')}
+                      {new Date(user.createdAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'ar-EG')}
                     </span>
                   </div>
                 </div>
@@ -666,7 +666,7 @@ export default function AdminUsersPage() {
                   setShowAddModal(false)
                   setNewUserPermissions({})
                 }}
-                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                className="inline-flex items-center justify-center w-10 h-10 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                 aria-label={t('adminUsers.addModal.cancel')}
               >
                 <svg {...stroke} className="w-5 h-5" aria-hidden="true">
@@ -719,7 +719,7 @@ export default function AdminUsersPage() {
                     type="button"
                     onClick={() => setShowNewUserPassword(v => !v)}
                     className="absolute inset-y-0 start-0 px-3 flex items-center text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors duration-200"
-                    aria-label={showNewUserPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                    aria-label={showNewUserPassword ? tr('إخفاء كلمة المرور', 'Hide password') : tr('إظهار كلمة المرور', 'Show password')}
                   >
                     {showNewUserPassword ? (
                       <svg {...stroke} className="w-5 h-5" aria-hidden="true">
@@ -737,7 +737,7 @@ export default function AdminUsersPage() {
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                  تأكيد كلمة المرور <span className="text-red-600">*</span>
+                  {tr('تأكيد كلمة المرور', 'Confirm password')} <span className="text-red-600">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -749,13 +749,13 @@ export default function AdminUsersPage() {
                         ? 'border-red-400 dark:border-red-600'
                         : 'border-gray-300 dark:border-gray-600'
                     }`}
-                    placeholder="أعد إدخال كلمة المرور"
+                    placeholder={tr('أعد إدخال كلمة المرور', 'Re-enter password')}
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewUserConfirmPassword(v => !v)}
                     className="absolute inset-y-0 start-0 px-3 flex items-center text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors duration-200"
-                    aria-label={showNewUserConfirmPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                    aria-label={showNewUserConfirmPassword ? tr('إخفاء كلمة المرور', 'Hide password') : tr('إظهار كلمة المرور', 'Show password')}
                   >
                     {showNewUserConfirmPassword ? (
                       <svg {...stroke} className="w-5 h-5" aria-hidden="true">
@@ -774,7 +774,7 @@ export default function AdminUsersPage() {
                     <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                     </svg>
-                    كلمتا المرور غير متطابقتين
+                    {tr('كلمتا المرور غير متطابقتين', 'Passwords do not match')}
                   </p>
                 )}
               </div>
@@ -836,7 +836,7 @@ export default function AdminUsersPage() {
                       onChange={(e) => setNewUserData({ ...newUserData, isSales: e.target.checked, staffId: '' })}
                       className="w-4 h-4 rounded accent-orange-500"
                     />
-                    <span>اكونت سيلز — اختار موظف السيلز المرتبط بيه</span>
+                    <span>{tr('اكونت سيلز — اختار موظف السيلز المرتبط بيه', 'Sales account — choose the linked sales staff member')}</span>
                   </label>
                   {newUserData.isSales && (
                     <select
@@ -852,7 +852,7 @@ export default function AdminUsersPage() {
                       }}
                       className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-colors duration-200 text-sm"
                     >
-                      <option value="">— اختر موظف السيلز —</option>
+                      <option value="">{tr('— اختر موظف السيلز —', '— Select sales staff —')}</option>
                       {staff
                         .filter(s => !users.find(u => u.staff?.id === s.id))
                         .filter(s => s.position?.split(',').map(p => p.trim()).includes('sales'))
@@ -1022,7 +1022,7 @@ export default function AdminUsersPage() {
               </div>
               <button
                 onClick={() => setShowPermissionsModal(false)}
-                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                className="inline-flex items-center justify-center w-10 h-10 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                 aria-label={t('adminUsers.permissionsModal.cancel')}
               >
                 <svg {...stroke} className="w-5 h-5" aria-hidden="true">
@@ -1062,8 +1062,8 @@ export default function AdminUsersPage() {
                       </svg>
                     </div>
                     <div>
-                      <p className="font-bold text-orange-800 dark:text-orange-200 text-sm">اكونت سيلز</p>
-                      <p className="text-xs text-orange-700 dark:text-orange-400">الاكونت ده هيشوف متابعاته بس في صفحة المتابعات</p>
+                      <p className="font-bold text-orange-800 dark:text-orange-200 text-sm">{tr('اكونت سيلز', 'Sales account')}</p>
+                      <p className="text-xs text-orange-700 dark:text-orange-400">{tr('الاكونت ده هيشوف متابعاته بس في صفحة المتابعات', 'This account will only see its own follow-ups on the Follow-ups page')}</p>
                     </div>
                   </div>
                   <button
@@ -1073,7 +1073,7 @@ export default function AdminUsersPage() {
                     }`}
                     role="switch"
                     aria-checked={editingUserIsSales}
-                    aria-label="سيلز"
+                    aria-label={tr('سيلز', 'Sales')}
                   >
                     {/*  start-N بدل translate-x-N — RTL/LTR safe */}
                     <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all duration-200 ${
@@ -1083,14 +1083,14 @@ export default function AdminUsersPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-orange-800 dark:text-orange-200 mb-1">
-                    الموظف المرتبط بالاكونت ده
+                    {tr('الموظف المرتبط بالاكونت ده', 'Staff member linked to this account')}
                   </label>
                   <select
                     value={editingStaffId}
                     onChange={(e) => setEditingStaffId(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-colors duration-200 text-sm"
                   >
-                    <option value="">— بدون موظف —</option>
+                    <option value="">{tr('— بدون موظف —', '— No staff —')}</option>
                     {staff
                       .filter(s =>
                         s.position?.split(',').map(p => p.trim()).includes('sales') &&
@@ -1256,7 +1256,7 @@ export default function AdminUsersPage() {
       {/* Modal: Confirm */}
       {showConfirmModal && confirmAction && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-md w-full p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <div className="text-center mb-6">
               <div className="mx-auto w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4">
                 <svg {...stroke} className="w-8 h-8" aria-hidden="true">
@@ -1309,7 +1309,7 @@ export default function AdminUsersPage() {
                   setShowChangePasswordModal(false)
                   setPasswordData({ newPassword: '', ownerPassword: '' })
                 }}
-                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                className="inline-flex items-center justify-center w-10 h-10 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                 aria-label={t('adminUsers.changePasswordModal.cancel')}
               >
                 <svg {...stroke} className="w-5 h-5" aria-hidden="true">

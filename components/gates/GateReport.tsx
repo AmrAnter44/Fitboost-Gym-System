@@ -7,6 +7,7 @@
 //  بيوريك مشاكل التسجيل والاشتراكات المنتهية اللي الناس لسه بتيجي عليها.
 
 import { useCallback, useEffect, useState } from 'react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface GateEventRow {
   id: string;
@@ -31,6 +32,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 
 export default function GateReport() {
+  const { tr, locale } = useLanguage();
   const [from, setFrom] = useState(daysAgo(7));
   const [to, setTo] = useState(today());
   const [stats, setStats] = useState<Stats | null>(null);
@@ -58,36 +60,36 @@ export default function GateReport() {
   const shown = filter === 'denied' ? events.filter(e => !e.allowed) : events;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
-      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">تقرير الدخول</h2>
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
+      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{tr('تقرير الدخول', 'Entry report')}</h2>
 
       <div className="flex gap-2 flex-wrap items-end mb-4">
         <label className="block">
-          <span className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">من</span>
+          <span className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">{tr('من', 'From')}</span>
           <input type="date" value={from} onChange={e => setFrom(e.target.value)} className={inputCls} />
         </label>
         <label className="block">
-          <span className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">إلى</span>
+          <span className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">{tr('إلى', 'To')}</span>
           <input type="date" value={to} onChange={e => setTo(e.target.value)} className={inputCls} />
         </label>
         <button onClick={load} disabled={loading}
           className="px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold disabled:opacity-50">
-          {loading ? '…' : 'عرض'}
+          {loading ? '…' : tr('عرض', 'Show')}
         </button>
       </div>
 
       {stats && (
         <>
           <div className="grid grid-cols-3 gap-3 mb-4">
-            <Stat label="كل المحاولات" value={stats.total} />
-            <Stat label="دخلوا" value={stats.allowed} tone="ok" />
-            <Stat label="اترفضوا" value={stats.denied} tone="warn" />
+            <Stat label={tr('كل المحاولات', 'All attempts')} value={stats.total} />
+            <Stat label={tr('دخلوا', 'Allowed')} value={stats.allowed} tone="ok" />
+            <Stat label={tr('اترفضوا', 'Denied')} value={stats.denied} tone="warn" />
           </div>
 
           {/* أهم جزء: ليه اترفضوا */}
           {stats.deniedByReason.length > 0 && (
             <div className="mb-4 rounded-xl ring-1 ring-amber-200 dark:ring-amber-900/50 bg-amber-50/60 dark:bg-amber-900/10 p-4">
-              <h3 className="font-bold text-sm text-amber-900 dark:text-amber-200 mb-2">أسباب الرفض</h3>
+              <h3 className="font-bold text-sm text-amber-900 dark:text-amber-200 mb-2">{tr('أسباب الرفض', 'Denial reasons')}</h3>
               <div className="space-y-1">
                 {stats.deniedByReason.map(r => (
                   <div key={r.reason} className="flex items-center justify-between text-sm">
@@ -98,8 +100,7 @@ export default function GateReport() {
               </div>
               {stats.deniedByReason.some(r => r.reason === 'unparsed' || r.reason === 'unknownMember') && (
                 <p className="text-xs text-amber-800 dark:text-amber-300 mt-2 leading-relaxed">
-                  في أحداث مش متعرّف عليها — غالبًا مستخدم متسجّل على الجهاز
-                  برقم مش موجود في السيستم، أو حدث مش بتاع دخول أصلاً.
+                  {tr('في أحداث مش متعرّف عليها — غالبًا مستخدم متسجّل على الجهاز برقم مش موجود في السيستم، أو حدث مش بتاع دخول أصلاً.', 'Some events were not recognized — usually a user enrolled on the device with a number not in the system, or a non-entry event.')}
                 </p>
               )}
             </div>
@@ -107,7 +108,7 @@ export default function GateReport() {
 
           {stats.daily.length > 0 && (
             <div className="mb-4">
-              <h3 className="font-bold text-sm text-gray-700 dark:text-gray-300 mb-2">يوم بيوم</h3>
+              <h3 className="font-bold text-sm text-gray-700 dark:text-gray-300 mb-2">{tr('يوم بيوم', 'Day by day')}</h3>
               <div className="space-y-1">
                 {stats.daily.map(d => {
                   const max = Math.max(...stats.daily.map(x => x.total), 1);
@@ -135,35 +136,35 @@ export default function GateReport() {
           className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${filter === 'denied'
             ? 'bg-primary-600 text-white'
             : 'ring-1 ring-gray-300 dark:ring-gray-600 text-gray-700 dark:text-gray-300'}`}>
-          المرفوضين
+          {tr('المرفوضين', 'Denied')}
         </button>
         <button onClick={() => setFilter('all')}
           className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${filter === 'all'
             ? 'bg-primary-600 text-white'
             : 'ring-1 ring-gray-300 dark:ring-gray-600 text-gray-700 dark:text-gray-300'}`}>
-          الكل
+          {tr('الكل', 'All')}
         </button>
       </div>
 
       {shown.length === 0 ? (
         <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">
-          {loading ? 'بيحمّل…' : 'مفيش أحداث في المدى ده'}
+          {loading ? tr('بيحمّل…', 'Loading…') : tr('مفيش أحداث في المدى ده', 'No events in this range')}
         </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-                <th className="text-start py-2 font-semibold">الوقت</th>
-                <th className="text-start py-2 font-semibold">العضو</th>
-                <th className="text-start py-2 font-semibold">الحالة</th>
+                <th className="text-start py-2 font-semibold">{tr('الوقت', 'Time')}</th>
+                <th className="text-start py-2 font-semibold">{tr('العضو', 'Member')}</th>
+                <th className="text-start py-2 font-semibold">{tr('الحالة', 'Status')}</th>
               </tr>
             </thead>
             <tbody>
               {shown.map(e => (
                 <tr key={e.id} className="border-b border-gray-100 dark:border-gray-700/50">
                   <td className="py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                    {new Date(e.at).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}
+                    {new Date(e.at).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}
                   </td>
                   <td className="py-2">
                     {e.member ? (
@@ -173,15 +174,15 @@ export default function GateReport() {
                       </a>
                     ) : (
                       <span className="text-gray-500 dark:text-gray-400">
-                        {e.employeeNo ? `رقم غير معروف: ${e.employeeNo}` : '—'}
+                        {e.employeeNo ? `${tr('رقم غير معروف:', 'Unknown number:')} ${e.employeeNo}` : '—'}
                       </span>
                     )}
                   </td>
                   <td className="py-2">
                     {e.allowed ? (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">دخل</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{tr('دخل', 'Entered')}</span>
                     ) : (
-                      <span className="text-amber-700 dark:text-amber-400">{e.reasonText || e.reason || 'مرفوض'}</span>
+                      <span className="text-amber-700 dark:text-amber-400">{e.reasonText || e.reason || tr('مرفوض', 'Denied')}</span>
                     )}
                   </td>
                 </tr>
@@ -190,7 +191,7 @@ export default function GateReport() {
           </table>
           {truncated && (
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              بتشوف أحدث ٣٠٠ حدث بس — ضيّق المدى لو عايز تشوف الباقي.
+              {tr('بتشوف أحدث ٣٠٠ حدث بس — ضيّق المدى لو عايز تشوف الباقي.', 'Showing only the latest 300 events — narrow the range to see the rest.')}
             </p>
           )}
         </div>

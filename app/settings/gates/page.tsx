@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { LoadingScreen } from '../../../components/Spinner';
 import GateReport from '../../../components/gates/GateReport';
 import GateListenerSetup from '../../../components/gates/GateListenerSetup';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const;
 
@@ -36,6 +37,7 @@ const emptyForm = {
 
 export default function GatesPage() {
   const router = useRouter();
+  const { tr, locale, direction } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -69,9 +71,9 @@ export default function GatesPage() {
       const res = await fetch('/api/gates');
       const data = await res.json();
       if (data.success) { setGates(data.gates); setEventSecret(data.eventSecret); }
-      else setMsg({ type: 'err', text: data.error || 'مقدرتش أحمّل البوابات' });
+      else setMsg({ type: 'err', text: data.error || tr('مقدرتش أحمّل البوابات', 'Could not load gates') });
     } catch {
-      setMsg({ type: 'err', text: 'مشكلة في الاتصال بالسيرفر' });
+      setMsg({ type: 'err', text: tr('مشكلة في الاتصال بالسيرفر', 'Server connection problem') });
     } finally { setLoading(false); }
   }, []);
 
@@ -97,7 +99,7 @@ export default function GatesPage() {
     });
     if (!ok) {
       setGatesEnabled(!on);
-      setMsg({ type: 'err', text: data.error || 'مقدرتش أحفظ التفعيل' });
+      setMsg({ type: 'err', text: data.error || tr('مقدرتش أحفظ التفعيل', 'Could not save the setting') });
     }
   };
 
@@ -109,10 +111,10 @@ export default function GatesPage() {
 
   const save = async () => {
     if (!form.name.trim() || !form.host.trim()) {
-      setMsg({ type: 'err', text: 'اسم البوابة والـ IP مطلوبين' }); return;
+      setMsg({ type: 'err', text: tr('اسم البوابة والـ IP مطلوبين', 'Gate name and IP are required') }); return;
     }
     if (!editingId && !form.password) {
-      setMsg({ type: 'err', text: 'كلمة سر الجهاز مطلوبة' }); return;
+      setMsg({ type: 'err', text: tr('كلمة سر الجهاز مطلوبة', 'Device password is required') }); return;
     }
     setBusy('save');
     const { ok, data } = await call(editingId ? `/api/gates/${editingId}` : '/api/gates', {
@@ -120,8 +122,8 @@ export default function GatesPage() {
       body: JSON.stringify(form),
     });
     setBusy(null);
-    if (!ok) { setMsg({ type: 'err', text: data.error || 'فشل الحفظ', detail: data.detail }); return; }
-    setMsg({ type: 'ok', text: editingId ? 'اتحفظت' : 'البوابة اتضافت' });
+    if (!ok) { setMsg({ type: 'err', text: data.error || tr('فشل الحفظ', 'Save failed'), detail: data.detail }); return; }
+    setMsg({ type: 'ok', text: editingId ? tr('اتحفظت', 'Saved') : tr('البوابة اتضافت', 'Gate added') });
     setShowForm(false); setEditingId(null); setForm({ ...emptyForm });
     load();
   };
@@ -131,8 +133,8 @@ export default function GatesPage() {
     const { ok, data } = await call(`/api/gates/${g.id}/test`, { method: 'POST' });
     setBusy(null);
     setMsg(ok
-      ? { type: 'ok', text: `الجهاز رد ✓ ${data.model ? `— ${data.model}` : ''}${data.firmware ? ` (${data.firmware})` : ''}` }
-      : { type: 'err', text: data.error || 'الاختبار فشل', detail: data.detail });
+      ? { type: 'ok', text: `${tr('الجهاز رد', 'Device responded')} ✓ ${data.model ? `— ${data.model}` : ''}${data.firmware ? ` (${data.firmware})` : ''}` }
+      : { type: 'err', text: data.error || tr('الاختبار فشل', 'Test failed'), detail: data.detail });
     load();
   };
 
@@ -141,29 +143,29 @@ export default function GatesPage() {
     const { ok, data } = await call(`/api/gates/${g.id}/door`, { method: 'POST', body: JSON.stringify({ action }) });
     setBusy(null);
     setMsg(ok
-      ? { type: 'ok', text: action === 'open' ? 'الباب اتفتح' : 'الباب اتقفل' }
-      : { type: 'err', text: data.error || 'الأمر فشل', detail: data.detail });
+      ? { type: 'ok', text: action === 'open' ? tr('الباب اتفتح', 'Door opened') : tr('الباب اتقفل', 'Door closed') }
+      : { type: 'err', text: data.error || tr('الأمر فشل', 'Command failed'), detail: data.detail });
   };
 
   const syncAll = async (dryRun: boolean) => {
     setBusy('sync');
     const { ok, data } = await call('/api/gates/sync', { method: 'POST', body: JSON.stringify({ dryRun }) });
     setBusy(null);
-    if (!ok) { setMsg({ type: 'err', text: data.error || 'المزامنة فشلت', detail: data.detail }); return; }
+    if (!ok) { setMsg({ type: 'err', text: data.error || tr('المزامنة فشلت', 'Sync failed'), detail: data.detail }); return; }
     const lines = (data.reports || []).map((r: any) =>
-      `${r.gateName}: ${dryRun ? 'هيتضاف' : 'اتضاف'} ${r.added}، ${dryRun ? 'هيتعدّل' : 'اتعدّل'} ${r.modified}` +
-      (r.deleted ? `، اتشال ${r.deleted}` : '') + (r.failed ? ` ⚠️ فشل ${r.failed}` : '')
+      `${r.gateName}: ${dryRun ? tr('هيتضاف', 'to add') : tr('اتضاف', 'added')} ${r.added}${tr('، ', ', ')}${dryRun ? tr('هيتعدّل', 'to update') : tr('اتعدّل', 'updated')} ${r.modified}` +
+      (r.deleted ? `${tr('، اتشال', ', removed')} ${r.deleted}` : '') + (r.failed ? ` ⚠️ ${tr('فشل', 'failed')} ${r.failed}` : '')
     );
-    setMsg({ type: 'ok', text: (dryRun ? 'معاينة — مالمستش أي جهاز · ' : '') + lines.join(' · ') });
+    setMsg({ type: 'ok', text: (dryRun ? tr('معاينة — مالمستش أي جهاز · ', 'Preview — no device was changed · ') : '') + lines.join(' · ') });
     load();
   };
 
   const remove = async (g: Gate) => {
-    if (!confirm(`تشيل "${g.name}" من السيستم؟\n\nالمستخدمين المسجّلين على الجهاز نفسه مش هيتمسحوا.`)) return;
+    if (!confirm(tr(`تشيل "${g.name}" من السيستم؟\n\nالمستخدمين المسجّلين على الجهاز نفسه مش هيتمسحوا.`, `Remove "${g.name}" from the system?\n\nUsers enrolled on the device itself will not be deleted.`))) return;
     setBusy(`del-${g.id}`);
     const { ok, data } = await call(`/api/gates/${g.id}`, { method: 'DELETE' });
     setBusy(null);
-    setMsg(ok ? { type: 'ok', text: data.note || 'اتشالت' } : { type: 'err', text: data.error || 'فشل الحذف' });
+    setMsg(ok ? { type: 'ok', text: data.note || tr('اتشالت', 'Removed') } : { type: 'err', text: data.error || tr('فشل الحذف', 'Delete failed') });
     load();
   };
 
@@ -178,7 +180,7 @@ export default function GatesPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6" dir="rtl">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6" dir={direction}>
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div>
@@ -186,17 +188,17 @@ export default function GatesPage() {
             onClick={() => router.push('/settings')}
             className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-700 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 transition-colors duration-200"
           >
-            <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-            <span>العودة للإعدادات</span>
+            <svg {...stroke} className="w-4 h-4 rtl:rotate-180"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+            <span>{tr('العودة للإعدادات', 'Back to settings')}</span>
           </button>
           <div className="flex items-start gap-3">
             <div className="w-11 h-11 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
               <svg {...stroke} className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M6 21V7l6-4 6 4v14M10 21v-5h4v5" /></svg>
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">البوابات</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">{tr('البوابات', 'Gates')}</h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                أجهزة التعرّف على الوش — العضو يدخل بوشه والحضور يتسجّل لوحده
+                {tr('أجهزة التعرّف على الوش — العضو يدخل بوشه والحضور يتسجّل لوحده', 'Face recognition devices — members enter with their face and attendance is logged automatically')}
               </p>
             </div>
           </div>
@@ -214,19 +216,18 @@ export default function GatesPage() {
                 <p className="font-semibold">{msg.text}</p>
                 {msg.detail && <p className="text-xs opacity-70 mt-1 font-mono" dir="ltr">{msg.detail}</p>}
               </div>
-              <button onClick={() => setMsg(null)} className="text-sm opacity-60 hover:opacity-100">✕</button>
+              <button onClick={() => setMsg(null)} aria-label={tr('إغلاق', 'Close')} className="text-sm opacity-60 hover:opacity-100 w-10 h-10 -m-2 flex items-center justify-center flex-shrink-0">✕</button>
             </div>
           </div>
         )}
 
         {/* ── تفعيل الميزة ── */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">تفعيل البوابات</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{tr('تفعيل البوابات', 'Enable gates')}</h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                لما تكون مفعّلة: بوب-أب في صفحة التشيك لما البوابة ترفض حد،
-                وزرار مسح الوش في صفحة العضو.
+                {tr('لما تكون مفعّلة: بوب-أب في صفحة التشيك لما البوابة ترفض حد، وزرار مسح الوش في صفحة العضو.', 'When enabled: a popup on the check-in page when a gate denies someone, and a face-scan button on the member page.')}
               </p>
             </div>
             <button
@@ -246,25 +247,25 @@ export default function GatesPage() {
         </div>
 
         {/* ── الأجهزة ── */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
           <div className="flex items-center justify-between gap-3 mb-4">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">الأجهزة</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{tr('الأجهزة', 'Devices')}</h2>
             {!showForm && (
               <button
                 onClick={() => { setEditingId(null); setForm({ ...emptyForm }); setShowForm(true); }}
                 className="px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition-colors"
               >
-                + بوابة جديدة
+                + {tr('بوابة جديدة', 'New gate')}
               </button>
             )}
           </div>
 
           {loading ? (
-            <p className="text-gray-500 dark:text-gray-400 text-sm">بيحمّل…</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">{tr('بيحمّل…', 'Loading…')}</p>
           ) : gates.length === 0 && !showForm ? (
             <div className="text-center py-8">
-              <p className="text-gray-600 dark:text-gray-400 mb-1">لسه مفيش بوابات</p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">ضيف جهاز عشان تبدأ</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-1">{tr('لسه مفيش بوابات', 'No gates yet')}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">{tr('ضيف جهاز عشان تبدأ', 'Add a device to get started')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -277,22 +278,22 @@ export default function GatesPage() {
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-gray-900 dark:text-gray-100">{g.name}</span>
                           {!g.isEnabled && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">متوقفة</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{tr('متوقفة', 'Disabled')}</span>
                           )}
                         </div>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 font-mono" dir="ltr">
                           {g.useHttps ? 'https' : 'http'}://{g.host}:{g.port} · door {g.doorNo}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {g.onDevice} / {g.capacity} مستخدم ({pct}%)
-                          {pct >= 90 && <span className="text-amber-600 dark:text-amber-400 font-semibold"> — السعة قربت تخلص</span>}
+                          {g.onDevice} / {g.capacity} {tr('مستخدم', 'users')} ({pct}%)
+                          {pct >= 90 && <span className="text-amber-600 dark:text-amber-400 font-semibold"> — {tr('السعة قربت تخلص', 'Capacity almost full')}</span>}
                         </p>
                         {g.lastError && (
-                          <p className="text-xs text-red-600 dark:text-red-400 mt-1">آخر خطأ: {g.lastError}</p>
+                          <p className="text-xs text-red-600 dark:text-red-400 mt-1">{tr('آخر خطأ:', 'Last error:')} {g.lastError}</p>
                         )}
                         {g.lastSeenAt && !g.lastError && (
                           <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-                            آخر رد: {new Date(g.lastSeenAt).toLocaleString('ar-EG')}
+                            {tr('آخر رد:', 'Last response:')} {new Date(g.lastSeenAt).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US')}
                           </p>
                         )}
                       </div>
@@ -300,19 +301,19 @@ export default function GatesPage() {
                       <div className="flex gap-2 flex-wrap">
                         <button onClick={() => test(g)} disabled={busy === `test-${g.id}`}
                           className="px-3 py-1.5 rounded-lg text-sm font-semibold ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50">
-                          {busy === `test-${g.id}` ? '…' : 'اختبار'}
+                          {busy === `test-${g.id}` ? '…' : tr('اختبار', 'Test')}
                         </button>
                         <button onClick={() => door(g, 'open')} disabled={busy === `door-${g.id}`}
                           className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50">
-                          {busy === `door-${g.id}` ? '…' : 'افتح'}
+                          {busy === `door-${g.id}` ? '…' : tr('افتح', 'Open')}
                         </button>
                         <button onClick={() => startEdit(g)}
                           className="px-3 py-1.5 rounded-lg text-sm font-semibold ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
-                          تعديل
+                          {tr('تعديل', 'Edit')}
                         </button>
                         <button onClick={() => remove(g)} disabled={busy === `del-${g.id}`}
                           className="px-3 py-1.5 rounded-lg text-sm font-semibold text-red-600 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50">
-                          حذف
+                          {tr('حذف', 'Delete')}
                         </button>
                       </div>
                     </div>
@@ -324,14 +325,14 @@ export default function GatesPage() {
                 <div className="flex gap-2 pt-2 flex-wrap">
                   <button onClick={() => syncAll(true)} disabled={busy === 'sync'}
                     className="px-4 py-2 rounded-lg text-sm font-semibold ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50">
-                    معاينة المزامنة
+                    {tr('معاينة المزامنة', 'Preview sync')}
                   </button>
                   <button onClick={() => syncAll(false)} disabled={busy === 'sync'}
                     className="px-4 py-2 rounded-lg text-sm font-semibold bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50">
-                    {busy === 'sync' ? 'بيزامن…' : 'زامن كل الأعضاء'}
+                    {busy === 'sync' ? tr('بيزامن…', 'Syncing…') : tr('زامن كل الأعضاء', 'Sync all members')}
                   </button>
                   <p className="text-xs text-gray-500 dark:text-gray-400 self-center">
-                    المزامنة بتحصل لوحدها كل ربع ساعة — الزرار ده للتعجيل
+                    {tr('المزامنة بتحصل لوحدها كل ربع ساعة — الزرار ده للتعجيل', 'Sync runs automatically every 15 minutes — this button runs it now')}
                   </p>
                 </div>
               )}
@@ -342,39 +343,39 @@ export default function GatesPage() {
           {showForm && (
             <div className="mt-4 rounded-xl ring-1 ring-primary-200 dark:ring-primary-900/50 bg-primary-50/50 dark:bg-primary-900/10 p-4 space-y-3">
               <h3 className="font-bold text-gray-900 dark:text-gray-100">
-                {editingId ? 'تعديل البوابة' : 'بوابة جديدة'}
+                {editingId ? tr('تعديل البوابة', 'Edit gate') : tr('بوابة جديدة', 'New gate')}
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label="اسم البوابة">
+                <Field label={tr('اسم البوابة', 'Gate name')}>
                   <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                    placeholder="البوابة الرئيسية" className={inputCls} />
+                    placeholder={tr('البوابة الرئيسية', 'Main gate')} className={inputCls} />
                 </Field>
-                <Field label="IP الجهاز">
+                <Field label={tr('IP الجهاز', 'Device IP')}>
                   <input value={form.host} onChange={e => setForm({ ...form, host: e.target.value })}
                     placeholder="192.168.1.64" dir="ltr" className={inputCls} />
                 </Field>
-                <Field label="اسم المستخدم">
+                <Field label={tr('اسم المستخدم', 'Username')}>
                   <input value={form.username} onChange={e => setForm({ ...form, username: e.target.value })}
                     dir="ltr" className={inputCls} />
                 </Field>
-                <Field label={editingId ? 'كلمة السر (سيبها فاضية لو مش هتغيّرها)' : 'كلمة السر'}>
+                <Field label={editingId ? tr('كلمة السر (سيبها فاضية لو مش هتغيّرها)', 'Password (leave empty to keep it)') : tr('كلمة السر', 'Password')}>
                   <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
                     dir="ltr" className={inputCls} autoComplete="new-password" />
                 </Field>
-                <Field label="البورت">
+                <Field label={tr('البورت', 'Port')}>
                   <input type="number" value={form.port} onChange={e => setForm({ ...form, port: Number(e.target.value) })}
                     dir="ltr" className={inputCls} />
                 </Field>
-                <Field label="رقم الباب">
+                <Field label={tr('رقم الباب', 'Door number')}>
                   <input type="number" value={form.doorNo} onChange={e => setForm({ ...form, doorNo: Number(e.target.value) })}
                     dir="ltr" className={inputCls} />
                 </Field>
-                <Field label="رقم جدول الصلاحية">
+                <Field label={tr('رقم جدول الصلاحية', 'Access schedule number')}>
                   <input value={form.planTemplateNo} onChange={e => setForm({ ...form, planTemplateNo: e.target.value })}
                     dir="ltr" className={inputCls} />
                 </Field>
-                <Field label="سعة الأوشاش">
+                <Field label={tr('سعة الأوشاش', 'Face capacity')}>
                   <input type="number" value={form.capacity} onChange={e => setForm({ ...form, capacity: Number(e.target.value) })}
                     dir="ltr" className={inputCls} />
                 </Field>
@@ -387,18 +388,18 @@ export default function GatesPage() {
                 </label>
                 <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                   <input type="checkbox" checked={form.isEnabled} onChange={e => setForm({ ...form, isEnabled: e.target.checked })} />
-                  مفعّلة
+                  {tr('مفعّلة', 'Enabled')}
                 </label>
               </div>
 
               <div className="flex gap-2">
                 <button onClick={save} disabled={busy === 'save'}
                   className="px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold disabled:opacity-50">
-                  {busy === 'save' ? 'بيحفظ…' : 'حفظ'}
+                  {busy === 'save' ? tr('بيحفظ…', 'Saving…') : tr('حفظ', 'Save')}
                 </button>
                 <button onClick={() => { setShowForm(false); setEditingId(null); setForm({ ...emptyForm }); }}
                   className="px-4 py-2 rounded-lg text-sm font-semibold ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
-                  إلغاء
+                  {tr('إلغاء', 'Cancel')}
                 </button>
               </div>
             </div>

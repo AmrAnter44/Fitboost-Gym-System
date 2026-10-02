@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useUpdate } from '@/contexts/UpdateContext'
 
@@ -13,7 +13,10 @@ interface UpdateInfo {
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 export default function UpdateNotification() {
-  const { direction } = useLanguage()
+  const { direction, tr } = useLanguage()
+  //  الـ listeners بتتسجّل مرة واحدة — ref عشان الترجمة تفضل على اللغة الحالية
+  const trRef = useRef(tr)
+  trRef.current = tr
   const { setUpdateAvailable: setGlobalUpdateAvailable } = useUpdate()
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
@@ -57,7 +60,7 @@ export default function UpdateNotification() {
 
     electron.onUpdateError?.((err: any) => {
       console.error('Update error:', err)
-      setError(err.message || 'فشل التحقق من التحديثات')
+      setError(err.message || trRef.current('فشل التحقق من التحديثات', 'Failed to check for updates'))
       setIsChecking(false)
       setIsDownloading(false)
       setTimeout(() => setError(null), 5000)
@@ -90,7 +93,7 @@ export default function UpdateNotification() {
 
     const electron = (window as any).electron
     if (!electron?.isElectron) {
-      setError('التحديثات متاحة فقط في تطبيق Electron')
+      setError(tr('التحديثات متاحة فقط في تطبيق Electron', 'Updates are only available in the Electron app'))
       setTimeout(() => setError(null), 3000)
       return
     }
@@ -107,7 +110,7 @@ export default function UpdateNotification() {
       }
     } catch (err: any) {
       console.error('Error checking for updates:', err)
-      setError(err.message || 'فشل التحقق من التحديثات')
+      setError(err.message || trRef.current('فشل التحقق من التحديثات', 'Failed to check for updates'))
       setIsChecking(false)
       setTimeout(() => setError(null), 5000)
     }
@@ -130,7 +133,7 @@ export default function UpdateNotification() {
       }
     } catch (err: any) {
       console.error('Error downloading update:', err)
-      setError(err.message || 'فشل تحميل التحديث')
+      setError(err.message || tr('فشل تحميل التحديث', 'Failed to download the update'))
       setIsDownloading(false)
       setTimeout(() => setError(null), 5000)
     }
@@ -152,7 +155,7 @@ export default function UpdateNotification() {
     } catch (err: any) {
       console.error('Error installing update:', err)
       setIsInstalling(false)
-      setError(err.message || 'فشل تثبيت التحديث')
+      setError(err.message || tr('فشل تثبيت التحديث', 'Failed to install the update'))
       setTimeout(() => setError(null), 5000)
     }
   }
@@ -183,7 +186,7 @@ export default function UpdateNotification() {
       {error && (
         <div
           className="fixed top-4 end-4 z-[10000] bg-red-600 dark:bg-red-700 text-white p-5 rounded-xl shadow-2xl ring-1 ring-red-500/40 animate-slideDown"
-          style={{ minWidth: '380px', maxWidth: '420px' }}
+          style={{ minWidth: 'min(380px, calc(100vw - 2rem))', maxWidth: 'min(420px, calc(100vw - 2rem))' }}
           dir={direction}
           role="alert"
           aria-live="polite"
@@ -203,8 +206,8 @@ export default function UpdateNotification() {
             <button
               type="button"
               onClick={() => setError(null)}
-              aria-label="إغلاق"
-              className="text-white/80 hover:text-white p-1 rounded-md transition-colors duration-200"
+              aria-label={tr('إغلاق', 'Close')}
+              className="text-white/80 hover:text-white w-10 h-10 -m-2 flex items-center justify-center flex-shrink-0 rounded-md transition-colors duration-200"
             >
               {closeIcon}
             </button>
@@ -215,7 +218,7 @@ export default function UpdateNotification() {
       {isUpToDate && (
         <div
           className="fixed top-4 end-4 z-[10000] bg-emerald-600 dark:bg-emerald-700 text-white p-5 rounded-xl shadow-2xl ring-1 ring-emerald-500/40 animate-slideDown"
-          style={{ minWidth: '380px', maxWidth: '420px' }}
+          style={{ minWidth: 'min(380px, calc(100vw - 2rem))', maxWidth: 'min(420px, calc(100vw - 2rem))' }}
           dir={direction}
           role="status"
           aria-live="polite"
@@ -234,8 +237,8 @@ export default function UpdateNotification() {
             <button
               type="button"
               onClick={() => setIsUpToDate(false)}
-              aria-label="إغلاق"
-              className="text-white/80 hover:text-white p-1 rounded-md transition-colors duration-200"
+              aria-label={tr('إغلاق', 'Close')}
+              className="text-white/80 hover:text-white w-10 h-10 -m-2 flex items-center justify-center flex-shrink-0 rounded-md transition-colors duration-200"
             >
               {closeIcon}
             </button>
@@ -246,7 +249,7 @@ export default function UpdateNotification() {
       {updateAvailable && updateInfo && !isDownloading && (
         <div
           className="fixed top-4 end-4 z-[10000] bg-emerald-600 dark:bg-emerald-700 text-white p-5 rounded-xl shadow-2xl ring-1 ring-emerald-500/40 animate-slideDown"
-          style={{ minWidth: '400px', maxWidth: '450px' }}
+          style={{ minWidth: 'min(400px, calc(100vw - 2rem))', maxWidth: 'min(450px, calc(100vw - 2rem))' }}
           dir={direction}
           role="dialog"
           aria-modal="false"
@@ -313,7 +316,7 @@ export default function UpdateNotification() {
       {isDownloading && (
         <div
           className="fixed top-4 end-4 z-[10000] bg-primary-600 dark:bg-primary-700 text-primary-contrast p-5 rounded-xl shadow-2xl ring-1 ring-primary-500/40 animate-slideDown"
-          style={{ minWidth: '400px', maxWidth: '450px' }}
+          style={{ minWidth: 'min(400px, calc(100vw - 2rem))', maxWidth: 'min(450px, calc(100vw - 2rem))' }}
           dir={direction}
           role="status"
           aria-busy="true"
@@ -354,7 +357,7 @@ export default function UpdateNotification() {
       {updateDownloaded && (
         <div
           className="fixed top-4 end-4 z-[10000] bg-primary-600 dark:bg-primary-700 text-primary-contrast p-5 rounded-xl shadow-2xl ring-1 ring-primary-500/40 animate-slideDown"
-          style={{ minWidth: '400px', maxWidth: '450px' }}
+          style={{ minWidth: 'min(400px, calc(100vw - 2rem))', maxWidth: 'min(450px, calc(100vw - 2rem))' }}
           dir={direction}
           role="dialog"
           aria-modal="false"

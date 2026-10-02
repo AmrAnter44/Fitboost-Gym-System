@@ -105,7 +105,7 @@ const parseDetails = (raw: string): any => {
 }
 
 export default function MoreCommissionPage() {
-  const { t, locale } = useLanguage()
+  const { t, locale, direction } = useLanguage()
   const toast = useToast()
   const localeString = locale === 'ar' ? 'ar-EG' : 'en-US'
   const { hasPermission, loading: permissionsLoading, user: permUser } = usePermissions()
@@ -602,7 +602,7 @@ export default function MoreCommissionPage() {
   const fmt0 = (n: number) => Math.round(n).toLocaleString(localeString)
 
   return (
-    <div className="container mx-auto p-3 sm:p-4 md:p-6" dir="rtl">
+    <div className="container mx-auto p-3 sm:p-4 md:p-6" dir={direction}>
       {/* Header */}
       <div className="mb-4 md:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
@@ -1164,7 +1164,7 @@ export default function MoreCommissionPage() {
       {/* مودال التحصيل */}
       {showPayrollModal && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="bg-gradient-to-r from-violet-600 to-purple-600 text-white p-5 rounded-t-2xl">
               <h2 className="text-xl font-bold">{t('more.commission.payrollModalTitle', { name: payrollCoachName })}</h2>
             </div>

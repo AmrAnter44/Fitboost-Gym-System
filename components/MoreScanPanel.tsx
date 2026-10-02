@@ -107,7 +107,7 @@ export default function MoreScanPanel({ autoFocus = true, title, onClose }: { au
 
   return (
     <div dir={ar ? 'rtl' : 'ltr'}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
         {/*  عنوان + إغلاق (لما اللوحة جوّه مودال) */}
         {title && (
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
@@ -116,7 +116,7 @@ export default function MoreScanPanel({ autoFocus = true, title, onClose }: { au
               {title}
             </h2>
             {onClose && (
-              <button onClick={onClose} aria-label="إغلاق" className="w-8 h-8 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors">
+              <button onClick={onClose} aria-label={ar ? 'إغلاق' : 'Close'} className="w-10 h-10 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors">
                 <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             )}

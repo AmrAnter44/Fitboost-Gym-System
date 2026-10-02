@@ -193,7 +193,7 @@ export default function ClosingPage() {
   const [physiotherapyEnabled, setPhysiotherapyEnabled] = useState(false)
   const [moreEnabled, setMoreEnabled] = useState(true) //  More services enabled flag
 
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
 
   const fetchData = async () => {
     try {
@@ -949,7 +949,7 @@ export default function ClosingPage() {
         ]
       }
 
-      let fileName = 'تقفيل_مالي'
+      let fileName = tr('تقفيل_مالي', 'financial_closing')
       if (viewMode === 'daily') {
         fileName += `_${selectedDay}`
       } else {
@@ -1039,7 +1039,7 @@ export default function ClosingPage() {
   const hasFullClosing = hasPermission('canAccessClosing')
   const hasDayOnly = hasPermission('canCloseDayOnly')
   if (!permissionsLoading && !hasFullClosing && !hasDayOnly) {
-    return <PermissionDenied message="ليس لديك صلاحية الوصول لصفحة الإقفال" />
+    return <PermissionDenied message={tr('ليس لديك صلاحية الوصول لصفحة الإقفال', 'You do not have access to the closing page')} />
   }
 
   // 📅 لو معاه canCloseDayOnly بس (مش canAccessClosing) — حصره على daily mode فقط
@@ -1079,7 +1079,7 @@ export default function ClosingPage() {
             }`}
           >
             <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
-            تقفيل أمس
+            {tr('تقفيل أمس', "Yesterday's closing")}
           </button>
           <button
             onClick={() => { setViewMode('daily'); setSelectedDay(todayStr) }}
@@ -1091,7 +1091,7 @@ export default function ClosingPage() {
             }`}
           >
             <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            تقفيل اليوم
+            {tr('تقفيل اليوم', "Today's closing")}
           </button>
           <button
             onClick={() => { setViewMode('daily'); setSelectedDay(tomorrowStr) }}
@@ -1103,7 +1103,7 @@ export default function ClosingPage() {
             }`}
           >
             <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
-            تقفيل غدا
+            {tr('تقفيل غدا', "Tomorrow's closing")}
           </button>
         </div>
 
@@ -2137,7 +2137,7 @@ export default function ClosingPage() {
                                   {IconReceipt}
                                   <span>{t('closing.receipts.count', { count: day.receipts.length.toString() })}</span>
                                 </h4>
-                                <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700">
+                                <div className="bg-white dark:bg-gray-800 rounded-xl overflow-x-auto ring-1 ring-gray-200 dark:ring-gray-700">
                                   <table className="w-full text-sm">
                                     <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase text-xs">
                                       <tr>
@@ -2204,7 +2204,7 @@ export default function ClosingPage() {
                                   {IconExpense}
                                   <span>{t('closing.expenses.count', { count: day.expensesList.length.toString() })}</span>
                                 </h4>
-                                <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700">
+                                <div className="bg-white dark:bg-gray-800 rounded-xl overflow-x-auto ring-1 ring-gray-200 dark:ring-gray-700">
                                   <table className="w-full text-sm">
                                     <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase text-xs">
                                       <tr>

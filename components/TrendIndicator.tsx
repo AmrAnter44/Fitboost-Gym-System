@@ -1,5 +1,7 @@
 'use client'
 
+import { useLanguage } from '../contexts/LanguageContext'
+
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 interface TrendIndicatorProps {
@@ -15,6 +17,7 @@ export default function TrendIndicator({
   format = 'number',
   showLabel = true
 }: TrendIndicatorProps) {
+  const { tr } = useLanguage()
   if (previousValue === undefined || previousValue === 0) return null
 
   const difference = value - previousValue
@@ -46,7 +49,7 @@ export default function TrendIndicator({
       </span>
       {showLabel && (
         <span className="opacity-75">
-          {isPositive ? 'زيادة' : 'نقص'}
+          {isPositive ? tr('زيادة', 'up') : tr('نقص', 'down')}
         </span>
       )}
     </div>

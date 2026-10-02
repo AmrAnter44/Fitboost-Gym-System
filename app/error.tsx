@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useLanguage } from '../contexts/LanguageContext'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -11,6 +12,7 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const { tr } = useLanguage()
   useEffect(() => {
     console.error('[App Error]', error)
   }, [error])
@@ -27,10 +29,10 @@ export default function Error({
 
         {/* Message */}
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-          حدث خطأ غير متوقع
+          {tr('حدث خطأ غير متوقع', 'An unexpected error occurred')}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm leading-relaxed">
-          عذراً، حدث خطأ أثناء تحميل هذه الصفحة. يمكنك المحاولة مرة أخرى.
+          {tr('عذراً، حدث خطأ أثناء تحميل هذه الصفحة. يمكنك المحاولة مرة أخرى.', 'Sorry, something went wrong while loading this page. You can try again.')}
         </p>
 
         {/* Error detail (dev only) */}
@@ -51,7 +53,7 @@ export default function Error({
             <svg {...stroke} className="w-4 h-4" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            إعادة المحاولة
+            {tr('إعادة المحاولة', 'Try again')}
           </button>
           <a
             href="/"
@@ -60,7 +62,7 @@ export default function Error({
             <svg {...stroke} className="w-4 h-4" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
             </svg>
-            الرئيسية
+            {tr('الرئيسية', 'Home')}
           </a>
         </div>
       </div>

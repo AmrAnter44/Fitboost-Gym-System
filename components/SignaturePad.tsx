@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useEffect, useState, useCallback } from 'react'
+import { useLanguage } from '../contexts/LanguageContext'
 
 interface SignaturePadProps {
   onConfirm: (signatureDataUrl: string) => void
@@ -12,6 +13,7 @@ interface SignaturePadProps {
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 export default function SignaturePad({ onConfirm, onCancel, title, subtitle }: SignaturePadProps) {
+  const { tr, direction } = useLanguage()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasDrawn, setHasDrawn] = useState(false)
@@ -144,9 +146,10 @@ export default function SignaturePad({ onConfirm, onCancel, title, subtitle }: S
       role="dialog"
       aria-modal="true"
       aria-labelledby="signature-pad-title"
+      dir={direction}
     >
       <div
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in"
         onClick={e => e.stopPropagation()}
       >
         <div className="bg-primary-600 dark:bg-primary-700 text-primary-contrast p-5">
@@ -154,7 +157,7 @@ export default function SignaturePad({ onConfirm, onCancel, title, subtitle }: S
             <svg className="w-6 h-6" {...stroke}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
             </svg>
-            <span>{title || 'إمضاء العميل'}</span>
+            <span>{title || tr('إمضاء العميل', 'Customer signature')}</span>
           </h2>
           {subtitle && <p className="text-sm opacity-90 mt-1">{subtitle}</p>}
         </div>
@@ -179,7 +182,7 @@ export default function SignaturePad({ onConfirm, onCancel, title, subtitle }: S
             <svg className="w-3.5 h-3.5" {...stroke}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
             </svg>
-            <span>امضي بصباعك أو الماوس في المربع اللي فوق</span>
+            <span>{tr('امضي بصباعك أو الماوس في المربع اللي فوق', 'Sign with your finger or mouse in the box above')}</span>
           </p>
 
           <div className="flex gap-3">
@@ -193,23 +196,23 @@ export default function SignaturePad({ onConfirm, onCancel, title, subtitle }: S
               <svg className="w-5 h-5" {...stroke}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>تأكيد</span>
+              <span>{tr('تأكيد', 'Confirm')}</span>
             </button>
             <button
               type="button"
               onClick={clearCanvas}
-              aria-label="مسح"
+              aria-label={tr('مسح', 'Clear')}
               className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold transition-colors duration-200 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
             >
               <svg className="w-5 h-5" {...stroke}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06" />
               </svg>
-              <span>مسح</span>
+              <span>{tr('مسح', 'Clear')}</span>
             </button>
             <button
               type="button"
               onClick={onCancel}
-              aria-label="إلغاء"
+              aria-label={tr('إلغاء', 'Cancel')}
               className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
             >
               <svg className="w-5 h-5" {...stroke}>

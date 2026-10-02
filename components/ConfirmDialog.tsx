@@ -39,13 +39,13 @@ export default function ConfirmDialog({
   isOpen,
   title,
   message,
-  confirmText = 'تأكيد',
-  cancelText = 'إلغاء',
+  confirmText,
+  cancelText,
   onConfirm,
   onCancel,
   type = 'warning'
 }: ConfirmDialogProps) {
-  const { direction } = useLanguage()
+  const { direction, tr } = useLanguage()
   const panelRef = useRef<HTMLDivElement>(null)
 
   useFocusTrap(panelRef, isOpen)
@@ -103,7 +103,7 @@ export default function ConfirmDialog({
         onClick={(e) => e.stopPropagation()}
         dir={direction}
       >
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="flex items-start gap-4">
             <div className={`${colors.iconBg} p-3 rounded-full flex items-center justify-center flex-shrink-0`}>
               {iconFor[type]}
@@ -124,7 +124,7 @@ export default function ConfirmDialog({
             autoFocus={type !== 'danger'}
             className={`flex-1 ${colors.confirmBtn} text-white py-2.5 px-5 rounded-lg font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800`}
           >
-            {confirmText}
+            {confirmText ?? tr('تأكيد', 'Confirm')}
           </button>
           <button
             type="button"
@@ -132,7 +132,7 @@ export default function ConfirmDialog({
             autoFocus={type === 'danger'}
             className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 px-5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
           >
-            {cancelText}
+            {cancelText ?? tr('إلغاء', 'Cancel')}
           </button>
         </div>
       </div>

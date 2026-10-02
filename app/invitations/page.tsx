@@ -28,7 +28,7 @@ interface Invitation {
 }
 
 export default function InvitationsPage() {
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
   const toast = useToast()
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -62,10 +62,10 @@ export default function InvitationsPage() {
       if (context?.previousData) {
         queryClient.setQueryData(['invitations'], context.previousData)
       }
-      toast.error('حدث خطأ أثناء حذف الدعوة')
+      toast.error(tr('حدث خطأ أثناء حذف الدعوة', 'Failed to delete invitation'))
     },
     onSuccess: () => {
-      toast.success('تم حذف الدعوة بنجاح')
+      toast.success(tr('تم حذف الدعوة بنجاح', 'Invitation deleted'))
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['invitations'] })
@@ -89,12 +89,12 @@ export default function InvitationsPage() {
     if (invitationsError) {
       const errorMessage = (invitationsError as Error).message
       if (errorMessage === 'UNAUTHORIZED') {
-        toast.error('يجب تسجيل الدخول أولاً')
+        toast.error(tr('يجب تسجيل الدخول أولاً', 'Please log in first'))
         setTimeout(() => router.push('/login'), 2000)
       } else if (errorMessage === 'FORBIDDEN') {
-        toast.error('ليس لديك صلاحية عرض الدعوات')
+        toast.error(tr('ليس لديك صلاحية عرض الدعوات', 'You do not have permission to view invitations'))
       } else {
-        toast.error(errorMessage || 'حدث خطأ أثناء جلب بيانات الدعوات')
+        toast.error(errorMessage || tr('حدث خطأ أثناء جلب بيانات الدعوات', 'Failed to load invitations'))
       }
     }
   }, [invitationsError, toast, router])
@@ -265,7 +265,7 @@ export default function InvitationsPage() {
                 <div className="flex justify-between items-start mb-3 gap-2 flex-wrap">
                   <div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                      {formatDateYMD(invitation.createdAt)} • {new Date(invitation.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                      {formatDateYMD(invitation.createdAt)} • {new Date(invitation.createdAt).toLocaleTimeString((direction === 'rtl' ? 'ar-EG' : 'en-US'), { hour: '2-digit', minute: '2-digit' })}
                     </p>
                     <h3 className="font-bold text-base text-primary-700 dark:text-primary-400">{invitation.guestName}</h3>
                   </div>
@@ -345,7 +345,7 @@ export default function InvitationsPage() {
                           {formatDateYMD(invitation.createdAt)}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(invitation.createdAt).toLocaleTimeString('ar-EG', {
+                          {new Date(invitation.createdAt).toLocaleTimeString((direction === 'rtl' ? 'ar-EG' : 'en-US'), {
                             hour: '2-digit',
                             minute: '2-digit'
                           })}

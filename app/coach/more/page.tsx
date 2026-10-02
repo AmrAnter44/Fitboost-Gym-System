@@ -28,7 +28,7 @@ interface MoreSubscription {
 
 export default function CoachMorePage() {
   const router = useRouter()
-  const { t, locale, direction } = useLanguage()
+  const { t, tr, locale, direction } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [myMore, setMyMore] = useState<MoreSubscription[]>([])
@@ -133,14 +133,14 @@ export default function CoachMorePage() {
         ))
         setShowSignatureModal(false)
         setSelectedMore(null)
-        setSessionMessage({ type: 'success', text: `تم تسجيل حصة ${selectedMore.clientName} بنجاح` })
+        setSessionMessage({ type: 'success', text: tr(`تم تسجيل حصة ${selectedMore.clientName} بنجاح`, `Session recorded for ${selectedMore.clientName}`) })
         setTimeout(() => setSessionMessage(null), 4000)
       } else {
-        setSessionMessage({ type: 'error', text: data.error || 'فشل تسجيل الحصة' })
+        setSessionMessage({ type: 'error', text: data.error || tr('فشل تسجيل الحصة', 'Failed to record session') })
         setShowSignatureModal(false)
       }
     } catch {
-      setSessionMessage({ type: 'error', text: 'حدث خطأ في الاتصال' })
+      setSessionMessage({ type: 'error', text: tr('حدث خطأ في الاتصال', 'Connection error') })
       setShowSignatureModal(false)
     } finally {
       setRegistering(false)
@@ -410,8 +410,8 @@ export default function CoachMorePage() {
 
       {showSignatureModal && selectedMore && (
         <SignaturePad
-          title={`تسجيل حصة - ${selectedMore.clientName}`}
-          subtitle={`الحصص المتبقية: ${selectedMore.sessionsRemaining} من ${selectedMore.sessionsPurchased}`}
+          title={tr(`تسجيل حصة - ${selectedMore.clientName}`, `Record session - ${selectedMore.clientName}`)}
+          subtitle={tr(`الحصص المتبقية: ${selectedMore.sessionsRemaining} من ${selectedMore.sessionsPurchased}`, `Sessions remaining: ${selectedMore.sessionsRemaining} of ${selectedMore.sessionsPurchased}`)}
           onConfirm={handleSignatureConfirm}
           onCancel={() => {
             setShowSignatureModal(false)
