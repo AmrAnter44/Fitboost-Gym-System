@@ -28,7 +28,7 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
         if (!linked) return getCachedLicenseStatus()
       }
 
-      const data = await gw<{ system_license: unknown; gymName?: string; branchName?: string }>(
+      const data = await gw<{ system_license: unknown; gymName?: string; branchName?: string; cloudBackup?: boolean }>(
         'license',
         { timeoutMs: 3000 }
       )
@@ -44,6 +44,14 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
             ...(data?.branchName ? { branchName: data.branchName } : {}),
           }
         })
+      }
+
+      // ☁️ Control بيتحكم في الباك أب السحابي للفرع (لو بعت قيمة)
+      if (typeof data?.cloudBackup === 'boolean') {
+        const { applyRemoteCloudBackup } = await import('./cloudBackup')
+        await applyRemoteCloudBackup(data.cloudBackup).catch((e) =>
+          console.error('applyRemoteCloudBackup:', e?.message || e)
+        )
       }
 
       const isValid = data?.system_license === true ||
