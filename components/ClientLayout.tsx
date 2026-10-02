@@ -23,6 +23,7 @@ import SearchModal from './SearchModal'
 import BarcodeInputDetector from './BarcodeInputDetector'
 import FloatingSearchButton from './FloatingSearchButton'
 import UpdateNotification from './UpdateNotification'
+import OutdatedBanner from './OutdatedBanner'
 import InstallPrompt from './InstallPrompt'
 import KeyboardShortcuts from './KeyboardShortcuts'
 import Breadcrumb from './Breadcrumb'
@@ -56,6 +57,8 @@ function LayoutContent({ children }: { children: ReactNode }) {
 
       {/* Layout: TabBar + (Sidebar + Content) */}
       <div className="flex flex-col h-screen overflow-hidden">
+        {/* ⬆️ تحذير النسخة القديمة — جزء من الصفحة (مش فوقها) عشان مايغطيش حاجة */}
+        {!isEmbedded && <OutdatedBanner />}
         {/* Tab Strip - visible for all tabs, hidden inside iframes */}
         <TabBar />
 
