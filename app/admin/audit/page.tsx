@@ -183,6 +183,51 @@ const statusTranslations: Record<string, string> = {
   warning: 'تحذير'
 }
 
+// English versions of the label maps above (used when locale === 'en')
+const actionTranslationsEn: Record<string, string> = {
+  LOGIN: 'Login', LOGOUT: 'Logout', LOGIN_FAILED: 'Failed login', CREATE: 'Create', UPDATE: 'Update',
+  DELETE: 'Delete', VIEW: 'View', ACCESS_DENIED: 'Access denied', PERMISSION_CHANGE: 'Permission change',
+  PASSWORD_CHANGE: 'Password change', USER_ACTIVATE: 'User activated', USER_DEACTIVATE: 'User deactivated',
+  EXPORT: 'Data export', RATE_LIMIT_HIT: 'Rate limit exceeded'
+}
+
+const resourceTranslationsEn: Record<string, string> = {
+  Member: 'Member', Receipt: 'Receipt', User: 'User', Staff: 'Staff', PT: 'PT sessions', Visitor: 'Visitor',
+  FollowUp: 'Follow-up', Expense: 'Expense', DayUse: 'Day use', SpaBooking: 'SPA booking', Offer: 'Offer',
+  Permission: 'Permissions', Auth: 'Login / Logout', System: 'System', StaffDeduction: 'Staff deduction',
+  GroupClass: 'Group class', Nutrition: 'Nutrition', Physiotherapy: 'Physiotherapy', More: 'More subscription',
+  Invitation: 'Invitation'
+}
+
+const operationTranslationsEn: Record<string, string> = {
+  Renew: 'Subscription renewal', Freeze: 'Subscription freeze', Unfreeze: 'Unfreeze', Upgrade: 'Package upgrade',
+  PayRemaining: 'Remaining payment', Transfer: 'Subscription transfer', TransferIdentity: 'Membership transfer',
+  Update: 'Data update', UseSession: 'Session used', 'apply-package-features': 'Apply package features'
+}
+
+const detailKeyTranslationsEn: Record<string, string> = {
+  operation: 'Operation', memberName: 'Member name', memberNumber: 'Member #', subscriptionPrice: 'Subscription price',
+  paidAmount: 'Paid', remainingAmount: 'Remaining', amount: 'Amount', totalAmount: 'Total', receiptNumber: 'Receipt #',
+  paymentMethod: 'Payment method', packageName: 'Package', packageType: 'Package type', sessions: 'Sessions',
+  price: 'Price', reason: 'Reason', days: 'Days', name: 'Name', email: 'Email', phone: 'Phone', resourceName: 'Name',
+  targetUser: 'Target user', changes: 'Changes', endpoint: 'Endpoint', attemptedEmail: 'Email used',
+  serviceType: 'Service type', description: 'Description', category: 'Category', notes: 'Notes',
+  startDate: 'Start date', endDate: 'End date', oldExpiry: 'Old expiry', newExpiry: 'New expiry',
+  discount: 'Discount', quantity: 'Quantity', role: 'Role', isActive: 'Active'
+}
+
+const paymentMethodTranslationsEn: Record<string, string> = {
+  cash: 'Cash', card: 'Card', instapay: 'InstaPay', wallet: 'Wallet'
+}
+
+const statusTranslationsEn: Record<string, string> = {
+  success: 'Success', failure: 'Failed', warning: 'Warning'
+}
+
+const roleTranslationsEn: Record<string, string> = {
+  OWNER: 'Owner', ADMIN: 'Admin', MANAGER: 'Manager', STAFF: 'Staff', COACH: 'Coach'
+}
+
 function parseDetailsJson(log: AuditLog): Record<string, any> | null {
   if (!log.details) return null
   try {
@@ -194,10 +239,32 @@ function parseDetailsJson(log: AuditLog): Record<string, any> | null {
 }
 
 // الجملة الرئيسية المفهومة للسجل
-function buildSentence(log: AuditLog, details: Record<string, any> | null): string {
-  const resourceName = resourceTranslations[log.resource] || log.resource
+function buildSentence(log: AuditLog, details: Record<string, any> | null, en = false): string {
+  const resourceName = (en ? resourceTranslationsEn : resourceTranslations)[log.resource] || log.resource
   const target = log.resourceLabel || null
-  const operation = details?.operation ? operationTranslations[details.operation] || details.operation : null
+  const operation = details?.operation ? (en ? operationTranslationsEn : operationTranslations)[details.operation] || details.operation : null
+
+  if (en) {
+    switch (log.action) {
+      case 'LOGIN': return 'Logged in'
+      case 'LOGOUT': return 'Logged out'
+      case 'LOGIN_FAILED': return `Failed login attempt${details?.attemptedEmail ? ` with "${details.attemptedEmail}"` : ''}`
+      case 'CREATE': return `Added ${target ? `${resourceName}: ${target}` : `new ${resourceName}`}`
+      case 'UPDATE':
+        if (operation) return `${operation}${target ? ` — ${target}` : ''}`
+        return `Updated ${resourceName}${target ? `: ${target}` : ''}`
+      case 'DELETE': return `Deleted ${resourceName}${target ? `: ${target}` : ''}`
+      case 'PERMISSION_CHANGE': return `Changed permissions${target ? `: ${target}` : ' of a user'}`
+      case 'PASSWORD_CHANGE': return `Changed password${target ? `: ${target}` : ''}`
+      case 'USER_ACTIVATE': return `Activated account${target ? `: ${target}` : ''}`
+      case 'USER_DEACTIVATE': return `Deactivated account${target ? `: ${target}` : ''}`
+      case 'ACCESS_DENIED': return `Access denied — ${resourceName}`
+      case 'EXPORT': return `Exported ${resourceName} data`
+      case 'VIEW': return `Viewed ${resourceName}${target ? `: ${target}` : ''}`
+      case 'RATE_LIMIT_HIT': return `Rate limit exceeded${details?.endpoint ? ` (${details.endpoint})` : ''}`
+      default: return `${actionTranslationsEn[log.action] || log.action} — ${resourceName}${target ? `: ${target}` : ''}`
+    }
+  }
 
   switch (log.action) {
     case 'LOGIN':
@@ -235,25 +302,25 @@ function buildSentence(log: AuditLog, details: Record<string, any> | null): stri
 }
 
 // عرض قيمة تفصيلية بشكل مقروء
-function formatDetailValue(key: string, value: any): string {
+function formatDetailValue(key: string, value: any, en = false): string {
   if (value === null || value === undefined || value === '') return '—'
-  if (typeof value === 'boolean') return value ? 'نعم' : 'لا'
+  if (typeof value === 'boolean') return value ? (en ? 'Yes' : 'نعم') : (en ? 'No' : 'لا')
   if (key === 'paymentMethod' && typeof value === 'string') {
-    return paymentMethodTranslations[value.toLowerCase()] || value
+    return (en ? paymentMethodTranslationsEn : paymentMethodTranslations)[value.toLowerCase()] || value
   }
   if (key === 'operation' && typeof value === 'string') {
-    return operationTranslations[value] || value
+    return (en ? operationTranslationsEn : operationTranslations)[value] || value
   }
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
     const date = new Date(value)
     if (!isNaN(date.getTime())) {
-      return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+      return new Intl.DateTimeFormat(en ? 'en-US' : 'ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
     }
   }
   if (typeof value === 'object') {
     // شكل {from, to} أو {old, new} → سهم تغيير
-    if ('from' in value || 'to' in value) return `${value.from ?? '—'} ← ${value.to ?? '—'}`
-    if ('old' in value || 'new' in value) return `${value.old ?? '—'} ← ${value.new ?? '—'}`
+    if ('from' in value || 'to' in value) return `${value.from ?? '—'} ${en ? '→' : '←'} ${value.to ?? '—'}`
+    if ('old' in value || 'new' in value) return `${value.old ?? '—'} ${en ? '→' : '←'} ${value.new ?? '—'}`
     return JSON.stringify(value)
   }
   return String(value)
@@ -262,7 +329,9 @@ function formatDetailValue(key: string, value: any): string {
 const MONEY_KEYS = new Set(['subscriptionPrice', 'paidAmount', 'remainingAmount', 'amount', 'totalAmount', 'price', 'discount'])
 
 export default function AuditPage() {
-  const { direction } = useLanguage()
+  const { direction, tr, locale } = useLanguage()
+  const isEn = locale === 'en'
+  const dateLocale = isEn ? 'en-US' : 'ar-EG'
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'logs' | 'sessions'>('logs')
   const [logs, setLogs] = useState<AuditLog[]>([])
@@ -310,12 +379,12 @@ export default function AuditPage() {
       setLogs(data.logs || [])
       setTotal(data.total || 0)
     } catch (err) {
-      setError('فشل جلب سجلات التدقيق')
+      setError(tr('فشل جلب سجلات التدقيق', 'Failed to load audit logs'))
       console.error(err)
     } finally {
       setLoading(false)
     }
-  }, [buildParams, router])
+  }, [buildParams, router, tr])
 
   const loadMore = async () => {
     try {
@@ -348,7 +417,7 @@ export default function AuditPage() {
       const data = await response.json()
       setSessions(data || [])
     } catch (err) {
-      setError('فشل جلب الجلسات النشطة')
+      setError(tr('فشل جلب الجلسات النشطة', 'Failed to load active sessions'))
       console.error(err)
     } finally {
       setLoading(false)
@@ -365,11 +434,11 @@ export default function AuditPage() {
   }, [activeTab, fetchLogs])
 
   const formatTime = (dateString: string) =>
-    new Intl.DateTimeFormat('ar-EG', { timeStyle: 'short' }).format(new Date(dateString))
+    new Intl.DateTimeFormat(dateLocale, { timeStyle: 'short' }).format(new Date(dateString))
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return new Intl.DateTimeFormat('ar-EG', {
+    return new Intl.DateTimeFormat(dateLocale, {
       dateStyle: 'medium',
       timeStyle: 'short'
     }).format(date)
@@ -380,9 +449,9 @@ export default function AuditPage() {
     const today = new Date()
     const yesterday = new Date()
     yesterday.setDate(today.getDate() - 1)
-    if (date.toDateString() === today.toDateString()) return 'اليوم'
-    if (date.toDateString() === yesterday.toDateString()) return 'أمس'
-    return new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date)
+    if (date.toDateString() === today.toDateString()) return tr('اليوم', 'Today')
+    if (date.toDateString() === yesterday.toDateString()) return tr('أمس', 'Yesterday')
+    return new Intl.DateTimeFormat(dateLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date)
   }
 
   const getTimeSince = (dateString: string) => {
@@ -390,6 +459,12 @@ export default function AuditPage() {
     const then = new Date(dateString)
     const seconds = Math.floor((now.getTime() - then.getTime()) / 1000)
 
+    if (isEn) {
+      if (seconds < 60) return `${seconds}s ago`
+      if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`
+      if (seconds < 86400) return `${Math.floor(seconds / 3600)} h ago`
+      return `${Math.floor(seconds / 86400)} d ago`
+    }
     if (seconds < 60) return `منذ ${seconds} ثانية`
     if (seconds < 3600) return `منذ ${Math.floor(seconds / 60)} دقيقة`
     if (seconds < 86400) return `منذ ${Math.floor(seconds / 3600)} ساعة`
@@ -412,13 +487,14 @@ export default function AuditPage() {
     }
   }
 
-  const roleTranslations: Record<string, string> = {
+  const roleTranslationsAr: Record<string, string> = {
     OWNER: 'مالك',
     ADMIN: 'مدير',
     MANAGER: 'مشرف',
     STAFF: 'موظف',
     COACH: 'كوتش'
   }
+  const roleTranslations = isEn ? roleTranslationsEn : roleTranslationsAr
 
   // تجميع السجلات باليوم
   const groupedLogs: Array<{ day: string; items: AuditLog[] }> = []
@@ -430,7 +506,7 @@ export default function AuditPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6" dir={direction}>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6" dir={direction}>
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
         {/*  زرار رجوع — يرجع للصفحة اللي جه منها */}
@@ -452,10 +528,10 @@ export default function AuditPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            سجلات التدقيق والأمان
+            {tr('سجلات التدقيق والأمان', 'Audit & Security Logs')}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            تتبع جميع العمليات والمستخدمين النشطين في النظام
+            {tr('تتبع جميع العمليات والمستخدمين النشطين في النظام', 'Track all operations and active users in the system')}
           </p>
         </div>
       </div>
@@ -467,7 +543,7 @@ export default function AuditPage() {
             onClick={() => setActiveTab('logs')}
             role="tab"
             aria-selected={activeTab === 'logs'}
-            className={`inline-flex items-center gap-2 px-6 py-4 font-bold text-sm transition-colors duration-200 ${
+            className={`inline-flex items-center gap-2 px-4 sm:px-6 py-4 font-bold text-sm transition-colors duration-200 ${
               activeTab === 'logs'
                 ? 'border-b-2 border-primary-500 text-primary-700 dark:text-primary-400'
                 : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
@@ -476,13 +552,13 @@ export default function AuditPage() {
             <svg {...stroke} className="w-4 h-4" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
             </svg>
-            سجلات التدقيق
+            {tr('سجلات التدقيق', 'Audit logs')}
           </button>
           <button
             onClick={() => setActiveTab('sessions')}
             role="tab"
             aria-selected={activeTab === 'sessions'}
-            className={`inline-flex items-center gap-2 px-6 py-4 font-bold text-sm transition-colors duration-200 ${
+            className={`inline-flex items-center gap-2 px-4 sm:px-6 py-4 font-bold text-sm transition-colors duration-200 ${
               activeTab === 'sessions'
                 ? 'border-b-2 border-primary-500 text-primary-700 dark:text-primary-400'
                 : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
@@ -492,7 +568,7 @@ export default function AuditPage() {
               <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 animate-ping" />
               <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-green-500" />
             </span>
-            المتصلين حالياً
+            {tr('المتصلين حالياً', 'Online now')}
           </button>
         </div>
       </div>
@@ -501,90 +577,90 @@ export default function AuditPage() {
       {activeTab === 'logs' && (
         <div className="space-y-6">
           {/* Filters */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
             <h3 className="text-base font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
               <svg {...stroke} className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
               </svg>
-              فلاتر البحث
+              {tr('فلاتر البحث', 'Search filters')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">البحث عن مستخدم</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{tr('البحث عن مستخدم', 'Search user')}</label>
                 <input
                   type="text"
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
-                  placeholder="اسم أو بريد إلكتروني..."
+                  placeholder={tr('اسم أو بريد إلكتروني...', 'Name or email...')}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">نوع العملية</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{tr('نوع العملية', 'Action type')}</label>
                 <select
                   value={actionFilter}
                   onChange={(e) => setActionFilter(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                 >
-                  <option value="">الكل</option>
-                  <option value="CREATE">إنشاء</option>
-                  <option value="UPDATE">تعديل</option>
-                  <option value="DELETE">حذف</option>
-                  <option value="LOGIN">تسجيل دخول</option>
-                  <option value="LOGOUT">تسجيل خروج</option>
-                  <option value="LOGIN_FAILED">فشل تسجيل دخول</option>
-                  <option value="PERMISSION_CHANGE">تغيير صلاحيات</option>
-                  <option value="ACCESS_DENIED">رفض وصول</option>
-                  <option value="EXPORT">تصدير</option>
-                  <option value="VIEW">عرض</option>
+                  <option value="">{tr('الكل', 'All')}</option>
+                  <option value="CREATE">{tr('إنشاء', 'Create')}</option>
+                  <option value="UPDATE">{tr('تعديل', 'Update')}</option>
+                  <option value="DELETE">{tr('حذف', 'Delete')}</option>
+                  <option value="LOGIN">{tr('تسجيل دخول', 'Login')}</option>
+                  <option value="LOGOUT">{tr('تسجيل خروج', 'Logout')}</option>
+                  <option value="LOGIN_FAILED">{tr('فشل تسجيل دخول', 'Failed login')}</option>
+                  <option value="PERMISSION_CHANGE">{tr('تغيير صلاحيات', 'Permission change')}</option>
+                  <option value="ACCESS_DENIED">{tr('رفض وصول', 'Access denied')}</option>
+                  <option value="EXPORT">{tr('تصدير', 'Export')}</option>
+                  <option value="VIEW">{tr('عرض', 'View')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">القسم</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{tr('القسم', 'Section')}</label>
                 <select
                   value={resourceFilter}
                   onChange={(e) => setResourceFilter(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                 >
-                  <option value="">الكل</option>
-                  <option value="Member">الأعضاء</option>
-                  <option value="Receipt">الإيصالات</option>
-                  <option value="Expense">المصروفات</option>
-                  <option value="PT">الحصص المخصصة</option>
-                  <option value="More">اشتراكات More</option>
-                  <option value="GroupClass">جروب كلاس</option>
-                  <option value="Nutrition">التغذية</option>
-                  <option value="Physiotherapy">العلاج الطبيعي</option>
-                  <option value="DayUse">يوم استخدام</option>
-                  <option value="Visitor">الزوار</option>
-                  <option value="FollowUp">المتابعات</option>
-                  <option value="Staff">الموظفين</option>
-                  <option value="User">المستخدمين</option>
-                  <option value="Permission">الصلاحيات</option>
-                  <option value="Offer">العروض</option>
-                  <option value="Auth">الدخول والخروج</option>
-                  <option value="System">النظام</option>
+                  <option value="">{tr('الكل', 'All')}</option>
+                  <option value="Member">{tr('الأعضاء', 'Members')}</option>
+                  <option value="Receipt">{tr('الإيصالات', 'Receipts')}</option>
+                  <option value="Expense">{tr('المصروفات', 'Expenses')}</option>
+                  <option value="PT">{tr('الحصص المخصصة', 'PT sessions')}</option>
+                  <option value="More">{tr('اشتراكات More', 'More subscriptions')}</option>
+                  <option value="GroupClass">{tr('جروب كلاس', 'Group classes')}</option>
+                  <option value="Nutrition">{tr('التغذية', 'Nutrition')}</option>
+                  <option value="Physiotherapy">{tr('العلاج الطبيعي', 'Physiotherapy')}</option>
+                  <option value="DayUse">{tr('يوم استخدام', 'Day use')}</option>
+                  <option value="Visitor">{tr('الزوار', 'Visitors')}</option>
+                  <option value="FollowUp">{tr('المتابعات', 'Follow-ups')}</option>
+                  <option value="Staff">{tr('الموظفين', 'Staff')}</option>
+                  <option value="User">{tr('المستخدمين', 'Users')}</option>
+                  <option value="Permission">{tr('الصلاحيات', 'Permissions')}</option>
+                  <option value="Offer">{tr('العروض', 'Offers')}</option>
+                  <option value="Auth">{tr('الدخول والخروج', 'Login / Logout')}</option>
+                  <option value="System">{tr('النظام', 'System')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">الحالة</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{tr('الحالة', 'Status')}</label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                 >
-                  <option value="">الكل</option>
-                  <option value="success">نجح</option>
-                  <option value="failure">فشل</option>
-                  <option value="warning">تحذير</option>
+                  <option value="">{tr('الكل', 'All')}</option>
+                  <option value="success">{tr('نجح', 'Success')}</option>
+                  <option value="failure">{tr('فشل', 'Failed')}</option>
+                  <option value="warning">{tr('تحذير', 'Warning')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">من تاريخ</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{tr('من تاريخ', 'From date')}</label>
                 <input
                   type="date"
                   value={startDate}
@@ -594,7 +670,7 @@ export default function AuditPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">إلى تاريخ</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{tr('إلى تاريخ', 'To date')}</label>
                 <input
                   type="date"
                   value={endDate}
@@ -606,7 +682,7 @@ export default function AuditPage() {
 
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between flex-wrap gap-3">
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                إجمالي السجلات: <span className="font-bold text-gray-900 dark:text-gray-100">{total}</span>
+                {tr('إجمالي السجلات:', 'Total records:')} <span className="font-bold text-gray-900 dark:text-gray-100">{total}</span>
               </span>
               {(actionFilter || statusFilter || resourceFilter || userSearch || startDate || endDate) && (
                 <button
@@ -623,7 +699,7 @@ export default function AuditPage() {
                   <svg {...stroke} className="w-4 h-4" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                   </svg>
-                  مسح الفلاتر
+                  {tr('مسح الفلاتر', 'Clear filters')}
                 </button>
               )}
             </div>
@@ -637,8 +713,8 @@ export default function AuditPage() {
               {error}
             </div>
           ) : logs.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-12 text-center text-gray-500 dark:text-gray-400">
-              لا توجد سجلات
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-8 sm:p-12 text-center text-gray-500 dark:text-gray-400">
+              {tr('لا توجد سجلات', 'No logs found')}
             </div>
           ) : (
             <div className="space-y-6">
@@ -654,7 +730,7 @@ export default function AuditPage() {
                   <div className="space-y-2">
                     {group.items.map(log => {
                       const details = parseDetailsJson(log)
-                      const sentence = buildSentence(log, details)
+                      const sentence = buildSentence(log, details, isEn)
                       const isExpanded = expandedId === log.id
                       const detailEntries = details
                         ? Object.entries(details).filter(([key]) => !HIDDEN_DETAIL_KEYS.has(key))
@@ -684,7 +760,7 @@ export default function AuditPage() {
                               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{sentence}</p>
                               {/* السطر الثاني: المستخدم + الوقت + الحالة */}
                               <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-gray-500 dark:text-gray-400">
-                                <span className="font-medium text-gray-700 dark:text-gray-300">{log.userName || log.userEmail || 'غير معروف'}</span>
+                                <span className="font-medium text-gray-700 dark:text-gray-300">{log.userName || log.userEmail || tr('غير معروف', 'Unknown')}</span>
                                 {log.userRole && (
                                   <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ${getRoleBadge(log.userRole)}`}>
                                     {roleTranslations[log.userRole] || log.userRole}
@@ -693,7 +769,7 @@ export default function AuditPage() {
                                 <span>•</span>
                                 <span>{formatTime(log.createdAt)}</span>
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-[10px]">
-                                  {resourceTranslations[log.resource] || log.resource}
+                                  {(isEn ? resourceTranslationsEn : resourceTranslations)[log.resource] || log.resource}
                                 </span>
                                 {log.status !== 'success' && (
                                   <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
@@ -701,7 +777,7 @@ export default function AuditPage() {
                                       ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
                                       : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
                                   }`}>
-                                    {statusTranslations[log.status] || log.status}
+                                    {(isEn ? statusTranslationsEn : statusTranslations)[log.status] || log.status}
                                   </span>
                                 )}
                               </div>
@@ -728,22 +804,22 @@ export default function AuditPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 mt-3 text-xs">
                                   {detailEntries.map(([key, value]) => (
                                     <div key={key} className="flex items-center justify-between gap-3 py-1 border-b border-gray-100 dark:border-gray-700/40">
-                                      <span className="text-gray-500 dark:text-gray-400">{detailKeyTranslations[key] || key}</span>
+                                      <span className="text-gray-500 dark:text-gray-400">{(isEn ? detailKeyTranslationsEn : detailKeyTranslations)[key] || key}</span>
                                       <span className="font-semibold text-gray-900 dark:text-gray-100 text-end break-all">
-                                        {formatDetailValue(key, value)}{MONEY_KEYS.has(key) && typeof value === 'number' ? ' ج.م' : ''}
+                                        {formatDetailValue(key, value, isEn)}{MONEY_KEYS.has(key) && typeof value === 'number' ? ` ${tr('ج.م', 'EGP')}` : ''}
                                       </span>
                                     </div>
                                   ))}
                                 </div>
                               )}
 
-                              <div className="flex items-center gap-4 text-[11px] text-gray-400 dark:text-gray-500 mt-3">
+                              <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-400 dark:text-gray-500 mt-3">
                                 <span>{formatDate(log.createdAt)}</span>
                                 {log.ipAddress && (
                                   <code className="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{log.ipAddress}</code>
                                 )}
                                 {log.resourceId && (
-                                  <code className="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded" title="المعرّف الداخلي">{log.resourceId}</code>
+                                  <code className="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded" title={tr('المعرّف الداخلي', 'Internal ID')}>{log.resourceId}</code>
                                 )}
                               </div>
                             </div>
@@ -763,7 +839,7 @@ export default function AuditPage() {
                     disabled={loadingMore}
                     className="px-6 py-2.5 rounded-lg bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors duration-200"
                   >
-                    {loadingMore ? 'جاري التحميل...' : `عرض المزيد (${total - logs.length} متبقي)`}
+                    {loadingMore ? tr('جاري التحميل...', 'Loading...') : tr(`عرض المزيد (${total - logs.length} متبقي)`, `Load more (${total - logs.length} remaining)`)}
                   </button>
                 </div>
               )}
@@ -782,8 +858,8 @@ export default function AuditPage() {
               {error}
             </div>
           ) : sessions.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-12 text-center text-gray-500 dark:text-gray-400">
-              لا توجد جلسات نشطة
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-8 sm:p-12 text-center text-gray-500 dark:text-gray-400">
+              {tr('لا توجد جلسات نشطة', 'No active sessions')}
             </div>
           ) : (
             <div>
@@ -793,7 +869,7 @@ export default function AuditPage() {
                     <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 animate-ping" />
                     <span className="relative inline-flex w-3 h-3 rounded-full bg-green-500" />
                   </span>
-                  <span>{sessions.length} مستخدم متصل حالياً</span>
+                  <span>{tr(`${sessions.length} مستخدم متصل حالياً`, `${sessions.length} user(s) online now`)}</span>
                 </div>
               </div>
 
@@ -806,7 +882,7 @@ export default function AuditPage() {
                         <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{session.userEmail}</p>
                       </div>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${getRoleBadge(session.userRole)}`}>
-                        {session.userRole}
+                        {roleTranslations[session.userRole] || session.userRole}
                       </span>
                     </div>
 
@@ -815,14 +891,14 @@ export default function AuditPage() {
                         <svg {...stroke} className="w-4 h-4 text-gray-400" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                         </svg>
-                        <span>تسجيل الدخول:</span>
+                        <span>{tr('تسجيل الدخول:', 'Logged in:')}</span>
                         <span>{formatDate(session.loginAt)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <svg {...stroke} className="w-4 h-4 text-gray-400" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                         </svg>
-                        <span>آخر نشاط:</span>
+                        <span>{tr('آخر نشاط:', 'Last activity:')}</span>
                         <span className="text-green-600 dark:text-green-400 font-bold">
                           {getTimeSince(session.lastActivityAt)}
                         </span>

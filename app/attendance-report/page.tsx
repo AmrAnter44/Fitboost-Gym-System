@@ -48,7 +48,7 @@ interface Attendance {
 export default function AttendanceReportPage() {
   const router = useRouter()
   const { hasPermission, isAdmin, loading: permissionsLoading } = usePermissions()
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
 
   const getPositionLabel = (position: string | null | undefined): string => {
     if (!position) return '-'
@@ -376,7 +376,7 @@ export default function AttendanceReportPage() {
   }
 
   return (
-    <div className="container mx-auto p-6" dir={direction}>
+    <div className="container mx-auto p-4 sm:p-6" dir={direction}>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
@@ -676,7 +676,7 @@ export default function AttendanceReportPage() {
                         <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                         </svg>
-                        {checkInTime.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        {checkInTime.toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                       </p>
                     </div>
 
@@ -751,7 +751,7 @@ export default function AttendanceReportPage() {
                         </p>
                       ) : (
                         <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                          {hours > 0 && `${hours} س`}{hours > 0 && minutes > 0 ? ' ' : ''}{minutes > 0 && `${minutes} د`}
+                          {hours > 0 && `${hours} ${tr('س', 'h')}`}{hours > 0 && minutes > 0 ? ' ' : ''}{minutes > 0 && `${minutes} ${tr('د', 'm')}`}
                         </p>
                       )}
                       <p className={`text-xs mt-1 font-semibold ${
@@ -909,7 +909,7 @@ export default function AttendanceReportPage() {
           aria-labelledby="manual-modal-title"
           onClick={(e) => { if (e.target === e.currentTarget) closeManualModal() }}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-lg w-full p-6" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-lg w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto" dir={direction}>
             <div className="flex items-center justify-between mb-5">
               <h3 id="manual-modal-title" className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <svg {...stroke} className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true">
@@ -927,7 +927,7 @@ export default function AttendanceReportPage() {
               </h3>
               <button
                 onClick={closeManualModal}
-                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                className="inline-flex items-center justify-center w-10 h-10 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                 aria-label={direction === 'rtl' ? 'إلغاء' : 'Cancel'}
               >
                 <svg {...stroke} className="w-5 h-5" aria-hidden="true">

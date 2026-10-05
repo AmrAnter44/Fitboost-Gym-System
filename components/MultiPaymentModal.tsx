@@ -50,7 +50,7 @@ export default function MultiPaymentModal({
   onConfirm,
   onCancel
 }: MultiPaymentModalProps) {
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
 
   const [amounts, setAmounts] = useState<PaymentAmounts>({
     cash: 0,
@@ -70,7 +70,7 @@ export default function MultiPaymentModal({
       if (remaining > 0.01) {
         setErrorMessage(t('multiPayment.validation.amountExceeds'))
       } else if (remaining < -0.01) {
-        setErrorMessage(`المبلغ المدفوع ${paidTotal} أكبر من المطلوب ${totalAmount}`)
+        setErrorMessage(tr(`المبلغ المدفوع ${paidTotal} أكبر من المطلوب ${totalAmount}`, `Paid amount ${paidTotal} exceeds the required ${totalAmount}`))
       } else {
         setErrorMessage('')
       }
@@ -110,7 +110,7 @@ export default function MultiPaymentModal({
 
     const validation = validatePaymentDistribution(methods, totalAmount)
     if (!validation.valid) {
-      setErrorMessage(validation.message || 'خطأ في التوزيع')
+      setErrorMessage(validation.message || tr('خطأ في التوزيع', 'Distribution error'))
       return
     }
 
@@ -236,7 +236,7 @@ export default function MultiPaymentModal({
               <svg className="w-5 h-5" {...stroke}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>المبلغ مطابق! يمكنك التأكيد الآن</span>
+              <span>{tr('المبلغ مطابق! يمكنك التأكيد الآن', 'Amount matches! You can confirm now')}</span>
             </div>
           )}
         </div>

@@ -48,7 +48,7 @@ interface AssignedMember {
 
 export default function CoachMyMembers() {
   const router = useRouter()
-  const { t, locale, direction } = useLanguage()
+  const { t, tr, locale, direction } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [members, setMembers] = useState<AssignedMember[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -233,7 +233,7 @@ export default function CoachMyMembers() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setConversionPopup(prev => ({ ...prev, saving: false, error: data.error || 'فشل الحفظ' }))
+        setConversionPopup(prev => ({ ...prev, saving: false, error: data.error || tr('فشل الحفظ', 'Failed to save') }))
         return
       }
       //  تحديث الـ state محلياً
@@ -709,7 +709,7 @@ export default function CoachMyMembers() {
 
       {deductPopup.show && deductPopup.member && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="deduct-title">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 ring-1 ring-gray-200 dark:ring-gray-700">
             {deductPopup.step === 'confirm' && (
               <>
                 <div className="text-center mb-6">
@@ -894,7 +894,7 @@ export default function CoachMyMembers() {
       {/*  مودال تسجيل سبب عدم الاشتراك في PT */}
       {conversionPopup.show && conversionPopup.member && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 ring-1 ring-gray-200 dark:ring-gray-700">
             <div className="text-center mb-5">
               <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 flex items-center justify-center">
                 <svg {...stroke} className="w-7 h-7">
@@ -1032,7 +1032,7 @@ export default function CoachMyMembers() {
       {/*  مودال خصم InBody / التقييم */}
       {servicePopup.show && servicePopup.member && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 ring-1 ring-gray-200 dark:ring-gray-700">
             {servicePopup.step === 'success' ? (
               <div className="text-center py-4">
                 <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
@@ -1103,7 +1103,7 @@ export default function CoachMyMembers() {
       {/*  مودال تسجيل عدم الحضور (بدون خصم حصة) */}
       {noShowPopup.show && noShowPopup.member && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 ring-1 ring-gray-200 dark:ring-gray-700">
             <div className="text-center mb-5">
               <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 flex items-center justify-center">
                 <svg {...stroke} className="w-7 h-7">

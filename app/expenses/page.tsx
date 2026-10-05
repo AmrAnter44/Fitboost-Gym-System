@@ -34,7 +34,7 @@ interface Expense {
 export default function ExpensesPage() {
   const router = useRouter()
   const { hasPermission, loading: permissionsLoading } = usePermissions()
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
   const { customCreatedAt } = useAdminDate()
   const toast = useToast()
 
@@ -114,12 +114,12 @@ export default function ExpensesPage() {
     if (expensesError) {
       const errorMessage = (expensesError as Error).message
       if (errorMessage === 'UNAUTHORIZED') {
-        toast.error('يجب تسجيل الدخول أولاً')
+        toast.error(tr('يجب تسجيل الدخول أولاً', 'Please log in first'))
         setTimeout(() => router.push('/login'), 2000)
       } else if (errorMessage === 'FORBIDDEN') {
-        toast.error('ليس لديك صلاحية عرض المصروفات')
+        toast.error(tr('ليس لديك صلاحية عرض المصروفات', 'You do not have permission to view expenses'))
       } else {
-        toast.error(errorMessage || 'حدث خطأ أثناء جلب المصروفات')
+        toast.error(errorMessage || tr('حدث خطأ أثناء جلب المصروفات', 'Failed to load expenses'))
       }
     }
   }, [expensesError, toast, router])

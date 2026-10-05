@@ -44,7 +44,7 @@ interface PTRow {
 }
 
 const RESULTS_AR: Record<string, string> = {
-  'no-answer': 'مرد',
+  'no-answer': 'لم يرد',
   'busy': 'مشغول',
   'agreed-renew': 'وافق على التجديد',
   'rejected': 'رفض',

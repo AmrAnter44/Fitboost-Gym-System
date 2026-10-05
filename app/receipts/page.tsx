@@ -86,6 +86,16 @@ const GROUP_CLASS_RECEIPT_TYPES = [
  'groupClassDayUse'
 ]
 
+// More (مزيد) — مطابق لـ isMoreReceipt في lib/translateReceiptType.ts
+const MORE_RECEIPT_TYPES = [
+ 'moreSubscription',
+ 'moreRenewal',
+ 'دفع باقي مزيد',
+ // أنواع قديمة (backward compatibility)
+ 'اشتراك المزيد',
+ 'تجديد المزيد'
+]
+
 export default function ReceiptsPage() {
  const router = useRouter()
  const { hasPermission, loading: permissionsLoading, user } = usePermissions()
@@ -159,6 +169,7 @@ export default function ReceiptsPage() {
  if (filterType === 'Nutrition') return NUTRITION_RECEIPT_TYPES
  if (filterType === 'Physiotherapy') return PHYSIOTHERAPY_RECEIPT_TYPES
  if (filterType === 'GroupClass') return GROUP_CLASS_RECEIPT_TYPES
+ if (filterType === 'More') return MORE_RECEIPT_TYPES
  return [filterType]
  }, [filterType])
 
@@ -275,6 +286,13 @@ export default function ReceiptsPage() {
  'newGroupClass': `${t('receipts.types.newGroupClass')}`,
  'groupClassRenewal': `${t('receipts.types.groupClassRenewal')}`,
  'groupClassDayUse': `${t('receipts.types.groupClassDayUse')}`,
+
+ // More (مزيد)
+ 'moreSubscription': tr('اشتراك مزيد', 'More Subscription'),
+ 'اشتراك المزيد': tr('اشتراك مزيد', 'More Subscription'),
+ 'moreRenewal': tr('تجديد مزيد', 'More Renewal'),
+ 'تجديد المزيد': tr('تجديد مزيد', 'More Renewal'),
+ 'دفع باقي مزيد': tr('دفع باقي مزيد', 'More Remaining Payment'),
 
  // Day Use & Others
  'DayUse': `${t('receipts.types.dayUse')}`,
@@ -928,6 +946,7 @@ export default function ReceiptsPage() {
  <option value="Nutrition">{direction === 'rtl' ? 'التغذية' : 'Nutrition'}</option>
  <option value="Physiotherapy">{direction === 'rtl' ? 'العلاج الطبيعي' : 'Physiotherapy'}</option>
  <option value="GroupClass">{direction === 'rtl' ? 'الحصص الجماعية' : 'Group Classes'}</option>
+ <option value="More">{direction === 'rtl' ? 'مزيد' : 'More'}</option>
  </optgroup>
 
  {/* أخرى */}

@@ -23,14 +23,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, message: 'لا توجد إعدادات' })
     }
 
-    // التحقق من تفعيل نظام النقاط
-    if (!settings.pointsEnabled || !settings.pointsPerBirthday) {
-      return NextResponse.json({
-        success: false,
-        message: 'نظام نقاط عيد الميلاد غير مفعل',
-        alreadyChecked: true
-      })
-    }
+    // 🎁 النقاط اختيارية — تهنئة الأبلكيشن بتتبعت حتى لو النقاط مقفولة
+    const pointsOn = !!settings.pointsEnabled && !!settings.pointsPerBirthday
 
     // التاريخ الحالي — بتوقيت محلي عشان يتطابق مع مقارنة الشهر/اليوم تحت
     // (لو استخدمنا UTC عند منتصف الليل بتوقيت مصر، الـ guard والمقارنة يختلفوا
@@ -96,7 +90,8 @@ export async function GET(request: Request) {
     // منح النقاط لكل عضو — كل عضو في transaction، ومع idempotency check عشان
     // لو الـ process وقع في نص اللوب، إعادة التشغيل ما تمنحش نفس العضو مرتين.
     const results = []
-    for (const member of birthdayMembers) {
+    const awardedIds = new Set<string>()
+    for (const member of pointsOn ? birthdayMembers : []) {
       try {
         const awarded = await prisma.$transaction(async (tx) => {
           const already = await tx.pointsHistory.findFirst({
@@ -124,6 +119,7 @@ export async function GET(request: Request) {
         })
 
         if (awarded) {
+          awardedIds.add(member.id)
           results.push({
             memberNumber: member.memberNumber,
             name: member.name,
@@ -136,6 +132,15 @@ export async function GET(request: Request) {
       }
     }
 
+    // 🎂 إشعار التهنئة على الأبلكيشن (مرة في السنة لكل عضو)
+    const { sendBirthdayGreetings } = await import('@/lib/birthdayGreeting')
+    const greeted = await sendBirthdayGreetings(birthdayMembers, {
+      year: today.getFullYear(),
+      gymName: (settings as any).gymName ?? null,
+      pointsAwarded: awardedIds,
+      points: settings.pointsPerBirthday ?? 0,
+    }).catch(() => 0)
+
     // وسم الفحص بعد ما نخلّص المنح (مش قبله) عشان لو حصل crash في النص،
     // الأعضاء الباقيين ما يتسكبوش — إعادة التشغيل بتكمّل الباقي.
     await prisma.systemSettings.update({
@@ -145,8 +150,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `تم منح نقاط عيد الميلاد لـ ${results.length} عضو تلقائياً`,
+      message: `أعياد ميلاد النهارده: ${birthdayMembers.length} — نقاط: ${results.length} — تهنئة: ${greeted}`,
       count: results.length,
+      greeted,
       pointsPerBirthday: settings.pointsPerBirthday,
       members: results,
       checked: true

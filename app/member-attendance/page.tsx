@@ -322,11 +322,11 @@ export default function MemberAttendancePage() {
                         <MemberCell member={checkIn.member} unknownLabel={t('memberAttendance.unknown')} />
                       </td>
                       <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                        {checkInTime.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        {checkInTime.toLocaleDateString((direction === 'rtl' ? 'ar-EG' : 'en-US'), { year: 'numeric', month: 'short', day: 'numeric' })}
                       </td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
-                          {checkInTime.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                          {checkInTime.toLocaleTimeString((direction === 'rtl' ? 'ar-EG' : 'en-US'), { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </td>
                     </tr>
@@ -351,6 +351,7 @@ export default function MemberAttendancePage() {
 
 //  خلية العضو — تعرض الصورة والاسم، وتوديك على بروفايل العضو لو الـ id متاح
 function MemberCell({ member, unknownLabel }: { member: any; unknownLabel: string }) {
+  const { tr } = useLanguage()
   const inner = (
     <div className="flex items-center gap-3">
       <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
@@ -370,6 +371,6 @@ function MemberCell({ member, unknownLabel }: { member: any; unknownLabel: strin
     </div>
   )
   return member?.id ? (
-    <Link href={`/members/${member.id}`} className="group inline-block" title="فتح ملف العضو">{inner}</Link>
+    <Link href={`/members/${member.id}`} className="group inline-block" title={tr('فتح ملف العضو', 'Open member profile')}>{inner}</Link>
   ) : inner
 }

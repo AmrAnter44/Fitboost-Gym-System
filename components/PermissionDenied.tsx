@@ -2,6 +2,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '../contexts/LanguageContext'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -11,18 +12,19 @@ interface PermissionDeniedProps {
 }
 
 export default function PermissionDenied({
-  message = 'ليس لديك صلاحية للوصول إلى هذه الصفحة',
+  message,
   showBackButton = true
 }: PermissionDeniedProps) {
   const router = useRouter()
+  const { tr, direction } = useLanguage()
 
   return (
     <div
       className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 dark:from-gray-900 dark:to-gray-900 p-4"
-      dir="rtl"
+      dir={direction}
     >
       <div className="max-w-md w-full">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg ring-1 ring-gray-200 dark:ring-gray-700 p-8 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg ring-1 ring-gray-200 dark:ring-gray-700 p-6 sm:p-8 text-center">
           <div className="mb-6">
             <div className="inline-flex items-center justify-center w-24 h-24 bg-red-100 dark:bg-red-900/40 rounded-full">
               <svg {...stroke} className="w-12 h-12 text-red-600 dark:text-red-400">
@@ -37,16 +39,16 @@ export default function PermissionDenied({
               <circle cx="12" cy="12" r="9" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M5.6 5.6l12.8 12.8" />
             </svg>
-            الوصول مرفوض
+            {tr('الوصول مرفوض', 'Access denied')}
           </h1>
 
           <p className="text-lg text-gray-700 dark:text-gray-300 mb-8">
-            {message}
+            {message ?? tr('ليس لديك صلاحية للوصول إلى هذه الصفحة', 'You do not have permission to access this page')}
           </p>
 
           <div className="bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-800 rounded-lg p-4 mb-6">
             <p className="text-sm text-red-800 dark:text-red-200">
-              إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع المسؤول للحصول على الصلاحيات المناسبة.
+              {tr('إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع المسؤول للحصول على الصلاحيات المناسبة.', 'If you think this is a mistake, please contact the administrator to get the right permissions.')}
             </p>
           </div>
 
@@ -59,7 +61,7 @@ export default function PermissionDenied({
                 <svg {...stroke} className="w-4 h-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
-                العودة للخلف
+                {tr('العودة للخلف', 'Go back')}
               </button>
             )}
 
@@ -71,7 +73,7 @@ export default function PermissionDenied({
                 <path strokeLinecap="round" strokeLinejoin="round"
                   d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
-              العودة للصفحة الرئيسية
+              {tr('العودة للصفحة الرئيسية', 'Back to home')}
             </button>
           </div>
         </div>
@@ -81,7 +83,7 @@ export default function PermissionDenied({
             <svg {...stroke} className="w-4 h-4 mt-0.5 flex-shrink-0">
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span><strong>نصيحة:</strong> تأكد من تسجيل الدخول بحساب يملك الصلاحيات المطلوبة</span>
+            <span><strong>{tr('نصيحة:', 'Tip:')}</strong> {tr('تأكد من تسجيل الدخول بحساب يملك الصلاحيات المطلوبة', 'Make sure you are logged in with an account that has the required permissions')}</span>
           </p>
         </div>
       </div>

@@ -32,7 +32,7 @@ interface StaffDeduction {
 }
 
 export default function StaffDeductionsPage() {
-  const { t, locale, direction } = useLanguage()
+  const { t, tr, locale, direction } = useLanguage()
   const router = useRouter()
   const { hasPermission, loading: permissionsLoading } = usePermissions()
   const localeString = locale === 'ar' ? 'ar-EG' : 'en-US'
@@ -196,12 +196,12 @@ export default function StaffDeductionsPage() {
         })
       })
       if (res.ok) {
-        setSuccessMsg('تم تطبيق الخصم بنجاح')
+        setSuccessMsg(tr('تم تطبيق الخصم بنجاح', 'Deduction applied successfully'))
         fetchDeductions()
         setTimeout(() => setSuccessMsg(''), 3000)
       } else {
         const data = await res.json()
-        setErrorMsg(data.error || 'فشل تطبيق الخصم')
+        setErrorMsg(data.error || tr('فشل تطبيق الخصم', 'Failed to apply deduction'))
       }
     } catch {
       setErrorMsg(t('deductions.connectionError'))
@@ -634,8 +634,8 @@ export default function StaffDeductionsPage() {
                       <button
                         onClick={() => handleEditClick(d)}
                         className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors duration-200"
-                        aria-label="تعديل"
-                        title="تعديل"
+                        aria-label={tr('تعديل', 'Edit')}
+                        title={tr('تعديل', 'Edit')}
                       >
                         <svg {...stroke} className="w-4 h-4" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487 18.549 2.799a2.122 2.122 0 1 1 3 3L19.862 7.487m-3-3L8.078 13.27a2 2 0 0 0-.5.831l-1.111 4.222 4.222-1.111a2 2 0 0 0 .832-.5l8.781-8.781m-3-3 3 3" />
@@ -646,7 +646,7 @@ export default function StaffDeductionsPage() {
                       <button
                         onClick={() => setUnapplyConfirm({ show: true, id: d.id, name: d.reason })}
                         className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors duration-200"
-                        aria-label="إلغاء التطبيق"
+                        aria-label={tr('إلغاء التطبيق', 'Un-apply')}
                         title={locale === 'ar' ? 'إلغاء التطبيق ورجوع المبلغ' : 'Un-apply (return amount)'}
                       >
                         <svg {...stroke} className="w-4 h-4" aria-hidden="true">
@@ -658,8 +658,8 @@ export default function StaffDeductionsPage() {
                       <button
                         onClick={() => handleApply(d.id)}
                         className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors duration-200"
-                        aria-label="تطبيق"
-                        title="تطبيق"
+                        aria-label={tr('تطبيق', 'Apply')}
+                        title={tr('تطبيق', 'Apply')}
                       >
                         <svg {...stroke} className="w-4 h-4" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
@@ -670,8 +670,8 @@ export default function StaffDeductionsPage() {
                       <button
                         onClick={() => setDeleteConfirm({ show: true, id: d.id, name: d.reason })}
                         className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-200"
-                        aria-label="حذف"
-                        title="حذف"
+                        aria-label={tr('حذف', 'Delete')}
+                        title={tr('حذف', 'Delete')}
                       >
                         <svg {...stroke} className="w-4 h-4" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165" />
@@ -700,7 +700,7 @@ export default function StaffDeductionsPage() {
           </div>
 
           {/* Desktop Table */}
-          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
+          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase text-xs">
                 <tr>
@@ -750,8 +750,8 @@ export default function StaffDeductionsPage() {
                           <button
                             onClick={() => handleEditClick(d)}
                             className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors duration-200"
-                            aria-label="تعديل"
-                            title="تعديل"
+                            aria-label={tr('تعديل', 'Edit')}
+                            title={tr('تعديل', 'Edit')}
                           >
                             <svg {...stroke} className="w-4 h-4" aria-hidden="true">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487 18.549 2.799a2.122 2.122 0 1 1 3 3L19.862 7.487m-3-3L8.078 13.27a2 2 0 0 0-.5.831l-1.111 4.222 4.222-1.111a2 2 0 0 0 .832-.5l8.781-8.781m-3-3 3 3" />
@@ -762,7 +762,7 @@ export default function StaffDeductionsPage() {
                           <button
                             onClick={() => setUnapplyConfirm({ show: true, id: d.id, name: d.reason })}
                             className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors duration-200"
-                            aria-label="إلغاء التطبيق"
+                            aria-label={tr('إلغاء التطبيق', 'Un-apply')}
                             title={locale === 'ar' ? 'إلغاء التطبيق ورجوع المبلغ' : 'Un-apply (return amount)'}
                           >
                             <svg {...stroke} className="w-4 h-4" aria-hidden="true">
@@ -774,8 +774,8 @@ export default function StaffDeductionsPage() {
                           <button
                             onClick={() => handleApply(d.id)}
                             className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors duration-200"
-                            aria-label="تطبيق"
-                            title="تطبيق"
+                            aria-label={tr('تطبيق', 'Apply')}
+                            title={tr('تطبيق', 'Apply')}
                           >
                             <svg {...stroke} className="w-4 h-4" aria-hidden="true">
                               <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
@@ -786,8 +786,8 @@ export default function StaffDeductionsPage() {
                           <button
                             onClick={() => setDeleteConfirm({ show: true, id: d.id, name: d.reason })}
                             className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-200"
-                            aria-label="حذف"
-                            title="حذف"
+                            aria-label={tr('حذف', 'Delete')}
+                            title={tr('حذف', 'Delete')}
                           >
                             <svg {...stroke} className="w-4 h-4" aria-hidden="true">
                               <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165" />
@@ -809,7 +809,7 @@ export default function StaffDeductionsPage() {
       {/* Delete Confirm Modal */}
       {deleteConfirm.show && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-red-200 dark:ring-red-900/50 max-w-sm w-full p-6 animate-modal-in">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-red-200 dark:ring-red-900/50 max-w-sm w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto animate-modal-in">
             <div className="text-center mb-4">
               <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 mx-auto mb-3 flex items-center justify-center">
                 <svg {...stroke} className="w-6 h-6" aria-hidden="true">
@@ -843,7 +843,7 @@ export default function StaffDeductionsPage() {
       {/* Un-apply Confirm Modal */}
       {unapplyConfirm.show && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="unapply-confirm-title">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-amber-200 dark:ring-amber-900/50 max-w-sm w-full p-6 animate-modal-in">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-amber-200 dark:ring-amber-900/50 max-w-sm w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto animate-modal-in">
             <div className="text-center mb-4">
               <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 mx-auto mb-3 flex items-center justify-center">
                 <svg {...stroke} className="w-6 h-6" aria-hidden="true">

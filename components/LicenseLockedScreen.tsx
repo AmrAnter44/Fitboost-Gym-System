@@ -3,6 +3,7 @@
 import { useLicense } from '../contexts/LicenseContext'
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import { useLanguage } from '../contexts/LanguageContext'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -13,6 +14,7 @@ const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox
 export default function LicenseLockedScreen() {
   const { isValid: ctxValid, message: ctxMessage, isChecking, checkLicense } = useLicense()
   const pathname = usePathname()
+  const { tr } = useLanguage()
   const [role, setRole] = useState<string | null>(null)
   const [serverLicenseValid, setServerLicenseValid] = useState<boolean | null>(null)
   const [serverLicenseMessage, setServerLicenseMessage] = useState<string>('')
@@ -80,7 +82,7 @@ export default function LicenseLockedScreen() {
       aria-labelledby="license-locked-title"
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
     >
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-red-200 dark:ring-red-900/50 max-w-xl w-full p-8 text-center">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-red-200 dark:ring-red-900/50 max-w-xl w-full max-h-[90vh] overflow-y-auto p-5 sm:p-8 text-center">
         {/* Lock icon */}
         <div className="mx-auto w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center mb-6">
           <svg className="w-10 h-10" {...stroke}>
@@ -89,14 +91,14 @@ export default function LicenseLockedScreen() {
         </div>
 
         <h1 id="license-locked-title" className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-          النظام معطل
+          {tr('النظام معطل', 'System disabled')}
         </h1>
 
         <p className="text-lg text-gray-700 dark:text-gray-300 mb-2">
-          {message || 'الرخصة منتهية أو غير صالحة'}
+          {message || tr('الرخصة منتهية أو غير صالحة', 'License expired or invalid')}
         </p>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">
-          برجاء التواصل مع مالك النظام (OWNER) لتفعيل الرخصة من جديد.
+          {tr('برجاء التواصل مع مالك النظام (OWNER) لتفعيل الرخصة من جديد.', 'Please contact the system owner (OWNER) to reactivate the license.')}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -108,7 +110,7 @@ export default function LicenseLockedScreen() {
             <svg className={`w-5 h-5 ${isChecking ? 'animate-spin' : ''}`} {...stroke}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            {isChecking ? 'جاري الفحص...' : 'إعادة المحاولة'}
+            {isChecking ? tr('جاري الفحص...', 'Checking...') : tr('إعادة المحاولة', 'Retry')}
           </button>
 
           <button
@@ -121,12 +123,12 @@ export default function LicenseLockedScreen() {
             <svg className="w-5 h-5" {...stroke}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            تسجيل خروج
+            {tr('تسجيل خروج', 'Log out')}
           </button>
         </div>
 
         <p className="mt-8 text-xs text-gray-500 dark:text-gray-400">
-          إذا كنت تعتقد أن هذه رسالة خطأ، يرجى التواصل مع الدعم الفني
+          {tr('إذا كنت تعتقد أن هذه رسالة خطأ، يرجى التواصل مع الدعم الفني', 'If you think this is a mistake, please contact technical support')}
         </p>
       </div>
     </div>

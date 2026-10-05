@@ -6,6 +6,7 @@
 //  يبص على أي تقرير.
 
 import type { GateEvent } from '../../hooks/useGateEvents';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const;
 
@@ -16,7 +17,9 @@ interface Props {
 }
 
 export default function GateDeniedModal({ event, onClose, onOpenMember }: Props) {
+  const { tr, locale, direction } = useLanguage();
   if (!event) return null;
+  const dateLocale = locale === 'ar' ? 'ar-EG' : 'en-US';
 
   const m = event.member;
   const expired = m?.expiryDate ? new Date(m.expiryDate) : null;
@@ -27,17 +30,17 @@ export default function GateDeniedModal({ event, onClose, onOpenMember }: Props)
       role="dialog"
       aria-modal="true"
       onClick={onClose}
-      dir="rtl"
+      dir={direction}
     >
       <div
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <div className="bg-amber-500 text-white px-5 py-3 flex items-center gap-2">
           <svg {...stroke} className="w-6 h-6 flex-shrink-0">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
           </svg>
-          <span className="font-bold">البوابة رفضت الدخول</span>
+          <span className="font-bold">{tr('البوابة رفضت الدخول', 'Gate denied entry')}</span>
         </div>
 
         <div className="p-5">
@@ -55,15 +58,15 @@ export default function GateDeniedModal({ event, onClose, onOpenMember }: Props)
                 <>
                   <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{m.name}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    رقم العضوية {m.memberNumber}
+                    {tr('رقم العضوية', 'Member #')} {m.memberNumber}
                     {m.phone && <span className="ms-2 font-mono" dir="ltr">{m.phone}</span>}
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="font-bold text-gray-900 dark:text-gray-100">مستخدم غير معروف</p>
+                  <p className="font-bold text-gray-900 dark:text-gray-100">{tr('مستخدم غير معروف', 'Unknown user')}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    الرقم على الجهاز: <span className="font-mono" dir="ltr">{event.employeeNo || '—'}</span>
+                    {tr('الرقم على الجهاز:', 'Number on device:')} <span className="font-mono" dir="ltr">{event.employeeNo || '—'}</span>
                   </p>
                 </>
               )}
@@ -72,23 +75,22 @@ export default function GateDeniedModal({ event, onClose, onOpenMember }: Props)
 
           <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 p-3 mb-2">
             <p className="font-semibold text-amber-900 dark:text-amber-200">
-              {event.reasonText || 'مرفوض'}
+              {event.reasonText || tr('مرفوض', 'Denied')}
             </p>
             {expired && (
               <p className="text-sm text-amber-800 dark:text-amber-300 mt-1">
-                انتهى في {expired.toLocaleDateString('ar-EG')}
+                {tr('انتهى في', 'Expired on')} {expired.toLocaleDateString(dateLocale)}
               </p>
             )}
             {!m && (
               <p className="text-xs text-amber-800 dark:text-amber-300 mt-1 leading-relaxed">
-                الرقم ده متسجّل على الجهاز بس مش موجود في السيستم — غالبًا
-                اتسجّل برقم غلط.
+                {tr('الرقم ده متسجّل على الجهاز بس مش موجود في السيستم — غالبًا اتسجّل برقم غلط.', 'This number is enrolled on the device but not in the system — probably enrolled with a wrong number.')}
               </p>
             )}
           </div>
 
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-            {new Date(event.at).toLocaleString('ar-EG')}
+            {new Date(event.at).toLocaleString(dateLocale)}
           </p>
 
           <div className="flex gap-2">
@@ -97,14 +99,14 @@ export default function GateDeniedModal({ event, onClose, onOpenMember }: Props)
                 onClick={() => { onOpenMember(m.id); onClose(); }}
                 className="flex-1 px-4 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold"
               >
-                افتح صفحة العضو
+                {tr('افتح صفحة العضو', 'Open member page')}
               </button>
             )}
             <button
               onClick={onClose}
               className="flex-1 px-4 py-2.5 rounded-lg ring-1 ring-gray-300 dark:ring-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-              تمام
+              {tr('تمام', 'OK')}
             </button>
           </div>
         </div>

@@ -16,7 +16,7 @@ import BookingCard from '../../components/spa/BookingCard'
 import StatusBadge from '../../components/spa/StatusBadge'
 
 export default function SpaBookingsPage() {
-  const { t, direction, locale } = useLanguage()
+  const { t, tr, direction, locale } = useLanguage()
   const { hasPermission, loading: permissionsLoading } = usePermissions()
   const toast = useToast()
   const queryClient = useQueryClient()
@@ -103,7 +103,7 @@ export default function SpaBookingsPage() {
         body: JSON.stringify(payload),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'فشل حفظ المواعيد')
+      if (!res.ok) throw new Error(data.error || tr('فشل حفظ المواعيد', 'Failed to save hours'))
       return data
     },
     onSuccess: () => {
@@ -200,7 +200,7 @@ export default function SpaBookingsPage() {
               title={direction === 'rtl' ? 'مواعيد تشغيل الاسبا' : 'SPA operating hours'}
             >
               <span className="text-lg">🕐</span>
-              <span>ليميت</span>
+              <span>{tr('ليميت', 'Limit')}</span>
               {spaHours && (
                 <span className="text-xs text-gray-500 dark:text-gray-400 font-mono" dir="ltr">
                   ({spaHours.openTime}–{spaHours.closeTime})
@@ -465,7 +465,7 @@ export default function SpaBookingsPage() {
           onClick={(e) => e.target === e.currentTarget && setShowHoursModal(false)}
           dir={direction}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-2xl">🕐</span>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -530,7 +530,7 @@ export default function SpaBookingsPage() {
           onClick={(e) => e.target === e.currentTarget && setShowDeleteConfirm(false)}
           dir={direction}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{t('spa.cancelBooking')}</h3>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
               {t('spa.confirmCancel', { memberName: deleteTarget.memberName })}

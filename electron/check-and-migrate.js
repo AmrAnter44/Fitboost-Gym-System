@@ -402,6 +402,10 @@ function migrateDatabase(dbPath) {
     if (!columnExists(db, 'Member', 'allowedCheckInEnd')) {
       db.prepare('ALTER TABLE Member ADD COLUMN allowedCheckInEnd TEXT').run();
     }
+    // 🎂 Member.birthdayGreetYear — تهنئة عيد الميلاد مرة واحدة في السنة
+    if (!columnExists(db, 'Member', 'birthdayGreetYear')) {
+      db.prepare('ALTER TABLE Member ADD COLUMN birthdayGreetYear INTEGER').run();
+    }
 
     // 🕐 Offer.allowedCheckInStart/End — ساعات الدخول المسموح بها (template للعرض)
     if (tableExists(db, 'Offer') && !columnExists(db, 'Offer', 'allowedCheckInStart')) {
@@ -943,6 +947,26 @@ function migrateDatabase(dbPath) {
         );
         CREATE INDEX IF NOT EXISTS TaskAssignment_userId_status_idx ON TaskAssignment(userId, status);
         CREATE INDEX IF NOT EXISTS TaskAssignment_taskId_idx ON TaskAssignment(taskId);
+      `);
+    }
+
+    // 📣 GymEvent — إيفنتات الجيم للأبلكيشن
+    if (!tableExists(db, 'GymEvent')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS GymEvent (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT,
+          startsAt DATETIME NOT NULL,
+          endsAt DATETIME,
+          isActive INTEGER NOT NULL DEFAULT 1,
+          notifiedAt DATETIME,
+          notifiedCount INTEGER,
+          createdBy TEXT,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS GymEvent_startsAt_idx ON GymEvent(startsAt);
       `);
     }
 

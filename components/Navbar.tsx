@@ -96,7 +96,7 @@ export default function Navbar() {
   const pathname = usePathname()
   const { openSearch } = useSearch()
   const { hasPermission, user, loading, refreshPermissions } = usePermissions()
-  const { t, locale } = useLanguage()
+  const { t, tr, locale } = useLanguage()
   const { settings } = useServiceSettings()
   const toast = useToast()
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -430,7 +430,7 @@ export default function Navbar() {
               <button
                 onClick={() => openSearch()}
                 className="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
-                title="بحث سريع (Ctrl+K)"
+                title={tr('بحث سريع (Ctrl+K)', 'Quick search (Ctrl+K)')}
                 aria-label="Quick search"
               >
                 {Icon.search}

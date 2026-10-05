@@ -33,7 +33,7 @@ interface DayUseEntry {
 }
 
 export default function DayUsePage() {
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
   const { user } = usePermissions()
   const toast = useToast()
   const { settings } = useServiceSettings()
@@ -106,7 +106,7 @@ export default function DayUsePage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newType.name.trim(), price: parseFloat(newType.price) || 0 }),
       })
-      if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'فشل الإضافة'); return }
+      if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || tr('فشل الإضافة', 'Failed to add')); return }
       setNewType({ name: '', price: '' })
       await refreshTypes()
       toast.success(direction === 'rtl' ? 'تمت الإضافة' : 'Added')
@@ -120,7 +120,7 @@ export default function DayUsePage() {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: d.name.trim(), price: parseFloat(d.price) || 0 }),
       })
-      if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'فشل الحفظ'); return }
+      if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || tr('فشل الحفظ', 'Failed to save')); return }
       await refreshTypes()
       //  ✅ علامة «اتحفظ» تفضل ظاهرة لحد ما يعدّل النوع تاني
       setSavedTypeId(id)
@@ -130,7 +130,7 @@ export default function DayUsePage() {
     setTypeBusy(true)
     try {
       const r = await fetch(`/api/dayuse-services/${id}`, { method: 'DELETE' })
-      if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'فشل الحذف'); return }
+      if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || tr('فشل الحذف', 'Failed to delete')); return }
       await refreshTypes()
       toast.success(direction === 'rtl' ? 'اتمسح' : 'Deleted')
     } finally { setTypeBusy(false) }
@@ -582,15 +582,15 @@ export default function DayUsePage() {
 
               {salesStaffList.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium mb-1"> موظف السيلز</label>
+                  <label className="block text-sm font-medium mb-1">{tr('موظف السيلز', 'Sales staff')}</label>
                   <select
                     value={formData.salesStaffId}
                     onChange={(e) => setFormData({ ...formData, salesStaffId: e.target.value })}
                     className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="">— بدون سيلز —</option>
+                    <option value="">{tr('— بدون سيلز —', '— No sales staff —')}</option>
                     {salesStaffList.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.leadsCount} ليد)</option>
+                      <option key={s.id} value={s.id}>{s.name} ({s.leadsCount} {tr('ليد', 'leads')})</option>
                     ))}
                   </select>
                 </div>
@@ -793,7 +793,7 @@ export default function DayUsePage() {
                   <div className="flex items-start gap-2">
                     <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]"> {t('dayUse.dateLabel')}</span>
                     <span className="text-gray-700 dark:text-gray-200">
-                      {new Date(entry.createdAt).toLocaleDateString('ar-EG')}
+                      {new Date(entry.createdAt).toLocaleDateString((direction === 'rtl' ? 'ar-EG' : 'en-US'))}
                     </span>
                   </div>
                 </div>
@@ -854,7 +854,7 @@ export default function DayUsePage() {
                     <td className="px-4 py-3">{entry.price} {t('dayUse.egp')}</td>
                     <td className="px-4 py-3">{entry.staffName}</td>
                     <td className="px-4 py-3">
-                      {new Date(entry.createdAt).toLocaleDateString('ar-EG')}
+                      {new Date(entry.createdAt).toLocaleDateString((direction === 'rtl' ? 'ar-EG' : 'en-US'))}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex gap-2 justify-center items-center flex-wrap">
@@ -925,7 +925,7 @@ export default function DayUsePage() {
           onClick={() => !deleting && setShowDeletePopup(false)}
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">
@@ -952,7 +952,7 @@ export default function DayUsePage() {
                     {displayType(entryToDelete.serviceType)}
                   </p>
                   <p><span className="font-semibold">{t('dayUse.deleteModal.priceLabel')}</span> {entryToDelete.price} {t('dayUse.egp')}</p>
-                  <p><span className="font-semibold">{t('dayUse.deleteModal.dateLabel')}</span> {new Date(entryToDelete.createdAt).toLocaleDateString('ar-EG')}</p>
+                  <p><span className="font-semibold">{t('dayUse.deleteModal.dateLabel')}</span> {new Date(entryToDelete.createdAt).toLocaleDateString((direction === 'rtl' ? 'ar-EG' : 'en-US'))}</p>
                 </div>
               </div>
 

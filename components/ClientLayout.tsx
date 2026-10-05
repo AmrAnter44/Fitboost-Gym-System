@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useState } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { AdminDateProvider } from '../contexts/AdminDateContext'
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext'
 import { ToastProvider } from '../contexts/ToastContext'
@@ -23,6 +23,8 @@ import SearchModal from './SearchModal'
 import BarcodeInputDetector from './BarcodeInputDetector'
 import FloatingSearchButton from './FloatingSearchButton'
 import UpdateNotification from './UpdateNotification'
+import OutdatedBanner from './OutdatedBanner'
+import SessionGuard from './SessionGuard'
 import InstallPrompt from './InstallPrompt'
 import KeyboardShortcuts from './KeyboardShortcuts'
 import Breadcrumb from './Breadcrumb'
@@ -41,8 +43,24 @@ function LayoutContent({ children }: { children: ReactNode }) {
   const { t, locale } = useLanguage()
   const { isEmbedded } = useTabs()
 
+  // 🎂 فحص أعياد الميلاد (نقاط + تهنئة على الأبلكيشن) مرة في اليوم من أي صفحة —
+  // مش بس الداشبورد، عشان الريسبشن/الكوتش اللي بيفتحوا على صفحات تانية.
+  // السيرفر نفسه بيمنع التكرار في نفس اليوم.
+  useEffect(() => {
+    if (isEmbedded || typeof window === 'undefined') return
+    const key = 'birthdayCheck:' + new Date().toDateString()
+    try { if (sessionStorage.getItem(key)) return } catch {}
+    const t = setTimeout(() => {
+      fetch('/api/auto-birthday-check')
+        .then(r => { if (r.ok) try { sessionStorage.setItem(key, '1') } catch {} })
+        .catch(() => {})
+    }, 4000)
+    return () => clearTimeout(t)
+  }, [isEmbedded])
+
   return (
     <>
+      <SessionGuard />
       <PreventInputScroll />
       <BarcodeInputDetector />
       {!isEmbedded && <UpdateNotification />}
@@ -56,6 +74,8 @@ function LayoutContent({ children }: { children: ReactNode }) {
 
       {/* Layout: TabBar + (Sidebar + Content) */}
       <div className="flex flex-col h-screen overflow-hidden">
+        {/* ⬆️ تحذير النسخة القديمة — جزء من الصفحة (مش فوقها) عشان مايغطيش حاجة */}
+        {!isEmbedded && <OutdatedBanner />}
         {/* Tab Strip - visible for all tabs, hidden inside iframes */}
         <TabBar />
 

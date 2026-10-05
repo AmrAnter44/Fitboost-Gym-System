@@ -152,12 +152,15 @@
 
 'use client'
 
+import { useLanguage } from '../../../contexts/LanguageContext'
+
 export default function FollowUpsPage() {
+  const { tr } = useLanguage()
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-4 sm:p-6">
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">إدارة المتابعات</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">هذه الصفحة تعرض المتابعات الخاصة بالزوار.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">{tr('إدارة المتابعات', 'Follow-up Management')}</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{tr('هذه الصفحة تعرض المتابعات الخاصة بالزوار.', 'This page shows visitor follow-ups.')}</p>
       </div>
     </div>
   )

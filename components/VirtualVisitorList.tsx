@@ -81,7 +81,7 @@ const VisitorCardRow = ({
                 <svg className="w-3.5 h-3.5" {...stroke}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                مشترك
+                {t('visitors.status.subscribed')}
               </span>
             ) : (
               <button

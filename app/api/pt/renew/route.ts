@@ -200,6 +200,8 @@ export async function POST(request: Request) {
               startDate: startDate || null,
               expiryDate: expiryDate || null,
               subscriptionDays: subscriptionDays,
+              //  اسم الباقة المختارة (اختياري — من الـ body الخام) — بيتطبع في الإيصال
+              packageName: (typeof body.packageName === 'string' && body.packageName.trim()) ? body.packageName.trim() : null,
               oldSessionsRemaining: existingPT.sessionsRemaining,
               carriedOverSessions: 0, //  مفيش دمج — التأجيل بيسيب الحصص القديمة زي ما هي
               //  🔁 التجديد المؤجّل: لو فيه حصص شغّالة، الباقة الجديدة معلّقة لحد ما تخلص

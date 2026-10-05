@@ -202,6 +202,7 @@ function PTPageContent() {
     paymentMethod: string | PaymentMethod[]
     staffName: string
     ptCommissionAmount: number | null // عمولة الكوتش من الباقة
+    packageName: string //  اسم الباقة المختارة — بيتحفظ في الإيصال
   }>({
     ptNumber: '',
     clientName: '',
@@ -217,6 +218,7 @@ function PTPageContent() {
     paymentMethod: 'cash',
     staffName: user?.name || '',
     ptCommissionAmount: null, // عمولة الكوتش من الباقة
+    packageName: '',
   })
 
   // معالجة أخطاء جلسات PT
@@ -318,7 +320,8 @@ function PTPageContent() {
       sessionsRemaining: pkg.sessions,
       totalPrice: pkg.price,
       expiryDate: calculatedExpiry || prev.expiryDate, // حساب تاريخ الانتهاء تلقائيًا
-      ptCommissionAmount: pkg.ptCommission || null // حفظ عمولة الباقة
+      ptCommissionAmount: pkg.ptCommission || null, // حفظ عمولة الباقة
+      packageName: pkg.name || '' //  اسم الباقة — بيتحفظ في الإيصال
     }))
     toast.success(tr(`تم تطبيق باقة: ${pkg.name} (${pkg.durationDays} يوم)`, `Package applied: ${pkg.name} (${pkg.durationDays} days)`))
   }
@@ -379,6 +382,7 @@ function PTPageContent() {
       paymentMethod: 'cash',
       staffName: user?.name || '',
       ptCommissionAmount: null, // عمولة الكوتش من الباقة
+      packageName: '',
     })
     setEditingSession(null)
     setShowForm(false)
@@ -418,6 +422,7 @@ function PTPageContent() {
       paymentMethod: 'cash',
       staffName: user?.name || '',
       ptCommissionAmount: session.ptCommissionAmount || 0,
+      packageName: '',
     })
     setLimitTouched(false)
     setEditingSession(session)
@@ -435,7 +440,8 @@ function PTPageContent() {
       const method = editingSession ? 'PUT' : 'POST'
       //  🔒 في التعديل: حد الحصص بيتبعت بس لو الموظف غيّره (أو الباقي بقى صفر → يتمسح) —
       //     عشان تعديل أي حاجة تانية (تليفون مثلاً) ما يغيّرش القفل ولا يفكّه
-      const { sessionsLimitUntilPaid: limitValue, ...formRest } = formData
+      //  packageName بيتبعت في الإضافة بس (للإيصال) — التعديل مابيعملش إيصال
+      const { sessionsLimitUntilPaid: limitValue, packageName: _packageName, ...formRest } = formData
       const body = editingSession
         ? {
             ptNumber: editingSession.ptNumber,

@@ -39,7 +39,8 @@ interface PTSessionRecord {
 
 export default function PTSessionHistoryPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, tr, locale, direction } = useLanguage()
+  const dateLocale = locale === 'ar' ? 'ar-EG' : 'en-US'
   const { confirm, isOpen: isConfirmOpen, options: confirmOptions, handleConfirm, handleCancel } = useConfirm()
   const { show: showSuccess, isOpen: isSuccessOpen, options: successOptions, handleClose: handleSuccessClose } = useSuccess()
   const { user } = usePermissions()
@@ -200,7 +201,7 @@ export default function PTSessionHistoryPage() {
   }).length
 
   return (
-    <div className="container mx-auto p-6" dir="rtl">
+    <div className="container mx-auto p-4 sm:p-6" dir={direction}>
       <div className="flex justify-between items-center mb-6 gap-3 flex-wrap">
         <div className="flex items-center gap-3">
           <span className="inline-flex w-10 h-10 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400">
@@ -262,7 +263,7 @@ export default function PTSessionHistoryPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6 mb-6">
         <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 inline-flex items-center gap-2">
           <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
           {t('pt.sessionHistory.filtersAndSearch')}
@@ -270,20 +271,20 @@ export default function PTSessionHistoryPage() {
 
         {/* 🎯 فلتر نوع الجلسة — Segmented control */}
         <div className="mb-4">
-          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">نوع الجلسة</label>
+          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{tr('نوع الجلسة', 'Session type')}</label>
           <div
             role="tablist"
-            aria-label="فلتر نوع الجلسة"
+            aria-label={tr('فلتر نوع الجلسة', 'Session type filter')}
             className="inline-flex flex-wrap gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-900/60 ring-1 ring-gray-200 dark:ring-gray-700"
           >
             {([
-              { key: 'all',  label: 'الكل',         count: allCount,  icon: (
+              { key: 'all',  label: tr('الكل', 'All'),         count: allCount,  icon: (
                 <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6h16.5M3.75 12h16.5m-16.5 6h16.5"/></svg>
               ) },
-              { key: 'paid', label: 'مدفوعة',       count: paidCount, icon: (
+              { key: 'paid', label: tr('مدفوعة', 'Paid'),       count: paidCount, icon: (
                 <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               ) },
-              { key: 'free', label: 'مجانية',        count: freeCount, icon: (
+              { key: 'free', label: tr('مجانية', 'Free'),        count: freeCount, icon: (
                 <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
               ) },
             ] as const).map(opt => {
@@ -329,13 +330,13 @@ export default function PTSessionHistoryPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">المدرب</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{tr('المدرب', 'Coach')}</label>
             <select
               value={filterCoach}
               onChange={(e) => setFilterCoach(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             >
-              <option value="">كل المدربين</option>
+              <option value="">{tr('كل المدربين', 'All coaches')}</option>
               {coachOptions.map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
@@ -431,7 +432,7 @@ export default function PTSessionHistoryPage() {
                         {session.isFreeSession ? (
                           <div className="flex items-center gap-2">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">
-                              مجاني
+                              {tr('مجاني', 'Free')}
                             </span>
                             {session.member && (
                               <span className="text-xs text-gray-500 dark:text-gray-400">#{session.member.memberNumber}</span>
@@ -454,7 +455,7 @@ export default function PTSessionHistoryPage() {
                       <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{session.coachName}</td>
                       <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                         <span className={`font-mono ${isToday ? 'font-bold text-green-600 dark:text-green-400' : ''}`}>
-                          {sessionDate.toLocaleDateString('ar-EG', {
+                          {sessionDate.toLocaleDateString(dateLocale, {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric'
@@ -463,7 +464,7 @@ export default function PTSessionHistoryPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className="font-mono font-bold text-primary-700 dark:text-primary-400">
-                          {sessionDate.toLocaleTimeString('ar-EG', {
+                          {sessionDate.toLocaleTimeString(dateLocale, {
                             hour: '2-digit',
                             minute: '2-digit'
                           })}
@@ -480,12 +481,12 @@ export default function PTSessionHistoryPage() {
                         {session.signature ? (
                           <button
                             onClick={() => setViewingSignature(session.signature!)}
-                            aria-label="عرض الإمضاء"
+                            aria-label={tr('عرض الإمضاء', 'View signature')}
                             className="inline-block ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg overflow-hidden hover:ring-primary-400 transition-colors duration-200"
                           >
                             <img
                               src={session.signature}
-                              alt="إمضاء"
+                              alt={tr('إمضاء', 'Signature')}
                               className="w-16 h-8 object-contain bg-white"
                             />
                           </button>
@@ -495,7 +496,7 @@ export default function PTSessionHistoryPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(session.createdAt).toLocaleDateString('ar-EG')}
+                          {new Date(session.createdAt).toLocaleDateString(dateLocale)}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -555,18 +556,18 @@ export default function PTSessionHistoryPage() {
           onClick={() => setViewingSignature(null)}
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-lg w-full p-6 animate-modal-in"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-lg w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto animate-modal-in"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
               <h3 id="signature-title" className="text-xl font-bold text-gray-900 dark:text-gray-100 inline-flex items-center gap-2">
                 <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
-                إمضاء العميل
+                {tr('إمضاء العميل', 'Client signature')}
               </h3>
               <button
                 onClick={() => setViewingSignature(null)}
                 aria-label="Close"
-                className="p-1 rounded text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-200"
+                className="p-2 rounded text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-200"
               >
                 <svg {...stroke} className="w-6 h-6" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
@@ -574,7 +575,7 @@ export default function PTSessionHistoryPage() {
             <div className="ring-1 ring-gray-200 dark:ring-gray-700 rounded-xl overflow-hidden bg-white p-4">
               <img
                 src={viewingSignature}
-                alt="إمضاء العميل"
+                alt={tr('إمضاء العميل', 'Client signature')}
                 className="w-full h-auto object-contain"
               />
             </div>

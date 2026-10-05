@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import CloudBackupCard from './CloudBackupCard';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const;
 
@@ -77,6 +78,7 @@ const WarnIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
 );
 
 export default function DatabaseSettings() {
+  const { tr } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [creatingBackup, setCreatingBackup] = useState(false);
@@ -116,14 +118,20 @@ export default function DatabaseSettings() {
 
   const handleRunCleanup = async () => {
     if (!cleanupInfo || cleanupInfo.candidates === 0) return;
-    if (!confirm(
+    if (!confirm(tr(
       `هذه العملية ستقوم بالتالي:\n\n` +
       `1) حفظ نسخة احتياطية من قاعدة البيانات\n` +
       `2) نقل ${cleanupInfo.candidates} صورة من قاعدة البيانات لملفات\n` +
       `3) ضغط قاعدة البيانات (VACUUM)\n\n` +
       `الوقت المتوقع: ١-٢ دقيقة. تأكد إن مفيش حد بيستخدم النظام في نفس الوقت.\n\n` +
-      `هل تريد المتابعة؟`
-    )) {
+      `هل تريد المتابعة؟`,
+      `This will:\n\n` +
+      `1) Save a database backup\n` +
+      `2) Move ${cleanupInfo.candidates} images from the database to files\n` +
+      `3) Compact the database (VACUUM)\n\n` +
+      `Expected time: 1-2 minutes. Make sure nobody is using the system meanwhile.\n\n` +
+      `Do you want to continue?`
+    ))) {
       return;
     }
 
@@ -142,25 +150,25 @@ export default function DatabaseSettings() {
         setMessage({
           type: 'success',
           text:
-            `تم التنظيف بنجاح!\n\n` +
-            `تم نقل ${data.migrated} صورة` +
-            (data.failed > 0 ? ` (فشل ${data.failed})` : '') + `\n` +
-            `حجم قاعدة البيانات: ${data.before.mb} MB → ${data.after.mb} MB\n` +
-            `وفّرت: ${data.saved.mb} MB (${data.saved.percent}%)` +
-            (data.backup ? `\n\nالنسخة الاحتياطية: ${data.backup.filename}` : '') +
-            (data.vacuumError ? `\n\nتحذير: VACUUM فشل (${data.vacuumError}) — البيانات اتنقلت بس الحجم ما اتقللش. اعمل "ضغط قاعدة البيانات" يدوياً.` : ''),
+            tr(`تم التنظيف بنجاح!\n\n`, `Cleanup completed successfully!\n\n`) +
+            tr(`تم نقل ${data.migrated} صورة`, `Moved ${data.migrated} images`) +
+            (data.failed > 0 ? tr(` (فشل ${data.failed})`, ` (${data.failed} failed)`) : '') + `\n` +
+            tr(`حجم قاعدة البيانات: `, `Database size: `) + `${data.before.mb} MB → ${data.after.mb} MB\n` +
+            tr(`وفّرت: `, `Saved: `) + `${data.saved.mb} MB (${data.saved.percent}%)` +
+            (data.backup ? tr(`\n\nالنسخة الاحتياطية: `, `\n\nBackup: `) + data.backup.filename : '') +
+            (data.vacuumError ? tr(`\n\nتحذير: VACUUM فشل (${data.vacuumError}) — البيانات اتنقلت بس الحجم ما اتقللش. اعمل "ضغط قاعدة البيانات" يدوياً.`, `\n\nWarning: VACUUM failed (${data.vacuumError}) — data was moved but the size was not reduced. Compact the database manually.`) : ''),
         });
         await fetchCleanupInfo();
       } else {
         setMessage({
           type: 'error',
-          text: `فشل التنظيف: ${(data as any).error || 'خطأ غير معروف'}`,
+          text: `${tr('فشل التنظيف', 'Cleanup failed')}: ${(data as any).error || tr('خطأ غير معروف', 'Unknown error')}`,
         });
       }
     } catch (err) {
       setMessage({
         type: 'error',
-        text: `حدث خطأ أثناء التنظيف: ${(err as Error).message}`,
+        text: `${tr('حدث خطأ أثناء التنظيف', 'An error occurred during cleanup')}: ${(err as Error).message}`,
       });
     } finally {
       setCleanupRunning(false);
@@ -168,7 +176,7 @@ export default function DatabaseSettings() {
   };
 
   const handleUpdatePrisma = async () => {
-    if (!confirm('هل تريد تطبيق التغييرات على قاعدة البيانات وتحديث Prisma Client؟\n\nسيتم تطبيق آخر التحديثات من schema.prisma')) {
+    if (!confirm(tr('هل تريد تطبيق التغييرات على قاعدة البيانات وتحديث Prisma Client؟\n\nسيتم تطبيق آخر التحديثات من schema.prisma', 'Apply changes to the database and update Prisma Client?\n\nThe latest updates from schema.prisma will be applied.'))) {
       return;
     }
 
@@ -185,18 +193,18 @@ export default function DatabaseSettings() {
       if (data.success) {
         setMessage({
           type: 'success',
-          text: 'تم تحديث Prisma بنجاح!\n\nتم تطبيق التغييرات على قاعدة البيانات\nتم توليد Prisma Client\n\nيُنصح بإعادة تشغيل السيرفر للحصول على أفضل أداء.',
+          text: tr('تم تحديث Prisma بنجاح!\n\nتم تطبيق التغييرات على قاعدة البيانات\nتم توليد Prisma Client\n\nيُنصح بإعادة تشغيل السيرفر للحصول على أفضل أداء.', 'Prisma updated successfully!\n\nChanges applied to the database\nPrisma Client generated\n\nRestarting the server is recommended for best performance.'),
         });
       } else {
         setMessage({
           type: 'error',
-          text: data.message || 'فشل تحديث Prisma',
+          text: data.message || tr('فشل تحديث Prisma', 'Prisma update failed'),
         });
       }
     } catch (error) {
       setMessage({
         type: 'error',
-        text: 'حدث خطأ أثناء تحديث Prisma',
+        text: tr('حدث خطأ أثناء تحديث Prisma', 'An error occurred while updating Prisma'),
       });
     } finally {
       setUpdatingPrisma(false);
@@ -214,12 +222,12 @@ export default function DatabaseSettings() {
       setDbInfo(data);
 
       if (data.valid) {
-        setMessage({ type: 'success', text: 'الداتابيز سليمة وجاهزة للاستخدام' });
+        setMessage({ type: 'success', text: tr('الداتابيز سليمة وجاهزة للاستخدام', 'Database is healthy and ready to use') });
       } else {
-        setMessage({ type: 'error', text: data.error || 'توجد مشاكل في الداتابيز' });
+        setMessage({ type: 'error', text: data.error || tr('توجد مشاكل في الداتابيز', 'The database has problems') });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'فشل فحص الداتابيز' });
+      setMessage({ type: 'error', text: tr('فشل فحص الداتابيز', 'Database check failed') });
     } finally {
       setValidating(false);
     }
@@ -239,13 +247,13 @@ export default function DatabaseSettings() {
       if (data.success) {
         setMessage({
           type: 'success',
-          text: `تم إنشاء النسخة الاحتياطية: ${data.details.filename} (${data.details.size})`,
+          text: `${tr('تم إنشاء النسخة الاحتياطية', 'Backup created')}: ${data.details.filename} (${data.details.size})`,
         });
       } else {
-        setMessage({ type: 'error', text: data.error || 'فشل إنشاء النسخة الاحتياطية' });
+        setMessage({ type: 'error', text: data.error || tr('فشل إنشاء النسخة الاحتياطية', 'Failed to create backup') });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'حدث خطأ أثناء إنشاء النسخة الاحتياطية' });
+      setMessage({ type: 'error', text: tr('حدث خطأ أثناء إنشاء النسخة الاحتياطية', 'An error occurred while creating the backup') });
     } finally {
       setCreatingBackup(false);
     }
@@ -261,12 +269,12 @@ export default function DatabaseSettings() {
 
   const handleUpgradeDatabase = async (downloadOnly: boolean) => {
     if (!selectedFile) {
-      setMessage({ type: 'error', text: 'يرجى اختيار ملف داتابيز أولاً' });
+      setMessage({ type: 'error', text: tr('يرجى اختيار ملف داتابيز أولاً', 'Please select a database file first') });
       return;
     }
 
     if (!downloadOnly) {
-      if (!confirm('تحذير: هذا سيستبدل الداتابيز الحالية بالملف المحدث. هل أنت متأكد؟\n\nسيتم إنشاء نسخة احتياطية تلقائياً.')) {
+      if (!confirm(tr('تحذير: هذا سيستبدل الداتابيز الحالية بالملف المحدث. هل أنت متأكد؟\n\nسيتم إنشاء نسخة احتياطية تلقائياً.', 'Warning: this will replace the current database with the upgraded file. Are you sure?\n\nA backup will be created automatically.'))) {
         return;
       }
     }
@@ -297,7 +305,7 @@ export default function DatabaseSettings() {
 
         setMessage({
           type: 'success',
-          text: 'تم تحديث الداتابيز وتنزيلها بنجاح!\n\nيمكنك الآن استخدام الملف المحدث في أي مكان.',
+          text: tr('تم تحديث الداتابيز وتنزيلها بنجاح!\n\nيمكنك الآن استخدام الملف المحدث في أي مكان.', 'Database upgraded and downloaded successfully!\n\nYou can now use the upgraded file anywhere.'),
         });
         setSelectedFile(null);
       } else {
@@ -305,12 +313,12 @@ export default function DatabaseSettings() {
 
         if (data.success) {
           const newTablesText = data.details.newTablesAdded.length > 0
-            ? `\nجداول جديدة: ${data.details.newTablesAdded.join(', ')}`
+            ? `\n${tr('جداول جديدة', 'New tables')}: ${data.details.newTablesAdded.join(', ')}`
             : '';
 
           setMessage({
             type: 'success',
-            text: `${data.message}\n\nعدد الجداول: ${data.details.tablesCount}${newTablesText}\nنسخة احتياطية: ${data.details.backupCreated}\n\nسيتم إعادة تحميل الصفحة خلال 3 ثواني...`,
+            text: `${data.message}\n\n${tr('عدد الجداول', 'Tables')}: ${data.details.tablesCount}${newTablesText}\n${tr('نسخة احتياطية', 'Backup')}: ${data.details.backupCreated}\n\n${tr('سيتم إعادة تحميل الصفحة خلال 3 ثواني...', 'The page will reload in 3 seconds...')}`,
           });
           setSelectedFile(null);
 
@@ -318,11 +326,11 @@ export default function DatabaseSettings() {
             window.location.reload();
           }, 3000);
         } else {
-          setMessage({ type: 'error', text: data.error || 'فشل تحديث الداتابيز' });
+          setMessage({ type: 'error', text: data.error || tr('فشل تحديث الداتابيز', 'Database upgrade failed') });
         }
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'حدث خطأ أثناء تحديث الداتابيز' });
+      setMessage({ type: 'error', text: tr('حدث خطأ أثناء تحديث الداتابيز', 'An error occurred while upgrading the database') });
     } finally {
       setImporting(false);
     }
@@ -333,12 +341,12 @@ export default function DatabaseSettings() {
       {/* ☁️ النسخ الاحتياطي السحابي — للأونر فقط (كارت مستقل self-contained) */}
       <CloudBackupCard />
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
         <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
           <svg className="w-6 h-6 text-primary-600 dark:text-primary-400" {...stroke}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 7c0-2 4-3 8-3s8 1 8 3v10c0 2-4 3-8 3s-8-1-8-3V7zm0 5c0 2 4 3 8 3s8-1 8-3" />
           </svg>
-          إدارة قاعدة البيانات
+          {tr('إدارة قاعدة البيانات', 'Database Management')}
         </h2>
 
         {/* Message */}
@@ -363,18 +371,18 @@ export default function DatabaseSettings() {
               <svg className="w-5 h-5" {...stroke}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              معلومات الداتابيز
+              {tr('معلومات الداتابيز', 'Database Info')}
             </h3>
             <div className="space-y-1 text-sm text-blue-900 dark:text-blue-200">
-              <p>الحجم: {dbInfo.details?.file.size}</p>
-              <p>عدد الجداول: {dbInfo.details?.tables.count}</p>
+              <p>{tr('الحجم', 'Size')}: {dbInfo.details?.file.size}</p>
+              <p>{tr('عدد الجداول', 'Tables')}: {dbInfo.details?.tables.count}</p>
               <p className="flex items-center gap-2">
                 {dbInfo.details?.integrity.valid ? <CheckIcon className="w-4 h-4 text-green-600 dark:text-green-400" /> : <XIcon className="w-4 h-4 text-red-600 dark:text-red-400" />}
-                السلامة: {dbInfo.details?.integrity.message}
+                {tr('السلامة', 'Integrity')}: {dbInfo.details?.integrity.message}
               </p>
               <p className="flex items-center gap-2">
                 {dbInfo.details?.connection.valid ? <CheckIcon className="w-4 h-4 text-green-600 dark:text-green-400" /> : <XIcon className="w-4 h-4 text-red-600 dark:text-red-400" />}
-                الاتصال: {dbInfo.details?.connection.message}
+                {tr('الاتصال', 'Connection')}: {dbInfo.details?.connection.message}
               </p>
             </div>
           </div>
@@ -390,14 +398,14 @@ export default function DatabaseSettings() {
             {validating ? (
               <>
                 <Spinner />
-                جاري الفحص...
+                {tr('جاري الفحص...', 'Checking...')}
               </>
             ) : (
               <>
                 <svg className="w-5 h-5" {...stroke}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                فحص سلامة الداتابيز
+                {tr('فحص سلامة الداتابيز', 'Check Database Integrity')}
               </>
             )}
           </button>
@@ -410,14 +418,14 @@ export default function DatabaseSettings() {
             {creatingBackup ? (
               <>
                 <Spinner />
-                جاري النسخ...
+                {tr('جاري النسخ...', 'Backing up...')}
               </>
             ) : (
               <>
                 <svg className="w-5 h-5" {...stroke}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1zm2 4h10v4H7V8zm0 6h6" />
                 </svg>
-                إنشاء نسخة احتياطية
+                {tr('إنشاء نسخة احتياطية', 'Create Backup')}
               </>
             )}
           </button>
@@ -430,14 +438,14 @@ export default function DatabaseSettings() {
             {updatingPrisma ? (
               <>
                 <Spinner />
-                جاري التحديث...
+                {tr('جاري التحديث...', 'Updating...')}
               </>
             ) : (
               <>
                 <svg className="w-5 h-5" {...stroke}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                تحديث Prisma
+                {tr('تحديث Prisma', 'Update Prisma')}
               </>
             )}
           </button>
@@ -449,20 +457,20 @@ export default function DatabaseSettings() {
             <svg className="w-5 h-5 text-primary-600 dark:text-primary-400" {...stroke}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
             </svg>
-            تنظيف قاعدة البيانات
+            {tr('تنظيف قاعدة البيانات', 'Database Cleanup')}
           </h3>
 
           <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 p-4 rounded-lg text-sm mb-4">
-            <p className="font-bold mb-2 text-amber-900 dark:text-amber-200">ايه ده؟</p>
+            <p className="font-bold mb-2 text-amber-900 dark:text-amber-200">{tr('ايه ده؟', 'What is this?')}</p>
             <p className="text-amber-900 dark:text-amber-200">
-              النظام بيخزن صور الأعضاء القديمة كنصوص base64 جوه قاعدة البيانات نفسها — ده بيخلي ملف <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">gym.db</code> يكبر بشكل كبير. التنظيف ده بينقل الصور دي لملفات منفصلة في فولدر <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">uploads/</code> ويرجّع حجم قاعدة البيانات لطبيعته. مفيش بيانات هتضيع.
+              {tr('النظام بيخزن صور الأعضاء القديمة كنصوص base64 جوه قاعدة البيانات نفسها — ده بيخلي ملف', 'The system stores old member photos as base64 text inside the database itself — this makes the')} <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">gym.db</code> {tr('يكبر بشكل كبير. التنظيف ده بينقل الصور دي لملفات منفصلة في فولدر', 'file grow a lot. This cleanup moves those images to separate files in the')} <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">uploads/</code> {tr('ويرجّع حجم قاعدة البيانات لطبيعته. مفيش بيانات هتضيع.', 'folder and restores the database to its normal size. No data will be lost.')}
             </p>
           </div>
 
           {cleanupLoading && (
             <div className="bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 p-4 rounded-lg text-sm mb-4 flex items-center gap-2 text-gray-700 dark:text-gray-300" aria-busy="true" aria-live="polite">
               <Spinner />
-              جاري فحص حالة قاعدة البيانات...
+              {tr('جاري فحص حالة قاعدة البيانات...', 'Checking database status...')}
             </div>
           )}
 
@@ -470,9 +478,9 @@ export default function DatabaseSettings() {
             <div className="bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 p-4 rounded-lg text-sm mb-4 text-green-900 dark:text-green-200 flex items-start gap-2">
               <CheckIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <div>
-                قاعدة البيانات نضيفة، مفيش صور قديمة تحتاج نقل.
+                {tr('قاعدة البيانات نضيفة، مفيش صور قديمة تحتاج نقل.', 'The database is clean; no old images need moving.')}
                 <br />
-                الحجم الحالي: <strong>{cleanupInfo.currentDbSizeMb} MB</strong>
+                {tr('الحجم الحالي', 'Current size')}: <strong>{cleanupInfo.currentDbSizeMb} MB</strong>
               </div>
             </div>
           )}
@@ -481,34 +489,34 @@ export default function DatabaseSettings() {
             <div className="bg-orange-50 dark:bg-orange-900/20 ring-1 ring-orange-200 dark:ring-orange-900/50 p-4 rounded-lg text-sm mb-4">
               <p className="font-bold mb-2 text-orange-900 dark:text-orange-200 flex items-center gap-2">
                 <WarnIcon className="w-4 h-4" />
-                وُجدت بيانات قديمة
+                {tr('وُجدت بيانات قديمة', 'Old data found')}
               </p>
               <ul className="list-disc list-inside space-y-1 text-orange-900 dark:text-orange-200">
-                <li>عدد الصور القديمة: <strong>{cleanupInfo.candidates}</strong></li>
-                <li>الحجم في قاعدة البيانات: <strong>{cleanupInfo.estimatedBase64Mb} MB</strong></li>
-                <li>الحجم الكلي لـ <code className="bg-orange-100 dark:bg-orange-900/40 px-1 rounded">gym.db</code>: <strong>{cleanupInfo.currentDbSizeMb} MB</strong></li>
-                <li>الحجم المتوقع بعد التنظيف: <strong>~{Math.max(0.5, +(cleanupInfo.currentDbSizeMb - cleanupInfo.estimatedBase64Mb).toFixed(1))} MB</strong></li>
+                <li>{tr('عدد الصور القديمة', 'Old images')}: <strong>{cleanupInfo.candidates}</strong></li>
+                <li>{tr('الحجم في قاعدة البيانات', 'Size in database')}: <strong>{cleanupInfo.estimatedBase64Mb} MB</strong></li>
+                <li>{tr('الحجم الكلي لـ', 'Total size of')} <code className="bg-orange-100 dark:bg-orange-900/40 px-1 rounded">gym.db</code>: <strong>{cleanupInfo.currentDbSizeMb} MB</strong></li>
+                <li>{tr('الحجم المتوقع بعد التنظيف', 'Expected size after cleanup')}: <strong>~{Math.max(0.5, +(cleanupInfo.currentDbSizeMb - cleanupInfo.estimatedBase64Mb).toFixed(1))} MB</strong></li>
               </ul>
             </div>
           )}
 
           {cleanupResult && (
             <div className="bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 p-4 rounded-lg text-sm mb-4">
-              <p className="font-bold mb-2 text-green-900 dark:text-green-200">نتيجة آخر عملية تنظيف</p>
+              <p className="font-bold mb-2 text-green-900 dark:text-green-200">{tr('نتيجة آخر عملية تنظيف', 'Last cleanup result')}</p>
               <ul className="list-disc list-inside space-y-1 text-green-900 dark:text-green-200">
-                <li>تم نقل: <strong>{cleanupResult.migrated}</strong> صورة</li>
+                <li>{tr('تم نقل', 'Moved')}: <strong>{cleanupResult.migrated}</strong> {tr('صورة', 'images')}</li>
                 {cleanupResult.failed > 0 && (
-                  <li>فشل: <strong>{cleanupResult.failed}</strong> صورة</li>
+                  <li>{tr('فشل', 'Failed')}: <strong>{cleanupResult.failed}</strong> {tr('صورة', 'images')}</li>
                 )}
-                <li>قبل: <strong>{cleanupResult.before.mb} MB</strong> → بعد: <strong>{cleanupResult.after.mb} MB</strong></li>
-                <li>وفّرت: <strong>{cleanupResult.saved.mb} MB</strong> ({cleanupResult.saved.percent}%)</li>
+                <li>{tr('قبل', 'Before')}: <strong>{cleanupResult.before.mb} MB</strong> → {tr('بعد', 'After')}: <strong>{cleanupResult.after.mb} MB</strong></li>
+                <li>{tr('وفّرت', 'Saved')}: <strong>{cleanupResult.saved.mb} MB</strong> ({cleanupResult.saved.percent}%)</li>
                 {cleanupResult.backup && (
-                  <li>النسخة الاحتياطية: <code className="bg-green-100 dark:bg-green-900/40 px-1 rounded text-xs">{cleanupResult.backup.filename}</code></li>
+                  <li>{tr('النسخة الاحتياطية', 'Backup')}: <code className="bg-green-100 dark:bg-green-900/40 px-1 rounded text-xs">{cleanupResult.backup.filename}</code></li>
                 )}
               </ul>
               {cleanupResult.failures.length > 0 && (
                 <details className="mt-3">
-                  <summary className="cursor-pointer text-orange-700 dark:text-orange-300 font-bold">عرض الأعضاء اللي فشل نقلهم ({cleanupResult.failures.length})</summary>
+                  <summary className="cursor-pointer text-orange-700 dark:text-orange-300 font-bold">{tr('عرض الأعضاء اللي فشل نقلهم', 'Show members that failed to move')} ({cleanupResult.failures.length})</summary>
                   <ul className="mt-2 ms-4 space-y-1 text-xs text-gray-700 dark:text-gray-300">
                     {cleanupResult.failures.map(f => (
                       <li key={f.id}>
@@ -529,14 +537,14 @@ export default function DatabaseSettings() {
             {cleanupRunning ? (
               <>
                 <Spinner />
-                جاري التنظيف... (ممكن ياخد دقيقة أو اتنين)
+                {tr('جاري التنظيف... (ممكن ياخد دقيقة أو اتنين)', 'Cleaning... (may take a minute or two)')}
               </>
             ) : (
               <>
                 <svg className="w-5 h-5" {...stroke}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
                 </svg>
-                ابدأ التنظيف
+                {tr('ابدأ التنظيف', 'Start Cleanup')}
               </>
             )}
           </button>
@@ -548,23 +556,23 @@ export default function DatabaseSettings() {
             <svg className="w-5 h-5 text-primary-600 dark:text-primary-400" {...stroke}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            تحديث داتابيز قديمة
+            {tr('تحديث داتابيز قديمة', 'Upgrade an Old Database')}
           </h3>
 
           <div className="space-y-4">
             <div className="bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 p-4 rounded-lg text-sm">
-              <p className="font-bold mb-2 text-blue-900 dark:text-blue-200">كيف يعمل</p>
+              <p className="font-bold mb-2 text-blue-900 dark:text-blue-200">{tr('كيف يعمل', 'How it works')}</p>
               <ul className="list-disc list-inside space-y-1 text-blue-800 dark:text-blue-200">
-                <li>ارفع أي ملف داتابيز قديم من أي نسخة سابقة</li>
-                <li>سيتم إضافة جميع الجداول والأعمدة الجديدة تلقائياً</li>
-                <li>لن يتم حذف أي بيانات موجودة</li>
-                <li>يمكنك تنزيل الملف المحدث أو استبدال الداتابيز الحالية به</li>
+                <li>{tr('ارفع أي ملف داتابيز قديم من أي نسخة سابقة', 'Upload any old database file from any previous version')}</li>
+                <li>{tr('سيتم إضافة جميع الجداول والأعمدة الجديدة تلقائياً', 'All new tables and columns will be added automatically')}</li>
+                <li>{tr('لن يتم حذف أي بيانات موجودة', 'No existing data will be deleted')}</li>
+                <li>{tr('يمكنك تنزيل الملف المحدث أو استبدال الداتابيز الحالية به', 'You can download the upgraded file or replace the current database with it')}</li>
               </ul>
             </div>
 
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                اختر ملف الداتابيز (.db):
+                {tr('اختر ملف الداتابيز (.db):', 'Choose database file (.db):')}
               </label>
               <input
                 type="file"
@@ -576,7 +584,7 @@ export default function DatabaseSettings() {
               {selectedFile && (
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
                   <CheckIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  تم اختيار: {selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)
+                  {tr('تم اختيار', 'Selected')}: {selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)
                 </p>
               )}
             </div>
@@ -590,14 +598,14 @@ export default function DatabaseSettings() {
                 {importing ? (
                   <>
                     <Spinner />
-                    جاري التحديث...
+                    {tr('جاري التحديث...', 'Updating...')}
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5" {...stroke}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
                     </svg>
-                    تحديث وتنزيل
+                    {tr('تحديث وتنزيل', 'Upgrade & Download')}
                   </>
                 )}
               </button>
@@ -610,14 +618,14 @@ export default function DatabaseSettings() {
                 {importing ? (
                   <>
                     <Spinner />
-                    جاري التحديث والاستبدال...
+                    {tr('جاري التحديث والاستبدال...', 'Upgrading & replacing...')}
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5" {...stroke}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                     </svg>
-                    تحديث واستبدال الداتابيز
+                    {tr('تحديث واستبدال الداتابيز', 'Upgrade & Replace Database')}
                   </>
                 )}
               </button>
@@ -627,12 +635,12 @@ export default function DatabaseSettings() {
 
         {/* Notes */}
         <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg text-sm">
-          <p className="font-bold mb-2 text-gray-700 dark:text-gray-300">ملاحظات</p>
+          <p className="font-bold mb-2 text-gray-700 dark:text-gray-300">{tr('ملاحظات', 'Notes')}</p>
           <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
-            <li>الملف يجب أن يكون من نوع SQLite (.db)</li>
-            <li>سيتم فحص سلامة الملف قبل الاستيراد</li>
-            <li>إذا فشل الاستيراد، سيتم استرجاع النسخة الاحتياطية تلقائياً</li>
-            <li>النسخ الاحتياطية محفوظة في: <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">prisma/gym.db.backup.*</code></li>
+            <li>{tr('الملف يجب أن يكون من نوع SQLite (.db)', 'The file must be a SQLite file (.db)')}</li>
+            <li>{tr('سيتم فحص سلامة الملف قبل الاستيراد', 'The file integrity will be checked before import')}</li>
+            <li>{tr('إذا فشل الاستيراد، سيتم استرجاع النسخة الاحتياطية تلقائياً', 'If the import fails, the backup will be restored automatically')}</li>
+            <li>{tr('النسخ الاحتياطية محفوظة في', 'Backups are saved in')}: <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">prisma/gym.db.backup.*</code></li>
           </ul>
         </div>
       </div>

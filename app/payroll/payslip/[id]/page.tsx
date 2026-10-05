@@ -367,7 +367,7 @@ export default function PayslipPage() {
           {/* Net */}
           <div className="bg-primary-500 text-primary-contrast rounded-lg p-4 flex justify-between items-center">
             <span className="text-lg font-bold uppercase">{locale === 'ar' ? 'الصافي المستحق' : 'Net Payable'}</span>
-            <span className="text-3xl font-bold">{fmt(payslip.netSalary)} <span className="text-base">ج.م</span></span>
+            <span className="text-3xl font-bold">{fmt(payslip.netSalary)} <span className="text-base">{locale === 'ar' ? 'ج.م' : 'EGP'}</span></span>
           </div>
 
           {/* Signature lines */}
@@ -390,7 +390,7 @@ export default function PayslipPage() {
           aria-modal="true"
           onClick={(e) => { if (e.target === e.currentTarget) setShowPaymentMethodModal(false) }}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full animate-modal-in" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full max-h-[90vh] overflow-y-auto animate-modal-in" dir={direction}>
             <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
                 {locale === 'ar' ? 'تأكيد الدفع' : 'Confirm Payment'}
@@ -444,7 +444,7 @@ export default function PayslipPage() {
           aria-modal="true"
           onClick={(e) => { if (e.target === e.currentTarget) setShowVoidModal(false) }}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-red-300 dark:ring-red-900/50 max-w-md w-full animate-modal-in" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-red-300 dark:ring-red-900/50 max-w-md w-full max-h-[90vh] overflow-y-auto animate-modal-in" dir={direction}>
             <div className="px-4 sm:px-6 py-4 border-b border-red-200 dark:border-red-900/50 flex items-center justify-between">
               <h2 className="text-lg font-bold text-red-700 dark:text-red-300">
                 {locale === 'ar' ? 'إلغاء الـ Payslip' : 'Void Payslip'}

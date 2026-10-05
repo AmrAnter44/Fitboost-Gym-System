@@ -1,10 +1,12 @@
 'use client'
 
 import Link from 'next/link'
+import { useLanguage } from '../contexts/LanguageContext'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 export default function NotFound() {
+  const { tr } = useLanguage()
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center px-4">
       <div className="text-center max-w-md w-full">
@@ -24,10 +26,10 @@ export default function NotFound() {
 
         {/* Message */}
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-          الصفحة غير موجودة
+          {tr('الصفحة غير موجودة', 'Page not found')}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-8 text-sm leading-relaxed">
-          عذراً، الصفحة التي تبحث عنها غير موجودة أو تم نقلها.
+          {tr('عذراً، الصفحة التي تبحث عنها غير موجودة أو تم نقلها.', 'Sorry, the page you are looking for does not exist or has been moved.')}
         </p>
 
         {/* Actions */}
@@ -39,7 +41,7 @@ export default function NotFound() {
             <svg {...stroke} className="w-4 h-4" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
             </svg>
-            الرئيسية
+            {tr('الرئيسية', 'Home')}
           </Link>
           <button
             onClick={() => window.history.back()}
@@ -48,7 +50,7 @@ export default function NotFound() {
             <svg {...stroke} className="w-4 h-4 rtl:rotate-180" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
             </svg>
-            رجوع
+            {tr('رجوع', 'Back')}
           </button>
         </div>
       </div>

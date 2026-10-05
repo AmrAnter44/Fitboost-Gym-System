@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DatabaseSettings from '../../../components/settings/DatabaseSettings';
 import { LoadingScreen } from '../../../components/Spinner';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 export default function DatabaseSettingsPage() {
   const router = useRouter();
+  const { tr } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -49,18 +51,18 @@ export default function DatabaseSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <button
             onClick={() => router.push('/settings')}
             className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-700 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 transition-colors duration-200"
-            aria-label="العودة للإعدادات"
+            aria-label={tr('العودة للإعدادات', 'Back to settings')}
           >
-            <svg {...stroke} className="w-4 h-4">
+            <svg {...stroke} className="w-4 h-4 rtl:rotate-180">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
-            <span>العودة للإعدادات</span>
+            <span>{tr('العودة للإعدادات', 'Back to settings')}</span>
           </button>
 
           <div className="flex items-start gap-3">
@@ -73,10 +75,10 @@ export default function DatabaseSettingsPage() {
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                إعدادات قاعدة البيانات
+                {tr('إعدادات قاعدة البيانات', 'Database Settings')}
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                إدارة وصيانة قاعدة بيانات النظام
+                {tr('إدارة وصيانة قاعدة بيانات النظام', 'Manage and maintain the system database')}
               </p>
             </div>
           </div>

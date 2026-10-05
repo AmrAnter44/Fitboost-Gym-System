@@ -37,7 +37,8 @@ interface GroupClassSessionRecord {
 
 export default function GroupClassSessionHistoryPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, tr, locale, direction } = useLanguage()
+  const dateLocale = locale === 'ar' ? 'ar-EG' : 'en-US'
   const { confirm, isOpen: isConfirmOpen, options: confirmOptions, handleConfirm, handleCancel } = useConfirm()
   const { show: showSuccess, isOpen: isSuccessOpen, options: successOptions, handleClose: handleSuccessClose } = useSuccess()
   const { user } = usePermissions()
@@ -130,7 +131,7 @@ export default function GroupClassSessionHistoryPage() {
   }).length
 
   return (
-    <div className="container mx-auto p-6" dir="rtl">
+    <div className="container mx-auto p-4 sm:p-6" dir={direction}>
       <div className="flex justify-between items-center mb-6 gap-3 flex-wrap">
         <div className="flex items-center gap-3">
           <span className="inline-flex w-10 h-10 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400">
@@ -190,7 +191,7 @@ export default function GroupClassSessionHistoryPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6 mb-6">
         <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 inline-flex items-center gap-2">
           <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
           {t('groupClass.sessionHistory.filtersAndSearch')}
@@ -293,7 +294,7 @@ export default function GroupClassSessionHistoryPage() {
                         {session.isFreeSession ? (
                           <div className="flex items-center gap-2">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-fuchsia-100 dark:bg-fuchsia-900/40 text-fuchsia-700 dark:text-fuchsia-300">
-                              مجاني
+                              {tr('مجاني', 'Free')}
                             </span>
                             {session.member && (
                               <span className="text-xs text-gray-500 dark:text-gray-400">#{session.member.memberNumber}</span>
@@ -316,7 +317,7 @@ export default function GroupClassSessionHistoryPage() {
                       <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{session.instructorName}</td>
                       <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                         <span className={`font-mono ${isToday ? 'font-bold text-primary-700 dark:text-primary-400' : ''}`}>
-                          {sessionDate.toLocaleDateString('ar-EG', {
+                          {sessionDate.toLocaleDateString(dateLocale, {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric'
@@ -325,7 +326,7 @@ export default function GroupClassSessionHistoryPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className="font-mono font-bold text-primary-700 dark:text-primary-400">
-                          {sessionDate.toLocaleTimeString('ar-EG', {
+                          {sessionDate.toLocaleTimeString(dateLocale, {
                             hour: '2-digit',
                             minute: '2-digit'
                           })}
@@ -340,7 +341,7 @@ export default function GroupClassSessionHistoryPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(session.createdAt).toLocaleDateString('ar-EG')}
+                          {new Date(session.createdAt).toLocaleDateString(dateLocale)}
                         </span>
                       </td>
                       <td className="px-4 py-3">

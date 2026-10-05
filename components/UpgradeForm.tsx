@@ -49,7 +49,7 @@ interface UpgradeFormProps {
 }
 
 export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormProps) {
-  const { t, direction } = useLanguage()
+  const { t, tr, direction, locale } = useLanguage()
   const { settings } = useServiceSettings()
   const [offers, setOffers] = useState<Offer[]>([])
   const [selectedOfferId, setSelectedOfferId] = useState<string>('')
@@ -79,15 +79,15 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
           setCurrentUser(data.user)
         } else {
           console.error('User data missing name:', data)
-          setError('خطأ: بيانات المستخدم غير كاملة. يرجى تسجيل الدخول مرة أخرى.')
+          setError(tr('خطأ: بيانات المستخدم غير كاملة. يرجى تسجيل الدخول مرة أخرى.', 'Error: user data is incomplete. Please log in again.'))
         }
       } else {
         console.error('Failed to fetch user. Status:', response.status)
-        setError('خطأ: لم يتم العثور على بيانات المستخدم المسجل. يرجى تسجيل الدخول مرة أخرى.')
+        setError(tr('خطأ: لم يتم العثور على بيانات المستخدم المسجل. يرجى تسجيل الدخول مرة أخرى.', 'Error: logged-in user not found. Please log in again.'))
       }
     } catch (error) {
       console.error('Error fetching current user:', error)
-      setError('خطأ في الاتصال: تعذر جلب بيانات المستخدم. تأكد من اتصالك بالإنترنت.')
+      setError(tr('خطأ في الاتصال: تعذر جلب بيانات المستخدم. تأكد من اتصالك بالإنترنت.', 'Connection error: could not load user data. Check your internet connection.'))
     }
   }
 
@@ -158,7 +158,7 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
     }
 
     if (!currentUser || !currentUser.name) {
-      setError('يرجى تسجيل الدخول أولاً')
+      setError(tr('يرجى تسجيل الدخول أولاً', 'Please log in first'))
       return
     }
 
@@ -334,7 +334,7 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
                   <p>InBody: {member.inBodyScans}</p>
                   <p>{t('offers.invitations')}: {member.invitations}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {t('members.expiryDate')}: {new Date(member.expiryDate).toLocaleDateString('ar-EG')}
+                    {t('members.expiryDate')}: {new Date(member.expiryDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
                   </p>
                 </div>
               </div>
@@ -346,7 +346,7 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
                   <p>InBody: {selectedOffer.inBodyScans}</p>
                   <p>{t('offers.invitations')}: {selectedOffer.invitations}</p>
                   <p className="text-xs text-green-600 dark:text-green-400">
-                    {t('members.expiryDate')}: {calculateNewExpiryDate(selectedOffer.duration).toLocaleDateString('ar-EG')}
+                    {t('members.expiryDate')}: {calculateNewExpiryDate(selectedOffer.duration).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
                   </p>
                 </div>
               </div>
@@ -483,17 +483,17 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
                   <svg className="w-5 h-5 flex-shrink-0" {...stroke}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                   </svg>
-                  <span>تحذير: لم يتم تحميل بيانات المستخدم المسجل</span>
+                  <span>{tr('تحذير: لم يتم تحميل بيانات المستخدم المسجل', 'Warning: logged-in user data not loaded')}</span>
                 </p>
                 <p className="text-xs text-red-600 dark:text-red-400 mb-3">
-                  لن يتم تسجيل اسم الموظف في الإيصال. يرجى إعادة المحاولة أو تسجيل الدخول مرة أخرى.
+                  {tr('لن يتم تسجيل اسم الموظف في الإيصال. يرجى إعادة المحاولة أو تسجيل الدخول مرة أخرى.', 'The staff name will not be recorded on the receipt. Please retry or log in again.')}
                 </p>
                 <button
                   type="button"
                   onClick={fetchCurrentUser}
                   className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors duration-200"
                 >
-                  إعادة المحاولة
+                  {tr('إعادة المحاولة', 'Retry')}
                 </button>
               </div>
             )}

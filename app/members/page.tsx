@@ -308,8 +308,6 @@ function MembersPageContent() {
   //  عشان نعمل scroll للعضو اللي كنا واقفين عنده بعد الرجوع
   const lastViewedElRef = useRef<HTMLDivElement | null>(null)
 
-  // WhatsApp جماعي
-  const [showBulkWA, setShowBulkWA] = useState(false)
 
   // المحظورون
   const [bannedMembers, setBannedMembers] = useState<any[]>([])
@@ -319,8 +317,6 @@ function MembersPageContent() {
   const [banSubmitting, setBanSubmitting] = useState(false)
   const [banError, setBanError] = useState('')
   const [confirmState, setConfirmState] = useState<{ open: boolean; onConfirm: () => void; message: string; title?: string }>({ open: false, onConfirm: () => {}, message: '' })
-  const [bulkWAMessage, setBulkWAMessage] = useState('السلام عليكم {name}، اشتراكك في الجيم انتهى أو قارب على الانتهاء. تواصل معنا لتجديد اشتراكك. ')
-  const [bulkWASent, setBulkWASent] = useState(0)
 
   // استخدام useMemo بدل useState للـ filteredMembers لتجنب infinite loop
   // استخدام الـ debounced values لتحسين الأداء
@@ -514,7 +510,7 @@ function MembersPageContent() {
 
   // جلب الموظفين عشان نملي الفلاتر (سيلز + كوتش)
   useEffect(() => {
-    fetch('/api/staff')
+    fetch('/api/staff?scope=names')
       .then(r => r.ok ? r.json() : [])
       .then((data: Array<{ id: string; name: string; position: string | null; isActive?: boolean }>) => {
         if (Array.isArray(data)) {
@@ -923,20 +919,6 @@ function MembersPageContent() {
           fetchBannedMembers()
         } catch {}
       }
-    })
-  }
-
-  // WhatsApp جماعي
-  const sendBulkWhatsApp = () => {
-    setBulkWASent(0)
-    const membersWithPhone = filteredMembers.filter(m => m.phone)
-    membersWithPhone.forEach((member, i) => {
-      setTimeout(() => {
-        const msg = bulkWAMessage.replace('{name}', member.name)
-        const phone = member.phone.replace(/\D/g, '').replace(/^0/, '20')
-        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
-        setBulkWASent(i + 1)
-      }, i * 800)
     })
   }
 
@@ -1404,7 +1386,7 @@ function MembersPageContent() {
               <option value="all">{locale === 'ar' ? '— كل السيلز —' : '— All Sales —'}</option>
               <option value="__none__">{locale === 'ar' ? 'بدون سيلز' : 'No Sales'}</option>
               {staffList
-                .filter(s => s.position && s.position.split(',').map(p => p.trim()).includes('sales'))
+                .filter(s => s.position && s.position.split(',').map(p => p.trim().toLowerCase()).some(p => p === 'sales' || p === 'سيلز'))
                 .map(s => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
@@ -1425,7 +1407,7 @@ function MembersPageContent() {
               {staffList
                 .filter(s => s.position && (
                   s.position.split(',').map(p => p.trim()).includes('coach') ||
-                  s.position.split(',').map(p => p.trim()).includes('مدرب')
+                  s.position.split(',').some(p => p.trim().includes('مدرب'))
                 ))
                 .map(s => (
                   <option key={s.id} value={s.id}>{s.name}</option>
@@ -1675,7 +1657,7 @@ function MembersPageContent() {
                   <option value="all">{locale === 'ar' ? '— كل السيلز —' : '— All Sales —'}</option>
                   <option value="__none__">{locale === 'ar' ? 'بدون سيلز' : 'No Sales'}</option>
                   {staffList
-                    .filter(s => s.position && s.position.split(',').map(p => p.trim()).includes('sales'))
+                    .filter(s => s.position && s.position.split(',').map(p => p.trim()).map(p => p.toLowerCase()).some(p => p === 'sales' || p === 'سيلز'))
                     .map(s => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
@@ -1695,7 +1677,7 @@ function MembersPageContent() {
                   {staffList
                     .filter(s => s.position && (
                       s.position.split(',').map(p => p.trim()).includes('coach') ||
-                      s.position.split(',').map(p => p.trim()).includes('مدرب')
+                      s.position.split(',').some(p => p.trim().includes('مدرب'))
                     ))
                     .map(s => (
                       <option key={s.id} value={s.id}>{s.name}</option>
@@ -1774,18 +1756,6 @@ function MembersPageContent() {
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
-            {filteredMembers.some(m => m.phone) && (
-              <button
-                onClick={() => { setBulkWASent(0); setShowBulkWA(true) }}
-                type="button"
-                className="flex-1 sm:flex-initial min-h-[44px] bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors duration-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2"
-              >
-                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4 shrink-0" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
-                </svg>
-                <span className="truncate">{locale === 'ar' ? 'واتساب' : 'WhatsApp'} ({filteredMembers.filter(m => m.phone).length})</span>
-              </button>
-            )}
             <button
               onClick={clearAllFilters}
               type="button"
@@ -1873,68 +1843,6 @@ function MembersPageContent() {
               >
                 {locale === 'ar' ? 'حفظ' : 'Save'}
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* WhatsApp Bulk Modal */}
-      {showBulkWA && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" dir={direction} role="dialog" aria-modal="true" aria-labelledby="bulkwa-title">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in">
-            <div className="px-6 py-4 rounded-t-2xl flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
-              <h3 id="bulkwa-title" className="font-bold text-lg flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5 text-green-600 dark:text-green-400" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
-                </svg>
-                <span>{tr('WhatsApp جماعي', 'Bulk WhatsApp')}</span>
-              </h3>
-              <button onClick={() => setShowBulkWA(false)} type="button" aria-label={tr('إغلاق', 'Close')} className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg w-8 h-8 flex items-center justify-center transition-colors duration-200">
-                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                {tr('سيتم إرسال رسالة لـ', 'A message will be sent to')} <strong className="text-green-600 dark:text-green-400">{filteredMembers.filter(m => m.phone).length}</strong> {tr('عضو.', 'members.')}{' '}
-                {tr('استخدم', 'Use')} <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs">{'{name}'}</code> {tr('لاسم العضو.', "for the member's name.")}
-              </p>
-              <textarea
-                value={bulkWAMessage}
-                onChange={e => setBulkWAMessage(e.target.value)}
-                rows={4}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200 text-sm resize-none mb-4"
-                dir="rtl"
-              />
-              {bulkWASent > 0 && (
-                <div className="mb-4 bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg p-3 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
-                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                  </svg>
-                  <span>{tr('تم إرسال', 'Sent')} {bulkWASent} {tr('من', 'of')} {filteredMembers.filter(m => m.phone).length}...</span>
-                </div>
-              )}
-              <div className="flex gap-3">
-                <button
-                  onClick={sendBulkWhatsApp}
-                  type="button"
-                  disabled={!bulkWAMessage.trim()}
-                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-                >
-                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
-                  </svg>
-                  <span>{tr('بدء الإرسال', 'Start sending')}</span>
-                </button>
-                <button
-                  onClick={() => setShowBulkWA(false)}
-                  type="button"
-                  className="px-5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-bold transition-colors duration-200"
-                >
-                  {tr('إغلاق', 'Close')}
-                </button>
-              </div>
             </div>
           </div>
         </div>

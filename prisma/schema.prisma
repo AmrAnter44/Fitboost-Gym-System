@@ -44,6 +44,7 @@ model Member {
   points            Int          @default(0)
   notes             String?
   pushToken         String?      // Expo push notification token
+  birthdayGreetYear Int?         // 🎂 آخر سنة اتبعتله فيها إشعار تهنئة عيد الميلاد (مرة في السنة)
   termsAcceptedAt   DateTime?    // 📜 وقت موافقة العضو على الشروط والأحكام في التطبيق
   isActive          Boolean      @default(true)
   isFrozen          Boolean      @default(false)
@@ -1746,4 +1747,22 @@ model StaffPushToken {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+// 📣 إيفنتات الجيم — بتتعمل من الإعدادات، بتظهر للأعضاء في الأبلكيشن (تحت الكارنيه)
+// ومع النشر ممكن يتبعت إشعار لكل أعضاء الفرع اللي عندهم الأبلكيشن
+model GymEvent {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  isActive    Boolean   @default(true)
+  notifiedAt  DateTime?
+  notifiedCount Int?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([startsAt])
 }

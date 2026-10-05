@@ -3787,33 +3787,6 @@ export default function MemberDetailPage() {
  />
  </div>
 
- {/*  تاريخ البداية والانتهاء جنب بعض دايمًا */}
- <div className="col-span-2 md:col-span-2 grid grid-cols-2 gap-3">
- <div>
- <label className="block text-xs font-medium mb-1">
- {t('memberDetails.editModal.fields.startDate')}
- </label>
- <input
- type="date"
- value={editBasicInfoData.startDate}
- onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, startDate: e.target.value })}
- className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
- />
- </div>
-
- <div>
- <label className="block text-xs font-medium mb-1">
- {t('memberDetails.editModal.fields.expiryDate')}
- </label>
- <input
- type="date"
- value={editBasicInfoData.expiryDate}
- onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, expiryDate: e.target.value })}
- className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
- />
- </div>
- </div>
-
  {/* 📣 مصدر العضو — للمالك/الأدمن بس */}
  {(currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN') && (
  <div>
@@ -3844,6 +3817,63 @@ export default function MemberDetailPage() {
  </div>
  )}
 
+ {/* 🎂 تاريخ الميلاد — لغير الأدمن بياخد مكان المصدر في الصف التاني عشان الصف يفضل كامل */}
+ {!(currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN') && (
+ <div>
+ <label className="block text-xs font-medium mb-1">
+ {direction === 'rtl' ? 'تاريخ الميلاد' : 'Birthdate'}
+ </label>
+ <input
+ type="date"
+ value={editBasicInfoData.birthDate}
+ onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, birthDate: e.target.value })}
+ className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ />
+ </div>
+ )}
+
+ {/*  تاريخ البداية والانتهاء جنب بعض دايمًا */}
+ <div className="col-span-2 md:col-span-2 grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-xs font-medium mb-1">
+ {t('memberDetails.editModal.fields.startDate')}
+ </label>
+ <input
+ type="date"
+ value={editBasicInfoData.startDate}
+ onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, startDate: e.target.value })}
+ className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ />
+ </div>
+
+ <div>
+ <label className="block text-xs font-medium mb-1">
+ {t('memberDetails.editModal.fields.expiryDate')}
+ </label>
+ <input
+ type="date"
+ value={editBasicInfoData.expiryDate}
+ onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, expiryDate: e.target.value })}
+ className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ />
+ </div>
+ </div>
+
+ {/* 🎂 تاريخ الميلاد — للأدمن جنب التواريخ (المصدر واخد مكانه في الصف التاني) */}
+ {(currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN') && (
+ <div>
+ <label className="block text-xs font-medium mb-1">
+ {direction === 'rtl' ? 'تاريخ الميلاد' : 'Birthdate'}
+ </label>
+ <input
+ type="date"
+ value={editBasicInfoData.birthDate}
+ onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, birthDate: e.target.value })}
+ className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+ />
+ </div>
+ )}
+
  {/* 🚻 الجنس — للجيم المكس فقط */}
  {settings.mixedGymEnabled && (
  <div>
@@ -3863,18 +3893,6 @@ export default function MemberDetailPage() {
  </div>
  )}
 
- {/* 🎂 تاريخ الميلاد */}
- <div>
- <label className="block text-xs font-medium mb-1">
- {direction === 'rtl' ? 'تاريخ الميلاد' : 'Birthdate'}
- </label>
- <input
- type="date"
- value={editBasicInfoData.birthDate}
- onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, birthDate: e.target.value })}
- className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
- />
- </div>
 
  {/* Benefits Section */}
  <div className="col-span-2 md:col-span-3 border-t pt-3 mt-1">

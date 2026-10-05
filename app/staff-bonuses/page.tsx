@@ -32,7 +32,7 @@ interface Bonus {
 }
 
 export default function StaffBonusesPage() {
-  const { t, locale, direction } = useLanguage()
+  const { t, tr, locale, direction } = useLanguage()
   const router = useRouter()
   const { hasPermission, loading: permissionsLoading } = usePermissions()
   const localeString = locale === 'ar' ? 'ar-EG' : 'en-US'
@@ -529,8 +529,8 @@ export default function StaffBonusesPage() {
                     <button
                       onClick={() => setDeleteConfirm({ show: true, id: b.id, name: b.reason })}
                       className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-200"
-                      aria-label="حذف"
-                      title="حذف"
+                      aria-label={tr('حذف', 'Delete')}
+                      title={tr('حذف', 'Delete')}
                     >
                       <svg {...stroke} className="w-4 h-4" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165" />
@@ -557,7 +557,7 @@ export default function StaffBonusesPage() {
           </div>
 
           {/* Desktop Table */}
-          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
+          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase text-xs">
                 <tr>
@@ -596,8 +596,8 @@ export default function StaffBonusesPage() {
                         <button
                           onClick={() => setDeleteConfirm({ show: true, id: b.id, name: b.reason })}
                           className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-200"
-                          aria-label="حذف"
-                          title="حذف"
+                          aria-label={tr('حذف', 'Delete')}
+                          title={tr('حذف', 'Delete')}
                         >
                           <svg {...stroke} className="w-4 h-4" aria-hidden="true">
                             <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165" />
@@ -618,7 +618,7 @@ export default function StaffBonusesPage() {
       {/* Delete Confirm Modal */}
       {deleteConfirm.show && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="delete-bonus-confirm-title">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-red-200 dark:ring-red-900/50 max-w-sm w-full p-6 animate-modal-in">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-red-200 dark:ring-red-900/50 max-w-sm w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto animate-modal-in">
             <div className="text-center mb-4">
               <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 mx-auto mb-3 flex items-center justify-center">
                 <svg {...stroke} className="w-6 h-6" aria-hidden="true">

@@ -2150,7 +2150,7 @@ function FollowUpsPageContent() {
             aria-labelledby="expiring-popup-title"
           >
             <div
-              className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm ring-1 ring-amber-200 dark:ring-amber-900/50 animate-modal-in"
+              className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-h-[90vh] overflow-y-auto max-w-sm ring-1 ring-amber-200 dark:ring-amber-900/50 animate-modal-in"
               onClick={e => e.stopPropagation()}
             >
               <button
@@ -2350,7 +2350,7 @@ function FollowUpsPageContent() {
           aria-modal="true"
           aria-labelledby="bulk-send-title"
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in">
             <div className="text-center mb-6">
               <div className="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-400 mx-auto mb-4 flex items-center justify-center animate-pulse">
                 <svg className="w-8 h-8" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
@@ -3929,7 +3929,7 @@ function FollowUpsPageContent() {
           aria-labelledby="delete-confirm-title"
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-red-200 dark:ring-red-900/50 animate-modal-in"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 ring-1 ring-red-200 dark:ring-red-900/50 animate-modal-in"
             onClick={(e) => e.stopPropagation()}
             dir={direction}
           >
@@ -4000,7 +4000,7 @@ function FollowUpsPageContent() {
           aria-labelledby="delete-visitor-confirm-title"
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-red-200 dark:ring-red-900/50 animate-modal-in"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 ring-1 ring-red-200 dark:ring-red-900/50 animate-modal-in"
             onClick={(e) => e.stopPropagation()}
             dir={direction}
           >
@@ -4068,7 +4068,7 @@ function FollowUpsPageContent() {
           aria-labelledby="edit-modal-title"
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in"
             onClick={(e) => e.stopPropagation()}
             dir={direction}
           >

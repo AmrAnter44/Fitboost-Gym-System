@@ -51,7 +51,7 @@ interface FollowUp {
 
 export default function VisitorsPage() {
   const router = useRouter()
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
   const toast = useToast()
   const { user, permissions } = usePermissions()
   //  قيد إخفاء أرقام المتابعات بيسري على الزوار كمان (التاب ده جوّه صفحة المتابعات)
@@ -264,12 +264,12 @@ export default function VisitorsPage() {
     if (visitorsError) {
       const errorMessage = (visitorsError as Error).message
       if (errorMessage === 'UNAUTHORIZED') {
-        toast.error('يجب تسجيل الدخول أولاً')
+        toast.error(tr('يجب تسجيل الدخول أولاً', 'Please log in first'))
         setTimeout(() => router.push('/login'), 2000)
       } else if (errorMessage === 'FORBIDDEN') {
-        toast.error('ليس لديك صلاحية عرض الزوار')
+        toast.error(tr('ليس لديك صلاحية عرض الزوار', 'You do not have permission to view visitors'))
       } else {
-        toast.error(errorMessage || 'حدث خطأ أثناء جلب بيانات الزوار')
+        toast.error(errorMessage || tr('حدث خطأ أثناء جلب بيانات الزوار', 'Failed to load visitors'))
       }
     }
   }, [visitorsError, toast, router])
@@ -339,7 +339,7 @@ export default function VisitorsPage() {
 
   // تصدير CSV للزوار
   const exportVisitorsCSV = () => {
-    const headers = ['الاسم', 'الهاتف', 'المصدر', 'الاهتمام', 'الحالة', 'الملاحظات', 'تاريخ الإضافة']
+    const headers = [tr('الاسم', 'Name'), tr('الهاتف', 'Phone'), tr('المصدر', 'Source'), tr('الاهتمام', 'Interest'), tr('الحالة', 'Status'), tr('الملاحظات', 'Notes'), tr('تاريخ الإضافة', 'Date added')]
     const rows = filteredVisitors.map(v => [
       v.name,
       v.phone,
@@ -347,7 +347,7 @@ export default function VisitorsPage() {
       v.interestedIn || '',
       v.status,
       v.notes || '',
-      new Date(v.createdAt).toLocaleDateString('ar-EG'),
+      new Date(v.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US'),
     ])
     const csv = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
@@ -1229,7 +1229,7 @@ export default function VisitorsPage() {
                   await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
                   await queryClient.invalidateQueries({ queryKey: ['members-followups'] })
 
-                  toast.success(`تم تحويل ${selectedVisitorForSubscribe.name} إلى عضو بنجاح!`)
+                  toast.success(tr(`تم تحويل ${selectedVisitorForSubscribe.name} إلى عضو بنجاح!`, `${selectedVisitorForSubscribe.name} converted to member!`))
                 }}
                 prefillData={{
                   name: selectedVisitorForSubscribe.name,

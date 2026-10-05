@@ -94,7 +94,7 @@ export default function SalesActivityPage() {
   if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-6" dir={direction}>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-8 text-center max-w-md">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-8 text-center max-w-md">
           <p className="text-gray-700 dark:text-gray-200 font-bold">
             {ar ? 'هذه الصفحة للأدمن فقط' : 'This page is for admins only'}
           </p>

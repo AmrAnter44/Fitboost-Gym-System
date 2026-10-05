@@ -87,7 +87,7 @@ export default function SalesDistributionPanel({ showHeader = true }: { showHead
           return next
         })
       } else {
-        toast.error(data.error || 'فشل جلب البيانات')
+        toast.error(data.error || (ar ? 'فشل جلب البيانات' : 'Failed to load data'))
       }
     } catch {
       toast.error(ar ? 'حدث خطأ في الاتصال' : 'Connection error')

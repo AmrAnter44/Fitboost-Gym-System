@@ -9,6 +9,7 @@
 //  عشان كده بنعرض **كل** العناوين، ونرشّح اللي على نفس شبكة الجهاز.
 
 import { useEffect, useState } from 'react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const;
 
@@ -21,6 +22,7 @@ interface Props {
 const subnet = (ip: string) => ip.split('.').slice(0, 3).join('.');
 
 export default function GateListenerSetup({ eventSecret, gateHost }: Props) {
+  const { tr } = useLanguage();
   const [ips, setIps] = useState<string[]>([]);
   const [port, setPort] = useState('4001');
   const [picked, setPicked] = useState<string>('');
@@ -56,16 +58,16 @@ export default function GateListenerSetup({ eventSecret, gateHost }: Props) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
-      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">ربط الجهاز بالسيستم</h2>
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
+      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">{tr('ربط الجهاز بالسيستم', 'Connect the device to the system')}</h2>
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-        عشان الحضور يتسجّل لوحده، لازم تقول للجهاز يبعت الأحداث على العنوان ده.
+        {tr('عشان الحضور يتسجّل لوحده، لازم تقول للجهاز يبعت الأحداث على العنوان ده.', 'For attendance to be logged automatically, configure the device to send events to this address.')}
       </p>
 
       {ips.length > 1 && (
         <div className="mb-3">
           <span className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
-            عنوان الكمبيوتر على الشبكة
+            {tr('عنوان الكمبيوتر على الشبكة', 'Computer address on the network')}
           </span>
           <select
             value={picked}
@@ -75,7 +77,7 @@ export default function GateListenerSetup({ eventSecret, gateHost }: Props) {
           >
             {ips.map(ip => (
               <option key={ip} value={ip}>
-                {ip}{gateHost && subnet(ip) === subnet(gateHost) ? '  ← نفس شبكة الجهاز' : ''}
+                {ip}{gateHost && subnet(ip) === subnet(gateHost) ? tr('  ← نفس شبكة الجهاز', '  ← same network as device') : ''}
               </option>
             ))}
           </select>
@@ -84,8 +86,7 @@ export default function GateListenerSetup({ eventSecret, gateHost }: Props) {
 
       {!sameSubnet && (
         <div className="mb-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 p-3 text-sm text-amber-900 dark:text-amber-200">
-          العنوان ده على شبكة تانية غير الجهاز ({gateHost}). غالبًا الجهاز مش
-          هيعرف يوصله — اختار عنوان بيبدأ بـ <span className="font-mono" dir="ltr">{subnet(gateHost || '')}</span>
+          {tr('العنوان ده على شبكة تانية غير الجهاز', 'This address is on a different network than the device')} ({gateHost}). {tr('غالبًا الجهاز مش هيعرف يوصله — اختار عنوان بيبدأ بـ', 'The device probably cannot reach it — pick an address starting with')} <span className="font-mono" dir="ltr">{subnet(gateHost || '')}</span>
         </div>
       )}
 
@@ -99,13 +100,13 @@ export default function GateListenerSetup({ eventSecret, gateHost }: Props) {
         className="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold disabled:opacity-50"
       >
         <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2M8 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M8 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m0 0h2a2 2 0 0 1 2 2v3" /></svg>
-        {copied ? 'اتنسخ ✓' : 'انسخ العنوان'}
+        {copied ? tr('اتنسخ ✓', 'Copied ✓') : tr('انسخ العنوان', 'Copy address')}
       </button>
 
       <ol className="space-y-2 text-sm text-gray-700 dark:text-gray-300 list-decimal ps-5">
-        <li>افتح صفحة الجهاز في المتصفح: <span className="font-mono" dir="ltr">http://{gateHost || '<ip>'}</span></li>
-        <li>روح <b>Configuration → Network → Advanced Settings → HTTP(S)</b></li>
-        <li>في قسم <b>HTTP Listening</b> اكتب:
+        <li>{tr('افتح صفحة الجهاز في المتصفح:', 'Open the device page in a browser:')} <span className="font-mono" dir="ltr">http://{gateHost || '<ip>'}</span></li>
+        <li>{tr('روح', 'Go to')} <b>Configuration → Network → Advanced Settings → HTTP(S)</b></li>
+        <li>{tr('في قسم', 'In the')} <b>HTTP Listening</b> {tr('اكتب:', 'section, enter:')}
           <ul className="mt-1 space-y-1 ps-4 list-disc text-gray-600 dark:text-gray-400">
             <li><b>Event Alarm IP/Domain Name</b>: <span className="font-mono" dir="ltr">{picked || '—'}</span></li>
             <li><b>URL</b>: <span className="font-mono" dir="ltr">/api/gates/event/{eventSecret}</span></li>
@@ -113,20 +114,19 @@ export default function GateListenerSetup({ eventSecret, gateHost }: Props) {
             <li><b>Protocol</b>: HTTP</li>
           </ul>
         </li>
-        <li>اضغط <b>Save</b>، وبعدها حط وشك قدام الجهاز مرة واحدة للتجربة</li>
+        <li>{tr('اضغط', 'Click')} <b>Save</b>{tr('، وبعدها حط وشك قدام الجهاز مرة واحدة للتجربة', ', then show your face to the device once to test')}</li>
       </ol>
 
       <div className="mt-4 rounded-lg bg-sky-50 dark:bg-sky-900/20 ring-1 ring-sky-200 dark:ring-sky-900/50 p-3 text-sm text-sky-900 dark:text-sky-200">
-        <p className="font-semibold mb-1">تسجيل الأوشاش بيتم على الجهاز نفسه</p>
+        <p className="font-semibold mb-1">{tr('تسجيل الأوشاش بيتم على الجهاز نفسه', 'Faces are enrolled on the device itself')}</p>
         <p className="text-xs leading-relaxed">
-          السيستم بيبعت للجهاز بيانات العضو وتاريخ انتهاء اشتراكه بس. عشان
-          العضو يقدر يدخل، لازم الريسبشن يوقّفه قدام الجهاز ويسجّل وشه على
-          <b> رقم عضويته</b> — نفس الرقم اللي في السيستم.
+          {tr('السيستم بيبعت للجهاز بيانات العضو وتاريخ انتهاء اشتراكه بس. عشان العضو يقدر يدخل، لازم الريسبشن يوقّفه قدام الجهاز ويسجّل وشه على', 'The system only sends the member data and subscription end date to the device. For a member to enter, reception must stand them in front of the device and enroll their face under their')}
+          <b> {tr('رقم عضويته', 'membership number')}</b> — {tr('نفس الرقم اللي في السيستم.', 'the same number as in the system.')}
         </p>
       </div>
 
       <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-        العنوان ده فيه سر — أي حد يعرفه يقدر يبعت أحداث وهمية للسيستم. ماتنشرهوش.
+        {tr('العنوان ده فيه سر — أي حد يعرفه يقدر يبعت أحداث وهمية للسيستم. ماتنشرهوش.', 'This address contains a secret — anyone who knows it can send fake events to the system. Do not share it.')}
       </p>
     </div>
   );

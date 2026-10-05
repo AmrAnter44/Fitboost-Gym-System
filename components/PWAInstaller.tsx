@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { safeStorage } from '../lib/safeStorage'
+import { useLanguage } from '../contexts/LanguageContext'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 export default function PWAInstaller() {
+  const { tr } = useLanguage()
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
 
@@ -76,29 +78,29 @@ export default function PWAInstaller() {
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 mb-1">ثبت التطبيق</h3>
+            <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 mb-1">{tr('ثبت التطبيق', 'Install the app')}</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              احصل على تجربة أفضل مع تطبيق الموبايل - عمل بدون إنترنت، وصول أسرع!
+              {tr('احصل على تجربة أفضل مع تطبيق الموبايل - عمل بدون إنترنت، وصول أسرع!', 'Get a better experience with the mobile app — works offline, faster access!')}
             </p>
             <div className="flex gap-2">
               <button
                 onClick={handleInstallClick}
                 className="bg-primary-500 hover:bg-primary-600 text-primary-contrast px-4 py-2 rounded-lg font-bold text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
               >
-                تثبيت الآن
+                {tr('تثبيت الآن', 'Install now')}
               </button>
               <button
                 onClick={handleDismiss}
                 className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors duration-200"
               >
-                لاحقاً
+                {tr('لاحقاً', 'Later')}
               </button>
             </div>
           </div>
           <button
             onClick={handleDismiss}
-            aria-label="إغلاق"
-            className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex-shrink-0"
+            aria-label={tr('إغلاق', 'Close')}
+            className="w-10 h-10 -m-2 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex-shrink-0"
           >
             <svg className="w-4 h-4" {...stroke}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

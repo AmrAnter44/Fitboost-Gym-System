@@ -112,7 +112,7 @@ interface AnalyticsResponse {
 }
 
 export default function StaffHRAssistantPage() {
-  const { t, direction } = useLanguage()
+  const { t, tr, direction } = useLanguage()
   useDarkMode()
   const toast = useToast()
   const { hasPermission, loading: permissionsLoading } = usePermissions()
@@ -688,14 +688,14 @@ export default function StaffHRAssistantPage() {
                           </p>
                           {analytics?.isPartialMonth && (
                             <p className="text-xs text-gray-400 dark:text-gray-500">
-                              حتى يوم {analytics.dataUpToDay}
+                              {tr('حتى يوم', 'Up to day')} {analytics.dataUpToDay}
                             </p>
                           )}
                         </div>
                       </div>
 
                       {/* Mini Stats */}
-                      <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <div className="text-center">
                           <p className="text-xs text-gray-600 dark:text-gray-400"> {t('staff.hrAssistant.attendance')}</p>
                           <p className="text-sm font-bold text-gray-900 dark:text-white">{staff.daysAttended}</p>
@@ -770,7 +770,7 @@ export default function StaffHRAssistantPage() {
                             </p>
                             {analytics?.isPartialMonth && (
                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                 حتى يوم {analytics.dataUpToDay}
+                                 {tr('حتى يوم', 'Up to day')} {analytics.dataUpToDay}
                               </p>
                             )}
                           </div>
@@ -1220,7 +1220,7 @@ export default function StaffHRAssistantPage() {
                       </div>
 
                       {/* Summary Cards */}
-                      <div className="grid grid-cols-3 gap-3 mb-4">
+                      <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow text-center">
                           <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                             {direction === 'rtl' ? 'إجمالي السلف' : 'Total'}
@@ -1464,7 +1464,7 @@ export default function StaffHRAssistantPage() {
       {/* Add advance modal */}
       {showAdvanceModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="advance-modal-title">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in w-full max-w-md p-6" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in w-full max-h-[90vh] overflow-y-auto max-w-md p-4 sm:p-6" dir={direction}>
             <div className="flex items-center justify-between mb-5">
               <h3 id="advance-modal-title" className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <svg {...stroke} className="w-5 h-5 text-orange-600 dark:text-orange-400" aria-hidden="true">
@@ -1549,7 +1549,7 @@ export default function StaffHRAssistantPage() {
       {/* Bonus Modal */}
       {showBonusModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" onClick={(e) => { if (e.target === e.currentTarget) setShowBonusModal(false) }}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full p-5 animate-modal-in" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full max-h-[90vh] overflow-y-auto p-5 animate-modal-in" dir={direction}>
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
               {direction === 'rtl' ? `إضافة بونص` : 'Add Bonus'}
             </h3>
@@ -1581,7 +1581,7 @@ export default function StaffHRAssistantPage() {
       {/* Deduction Modal */}
       {showDeductionModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" onClick={(e) => { if (e.target === e.currentTarget) setShowDeductionModal(false) }}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full p-5 animate-modal-in" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full max-h-[90vh] overflow-y-auto p-5 animate-modal-in" dir={direction}>
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
               {direction === 'rtl' ? 'إضافة خصم' : 'Add Deduction'}
             </h3>
@@ -1614,6 +1614,7 @@ export default function StaffHRAssistantPage() {
 }
 
 function BreakdownRow({ label, amount, sign, tone, href, details, detailsHref, detailsLinkText }: { label: string; amount: number; sign: '+' | '−'; tone: 'emerald' | 'red'; href?: string; details?: string[]; detailsHref?: string; detailsLinkText?: string }) {
+  const { tr } = useLanguage()
   const [open, setOpen] = useState(false)
   const toneCls = tone === 'emerald' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'
   const hasDetails = !!details && details.length > 0
@@ -1649,7 +1650,7 @@ function BreakdownRow({ label, amount, sign, tone, href, details, detailsHref, d
               ))}
               {detailsHref && (
                 <Link href={detailsHref} className="inline-flex items-center gap-1 text-[11px] font-bold text-primary-600 dark:text-primary-400 hover:underline pt-1">
-                  {detailsLinkText || 'عرض على الجدول'}
+                  {detailsLinkText || tr('عرض على الجدول', 'View in schedule')}
                   <svg fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5 15.75 12l-7.5 7.5" /></svg>
                 </Link>
               )}

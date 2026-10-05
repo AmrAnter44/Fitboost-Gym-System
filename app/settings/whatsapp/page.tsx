@@ -73,41 +73,42 @@ type SessionState = {
 
 // ─── Error classifier ─────────────────────────────────────────────────────────
 
-function classifyError(msg: string): ErrorInfo {
+function classifyError(msg: string, ar: boolean = true): ErrorInfo {
   const m = msg.toLowerCase()
+  const L = (a: string, e: string) => (ar ? a : e)
   if (m.includes('unavailable') || m.includes('503') || m.includes('service'))
     return {
       code: 'SERVICE_UNAVAILABLE',
-      title: 'خدمة الواتساب غير متاحة',
+      title: L('خدمة الواتساب غير متاحة', 'WhatsApp service unavailable'),
       detail: msg,
-      solution: 'افتح تيرمنال جديد وشغّل: npm run whatsapp',
+      solution: L('افتح تيرمنال جديد وشغّل: npm run whatsapp', 'Open a new terminal and run: npm run whatsapp'),
     }
   if (m.includes('already connected') || m.includes('already initializing'))
     return {
       code: 'CONFLICT',
-      title: 'يوجد اتصال نشط بالفعل',
+      title: L('يوجد اتصال نشط بالفعل', 'A connection is already active'),
       detail: msg,
-      solution: 'انتظر ظهور QR Code أو اضغط "إعادة اتصال"',
+      solution: L('انتظر ظهور QR Code أو اضغط "إعادة اتصال"', 'Wait for the QR code or press "Reconnect"'),
     }
   if (m.includes('logged out') || m.includes('auth') || m.includes('logged_out'))
     return {
       code: 'AUTH_FAILED',
-      title: 'انتهت صلاحية الجلسة',
+      title: L('انتهت صلاحية الجلسة', 'Session expired'),
       detail: msg,
-      solution: 'اضغط "بداية جديدة" لحذف الجلسة والبدء من الأول',
+      solution: L('اضغط "بداية جديدة" لحذف الجلسة والبدء من الأول', 'Press "Fresh start" to delete the session and start over'),
     }
   if (m.includes('timeout') || m.includes('econnrefused') || m.includes('network'))
     return {
       code: 'NETWORK',
-      title: 'مشكلة في الاتصال بالشبكة',
+      title: L('مشكلة في الاتصال بالشبكة', 'Network connection problem'),
       detail: msg,
-      solution: 'تأكد من اتصال الإنترنت وحاول مجدداً',
+      solution: L('تأكد من اتصال الإنترنت وحاول مجدداً', 'Check your internet connection and try again'),
     }
   return {
     code: 'UNKNOWN',
-    title: 'حدث خطأ غير متوقع',
+    title: L('حدث خطأ غير متوقع', 'An unexpected error occurred'),
     detail: msg,
-    solution: 'جرب "إعادة اتصال" أو "بداية جديدة"',
+    solution: L('جرب "إعادة اتصال" أو "بداية جديدة"', 'Try "Reconnect" or "Fresh start"'),
   }
 }
 
@@ -129,7 +130,7 @@ function defaultSessionState(idx: number): SessionState {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function WhatsAppPage() {
-  const { t } = useLanguage()
+  const { t, tr } = useLanguage()
   const toast = useToast()
   const isRTL = t('common.language') === 'ar'
 
@@ -308,7 +309,7 @@ export default function WhatsAppPage() {
       })
 
       if (reason && reason !== 'Max reconnects reached') {
-        updateSession(idx, { err: classifyError(reason) })
+        updateSession(idx, { err: classifyError(reason, isRTL) })
       }
 
       // Clear QR timer
@@ -382,11 +383,11 @@ export default function WhatsAppPage() {
     try {
       const res = await getWhatsAppBrowserClient().initSession(idx)
       if (!res.success) {
-        const e = classifyError(res.error ?? 'Unknown error')
+        const e = classifyError(res.error ?? 'Unknown error', isRTL)
         if (e.code !== 'CONFLICT') updateSession(idx, { err: e })
       }
     } catch (e) {
-      updateSession(idx, { err: classifyError(e instanceof Error ? e.message : String(e)) })
+      updateSession(idx, { err: classifyError(e instanceof Error ? e.message : String(e), isRTL) })
     } finally {
       updateSession(idx, { op: null })
     }
@@ -398,9 +399,9 @@ export default function WhatsAppPage() {
     updateSession(idx, { op: 'reconnect', err: null })
     try {
       const res = await getWhatsAppBrowserClient().reconnectSession(idx)
-      if (!res.success) updateSession(idx, { err: classifyError(res.error ?? 'Unknown error') })
+      if (!res.success) updateSession(idx, { err: classifyError(res.error ?? 'Unknown error', isRTL) })
     } catch (e) {
-      updateSession(idx, { err: classifyError(e instanceof Error ? e.message : String(e)) })
+      updateSession(idx, { err: classifyError(e instanceof Error ? e.message : String(e), isRTL) })
     } finally {
       updateSession(idx, { op: null })
     }
@@ -412,9 +413,9 @@ export default function WhatsAppPage() {
     updateSession(idx, { op: 'reset', err: null })
     try {
       const res = await getWhatsAppBrowserClient().resetSessionByIndex(idx)
-      if (!res.success) updateSession(idx, { err: classifyError(res.error ?? 'Unknown error') })
+      if (!res.success) updateSession(idx, { err: classifyError(res.error ?? 'Unknown error', isRTL) })
     } catch (e) {
-      updateSession(idx, { err: classifyError(e instanceof Error ? e.message : String(e)) })
+      updateSession(idx, { err: classifyError(e instanceof Error ? e.message : String(e), isRTL) })
     } finally {
       updateSession(idx, { op: null })
     }
@@ -453,15 +454,15 @@ export default function WhatsAppPage() {
 
   const banner = (() => {
     if (loading) return { bg: 'from-gray-400 to-gray-500', icon: '', label: t('settings.whatsapp.loading'), sub: '...' }
-    if (!sidecarUp) return { bg: 'from-red-500 to-rose-600', icon: '', label: 'الخدمة غير متاحة', sub: 'شغّل: npm run whatsapp' }
+    if (!sidecarUp) return { bg: 'from-red-500 to-rose-600', icon: '', label: tr('الخدمة غير متاحة', 'Service unavailable'), sub: tr('شغّل: npm run whatsapp', 'Run: npm run whatsapp') }
     if (isConnected) return { bg: 'from-green-500 to-emerald-600', icon: '', label: t('settings.whatsapp.connected'), sub: t('settings.whatsapp.readyToSend') }
     if (hasQR) return { bg: 'from-blue-500 to-indigo-600', icon: '', label: t('settings.whatsapp.scanQR'), sub: t('settings.whatsapp.qrInstructions') }
-    if (s.qrExpired) return { bg: 'from-orange-500 to-amber-600', icon: '', label: 'انتهت صلاحية QR Code', sub: 'اضغط "إعادة اتصال" للحصول على QR جديد' }
-    if (s.op === 'init') return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.initializing'), sub: 'جاري التهيئة...' }
-    if (s.op === 'reconnect') return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.reconnecting'), sub: 'جاري إعادة الاتصال...' }
-    if (s.op === 'reset') return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.resetting'), sub: 'جاري إعادة التعيين...' }
+    if (s.qrExpired) return { bg: 'from-orange-500 to-amber-600', icon: '', label: tr('انتهت صلاحية QR Code', 'QR code expired'), sub: tr('اضغط "إعادة اتصال" للحصول على QR جديد', 'Press "Reconnect" to get a new QR') }
+    if (s.op === 'init') return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.initializing'), sub: tr('جاري التهيئة...', 'Initializing...') }
+    if (s.op === 'reconnect') return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.reconnecting'), sub: tr('جاري إعادة الاتصال...', 'Reconnecting...') }
+    if (s.op === 'reset') return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.resetting'), sub: tr('جاري إعادة التعيين...', 'Resetting...') }
     //  إعادة اتصال تلقائية (طبيعي بعد أول مسح — كود 515) → نعرض «جاري الاتصال» مش «غير متصل»
-    if (s.status?.reconnecting) return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.reconnecting'), sub: 'جاري إعادة الاتصال تلقائياً... انتظر لحظات' }
+    if (s.status?.reconnecting) return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.reconnecting'), sub: tr('جاري إعادة الاتصال تلقائياً... انتظر لحظات', 'Reconnecting automatically... please wait') }
     return { bg: 'from-gray-500 to-gray-600', icon: '', label: t('settings.whatsapp.disconnected'), sub: t('settings.whatsapp.mustBeConnected') }
   })()
 
@@ -528,7 +529,7 @@ export default function WhatsAppPage() {
                 }`}
               >
                 <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${connected ? colors.dot : 'bg-gray-300 dark:bg-gray-600'} ${connected ? 'animate-pulse' : ''}`} />
-                <span>رقم {idx + 1}</span>
+                <span>{tr('رقم', 'Number')} {idx + 1}</span>
                 {connected && sess.status?.phoneNumber && (
                   <span className="text-xs font-mono opacity-70" dir="ltr">{sess.status.phoneNumber}</span>
                 )}
@@ -549,7 +550,7 @@ export default function WhatsAppPage() {
           <div className={`flex items-center gap-3 px-5 py-3 border-b border-gray-200 dark:border-gray-700 ${(SESSION_COLORS[activeTab] || SESSION_COLORS[0]).bg}`}>
             <span className={`w-3 h-3 rounded-full flex-shrink-0 ${(SESSION_COLORS[activeTab] || SESSION_COLORS[0]).dot} ${isConnected ? 'animate-pulse' : 'opacity-40'}`} />
             <span className={`font-bold text-sm ${(SESSION_COLORS[activeTab] || SESSION_COLORS[0]).text}`}>
-              WhatsApp - رقم {activeTab + 1}
+              WhatsApp - {tr('رقم', 'Number')} {activeTab + 1}
             </span>
             {isConnected && s.status?.phoneNumber && (
               <span className="ms-auto text-xs font-mono text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
@@ -576,7 +577,7 @@ export default function WhatsAppPage() {
             </div>
           </div>
 
-          <div className="p-6 space-y-5">
+          <div className="p-4 sm:p-6 space-y-5">
 
             {/* Session info badges */}
             {!loading && (<>
@@ -650,7 +651,7 @@ export default function WhatsAppPage() {
             {s.qrExpired && s.status?.qrCode && (
               <div className="flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-xl text-sm text-orange-800 dark:text-orange-300">
                 <span></span>
-                <span>انتهت صلاحية QR Code – اضغط "إعادة اتصال" للحصول على كود جديد</span>
+                <span>{tr('انتهت صلاحية QR Code – اضغط "إعادة اتصال" للحصول على كود جديد', 'QR code expired – press "Reconnect" to get a new code')}</span>
               </div>
             )}
 

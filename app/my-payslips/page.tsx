@@ -187,7 +187,7 @@ export default function MyPayslipsPage() {
                     </div>
                     <div className="text-end">
                       <p className="text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'الصافي' : 'Net'}</p>
-                      <p className="text-lg font-bold text-primary-700 dark:text-primary-400">{fmt(p.netSalary)} <span className="text-xs">ج.م</span></p>
+                      <p className="text-lg font-bold text-primary-700 dark:text-primary-400">{fmt(p.netSalary)} <span className="text-xs">{locale === 'ar' ? 'ج.م' : 'EGP'}</span></p>
                     </div>
                   </div>
                 </Link>

@@ -38,7 +38,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
   const phoneLocked = hidePhone && !!prefillData?.phone
   // كل المستخدمين يقدروا يعدلوا التواريخ في فورم إضافة العضو
   const canEditDates = true
-  const { t, direction, locale } = useLanguage()
+  const { t, tr, direction, locale } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
@@ -449,6 +449,8 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
             memberNumber: data.member.memberNumber,
             memberName: data.member.name,
             phone: data.member.phone,
+            //  📦 اسم الباقة — جاي من السيرفر (اتحفظ في الإيصال)
+            ...(data.receipt.itemDetails?.packageName ? { packageName: data.receipt.itemDetails.packageName } : {}),
             startDate: formData.startDate,
             expiryDate: formData.expiryDate,
             subscriptionDays: subscriptionDays,
@@ -616,7 +618,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
               value={formData.memberNumber}
               onChange={(e) => setFormData({ ...formData, memberNumber: e.target.value.replace(/\D/g, '') })}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-              placeholder="مثال: 01001"
+              placeholder={tr('مثال: 01001', 'e.g. 01001')}
               disabled={formData.isOther}
             />
           )}
@@ -652,7 +654,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-              placeholder="أحمد محمد"
+              placeholder={tr('أحمد محمد', 'John Smith')}
             />
           </div>
 
@@ -939,7 +941,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
               value={formData.staffName}
               readOnly
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-not-allowed text-sm"
-              placeholder="محمد علي"
+              placeholder={tr('محمد علي', 'Staff name')}
             />
           </div>
         </div>
@@ -1198,7 +1200,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5"> أيام الفريز</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{tr('أيام الفريز', 'Freeze days')}</label>
             <input
               type="number"
               min="0"

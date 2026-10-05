@@ -105,7 +105,7 @@ interface SessionBasedCommission {
 }
 
 export default function PhysiotherapyCommissionPage() {
-  const { t, locale } = useLanguage()
+  const { t, tr, locale, direction } = useLanguage()
   const toast = useToast()
   const localeString = locale === 'ar' ? 'ar-EG' : 'en-US'
   const [coaches, setCoaches] = useState<Staff[]>([])
@@ -582,7 +582,7 @@ export default function PhysiotherapyCommissionPage() {
     }
 
     if (!method) {
-      toast.error('يرجى اختيار طريقة حساب أولاً')
+      toast.error(tr('يرجى اختيار طريقة حساب أولاً', 'Please choose a calculation method first'))
       return
     }
 
@@ -1036,7 +1036,7 @@ export default function PhysiotherapyCommissionPage() {
   })
 
   return (
-    <div className="container mx-auto p-3 sm:p-4 md:p-6" dir="rtl">
+    <div className="container mx-auto p-3 sm:p-4 md:p-6" dir={direction}>
       {/* Header */}
       <div className="mb-4 md:mb-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
@@ -1060,7 +1060,7 @@ export default function PhysiotherapyCommissionPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               <span className="hidden sm:inline">{t('physiotherapy.commission.calculationSettings')}</span>
-              <span className="sm:hidden">الإعدادات</span>
+              <span className="sm:hidden">{tr('الإعدادات', 'Settings')}</span>
             </button>
           )}
         </div>
@@ -1259,7 +1259,7 @@ export default function PhysiotherapyCommissionPage() {
                           <div className="min-w-0">
                             <div className={`text-xs font-bold ${styles.text}`}>{message}</div>
                             <div className="text-[11px] text-gray-600 dark:text-gray-300">
-                              {info.collectedThisMonth.toLocaleString(localeString)} / {info.coachTarget.toLocaleString(localeString)} ج.م
+                              {info.collectedThisMonth.toLocaleString(localeString)} / {info.coachTarget.toLocaleString(localeString)} {tr('ج.م', 'EGP')}
                             </div>
                           </div>
                         </div>
@@ -1476,23 +1476,23 @@ export default function PhysiotherapyCommissionPage() {
                             
                             <div className="flex-1">
                               <p className="text-xs sm:text-sm font-bold text-cyan-700 dark:text-cyan-300 mb-2">
-                                تفاصيل الجلسات المجانية
+                                {tr('تفاصيل الجلسات المجانية', 'Free sessions details')}
                               </p>
                               <div className="space-y-2">
                                 <div className="flex justify-between items-center">
-                                  <span className="text-xs text-gray-600 dark:text-gray-300">عدد الجلسات:</span>
+                                  <span className="text-xs text-gray-600 dark:text-gray-300">{tr('عدد الجلسات:', 'Sessions:')}</span>
                                   <span className="font-bold text-cyan-600 dark:text-cyan-400">{freeSessionsDetails.count}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                  <span className="text-xs text-gray-600 dark:text-gray-300">سعر الجلسة:</span>
+                                  <span className="text-xs text-gray-600 dark:text-gray-300">{tr('سعر الجلسة:', 'Session price:')}</span>
                                   <span className="font-bold text-cyan-600 dark:text-cyan-400">
-                                    {freeSessionsSettings.freePhysioSessionPrice.toLocaleString(localeString)} ج.م
+                                    {freeSessionsSettings.freePhysioSessionPrice.toLocaleString(localeString)} {tr('ج.م', 'EGP')}
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center pt-2 border-t border-cyan-200 dark:border-cyan-700">
-                                  <span className="text-xs font-bold text-gray-700 dark:text-gray-200">القيمة الإجمالية:</span>
+                                  <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{tr('القيمة الإجمالية:', 'Total value:')}</span>
                                   <span className="text-lg font-black text-cyan-700 dark:text-cyan-300">
-                                    {freeSessionsDetails.value.toLocaleString(localeString)} ج.م
+                                    {freeSessionsDetails.value.toLocaleString(localeString)} {tr('ج.م', 'EGP')}
                                   </span>
                                 </div>
                               </div>
@@ -1536,11 +1536,11 @@ export default function PhysiotherapyCommissionPage() {
                           {calculatedSessionCommission.toLocaleString(localeString, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
-                          })} ج.م
+                          })} {tr('ج.م', 'EGP')}
                         </p>
                         <p className="text-white/70 text-xs mt-1 break-words">
                           = {coachData.paidSessionsValue.toLocaleString(localeString)} × {customSessionPercentage}%
-                          {coachData.freeSessionsValue > 0 && ` + ${coachData.freeSessionsValue.toLocaleString(localeString)} (مجاني)`}
+                          {coachData.freeSessionsValue > 0 && ` + ${coachData.freeSessionsValue.toLocaleString(localeString)} (${tr('مجاني', 'free')})`}
                         </p>
                       </div>
                     </div>
@@ -1874,7 +1874,7 @@ export default function PhysiotherapyCommissionPage() {
                       return (
                         <div className="space-y-2">
                           <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 break-words">
-                            <span className="font-bold text-teal-600">{ptRevenue.toLocaleString(localeString)}</span> (علاج طبيعي) ×
+                            <span className="font-bold text-teal-600">{ptRevenue.toLocaleString(localeString)}</span> ({tr('علاج طبيعي', 'physiotherapy')}) ×
                             <span className="font-bold text-primary-600"> {result.percentage}%</span> =
                             <span className="font-bold text-green-600"> {ptCommission.toLocaleString(localeString)}</span>
                           </p>
@@ -2262,17 +2262,17 @@ export default function PhysiotherapyCommissionPage() {
         <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <span></span>
-            <span>الجلسات المجانية ({new Date(dateFrom).toLocaleDateString(localeString)} - {new Date(dateTo).toLocaleDateString(localeString)})</span>
+            <span>{tr('الجلسات المجانية', 'Free sessions')} ({new Date(dateFrom).toLocaleDateString(localeString)} - {new Date(dateTo).toLocaleDateString(localeString)})</span>
           </h2>
 
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gradient-to-r from-purple-100 to-violet-200 dark:from-purple-900/50 dark:to-violet-900/50">
                 <tr>
-                  <th className="px-4 py-3 text-right dark:text-gray-200">أخصائي العلاج الطبيعي</th>
-                  <th className="px-4 py-3 text-center dark:text-gray-200">عدد الجلسات</th>
-                  <th className="px-4 py-3 text-center dark:text-gray-200">سعر الجلسة</th>
-                  <th className="px-4 py-3 text-center dark:text-gray-200">القيمة الإجمالية</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{tr('أخصائي العلاج الطبيعي', 'Physiotherapist')}</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">{tr('عدد الجلسات', 'Sessions')}</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">{tr('سعر الجلسة', 'Session price')}</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">{tr('القيمة الإجمالية', 'Total value')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -2293,10 +2293,10 @@ export default function PhysiotherapyCommissionPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-200">
-                          {freeSessionsSettings.freePhysioSessionPrice} ج.م
+                          {freeSessionsSettings.freePhysioSessionPrice} {tr('ج.م', 'EGP')}
                         </td>
                         <td className="px-4 py-3 text-center font-bold text-purple-600 dark:text-purple-400 text-lg">
-                          {therapist.value.toLocaleString(localeString)} ج.م
+                          {therapist.value.toLocaleString(localeString)} {tr('ج.م', 'EGP')}
                         </td>
                       </tr>
                     ))
@@ -2304,7 +2304,7 @@ export default function PhysiotherapyCommissionPage() {
                     <tr>
                       <td colSpan={4} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
                         
-                        <p className="text-xl">لا توجد جلسات مجانية في هذه الفترة</p>
+                        <p className="text-xl">{tr('لا توجد جلسات مجانية في هذه الفترة', 'No free sessions in this period')}</p>
                       </td>
                     </tr>
                   )
@@ -2322,7 +2322,7 @@ export default function PhysiotherapyCommissionPage() {
                 return totalCount > 0 ? (
                   <tfoot className="bg-gradient-to-r from-purple-50 to-violet-100 dark:from-purple-900/50 dark:to-violet-900/50 font-bold">
                     <tr>
-                      <td className="px-4 py-3 dark:text-gray-200">الإجمالي</td>
+                      <td className="px-4 py-3 dark:text-gray-200">{tr('الإجمالي', 'Total')}</td>
                       <td className="px-4 py-3 text-center">
                         <span className="inline-block bg-purple-500 dark:bg-purple-600 text-white font-bold px-3 py-1 rounded-full">
                           {totalCount}
@@ -2330,7 +2330,7 @@ export default function PhysiotherapyCommissionPage() {
                       </td>
                       <td className="px-4 py-3 text-center dark:text-gray-200">-</td>
                       <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 text-xl">
-                        {totalValue.toLocaleString(localeString)} ج.م
+                        {totalValue.toLocaleString(localeString)} {tr('ج.م', 'EGP')}
                       </td>
                     </tr>
                   </tfoot>
@@ -2344,7 +2344,7 @@ export default function PhysiotherapyCommissionPage() {
       {/* مودال التحصيل */}
       {showPayrollModal && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="bg-gradient-to-r from-violet-600 to-purple-600 text-white p-5 rounded-t-2xl">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <span></span>
@@ -2543,16 +2543,16 @@ export default function PhysiotherapyCommissionPage() {
                   { bg: 'bg-red-50 dark:bg-red-900/50', border: 'border-red-200 dark:border-red-700', text: 'text-red-700 dark:text-red-300', inputBorder: 'border-red-300 dark:border-red-600', focus: 'focus:border-red-500 focus:ring-red-200', accent: 'text-red-600 dark:text-red-400' },
                 ]
                 const describeTier = (i: number): string => {
-                  if (i === 0) return `أقل من ${limits[0].toLocaleString(localeString)} ج.م`
-                  if (i === n - 1) return `${limits[n - 2].toLocaleString(localeString)} ج.م أو أكثر`
-                  return `${limits[i - 1].toLocaleString(localeString)} - ${(limits[i] - 1).toLocaleString(localeString)} ج.م`
+                  if (i === 0) return tr(`أقل من ${limits[0].toLocaleString(localeString)} ج.م`, `Under ${limits[0].toLocaleString(localeString)} EGP`)
+                  if (i === n - 1) return tr(`${limits[n - 2].toLocaleString(localeString)} ج.م أو أكثر`, `${limits[n - 2].toLocaleString(localeString)} EGP or more`)
+                  return `${limits[i - 1].toLocaleString(localeString)} - ${(limits[i] - 1).toLocaleString(localeString)} ${tr('ج.م', 'EGP')}`
                 }
                 return (
                   <>
                     <div className="mb-6 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl ring-1 ring-indigo-200 dark:ring-indigo-700">
                       <h3 className="text-lg font-bold mb-3 flex items-center gap-2 dark:text-gray-100">
                         <span></span>
-                        <span>عدد المستويات</span>
+                        <span>{tr('عدد المستويات', 'Number of tiers')}</span>
                       </h3>
                       <div className="flex gap-2 flex-wrap">
                         {[2, 3, 4, 5].map(count => {
@@ -2568,13 +2568,13 @@ export default function PhysiotherapyCommissionPage() {
                                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:border-indigo-400'
                               }`}
                             >
-                              {count} مستويات
+                              {count} {tr('مستويات', 'tiers')}
                             </button>
                           )
                         })}
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                         لو اخترت 3 مستويات مثلاً، هتحتاج تدخل حدّين و3 نسب
+                         {tr('لو اخترت 3 مستويات مثلاً، هتحتاج تدخل حدّين و3 نسب', 'E.g. with 3 tiers you enter 2 limits and 3 rates')}
                       </p>
                     </div>
 
@@ -2587,7 +2587,7 @@ export default function PhysiotherapyCommissionPage() {
                         {Array.from({ length: n - 1 }).map((_, i) => (
                           <div key={i} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg ring-1 ring-gray-200 dark:ring-gray-600">
                             <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
-                              الحد {['الأول', 'الثاني', 'الثالث', 'الرابع'][i]} (أقل من)
+                              {tr(`الحد ${['الأول', 'الثاني', 'الثالث', 'الرابع'][i]} (أقل من)`, `Limit ${i + 1} (less than)`)}
                             </label>
                             <input
                               type="number"
@@ -2612,7 +2612,7 @@ export default function PhysiotherapyCommissionPage() {
                           return (
                             <div key={i} className={`${s.bg} p-4 rounded-lg ring-1 ${s.border}`}>
                               <label className={`block text-sm font-medium mb-2 ${s.text}`}>
-                                نسبة المستوى {i + 1}
+                                {tr('نسبة المستوى', 'Tier rate')} {i + 1}
                               </label>
                               <div className="relative">
                                 <input
@@ -2634,7 +2634,7 @@ export default function PhysiotherapyCommissionPage() {
                     <div className="mb-6 p-4 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-xl ring-1 ring-amber-200 dark:ring-amber-700">
                       <h3 className="text-base font-bold mb-2 flex items-center gap-2 dark:text-gray-100">
                         <span></span>
-                        <span>الوصف</span>
+                        <span>{tr('الوصف', 'Description')}</span>
                       </h3>
                       <ul className="space-y-1 text-sm text-amber-900 dark:text-amber-200">
                         {Array.from({ length: n }).map((_, i) => (
@@ -2652,7 +2652,7 @@ export default function PhysiotherapyCommissionPage() {
               <div className="mb-6">
                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                   <span></span>
-                  إعدادات جلسات العلاج الطبيعي المجانية
+                  {tr('إعدادات جلسات العلاج الطبيعي المجانية', 'Free physiotherapy sessions settings')}
                 </h3>
 
                 {/* Toggle */}
@@ -2660,8 +2660,8 @@ export default function PhysiotherapyCommissionPage() {
                   <div className="flex items-center gap-3">
                     
                     <div>
-                      <h4 className="font-bold text-gray-800 dark:text-gray-100">احتساب تكلفة الجلسات المجانية</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">تفعيل/تعطيل حساب تكلفة جلسات العلاج الطبيعي المجانية في التحصيل</p>
+                      <h4 className="font-bold text-gray-800 dark:text-gray-100">{tr('احتساب تكلفة الجلسات المجانية', 'Track free sessions cost')}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{tr('تفعيل/تعطيل حساب تكلفة جلسات العلاج الطبيعي المجانية في التحصيل', 'Enable/disable counting free physiotherapy sessions cost in payouts')}</p>
                     </div>
                   </div>
                   <button
@@ -2687,7 +2687,7 @@ export default function PhysiotherapyCommissionPage() {
                 <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="flex items-center gap-2 mb-3">
                     
-                    <h4 className="font-bold text-gray-800 dark:text-gray-100">سعر جلسة العلاج الطبيعي المجانية</h4>
+                    <h4 className="font-bold text-gray-800 dark:text-gray-100">{tr('سعر جلسة العلاج الطبيعي المجانية', 'Free physiotherapy session price')}</h4>
                   </div>
                   <div className="relative">
                     <input
@@ -2703,10 +2703,10 @@ export default function PhysiotherapyCommissionPage() {
                       className="w-full px-4 py-3 ring-1 ring-gray-300 dark:ring-gray-600 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:bg-gray-800 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="0.00"
                     />
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">ج.م</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">{tr('ج.م', 'EGP')}</span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                     هذا السعر يُستخدم لحساب قيمة جلسات العلاج الطبيعي المجانية في التحصيل
+                     {tr('هذا السعر يُستخدم لحساب قيمة جلسات العلاج الطبيعي المجانية في التحصيل', 'This price is used to value free physiotherapy sessions in payouts')}
                   </p>
                 </div>
               </div>

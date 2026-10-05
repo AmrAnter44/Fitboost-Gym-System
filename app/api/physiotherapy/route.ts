@@ -311,7 +311,9 @@ export async function POST(request: Request) {
               therapistName,
               startDate: startDate || null,
               expiryDate: expiryDate || null,
-              subscriptionDays: subscriptionDays
+              subscriptionDays: subscriptionDays,
+              //  اسم الباقة المختارة (اختياري) — بيتطبع في الإيصال
+              packageName: (typeof body.packageName === 'string' && body.packageName.trim()) ? body.packageName.trim() : null
             }),
             physioNumber: physiotherapy.physioNumber,
           },

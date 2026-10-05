@@ -14,7 +14,7 @@ interface StaffBarcodeWhatsAppProps {
 }
 
 export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone }: StaffBarcodeWhatsAppProps) {
-  const { t } = useLanguage()
+  const { t, tr } = useLanguage()
   const [showBarcodeModal, setShowBarcodeModal] = useState(false)
   const [barcodeImage, setBarcodeImage] = useState<string>('')
   const [loading, setLoading] = useState(false)
@@ -241,8 +241,8 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
               </div>
               <button
                 onClick={() => setShowBarcodeModal(false)}
-                aria-label="إغلاق"
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                aria-label={tr('إغلاق', 'Close')}
+                className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                 type="button"
               >
                 {iconClose}

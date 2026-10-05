@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 /**
  * ☁️ كارت النسخ الاحتياطي السحابي (Backblaze B2) — للأونر فقط.
@@ -53,6 +54,7 @@ const WarnIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
 );
 
 export default function CloudBackupCard() {
+  const { tr, locale } = useLanguage();
   const [isOwner, setIsOwner] = useState(false);
   const [cloud, setCloud] = useState<CloudStatus | null>(null);
   const [cloudLoading, setCloudLoading] = useState(true);
@@ -101,13 +103,13 @@ export default function CloudBackupCard() {
         setCloud({ ...cloud, enabled: data.enabled });
         setCloudMsg({
           type: 'success',
-          text: data.enabled ? 'تم تفعيل النسخ الاحتياطي السحابي' : 'تم إقفال النسخ الاحتياطي السحابي',
+          text: data.enabled ? tr('تم تفعيل النسخ الاحتياطي السحابي', 'Cloud backup enabled') : tr('تم إقفال النسخ الاحتياطي السحابي', 'Cloud backup disabled'),
         });
       } else {
-        setCloudMsg({ type: 'error', text: data.error || 'فشل تغيير الحالة' });
+        setCloudMsg({ type: 'error', text: data.error || tr('فشل تغيير الحالة', 'Failed to change status') });
       }
     } catch {
-      setCloudMsg({ type: 'error', text: 'حدث خطأ أثناء تغيير الحالة' });
+      setCloudMsg({ type: 'error', text: tr('حدث خطأ أثناء تغيير الحالة', 'An error occurred while changing status') });
     } finally {
       setCloudToggling(false);
     }
@@ -123,24 +125,24 @@ export default function CloudBackupCard() {
         body: JSON.stringify({ action: 'upload-now' }),
       });
       const data = await res.json();
-      setCloudMsg({ type: data.success ? 'success' : 'error', text: data.message || (data.success ? 'تم الرفع' : 'فشل الرفع') });
+      setCloudMsg({ type: data.success ? 'success' : 'error', text: data.message || (data.success ? tr('تم الرفع', 'Uploaded') : tr('فشل الرفع', 'Upload failed')) });
       await fetchCloud();
     } catch {
-      setCloudMsg({ type: 'error', text: 'حدث خطأ أثناء الرفع للسحابة' });
+      setCloudMsg({ type: 'error', text: tr('حدث خطأ أثناء الرفع للسحابة', 'An error occurred while uploading to the cloud') });
     } finally {
       setCloudUploading(false);
     }
   };
 
   const fmtSize = (b?: number | null) => (b ? `${(b / (1024 * 1024)).toFixed(2)} MB` : '—');
-  const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleString('ar-EG') : 'لسه مفيش');
+  const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US') : tr('لسه مفيش', 'None yet'));
 
   if (!isOwner) return null;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-6 py-5 bg-gradient-to-l from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-5 bg-gradient-to-l from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-3">
           <span className="flex items-center justify-center w-11 h-11 rounded-xl bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-300">
             <svg className="w-6 h-6" {...stroke}>
@@ -149,8 +151,8 @@ export default function CloudBackupCard() {
             </svg>
           </span>
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">النسخ الاحتياطي السحابي</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">نسخة يومية مضغوطة تُرفع لحسابك على السحابة (Backblaze B2)</p>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{tr('النسخ الاحتياطي السحابي', 'Cloud Backup')}</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{tr('نسخة يومية مضغوطة تُرفع لحسابك على السحابة (Backblaze B2)', 'A compressed daily backup uploaded to your cloud account (Backblaze B2)')}</p>
           </div>
         </div>
         {/* Status chip */}
@@ -169,12 +171,12 @@ export default function CloudBackupCard() {
                 !cloud.configured ? 'bg-amber-500' : cloud.enabled ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
               }`}
             />
-            {!cloud.configured ? 'محتاج إعداد' : cloud.enabled ? 'شغّال' : 'مقفول'}
+            {!cloud.configured ? tr('محتاج إعداد', 'Needs setup') : cloud.enabled ? tr('شغّال', 'Active') : tr('مقفول', 'Off')}
           </span>
         )}
       </div>
 
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* رسالة */}
         {cloudMsg && (
           <div
@@ -193,22 +195,22 @@ export default function CloudBackupCard() {
         {cloudLoading ? (
           <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm py-2" aria-busy="true">
             <Spinner />
-            جاري تحميل حالة النسخ السحابي...
+            {tr('جاري تحميل حالة النسخ السحابي...', 'Loading cloud backup status...')}
           </div>
         ) : cloud ? (
           <>
             {/* صف التفعيل */}
             <div className="flex items-center justify-between gap-4 p-4 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-50 dark:bg-gray-900/40">
               <div>
-                <p className="font-bold text-gray-900 dark:text-gray-100 text-sm">الرفع التلقائي اليومي</p>
+                <p className="font-bold text-gray-900 dark:text-gray-100 text-sm">{tr('الرفع التلقائي اليومي', 'Automatic daily upload')}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  لما يكون شغّال، السيستم بيرفع نسخة كل يوم أوتوماتيك من غير أي تدخّل.
+                  {tr('لما يكون شغّال، السيستم بيرفع نسخة كل يوم أوتوماتيك من غير أي تدخّل.', 'When enabled, the system uploads a backup every day automatically.')}
                 </p>
               </div>
               <button
                 role="switch"
                 aria-checked={cloud.enabled}
-                aria-label="تفعيل أو إقفال النسخ الاحتياطي السحابي"
+                aria-label={tr('تفعيل أو إقفال النسخ الاحتياطي السحابي', 'Enable or disable cloud backup')}
                 onClick={handleToggleCloud}
                 disabled={cloudToggling || (!cloud.enabled && !cloud.configured)}
                 dir="ltr"
@@ -229,10 +231,10 @@ export default function CloudBackupCard() {
               <div className="mt-4 bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 p-4 rounded-lg text-sm">
                 <p className="font-bold mb-1 text-amber-900 dark:text-amber-200 flex items-center gap-2">
                   <WarnIcon className="w-4 h-4" />
-                  محتاج إعداد قبل التفعيل
+                  {tr('محتاج إعداد قبل التفعيل', 'Setup required before enabling')}
                 </p>
                 <p className="text-amber-900 dark:text-amber-200">
-                  الباك أب السحابي بيشتغل عن طريق فيت بوست — لازم الجهاز يكون مربوط (الإعدادات ← الترخيص).
+                  {tr('الباك أب السحابي بيشتغل عن طريق فيت بوست — لازم الجهاز يكون مربوط (الإعدادات ← الترخيص).', 'Cloud backup works through FitBoost — the device must be linked (Settings → License).')}
                 </p>
               </div>
             )}
@@ -240,31 +242,31 @@ export default function CloudBackupCard() {
             {/* شبكة الحالة */}
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="p-3 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-400">الوجهة (Bucket)</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{tr('الوجهة (Bucket)', 'Destination (Bucket)')}</p>
                 <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-0.5 truncate" title={cloud.bucketName}>{cloud.bucketName}</p>
               </div>
               <div className="p-3 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-400">الجيم / الفرع</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{tr('الجيم / الفرع', 'Gym / Branch')}</p>
                 <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-0.5 truncate">
-                  {cloud.gymConfigured ? `${cloud.gymName || '—'} — ${cloud.branchName || '—'}` : 'غير مفعّل'}
+                  {cloud.gymConfigured ? `${cloud.gymName || '—'} — ${cloud.branchName || '—'}` : tr('غير مفعّل', 'Not enabled')}
                 </p>
               </div>
               <div className="p-3 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-400">آخر رفعة ناجحة</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{tr('آخر رفعة ناجحة', 'Last successful upload')}</p>
                 <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-0.5">{fmtDate(cloud.lastCloudBackupAt)}</p>
               </div>
               <div className="p-3 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-400">حجم آخر نسخة</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{tr('حجم آخر نسخة', 'Last backup size')}</p>
                 <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-0.5">{fmtSize(cloud.lastCloudBackupSize)}</p>
               </div>
               <div className="p-3 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 sm:col-span-2">
-                <p className="text-xs text-gray-500 dark:text-gray-400">📷 صور الأعضاء (تزايدي — الجديد بس بيترفع)</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{tr('📷 صور الأعضاء (تزايدي — الجديد بس بيترفع)', '📷 Member photos (incremental — only new ones are uploaded)')}</p>
                 <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-0.5">
                   {cloud.photos
-                    ? `${cloud.photos.totalTracked} مرفوعة من ${cloud.photos.localCount} على الجهاز`
+                    ? tr(`${cloud.photos.totalTracked} مرفوعة من ${cloud.photos.localCount} على الجهاز`, `${cloud.photos.totalTracked} uploaded of ${cloud.photos.localCount} on device`)
                     : '—'}
                   {cloud.photos?.lastError && (
-                    <span className="text-red-600 dark:text-red-400 font-normal text-xs mr-2">— آخر خطأ: {cloud.photos.lastError}</span>
+                    <span className="text-red-600 dark:text-red-400 font-normal text-xs ms-2">— {tr('آخر خطأ', 'Last error')}: {cloud.photos.lastError}</span>
                   )}
                 </p>
               </div>
@@ -275,7 +277,7 @@ export default function CloudBackupCard() {
               <div className="mt-4 bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 p-4 rounded-lg text-sm text-red-800 dark:text-red-200 flex items-start gap-2">
                 <XIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold">آخر خطأ في الرفع: </span>
+                  <span className="font-bold">{tr('آخر خطأ في الرفع', 'Last upload error')}: </span>
                   <span className="break-words">{cloud.lastCloudBackupError}</span>
                 </div>
               </div>
@@ -291,7 +293,7 @@ export default function CloudBackupCard() {
                 {cloudUploading ? (
                   <>
                     <Spinner />
-                    جاري الرفع للسحابة...
+                    {tr('جاري الرفع للسحابة...', 'Uploading to cloud...')}
                   </>
                 ) : (
                   <>
@@ -299,7 +301,7 @@ export default function CloudBackupCard() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M7 18a4 4 0 01-.88-7.9A5 5 0 1115.9 9H16a4 4 0 010 8H7z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-5m0 0l-2 2m2-2l2 2" />
                     </svg>
-                    ارفع نسخة دلوقتي
+                    {tr('ارفع نسخة دلوقتي', 'Upload a backup now')}
                   </>
                 )}
               </button>
@@ -307,17 +309,17 @@ export default function CloudBackupCard() {
 
             {/* شرح */}
             <div className="mt-5 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 p-4 rounded-lg text-sm">
-              <p className="font-bold mb-2 text-blue-900 dark:text-blue-200">إزاي بيشتغل؟</p>
+              <p className="font-bold mb-2 text-blue-900 dark:text-blue-200">{tr('إزاي بيشتغل؟', 'How does it work?')}</p>
               <ul className="list-disc list-inside space-y-1 text-blue-800 dark:text-blue-200">
-                <li>كل يوم بيتاخد snapshot متسق من قاعدة البيانات، يتضغط (gzip ~٨٨٪ أصغر)، ويترفع لحسابك.</li>
-                <li>كل جيم/فرع في مجلد لوحده، وآخر نسخة بتفضل محفوظة دايمًا حتى لو الجهاز فصل.</li>
-                <li>الاحتفاظ بتاريخ أسبوع بيتظبط كـ Lifecycle rule على الـ bucket من موقع Backblaze.</li>
-                <li>المفتاح المحطوط هنا "رفع فقط" — الاسترجاع بتعمله إنت من حسابك بس.</li>
+                <li>{tr('كل يوم بيتاخد snapshot متسق من قاعدة البيانات، يتضغط (gzip ~٨٨٪ أصغر)، ويترفع لحسابك.', 'Every day a consistent database snapshot is taken, compressed (gzip, ~88% smaller), and uploaded to your account.')}</li>
+                <li>{tr('كل جيم/فرع في مجلد لوحده، وآخر نسخة بتفضل محفوظة دايمًا حتى لو الجهاز فصل.', 'Each gym/branch has its own folder, and the latest backup is always kept even if the device goes offline.')}</li>
+                <li>{tr('الاحتفاظ بتاريخ أسبوع بيتظبط كـ Lifecycle rule على الـ bucket من موقع Backblaze.', 'One-week history retention is set as a Lifecycle rule on the bucket in Backblaze.')}</li>
+                <li>{tr('المفتاح المحطوط هنا "رفع فقط" — الاسترجاع بتعمله إنت من حسابك بس.', 'The key used here is upload-only — restoring is done only by you from your account.')}</li>
               </ul>
             </div>
           </>
         ) : (
-          <div className="text-sm text-gray-500 dark:text-gray-400 py-2">تعذّر تحميل حالة النسخ السحابي.</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400 py-2">{tr('تعذّر تحميل حالة النسخ السحابي.', 'Could not load cloud backup status.')}</div>
         )}
       </div>
     </div>
