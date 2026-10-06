@@ -31,7 +31,7 @@ bash setup-beta.sh beta.xgym.website
 عايز تظبط حاجات؟
 
 ```bash
-MEMBERS=300 DEMO_PASSWORD='FitBoost2026' REVIEW_PASSWORD='Review@2026' bash setup-beta.sh beta.xgym.website
+MEMBERS=300 DEMO_PASSWORD='باسورد-تاني' bash setup-beta.sh beta.xgym.website
 ```
 
 السكربت بيعمل كل ده لوحده:
@@ -61,29 +61,6 @@ MEMBERS=300 DEMO_PASSWORD='FitBoost2026' REVIEW_PASSWORD='Review@2026' bash setu
 | `reception@demo.local` | STAFF | الريسبشن والإيصالات |
 | `coach@demo.local` | COACH | أعضاءه وحصصه |
 | `sales@demo.local` | STAFF (سيلز) | الزوار والمتابعات |
-
-### حساب مراجعة المتاجر (App Store / Google Play)
-
-حساب ثابت لمراجعي المتاجر يفتحوا بيه أبلكيشن FB Team زي أي موظف عادي. باسورده مستقل عن
-باسورد الديمو العام (افتراضي `Review@2026` — غيّره بـ `REVIEW_PASSWORD` وقت التنصيب) وبيترجع
-مع كل reset يومي.
-
-| البند | القيمة |
-|---|---|
-| الإيميل | `review@fitboost.website` |
-| الدور | STAFF (مش أدمن) |
-| الموظف المربوط | App Review — ريسبشن، موبايل `01000000000`، مرتب 6000 |
-| الشيفت | 09:00 – 17:00 كل أيام الأسبوع (من غير Rotations، فـ «يومي» بيلاقي شيفت أي يوم) |
-
-> ⚠️ `update-beta.sh` بيحدّث الكود والـ schema بس، ومابيعيدش توليد الداتا. لو السكريبت
-> `scripts/seed-demo-data.js` اتغيّر (زي إضافة الحساب ده) لازم تعيد التوليد مرة واحدة على السيرفر:
->
-> ```bash
-> cd /opt/fitboost-beta
-> node scripts/seed-demo-data.js --out=prisma/demo-seed.db --force \
->   --members=300 --password='FitBoost2026' --review-password='Review@2026'
-> deploy/reset-demo.sh    # ينسخ demo-seed.db فوق gym.db ويعيد تشغيل البيتا
-> ```
 
 ---
 
