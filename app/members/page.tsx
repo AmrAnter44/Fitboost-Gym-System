@@ -21,6 +21,7 @@ import { useDebounce } from '../../hooks/useDebounce'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import SocialMediaFilter from '../../components/SocialMediaFilter'
+import { useBulkSender } from '../../contexts/BulkSenderContext'
 
 // Dynamic imports - تحميل المكونات الثقيلة عند الحاجة فقط
 const MemberForm = nextDynamic(() => import('../../components/MemberForm'), {
@@ -114,6 +115,11 @@ function MembersPageContent() {
   const hideMemberNumbers = permissions?.hideMemberNumbers === true
   const { customCreatedAt } = useAdminDate()
   const { t, tr, locale, direction } = useLanguage()
+  //  📱 واتساب جماعي للأعضاء اللي عليهم بواقي (قسم «بواقي»)
+  const bulkSender = useBulkSender()
+  const [showRemainingWA, setShowRemainingWA] = useState(false)
+  const [remainingWAMessage, setRemainingWAMessage] = useState('أهلاً {name} 👋\nبنفكّرك إن عليك مبلغ باقي {amount} ج.م من اشتراكك في الجيم.\nياريت تعدّي علينا لسداده، وشكراً لتعاونك 🙏')
+  const [remainingWAStarting, setRemainingWAStarting] = useState(false)
   const toast = useToast()
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
@@ -2073,6 +2079,41 @@ function MembersPageContent() {
         const noDate = withRemaining.filter(m => !m.remainingDueDate)
         const canExportRemaining = user?.role === 'OWNER' || user?.role === 'ADMIN'
 
+        // 📱 واتساب للكل — نفس نظام الإرسال الجماعي (فواصل عشوائية + حد يومي)، من غير تسجيل متابعة
+        const remainingWATargets = [...overdue, ...dueToday, ...upcoming, ...noDate].filter(m => m.phone)
+        const startRemainingWA = async () => {
+          if (!remainingWAMessage.trim() || remainingWATargets.length === 0 || remainingWAStarting) return
+          const num = (key: string, def: number) => { const v = Number(localStorage.getItem(key)); return Number.isFinite(v) && v > 0 ? v : def }
+          setRemainingWAStarting(true)
+          try {
+            const ok = await bulkSender.start({
+              targets: remainingWATargets.map(m => ({
+                visitor: {
+                  id: m.id, name: m.name, phone: m.phone, source: 'member',
+                  vars: {
+                    amount: Math.round(m.remainingAmount).toLocaleString('en-US'),
+                    dueDate: m.remainingDueDate ? formatDateYMD(m.remainingDueDate) : '',
+                  },
+                },
+              })),
+              messages: [remainingWAMessage],
+              config: {
+                delayMin: 15,
+                delayMax: 30,
+                batchSize: num('wa-bulk-batchSize', 12),
+                batchBreakMin: num('wa-bulk-batchBreakMin', 120),
+                batchBreakMax: num('wa-bulk-batchBreakMax', 300),
+                dailyLimit: num('wa-bulk-dailyLimit', 80),
+                sessionIndex: 'auto',
+              },
+              meta: { userName: user?.name, sourceFilter: 'members-remaining', skipFollowUp: true },
+            })
+            if (ok) setShowRemainingWA(false)
+          } finally {
+            setRemainingWAStarting(false)
+          }
+        }
+
         // 📊 تصدير البواقي Excel — الاسم / الهاتف / المبلغ الباقي / الموعد (لو محدد)
         const exportRemainingToExcel = async () => {
           const { default: ExcelJS } = await import('exceljs')
@@ -2165,7 +2206,60 @@ function MembersPageContent() {
                     <span>Excel</span>
                   </button>
                 )}
+                {canExportRemaining && remainingWATargets.length > 0 && (
+                  <button
+                    onClick={() => setShowRemainingWA(true)}
+                    type="button"
+                    disabled={bulkSender.running}
+                    title={bulkSender.running ? tr('فيه إرسال جماعي شغّال دلوقتي', 'A bulk send is already running') : undefined}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 sm:px-4 py-2 min-h-[40px] rounded-lg transition-colors duration-200 text-xs sm:text-sm font-bold flex items-center gap-1.5 shrink-0"
+                  >
+                    <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4 shrink-0" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                    </svg>
+                    <span>{tr('واتساب', 'WhatsApp')} ({remainingWATargets.length})</span>
+                  </button>
+                )}
               </div>
+
+              {/* 📱 نافذة رسالة الواتساب للأعضاء اللي عليهم بواقي */}
+              {showRemainingWA && (
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setShowRemainingWA(false) }}>
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg ring-1 ring-gray-200 dark:ring-gray-700" dir={direction}>
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{tr('واتساب للأعضاء اللي عليهم بواقي', 'WhatsApp members with dues')} ({remainingWATargets.length})</h3>
+                      <button type="button" onClick={() => setShowRemainingWA(false)} aria-label={tr('إغلاق', 'Close')} className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg w-8 h-8 flex items-center justify-center">✕</button>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{tr("الرسالة بتتبعت من واتساب الجيم المربوط بالسيستم، لكل عضو لوحده، وبين كل رسالة والتانية 15–30 ثانية عشان الرقم ما يتحظرش. {name} = اسم العضو، {amount} = المبلغ الباقي عليه، {dueDate} = موعد السداد لو محدد.", "Sent from the gym's connected WhatsApp, one member at a time, 15–30 seconds apart to avoid a ban. {name} = member name, {amount} = their remaining amount, {dueDate} = due date if set.")}</p>
+                      <textarea
+                        value={remainingWAMessage}
+                        onChange={(e) => setRemainingWAMessage(e.target.value)}
+                        rows={5}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                      {remainingWATargets.length < withRemaining.length && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 font-bold">
+                          {withRemaining.length - remainingWATargets.length} {tr('عضو من غير رقم تليفون — مش هيتبعتلهم', 'members have no phone and will be skipped')}
+                        </p>
+                      )}
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={startRemainingWA}
+                          disabled={!remainingWAMessage.trim() || remainingWAStarting}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg transition-colors duration-200"
+                        >
+                          {remainingWAStarting ? tr('جاري البدء...', 'Starting...') : `${tr('ابعت لـ', 'Send to')} ${remainingWATargets.length} ${tr('عضو', 'members')}`}
+                        </button>
+                        <button type="button" onClick={() => setShowRemainingWA(false)} className="px-5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold rounded-lg">
+                          {tr('إلغاء', 'Cancel')}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="flex flex-wrap gap-2 text-sm">
                 {overdue.length > 0 && <span className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 px-3 py-1 rounded-lg font-bold"> {overdue.length} {tr('متأخر', 'overdue')}</span>}
                 {dueToday.length > 0 && <span className="bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 px-3 py-1 rounded-lg font-bold"> {dueToday.length} {tr('اليوم', 'today')}</span>}

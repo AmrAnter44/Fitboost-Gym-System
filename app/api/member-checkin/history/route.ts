@@ -26,6 +26,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })
     }
 
+    const canBulkMessage = authedUser.role === 'OWNER' || authedUser.role === 'ADMIN' || authedUser.role === 'MANAGER'
+
     const { searchParams } = new URL(request.url)
     const startDateParam = searchParams.get('startDate')
     const endDateParam = searchParams.get('endDate')
@@ -120,7 +122,8 @@ export async function GET(request: Request) {
       const topMemberIds = topMembers.map(item => item.memberId)
       const membersInfo = await prisma.member.findMany({
         where: { id: { in: topMemberIds } },
-        select: { id: true, name: true, memberNumber: true, profileImage: true },
+        //  📱 التليفون بيرجع للإدارة بس — زرار «واتساب للكل» في الأعضاء الأكثر التزاماً
+        select: { id: true, name: true, memberNumber: true, profileImage: true, phone: canBulkMessage },
       })
       const membersMap = new Map(membersInfo.map(m => [m.id, m]))
 

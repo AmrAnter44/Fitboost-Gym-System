@@ -25,7 +25,10 @@ export async function GET(request: Request) {
     // 🔒 لو اليوزر سيلز → بيشوف دعوات أعضاءه بس (اللي salesStaffId بتاعهم = staffId بتاعه)
     const where: any = {}
     if (memberId) where.memberId = memberId
-    if (user.isSales && user.staffId) {
+    //  سجل دعوات عضو معيّن (بروفايل العضو) بيتعرض كامل لأي حساب — قبل كده السيلز كان بيشوف
+    //  السجل فاضي لو العضو تابع لسيلز تاني، فالدعوة كانت بتبان إنها "متسجلتش".
+    //  التقييد فاضل بس على القايمة العامة (من غير memberId): السيلز بيشوف دعوات أعضاءه.
+    if (!memberId && user.isSales && user.staffId) {
       where.member = { salesStaffId: user.staffId }
     }
 

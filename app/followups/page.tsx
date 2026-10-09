@@ -1162,6 +1162,14 @@ function FollowUpsPageContent() {
 
   //  لو جينا من زرار "اذهب للمتابعات" (?view=list) نرجّع لقائمة المتابعات
   //  (لأن الزوار بقت تاب جوا نفس الصفحة، فالتنقل لوحده مبيبدّلش التاب)
+  //  ↩️ راجعين (Back) من بروفايل عضو اتفتح من «تحصيل السيلز» → نفتح نفس التاب تاني
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('collectionDashboardReturn')
+      if (raw && Date.now() - JSON.parse(raw).at < 30 * 60 * 1000) setViewMode('collection')
+    } catch {}
+  }, [])
+
   useEffect(() => {
     if (searchParams.get('view') === 'list') {
       setViewMode('list')
@@ -1994,14 +2002,14 @@ function FollowUpsPageContent() {
     }
   }, [followUpsFilteredExceptSource, followUps, isVisitorAMember, getFollowUpPriority, contactedFilter])
 
-  //  أعضاء عيد ميلادهم اليوم — للنشطين فقط
+  //  أعضاء عيد ميلادهم اليوم — النشطين والمنتهيين (المنتهي بيظهر عشان يتعمله عرض/خصم تجديد)
   const birthdayMembers = useMemo(() => {
     const today = new Date()
     const todayDay = today.getDate()
     const todayMonth = today.getMonth() + 1
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
     return (allMembersData as Member[])
       .filter(m => {
-        if (m.isActive !== true) return false
         if (!m.birthDate) return false
         const bd = new Date(m.birthDate)
         return bd.getDate() === todayDay && (bd.getMonth() + 1) === todayMonth
@@ -2009,8 +2017,12 @@ function FollowUpsPageContent() {
       .map(m => {
         const birthYear = new Date(m.birthDate!).getFullYear()
         const age = today.getFullYear() - birthYear
-        return { ...m, age }
+        //  منتهي = مش نشط، أو تاريخ انتهاءه فات (حتى لو الـ isActive لسه ماتحدّثش)
+        const isExpired = m.isActive !== true || (!!m.expiryDate && new Date(m.expiryDate).getTime() < startOfToday)
+        return { ...m, age, isExpired }
       })
+      //  النشطين الأول وبعدهم المنتهيين
+      .sort((a, b) => Number(a.isExpired) - Number(b.isExpired))
   }, [allMembersData])
 
   //  قائمة المتحولين لأعضاء - مبسط ومحسّن: أي شخص رقمه موجود في الأعضاء النشطين
@@ -2291,7 +2303,7 @@ function FollowUpsPageContent() {
                   type="button"
                   onClick={() => router.push(`/members/${m.id}`)}
                   title={direction === 'rtl' ? 'فتح البروفايل' : 'Open profile'}
-                  className="flex items-center gap-2 bg-white dark:bg-gray-800 ring-1 ring-pink-200 dark:ring-pink-900/50 rounded-xl px-3 py-2 hover:shadow-md transition-shadow duration-200 text-start cursor-pointer"
+                  className={`flex items-center gap-2 bg-white dark:bg-gray-800 ring-1 rounded-xl px-3 py-2 hover:shadow-md transition-shadow duration-200 text-start cursor-pointer ${m.isExpired ? 'ring-red-300 dark:ring-red-800' : 'ring-pink-200 dark:ring-pink-900/50'}`}
                 >
                   <div className="w-9 h-9 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                     {m.name.charAt(0)}
@@ -2301,6 +2313,10 @@ function FollowUpsPageContent() {
                     <p className="text-xs text-pink-600 dark:text-pink-400 font-bold">
                       {direction === 'rtl' ? `${m.age} سنة` : `${m.age} years old`}
                     </p>
+                    {/* حالة الاشتراك — المنتهي بيظهر عشان يتعمله عرض تجديد */}
+                    <span className={`inline-block mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${m.isExpired ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300' : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'}`}>
+                      {m.isExpired ? (direction === 'rtl' ? 'منتهي' : 'Expired') : (direction === 'rtl' ? 'نشط' : 'Active')}
+                    </span>
                   </div>
                   {/*  أيقونة فتح البروفايل */}
                   <svg className={`w-4 h-4 text-gray-400 ms-1 ${direction === 'rtl' ? 'rotate-180' : ''}`} {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
