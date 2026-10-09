@@ -6,7 +6,7 @@
 #     bash setup-beta.sh beta.example.com
 #
 #   متغيرات اختيارية:
-#     MEMBERS=200 DEMO_PASSWORD=xxxx REVIEW_PASSWORD=yyyy BRANCH=main bash setup-beta.sh beta.example.com
+#     MEMBERS=200 DEMO_PASSWORD=xxxx BRANCH=main bash setup-beta.sh beta.example.com
 #
 #   قبل ما تشغّله: وجّه A record للدومين على IP السيرفر (عشان Caddy يجيب SSL).
 # =====================================================================
@@ -18,7 +18,6 @@ BRANCH="${BRANCH:-main}"
 APP_DIR="${APP_DIR:-/opt/fitboost-beta}"
 MEMBERS="${MEMBERS:-150}"
 DEMO_PASSWORD="${DEMO_PASSWORD:-demo1234}"
-REVIEW_PASSWORD="${REVIEW_PASSWORD:-Review@2026}"   # حساب مراجعة المتاجر review@fitboost.website
 
 step() { echo -e "\n\033[1;36m=== $* ===\033[0m"; }
 fail() { echo -e "\033[1;31m❌ $*\033[0m" >&2; exit 1; }
@@ -105,7 +104,7 @@ step "8/9 توليد البيانات التجريبية + بناء النظام
 # الداتا الأول: `next build` ممكن يلمس الداتابيز أثناء توليد الصفحات
 if [ ! -f "$APP_DIR/prisma/demo-seed.db" ]; then
   node scripts/seed-demo-data.js --out=prisma/gym.db --force \
-    --members="$MEMBERS" --password="$DEMO_PASSWORD" --review-password="$REVIEW_PASSWORD"
+    --members="$MEMBERS" --password="$DEMO_PASSWORD"
   cp prisma/gym.db prisma/demo-seed.db   # نسخة أصلية للـ reset اليومي
   echo "✓ اتولّدت داتا تجريبية ($MEMBERS عضو)"
 else
@@ -141,7 +140,6 @@ cat <<EOF
    👤 الحسابات:  owner@demo.local / manager@demo.local / reception@demo.local
                  coach@demo.local / sales@demo.local
    🔑 الباسورد:  $DEMO_PASSWORD
-   🧪 حساب المراجعة: review@fitboost.website / $REVIEW_PASSWORD
 
    الداتا التجريبية بترجع لأصلها كل يوم 4 الفجر تلقائياً.
 

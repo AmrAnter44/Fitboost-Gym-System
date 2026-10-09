@@ -10,7 +10,6 @@
  *   node scripts/seed-demo-data.js --members=300
  *   node scripts/seed-demo-data.js --out=prisma/gym.db --force
  *   node scripts/seed-demo-data.js --password=mypass    -> باسورد حسابات الديمو
- *   node scripts/seed-demo-data.js --review-password=x  -> باسورد حساب مراجعة المتاجر (App Review)
  *
  * الناتج ديتيرمينيستك (نفس البذرة = نفس البيانات) عشان الـ reset اليومي يرجّع
  * نفس النسخة بالظبط.
@@ -34,9 +33,6 @@ const OUT_REL = argVal('out', 'prisma/demo.db');
 const OUT_ABS = path.isAbsolute(OUT_REL) ? OUT_REL : path.join(ROOT, OUT_REL);
 const MEMBER_COUNT = parseInt(argVal('members', '120'), 10);
 const DEMO_PASSWORD = argVal('password', 'demo1234');
-// 🧪 حساب مراجعة المتاجر (App Store / Google Play) — باسورد مستقل وثابت عشان
-// يتكتب في بيانات المراجعة ومايتأثرش لو اتغيّر باسورد الديمو العام
-const REVIEW_PASSWORD = argVal('review-password', 'Review@2026');
 
 // ---------------------------------------------------------------- rng (deterministic)
 let _seed = 20260820;
@@ -107,7 +103,6 @@ const prisma = new PrismaClient({ datasources: { db: { url: `file:${OUT_ABS}` } 
 async function main() {
   console.log('🎭 توليد البيانات التجريبية ...');
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
-  const reviewPasswordHash = await bcrypt.hash(REVIEW_PASSWORD, 10);
 
   // ---- إعدادات النظام
   await prisma.systemSettings.create({
@@ -226,41 +221,6 @@ async function main() {
       },
     });
   }
-
-  // ---- حساب مراجعة المتاجر (App Review)
-  // موظف ريسبشن بشيفت 09:00-17:00 ومن غير Rotations → «يومي» بيرجع للشيفت
-  // الافتراضي ده كل أيام الأسبوع، فالمراجع يلاقي شيفت في أي يوم يفتح فيه.
-  // رقم الموبايل ثابت (01000000000) ومش من fakePhone عشان ما يتغيّرش بين التشغيلات.
-  const reviewStaff = await prisma.staff.create({
-    data: {
-      id: 'demo_staff_review',
-      staffCode: `S${String(STAFF_DEF.length + 1).padStart(3, '0')}`,
-      name: 'App Review',
-      phone: '01000000000',
-      position: 'ريسبشن',
-      salary: 6000,
-      workingHours: 8,
-      monthlyVacationDays: 4,
-      shiftStartTime: '09:00',
-      shiftEndTime: '17:00',
-      isActive: true,
-      joinedDate: daysAgo(180),
-      salesTarget: 0,
-      coachTarget: 0,
-    },
-  });
-  await prisma.user.create({
-    data: {
-      id: 'demo_user_review',
-      email: 'review@fitboost.website',
-      name: 'App Review',
-      password: reviewPasswordHash,
-      role: 'STAFF',
-      isActive: true,
-      isSales: false,
-      staffId: reviewStaff.id,
-    },
-  });
 
   // ---- الأعضاء
   const SOURCES = ['walk-in', 'facebook', 'instagram', 'friend_referral', 'website'];
@@ -584,10 +544,10 @@ async function main() {
 
   // ---- حضور الموظفين (آخر 30 يوم)
   const attendance = [];
-  for (const s of [...staff, reviewStaff]) {
+  for (const s of staff) {
     for (let d = 0; d < 30; d++) {
       if (chance(0.12)) continue; // إجازة / غياب
-      const inH = s === reviewStaff ? 9 : s._def.reception ? 8 : 10;
+      const inH = s._def.reception ? 8 : 10;
       const checkIn = daysAgo(d, inH, int(0, 25));
       const hours = int(7, 10);
       const checkOut = new Date(checkIn.getTime() + hours * 3600000);
@@ -622,10 +582,7 @@ main()
     console.log('   reception@demo.local  (ريسبشن)');
     console.log('   coach@demo.local      (كوتش)');
     console.log('   sales@demo.local      (سيلز)');
-    console.log(`   الباسورد للكل: ${DEMO_PASSWORD}`);
-    console.log('\n🧪 حساب مراجعة المتاجر (App Review):');
-    console.log('   review@fitboost.website  (STAFF — ريسبشن، شيفت 09:00-17:00)');
-    console.log(`   الباسورد: ${REVIEW_PASSWORD}\n`);
+    console.log(`   الباسورد للكل: ${DEMO_PASSWORD}\n`);
   })
   .catch(async (e) => {
     console.error('\n❌ فشل التوليد:', e);

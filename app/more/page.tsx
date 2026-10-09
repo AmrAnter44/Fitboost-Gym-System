@@ -255,7 +255,9 @@ export default function MorePage() {
       const response = await fetch('/api/staff')
       if (response.ok) {
         const data = await response.json()
-        setStaffList(data.filter((s: any) => s.isActive))
+        setStaffList(data.filter((s: any) =>
+          s.isActive && (s.position?.toLowerCase().includes('مدرب') || s.position?.toLowerCase().includes('trainer'))
+        ))
       }
     } catch (error) {
       console.error('Error fetching staff:', error)
