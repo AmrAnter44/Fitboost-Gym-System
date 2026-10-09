@@ -135,7 +135,8 @@ export async function GET(request: Request) {
       status: status as any,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
-      excludeActions: canViewReceiptAttempts ? undefined : ['RECEIPT_CREATE']
+      //  سجل الإيصالات ليه تاب منفصل — مابيتخلطش مع باقي السجلات
+      excludeActions: ['RECEIPT_CREATE']
     })
 
     const labels = await buildResourceLabels(result.logs)

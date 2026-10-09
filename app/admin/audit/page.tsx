@@ -353,7 +353,7 @@ export default function AuditPage() {
   const isEn = locale === 'en'
   const dateLocale = isEn ? 'en-US' : 'ar-EG'
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'logs' | 'sessions'>('logs')
+  const [activeTab, setActiveTab] = useState<'logs' | 'sessions' | 'receipts'>('logs')
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [total, setTotal] = useState(0)
   const [sessions, setSessions] = useState<ActiveSession[]>([])
@@ -376,14 +376,16 @@ export default function AuditPage() {
     const params = new URLSearchParams()
     params.append('limit', String(PAGE_SIZE))
     params.append('offset', String(offset))
-    if (actionFilter) params.append('action', actionFilter)
+    //  🧾 تاب «سجل الإيصالات» = نفس القايمة بس على محاولات إنشاء الإيصالات فقط
+    if (activeTab === 'receipts') params.append('action', 'RECEIPT_CREATE')
+    else if (actionFilter) params.append('action', actionFilter)
     if (statusFilter) params.append('status', statusFilter)
-    if (resourceFilter) params.append('resource', resourceFilter)
+    if (resourceFilter && activeTab !== 'receipts') params.append('resource', resourceFilter)
     if (userSearch) params.append('user', userSearch)
     if (startDate) params.append('startDate', `${startDate}T00:00:00`)
     if (endDate) params.append('endDate', `${endDate}T23:59:59`)
     return params
-  }, [actionFilter, statusFilter, resourceFilter, userSearch, startDate, endDate])
+  }, [activeTab, actionFilter, statusFilter, resourceFilter, userSearch, startDate, endDate])
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -448,7 +450,7 @@ export default function AuditPage() {
   }
 
   useEffect(() => {
-    if (activeTab === 'logs') {
+    if (activeTab !== 'sessions') {
       fetchLogs()
     } else {
       fetchSessions()
@@ -563,7 +565,7 @@ export default function AuditPage() {
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 mb-6">
         <div className="flex border-b border-gray-200 dark:border-gray-700" role="tablist">
           <button
-            onClick={() => setActiveTab('logs')}
+            onClick={() => { setStatusFilter(''); setActiveTab('logs') }}
             role="tab"
             aria-selected={activeTab === 'logs'}
             className={`inline-flex items-center gap-2 px-4 sm:px-6 py-4 font-bold text-sm transition-colors duration-200 ${
@@ -577,6 +579,23 @@ export default function AuditPage() {
             </svg>
             {tr('سجلات التدقيق', 'Audit logs')}
           </button>
+          {canViewReceiptAttempts && (
+          <button
+            onClick={() => { setStatusFilter(''); setActiveTab('receipts') }}
+            role="tab"
+            aria-selected={activeTab === 'receipts'}
+            className={`inline-flex items-center gap-2 px-4 sm:px-6 py-4 font-bold text-sm transition-colors duration-200 ${
+              activeTab === 'receipts'
+                ? 'border-b-2 border-primary-500 text-primary-700 dark:text-primary-400'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+            }`}
+          >
+            <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0c1.1.128 1.907 1.077 1.907 2.185Z" />
+            </svg>
+            {tr('سجل الإيصالات', 'Receipt log')}
+          </button>
+          )}
           <button
             onClick={() => setActiveTab('sessions')}
             role="tab"
@@ -597,7 +616,7 @@ export default function AuditPage() {
       </div>
 
       {/* Audit Logs Tab */}
-      {activeTab === 'logs' && (
+      {activeTab !== 'sessions' && (
         <div className="space-y-6">
           {/* Filters */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
@@ -619,6 +638,7 @@ export default function AuditPage() {
                 />
               </div>
 
+              {activeTab === 'logs' && (
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{tr('نوع العملية', 'Action type')}</label>
                 <select
@@ -637,10 +657,11 @@ export default function AuditPage() {
                   <option value="ACCESS_DENIED">{tr('رفض وصول', 'Access denied')}</option>
                   <option value="EXPORT">{tr('تصدير', 'Export')}</option>
                   <option value="VIEW">{tr('عرض', 'View')}</option>
-                  {canViewReceiptAttempts && <option value="RECEIPT_CREATE">{tr('إنشاء الإيصالات (نجاح / فشل)', 'Receipt creation (success / failed)')}</option>}
                 </select>
               </div>
+              )}
 
+              {activeTab === 'logs' && (
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{tr('القسم', 'Section')}</label>
                 <select
@@ -668,6 +689,7 @@ export default function AuditPage() {
                   <option value="System">{tr('النظام', 'System')}</option>
                 </select>
               </div>
+              )}
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{tr('الحالة', 'Status')}</label>
@@ -708,14 +730,6 @@ export default function AuditPage() {
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 {tr('إجمالي السجلات:', 'Total records:')} <span className="font-bold text-gray-900 dark:text-gray-100">{total}</span>
               </span>
-              {canViewReceiptAttempts && !(actionFilter === 'RECEIPT_CREATE' && statusFilter === 'failure') && (
-                <button
-                  onClick={() => { setActionFilter('RECEIPT_CREATE'); setStatusFilter('failure'); setResourceFilter('') }}
-                  className="inline-flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-700 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg text-sm font-bold transition-colors duration-200"
-                >
-                  {tr('الإيصالات اللي فشلت', 'Failed receipts')}
-                </button>
-              )}
               {(actionFilter || statusFilter || resourceFilter || userSearch || startDate || endDate) && (
                 <button
                   onClick={() => {
