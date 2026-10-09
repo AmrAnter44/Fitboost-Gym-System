@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { processPaymentWithPoints } from "../../../../lib/paymentProcessor";
+import { captureReceiptRequestContext, logReceiptAttempt } from "../../../../lib/receiptHelpers";
 
 export const dynamic = 'force-dynamic'
 
 
 export async function POST(req: Request) {
+  const receiptLogContext = captureReceiptRequestContext()
   try {
     const { verifyAuth } = await import('@/lib/auth')
     if (!(await verifyAuth(req))) {
@@ -35,7 +37,7 @@ export async function POST(req: Request) {
     });
 
     // ✅ 3️⃣ إنشاء إيصال مرتبط بالـ DayUse
-    await prisma.receipt.create({
+    const createdReceipt = await prisma.receipt.create({
       data: {
         receiptNumber,
         type: "DayUse",
@@ -45,6 +47,8 @@ export async function POST(req: Request) {
         dayUseId: newDayUse.id,
       },
     });
+
+    void logReceiptAttempt({ context: receiptLogContext, receipts: [{ id: createdReceipt.id, receiptNumber, type: 'DayUse', amount: price, paymentMethod, staffName, name }] })
 
     // خصم النقاط إذا تم استخدامها في الدفع
     const pointsResult = await processPaymentWithPoints(
@@ -66,6 +70,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, newDayUse, receiptNumber });
   } catch (error) {
     console.error("❌ Error creating DayUse and receipt:", error);
+    void logReceiptAttempt({ context: receiptLogContext, error });
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }
 }

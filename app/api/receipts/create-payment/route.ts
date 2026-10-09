@@ -7,13 +7,14 @@ import {
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
 import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
-import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
+import { getNextReceiptNumberDirect, captureReceiptRequestContext, logReceiptAttempt } from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 import { logError } from '../../../../lib/errorLogger'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
+  const receiptLogContext = captureReceiptRequestContext()
   try {
     /**
      * إنشاء إيصال دفع متبقي
@@ -100,6 +101,8 @@ export async function POST(request: Request) {
       )
     }
 
+    void logReceiptAttempt({ context: receiptLogContext, receipts: [{ id: receipt.id, receiptNumber: receipt.receiptNumber, type: 'Payment', amount, paymentMethod: finalPaymentMethod, staffName: user.name, name: member.name }] })
+
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
       action: 'CREATE', resource: 'Receipt', resourceId: receipt.id,
@@ -110,6 +113,9 @@ export async function POST(request: Request) {
     return NextResponse.json(receipt)
   } catch (error: any) {
     console.error('Error creating payment receipt:', error)
+    if (error?.message !== 'Unauthorized' && !String(error?.message || '').includes('Forbidden')) {
+      void logReceiptAttempt({ context: receiptLogContext, error })
+    }
     logError({ error, endpoint: '/api/receipts/create-payment', method: 'POST', statusCode: 500 })
     
     if (error.message === 'Unauthorized') {

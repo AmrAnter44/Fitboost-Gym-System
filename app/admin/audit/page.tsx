@@ -87,7 +87,8 @@ const actionTranslations: Record<string, string> = {
   USER_ACTIVATE: 'تفعيل مستخدم',
   USER_DEACTIVATE: 'إيقاف مستخدم',
   EXPORT: 'تصدير بيانات',
-  RATE_LIMIT_HIT: 'تجاوز الحد المسموح'
+  RATE_LIMIT_HIT: 'تجاوز الحد المسموح',
+  RECEIPT_CREATE: 'إنشاء إيصال'
 }
 
 const resourceTranslations: Record<string, string> = {
@@ -164,7 +165,18 @@ const detailKeyTranslations: Record<string, string> = {
   discount: 'الخصم',
   quantity: 'الكمية',
   role: 'الدور',
-  isActive: 'مفعّل'
+  isActive: 'مفعّل',
+  // 🧾 سجل محاولات إنشاء الإيصالات
+  receiptType: 'نوع الإيصال',
+  staffName: 'الموظف',
+  page: 'الصفحة',
+  attempts: 'عدد المحاولات',
+  durationMs: 'المدة (مللي ثانية)',
+  failedStep: 'فشل عند',
+  explanation: 'التفسير',
+  errorCode: 'كود الخطأ',
+  errorName: 'نوع الخطأ',
+  errorMeta: 'تفاصيل تقنية'
 }
 
 const paymentMethodTranslations: Record<string, string> = {
@@ -188,7 +200,7 @@ const actionTranslationsEn: Record<string, string> = {
   LOGIN: 'Login', LOGOUT: 'Logout', LOGIN_FAILED: 'Failed login', CREATE: 'Create', UPDATE: 'Update',
   DELETE: 'Delete', VIEW: 'View', ACCESS_DENIED: 'Access denied', PERMISSION_CHANGE: 'Permission change',
   PASSWORD_CHANGE: 'Password change', USER_ACTIVATE: 'User activated', USER_DEACTIVATE: 'User deactivated',
-  EXPORT: 'Data export', RATE_LIMIT_HIT: 'Rate limit exceeded'
+  EXPORT: 'Data export', RATE_LIMIT_HIT: 'Rate limit exceeded', RECEIPT_CREATE: 'Receipt creation'
 }
 
 const resourceTranslationsEn: Record<string, string> = {
@@ -213,7 +225,9 @@ const detailKeyTranslationsEn: Record<string, string> = {
   targetUser: 'Target user', changes: 'Changes', endpoint: 'Endpoint', attemptedEmail: 'Email used',
   serviceType: 'Service type', description: 'Description', category: 'Category', notes: 'Notes',
   startDate: 'Start date', endDate: 'End date', oldExpiry: 'Old expiry', newExpiry: 'New expiry',
-  discount: 'Discount', quantity: 'Quantity', role: 'Role', isActive: 'Active'
+  discount: 'Discount', quantity: 'Quantity', role: 'Role', isActive: 'Active',
+  receiptType: 'Receipt type', staffName: 'Staff', page: 'Page', attempts: 'Attempts', durationMs: 'Duration (ms)',
+  failedStep: 'Failed at', explanation: 'Explanation', errorCode: 'Error code', errorName: 'Error type', errorMeta: 'Technical details'
 }
 
 const paymentMethodTranslationsEn: Record<string, string> = {
@@ -262,6 +276,9 @@ function buildSentence(log: AuditLog, details: Record<string, any> | null, en = 
       case 'EXPORT': return `Exported ${resourceName} data`
       case 'VIEW': return `Viewed ${resourceName}${target ? `: ${target}` : ''}`
       case 'RATE_LIMIT_HIT': return `Rate limit exceeded${details?.endpoint ? ` (${details.endpoint})` : ''}`
+      case 'RECEIPT_CREATE':
+        if (log.status === 'success') return `Receipt created${target ? `: ${target}` : ''}`
+        return `${log.status === 'warning' ? 'Receipt rejected' : 'Receipt creation FAILED'}${details?.memberName ? ` — ${details.memberName}` : ''}${details?.receiptType ? ` (${details.receiptType})` : ''}`
       default: return `${actionTranslationsEn[log.action] || log.action} — ${resourceName}${target ? `: ${target}` : ''}`
     }
   }
@@ -271,6 +288,9 @@ function buildSentence(log: AuditLog, details: Record<string, any> | null, en = 
       return 'سجّل الدخول للنظام'
     case 'LOGOUT':
       return 'سجّل الخروج من النظام'
+    case 'RECEIPT_CREATE':
+      if (log.status === 'success') return `اتعمل إيصال${target ? `: ${target}` : ''}`
+      return `${log.status === 'warning' ? 'إيصال اترفض' : 'فشل إنشاء إيصال'}${details?.memberName ? ` — ${details.memberName}` : ''}${details?.receiptType ? ` (${details.receiptType})` : ''}`
     case 'LOGIN_FAILED':
       return `محاولة دخول فاشلة${details?.attemptedEmail ? ` بالبريد "${details.attemptedEmail}"` : ''}`
     case 'CREATE':
@@ -341,6 +361,8 @@ export default function AuditPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  //  🧾 محاولات إنشاء الإيصالات — السيرفر بيرجّعها للأونر بس
+  const [canViewReceiptAttempts, setCanViewReceiptAttempts] = useState(false)
 
   // Filters
   const [actionFilter, setActionFilter] = useState('')
@@ -378,6 +400,7 @@ export default function AuditPage() {
       const data = await response.json()
       setLogs(data.logs || [])
       setTotal(data.total || 0)
+      setCanViewReceiptAttempts(!!data.canViewReceiptAttempts)
     } catch (err) {
       setError(tr('فشل جلب سجلات التدقيق', 'Failed to load audit logs'))
       console.error(err)
@@ -614,6 +637,7 @@ export default function AuditPage() {
                   <option value="ACCESS_DENIED">{tr('رفض وصول', 'Access denied')}</option>
                   <option value="EXPORT">{tr('تصدير', 'Export')}</option>
                   <option value="VIEW">{tr('عرض', 'View')}</option>
+                  {canViewReceiptAttempts && <option value="RECEIPT_CREATE">{tr('إنشاء الإيصالات (نجاح / فشل)', 'Receipt creation (success / failed)')}</option>}
                 </select>
               </div>
 
@@ -684,6 +708,14 @@ export default function AuditPage() {
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 {tr('إجمالي السجلات:', 'Total records:')} <span className="font-bold text-gray-900 dark:text-gray-100">{total}</span>
               </span>
+              {canViewReceiptAttempts && !(actionFilter === 'RECEIPT_CREATE' && statusFilter === 'failure') && (
+                <button
+                  onClick={() => { setActionFilter('RECEIPT_CREATE'); setStatusFilter('failure'); setResourceFilter('') }}
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-700 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg text-sm font-bold transition-colors duration-200"
+                >
+                  {tr('الإيصالات اللي فشلت', 'Failed receipts')}
+                </button>
+              )}
               {(actionFilter || statusFilter || resourceFilter || userSearch || startDate || endDate) && (
                 <button
                   onClick={() => {

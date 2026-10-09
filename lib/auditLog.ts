@@ -20,6 +20,7 @@ export type AuditAction =
   | 'USER_DEACTIVATE'
   | 'EXPORT'
   | 'RATE_LIMIT_HIT'
+  | 'RECEIPT_CREATE' // 🧾 محاولة إنشاء إيصال (نجاح/فشل) — بتظهر للأونر بس
 
 export type AuditResource =
   | 'Member'
@@ -409,6 +410,7 @@ export async function getAuditLogs(options: {
   status?: AuditStatus
   startDate?: Date
   endDate?: Date
+  excludeActions?: string[]
 }) {
   const where: any = {}
 
@@ -423,6 +425,7 @@ export async function getAuditLogs(options: {
   }
 
   if (options.action) where.action = options.action
+  else if (options.excludeActions?.length) where.action = { notIn: options.excludeActions }
   if (options.resource) where.resource = options.resource
   if (options.status) where.status = options.status
 
