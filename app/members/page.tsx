@@ -771,6 +771,19 @@ function MembersPageContent() {
           {locale === 'ar' ? 'مسح' : 'Clear'}
         </button>
       )}
+      {/*  📊 Excel للأعضاء المنتهيين — بيطلّع اللي ظاهر بالفلاتر الحالية (أونر بس) */}
+      {filterStatus === 'expired' && user?.role === 'OWNER' &&filteredMembers.length > 0 && (
+        <button
+          type="button"
+          onClick={() => exportExpiredToExcel()}
+          className="ms-auto bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition-colors duration-200 text-[11px] sm:text-xs font-bold inline-flex items-center gap-1.5"
+        >
+          <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4 shrink-0" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          <span>Excel ({filteredMembers.length})</span>
+        </button>
+      )}
     </div>
   ) : null
 
@@ -926,6 +939,45 @@ function MembersPageContent() {
         } catch {}
       }
     })
+  }
+
+  // 📊 تصدير الأعضاء المنتهيين Excel — نفس اللي ظاهر في القايمة بالفلاتر الحالية
+  const exportExpiredToExcel = async () => {
+    const { default: ExcelJS } = await import('exceljs')
+    const wb = new ExcelJS.Workbook()
+    const ws = wb.addWorksheet(tr('المنتهيين', 'Expired'), { views: [{ rightToLeft: locale === 'ar' }] })
+    ws.columns = [
+      { header: tr('رقم العضوية', 'Member #'), key: 'number', width: 14 },
+      { header: tr('الاسم', 'Name'), key: 'name', width: 30 },
+      { header: tr('رقم الهاتف', 'Phone'), key: 'phone', width: 18 },
+      { header: tr('تاريخ الانتهاء', 'Expiry date'), key: 'expiry', width: 16 },
+      { header: tr('منتهي من (يوم)', 'Expired (days)'), key: 'days', width: 16 },
+      { header: tr('المبلغ الباقي', 'Remaining'), key: 'remaining', width: 16 },
+    ]
+    ws.getRow(1).font = { bold: true }
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    for (const m of filteredMembers) {
+      let days: number | string = ''
+      if (m.expiryDate) {
+        const d = new Date(m.expiryDate); d.setHours(0, 0, 0, 0)
+        days = Math.max(0, Math.round((today.getTime() - d.getTime()) / 86400000))
+      }
+      ws.addRow({
+        number: m.memberNumber ?? '',
+        name: m.name,
+        phone: m.phone || '',
+        expiry: m.expiryDate ? formatDateYMD(m.expiryDate) : '',
+        days,
+        remaining: m.remainingAmount || 0,
+      })
+    }
+    const buffer = await wb.xlsx.writeBuffer()
+    const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `expired_members_${new Date().toISOString().split('T')[0]}.xlsx`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   // تصدير CSV
