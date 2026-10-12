@@ -341,7 +341,7 @@ export async function POST(request: Request) {
       staffName,
       isOther,
       customCreatedAt,
-      skipReceipt,
+      skipReceipt: skipReceiptRaw,
       coachId,
       noCoachWanted,
       salesStaffId,
@@ -353,6 +353,10 @@ export async function POST(request: Request) {
       discount,         // 💸 خصم على سعر الباقة (يظهر في الإيصال)
       originalPrice     // 💰 السعر الأصلي قبل الخصم
     } = body as any
+
+    // 🧾 «من غير إيصال» للأونر/الأدمن بس — قبل كده أي موظف كان يقدر يعلّمه (أو يتعلّم بالغلط)
+    //    فالعضو يتسجل من غير إيصال ومن غير أي خطأ في سجل التدقيق.
+    const skipReceipt = skipReceiptRaw === true && (user.role === 'OWNER' || user.role === 'ADMIN')
 
 
     // ✅ التحقق من الحقول المطلوبة
@@ -743,7 +747,8 @@ export async function POST(request: Request) {
         name: member.name,
         phone: member.phone,
         ...(forcedFromFollowUp ? { salesStaffForced: forcedFromFollowUp } : {}),
-        ...(adminOverride ? { salesStaffAdminOverride: adminOverride } : {})
+        ...(adminOverride ? { salesStaffAdminOverride: adminOverride } : {}),
+        ...(skipReceipt ? { skipReceipt: true } : { receiptNumber: receipt?.receiptNumber ?? null })
       },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })

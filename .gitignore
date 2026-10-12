@@ -122,3 +122,4 @@ cloud-photos-manifest.json
 
 # جلسات واتساب على السيرفر (لكل نسخة مجلدها)
 .whatsapp-auth/
+exports/
