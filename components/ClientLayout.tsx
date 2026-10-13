@@ -29,6 +29,7 @@ import InstallPrompt from './InstallPrompt'
 import KeyboardShortcuts from './KeyboardShortcuts'
 import Breadcrumb from './Breadcrumb'
 import BackToTop from './BackToTop'
+import SupportChat from './SupportChat'
 import LicenseLockedScreen from './LicenseLockedScreen'
 import BulkSenderOverlay from './BulkSenderOverlay'
 import InternalMailNotifier from './InternalMailNotifier'
@@ -143,6 +144,9 @@ function LayoutContent({ children }: { children: ReactNode }) {
 
               {/* Back to Top Button */}
               <BackToTop />
+
+              {/* 💬 الدعم الفني — شات مع فريق FitBoost (لكل الموظفين) */}
+              <SupportChat />
             </div>
           </div>
 

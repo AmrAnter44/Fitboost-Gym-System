@@ -93,6 +93,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' data: https://fonts.gstatic.com",
               "img-src 'self' data: blob: https:",
+              "media-src 'self' blob: https:",
               "connect-src 'self' https://system.xgym.website https://xgym.website https://*.supabase.co https://api.backblazeb2.com https://*.backblazeb2.com wss: ws:",
               "frame-ancestors 'self'",
               "object-src 'none'",
