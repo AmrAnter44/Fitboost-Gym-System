@@ -61,7 +61,28 @@ export async function GET(request: Request) {
           return NextResponse.json([])
         }
 
-        const ptNumbers = coachPTs.map(pt => pt.ptNumber)
+        let ptNumbers = coachPTs.map(pt => pt.ptNumber)
+
+        //  🐛 لو الطلب لعضو معيّن (بروفايل العضو) → إيصالات الـ PT بتاعة العضو ده بس مع الكوتش ده.
+        //     قبل كده الفلتر ده كان بيتجاهل، فالكوتش كان بيشوف في بروفايل أي عضو إيصالات كل عملاءه.
+        const sp = new URL(request.url).searchParams
+        const reqMemberId = sp.get('memberId')
+        const reqMemberNumber = sp.get('memberNumber')
+        const reqPtNumber = sp.get('ptNumber')
+        if (reqMemberId || reqMemberNumber) {
+          const target = reqMemberId
+            ? await prisma.member.findUnique({ where: { id: reqMemberId }, select: { phone: true } })
+            : await prisma.member.findUnique({ where: { memberNumber: reqMemberNumber as any }, select: { phone: true } })
+          if (!target?.phone) return NextResponse.json([])
+          const memberPTs = await prisma.pT.findMany({
+            where: { phone: target.phone, ptNumber: { in: ptNumbers } },
+            select: { ptNumber: true }
+          })
+          ptNumbers = memberPTs.map(pt => pt.ptNumber)
+        } else if (reqPtNumber) {
+          ptNumbers = ptNumbers.filter(n => n === parseInt(reqPtNumber))
+        }
+        if (ptNumbers.length === 0) return NextResponse.json([])
 
         // جلب الإيصالات الخاصة بـ PT sessions هذا الكوتش فقط
         const receipts = await prisma.receipt.findMany({

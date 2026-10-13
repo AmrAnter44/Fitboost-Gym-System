@@ -142,7 +142,20 @@ export default function DayUsePage() {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 250)
   const [filterType, setFilterType] = useState<string>('all')
-  const [filterDate, setFilterDate] = useState<'all' | 'today' | 'week' | 'month'>('all')
+  const [filterDate, setFilterDate] = useState<'all' | 'today' | 'week' | 'month' | 'custom'>('all')
+  //  🗓️ الفترة (من / إلى) — YYYY-MM-DD. الاختصارات (اليوم / آخر 7 أيام / ...) بتملى الخانتين دول
+  const [filterFrom, setFilterFrom] = useState('')
+  const [filterTo, setFilterTo] = useState('')
+  const applyDateShortcut = (kind: 'all' | 'today' | 'week' | 'month') => {
+    const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    setFilterDate(kind)
+    if (kind === 'all') { setFilterFrom(''); setFilterTo(''); return }
+    const today = new Date()
+    const from = new Date(today)
+    if (kind === 'week') from.setDate(today.getDate() - 6)
+    else if (kind === 'month') from.setDate(today.getDate() - 29)
+    setFilterFrom(ymd(from)); setFilterTo(ymd(today))
+  }
 
   //  الـ entries بعد تطبيق البحث + الفلتر
   const filteredEntries = useMemo(() => {
@@ -150,16 +163,16 @@ export default function DayUsePage() {
     if (filterType !== 'all') {
       list = list.filter(e => normalizeType(e.serviceType) === normalizeType(filterType))
     }
-    if (filterDate !== 'all') {
-      const now = new Date(); now.setHours(0, 0, 0, 0)
-      const cutoff = new Date(now)
-      if (filterDate === 'week') cutoff.setDate(now.getDate() - 6)
-      else if (filterDate === 'month') cutoff.setDate(now.getDate() - 29)
-      list = list.filter(e => {
-        if (!e.createdAt) return false
-        const d = new Date(e.createdAt); d.setHours(0, 0, 0, 0)
-        return d >= cutoff
-      })
+    {
+      const from = filterFrom ? new Date(filterFrom + 'T00:00:00') : null
+      const to = filterTo ? new Date(filterTo + 'T23:59:59.999') : null
+      if (from || to) {
+        list = list.filter(e => {
+          if (!e.createdAt) return false
+          const d = new Date(e.createdAt)
+          return (!from || d >= from) && (!to || d <= to)
+        })
+      }
     }
     const q = debouncedSearch.trim()
     if (q) {
@@ -171,7 +184,7 @@ export default function DayUsePage() {
       })
     }
     return list
-  }, [entries, debouncedSearch, filterType, filterDate])
+  }, [entries, debouncedSearch, filterType, filterFrom, filterTo])
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -625,70 +638,104 @@ export default function DayUsePage() {
       {/*  Search + Filters Toolbar */}
       {!loading && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-3 mb-4 space-y-3">
-          <div className="flex flex-col md:flex-row gap-2">
-            <div className="relative flex-1">
-              <span className={`absolute inset-y-0 ${direction === 'rtl' ? 'right-3' : 'left-3'} flex items-center text-gray-400 pointer-events-none`}>
-                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                </svg>
-              </span>
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className={`w-full ${direction === 'rtl' ? 'pr-10 pl-10' : 'pl-10 pr-10'} py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm`}
-                placeholder={direction === 'rtl' ? 'ابحث بالاسم أو التليفون...' : 'Search by name or phone...'}
-                dir={direction}
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className={`absolute inset-y-0 ${direction === 'rtl' ? 'left-3' : 'right-3'} flex items-center text-gray-400 hover:text-red-500 transition-colors`}
-                  aria-label="clear"
-                >
-                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-                </button>
-              )}
+          <div className="flex flex-col md:flex-row md:items-start gap-3">
+            {/*  عمود البحث + شرايح نوع الخدمة تحته (على نفس مستوى اختصارات التاريخ) */}
+            <div className="flex-1 min-w-0 flex flex-col gap-2">
+              <div className="relative">
+                <span className={`absolute inset-y-0 ${direction === 'rtl' ? 'right-3' : 'left-3'} flex items-center text-gray-400 pointer-events-none`}>
+                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                  </svg>
+                </span>
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className={`w-full ${direction === 'rtl' ? 'pr-10 pl-10' : 'pl-10 pr-10'} py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm`}
+                  placeholder={direction === 'rtl' ? 'ابحث بالاسم أو التليفون...' : 'Search by name or phone...'}
+                  dir={direction}
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    className={`absolute inset-y-0 ${direction === 'rtl' ? 'left-3' : 'right-3'} flex items-center text-gray-400 hover:text-red-500 transition-colors`}
+                    aria-label="clear"
+                  >
+                    <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                  </button>
+                )}
+              </div>
+              {/* Service type filter chips */}
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { id: 'all', label: direction === 'rtl' ? 'الكل' : 'All', color: 'gray' },
+                  ...services.map((s: any) => ({ id: s.name, label: s.name, color: s.isBase ? 'primary' : 'amber' })),
+                  ...(settings.inBodyEnabled ? [{ id: 'InBody', label: t('dayUse.inBody'), color: 'purple' }] : []),
+                ]).map(chip => {
+                  const isActive = filterType === chip.id
+                  const activeBg =
+                    chip.color === 'primary' ? 'bg-primary-600 text-primary-contrast ring-primary-600' :
+                    chip.color === 'purple' ? 'bg-purple-600 text-white ring-purple-600' :
+                    chip.color === 'amber' ? 'bg-amber-600 text-white ring-amber-600' :
+                    'bg-gray-700 text-white ring-gray-700'
+                  return (
+                    <button
+                      key={chip.id}
+                      type="button"
+                      onClick={() => setFilterType(chip.id as any)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold ring-1 transition-colors ${
+                        isActive ? activeBg : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      {chip.label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-            {/* Date filter dropdown */}
-            <select
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value as any)}
-              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="all">{direction === 'rtl' ? '— كل الفترات —' : '— All time —'}</option>
-              <option value="today">{direction === 'rtl' ? 'اليوم' : 'Today'}</option>
-              <option value="week">{direction === 'rtl' ? 'آخر 7 أيام' : 'Last 7 days'}</option>
-              <option value="month">{direction === 'rtl' ? 'آخر 30 يوم' : 'Last 30 days'}</option>
-            </select>
-          </div>
-          {/* Service type filter chips */}
-          <div className="flex flex-wrap gap-2">
-            {([
-              { id: 'all', label: direction === 'rtl' ? 'الكل' : 'All', color: 'gray' },
-              ...services.map((s: any) => ({ id: s.name, label: s.name, color: s.isBase ? 'primary' : 'amber' })),
-              ...(settings.inBodyEnabled ? [{ id: 'InBody', label: t('dayUse.inBody'), color: 'purple' }] : []),
-            ]).map(chip => {
-              const isActive = filterType === chip.id
-              const activeBg =
-                chip.color === 'primary' ? 'bg-primary-600 text-primary-contrast ring-primary-600' :
-                chip.color === 'purple' ? 'bg-purple-600 text-white ring-purple-600' :
-                chip.color === 'amber' ? 'bg-amber-600 text-white ring-amber-600' :
-                'bg-gray-700 text-white ring-gray-700'
-              return (
-                <button
-                  key={chip.id}
-                  type="button"
-                  onClick={() => setFilterType(chip.id as any)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold ring-1 transition-colors ${
-                    isActive ? activeBg : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {chip.label}
-                </button>
-              )
-            })}
+            {/* 🗓️ الفترة: من / إلى + اختصارات تحتهم (بنفس عرض خانات التاريخ) */}
+            <div className="flex flex-col gap-2 w-full md:w-[400px] shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{direction === 'rtl' ? 'من' : 'From'}</span>
+                <input
+                  type="date"
+                  value={filterFrom}
+                  max={filterTo || undefined}
+                  onChange={(e) => { setFilterFrom(e.target.value); setFilterDate(e.target.value || filterTo ? 'custom' : 'all') }}
+                  className="flex-1 min-w-0 px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{direction === 'rtl' ? 'إلى' : 'To'}</span>
+                <input
+                  type="date"
+                  value={filterTo}
+                  min={filterFrom || undefined}
+                  onChange={(e) => { setFilterTo(e.target.value); setFilterDate(filterFrom || e.target.value ? 'custom' : 'all') }}
+                  className="flex-1 min-w-0 px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+              <div className="grid grid-cols-4 gap-1.5">
+                {([
+                  ['all', direction === 'rtl' ? 'الكل' : 'All'],
+                  ['today', direction === 'rtl' ? 'اليوم' : 'Today'],
+                  ['week', direction === 'rtl' ? '7 أيام' : '7 days'],
+                  ['month', direction === 'rtl' ? '30 يوم' : '30 days'],
+                ] as const).map(([kind, label]) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    onClick={() => applyDateShortcut(kind)}
+                    className={`py-1.5 rounded-lg text-xs font-bold text-center whitespace-nowrap ring-1 transition-colors ${
+                      filterDate === kind
+                        ? 'bg-primary-600 text-primary-contrast ring-primary-600'
+                        : 'bg-gray-50 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 ring-gray-200 dark:ring-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           {/*  عدّاد النتائج */}
           {(search || filterType !== 'all' || filterDate !== 'all') && (
