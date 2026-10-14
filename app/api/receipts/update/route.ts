@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission, requireAnyPermission, verifyAuth } from '../../../../lib/auth'
-import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
+import { createAuditLog, getIpAddress, getUserAgent, buildFieldChanges } from '../../../../lib/auditLog'
 
 // تحديث إيصال موجود
 
@@ -369,6 +369,13 @@ export async function PUT(request: Request) {
       details: {
         receiptNumber: updatedReceipt.receiptNumber,
         amount: updatedReceipt.amount,
+        fieldChanges: [
+          ...(await buildFieldChanges(existingReceipt, {
+            receiptNumber: updatedReceipt.receiptNumber, amount: updatedReceipt.amount,
+            paymentMethod: updatedReceipt.paymentMethod, staffName: updatedReceipt.staffName, createdAt: updatedReceipt.createdAt,
+          })),
+          ...(await buildFieldChanges(subOldValues, subNewValues)),
+        ],
         ...(subChanged.length > 0 && {
           updatedSubscriptionFields: subChanged,
           oldValues: subOldValues,

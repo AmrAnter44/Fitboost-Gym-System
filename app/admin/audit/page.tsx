@@ -166,6 +166,7 @@ const detailKeyTranslations: Record<string, string> = {
   quantity: 'الكمية',
   role: 'الدور',
   isActive: 'مفعّل',
+  receiptsSynced: 'إيصالات اتحدّثت معاه',
   // 🧾 سجل محاولات إنشاء الإيصالات
   receiptType: 'نوع الإيصال',
   staffName: 'الموظف',
@@ -187,7 +188,51 @@ const paymentMethodTranslations: Record<string, string> = {
 }
 
 // مفاتيح لا تُعرض في التفاصيل (مكررة أو تقنية)
-const HIDDEN_DETAIL_KEYS = new Set(['timestamp', 'deletedAt', 'changedAt', 'deniedAt'])
+const HIDDEN_DETAIL_KEYS = new Set(['timestamp', 'deletedAt', 'changedAt', 'deniedAt', 'fieldChanges'])
+
+// 🔍 أسماء الحقول في «التعديلات» (من → إلى)
+const FIELD_LABELS: Record<string, [string, string]> = {
+  name: ['الاسم', 'Name'], clientName: ['اسم العميل', 'Client name'], phone: ['التليفون', 'Phone'],
+  backupPhone: ['تليفون احتياطي', 'Backup phone'], nationalId: ['الرقم القومي', 'National ID'],
+  memberNumber: ['رقم العضوية', 'Member #'], gender: ['النوع', 'Gender'], birthDate: ['تاريخ الميلاد', 'Birth date'],
+  startDate: ['تاريخ البداية', 'Start date'], expiryDate: ['تاريخ الانتهاء', 'Expiry date'],
+  subscriptionPrice: ['سعر الاشتراك', 'Subscription price'], remainingAmount: ['الباقي', 'Remaining'],
+  remainingDueDate: ['موعد الباقي', 'Remaining due date'], paidAmount: ['المدفوع', 'Paid'],
+  notes: ['الملاحظات', 'Notes'], coachId: ['الكوتش', 'Coach'], coachName: ['الكوتش', 'Coach'],
+  salesStaffId: ['السيلز', 'Sales'], staffId: ['الموظف', 'Staff'], assignedTo: ['المسؤول', 'Assigned to'],
+  source: ['المصدر', 'Source'], isActive: ['نشط', 'Active'], isFrozen: ['مجمّد', 'Frozen'],
+  invitations: ['الدعوات', 'Invitations'], freePTSessions: ['حصص PT مجانية', 'Free PT sessions'],
+  inBodyScans: ['InBody', 'InBody scans'], packageName: ['الباقة', 'Package'],
+  sessionsPurchased: ['الحصص المشتراة', 'Sessions purchased'], sessionsRemaining: ['الحصص المتبقية', 'Sessions remaining'],
+  pricePerSession: ['سعر الحصة', 'Price per session'], amount: ['المبلغ', 'Amount'],
+  paymentMethod: ['طريقة الدفع', 'Payment method'], receiptNumber: ['رقم الإيصال', 'Receipt #'],
+  staffName: ['اسم الموظف', 'Staff name'], description: ['الوصف', 'Description'], category: ['التصنيف', 'Category'],
+  type: ['النوع', 'Type'], salary: ['المرتب', 'Salary'], position: ['الوظيفة', 'Position'],
+  status: ['الحالة', 'Status'], interestedIn: ['مهتم بـ', 'Interested in'], email: ['البريد', 'Email'],
+  sessionsLimitUntilPaid: ['حد الحصص لحد دفع الباقي', 'Session limit until paid'],
+}
+const fieldLabel = (field: string, en: boolean) => FIELD_LABELS[field]?.[en ? 1 : 0] || field
+
+function formatChangeValue(field: string, value: any, en: boolean): string {
+  if (value === null || value === undefined || value === '') return '—'
+  if (typeof value === 'boolean') return value ? (en ? 'Yes' : 'نعم') : (en ? 'No' : 'لا')
+  if (field === 'paymentMethod' && typeof value === 'string') {
+    return (en ? paymentMethodTranslationsEn : paymentMethodTranslations)[value.toLowerCase()] || value
+  }
+  if (field === 'gender' && typeof value === 'string') {
+    return value === 'male' ? (en ? 'Male' : 'ذكر') : value === 'female' ? (en ? 'Female' : 'أنثى') : value
+  }
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+    const d = new Date(value)
+    if (!isNaN(d.getTime())) {
+      // حقول التاريخ (بداية/انتهاء/ميلاد) → تاريخ بس؛ غير كده تاريخ + وقت
+      const dateOnly = /Date$/.test(field)
+      return new Intl.DateTimeFormat(en ? 'en-US' : 'ar-EG', dateOnly ? { dateStyle: 'medium' } : { dateStyle: 'medium', timeStyle: 'short' }).format(d)
+    }
+  }
+  if (typeof value === 'number') return value.toLocaleString(en ? 'en-US' : 'ar-EG')
+  return String(value)
+}
 
 const statusTranslations: Record<string, string> = {
   success: 'نجح',
@@ -252,6 +297,15 @@ function parseDetailsJson(log: AuditLog): Record<string, any> | null {
   }
 }
 
+// ( تاريخ الانتهاء، السعر ) — ملخص الحقول اللي اتغيّرت للجملة الرئيسية
+function changedFieldsSummary(details: Record<string, any> | null, en: boolean): string {
+  const list = Array.isArray(details?.fieldChanges) ? details!.fieldChanges : []
+  if (list.length === 0) return ''
+  const names = list.slice(0, 3).map((c: any) => fieldLabel(c.field, en))
+  const more = list.length > 3 ? (en ? ` +${list.length - 3}` : ` +${list.length - 3}`) : ''
+  return ` (${names.join(en ? ', ' : '، ')}${more})`
+}
+
 // الجملة الرئيسية المفهومة للسجل
 function buildSentence(log: AuditLog, details: Record<string, any> | null, en = false): string {
   const resourceName = (en ? resourceTranslationsEn : resourceTranslations)[log.resource] || log.resource
@@ -265,8 +319,8 @@ function buildSentence(log: AuditLog, details: Record<string, any> | null, en = 
       case 'LOGIN_FAILED': return `Failed login attempt${details?.attemptedEmail ? ` with "${details.attemptedEmail}"` : ''}`
       case 'CREATE': return `Added ${target ? `${resourceName}: ${target}` : `new ${resourceName}`}`
       case 'UPDATE':
-        if (operation) return `${operation}${target ? ` — ${target}` : ''}`
-        return `Updated ${resourceName}${target ? `: ${target}` : ''}`
+        if (operation && operation !== 'Update') return `${operation}${target ? ` — ${target}` : ''}`
+        return `Updated ${resourceName}${target ? `: ${target}` : ''}${changedFieldsSummary(details, true)}`
       case 'DELETE': return `Deleted ${resourceName}${target ? `: ${target}` : ''}`
       case 'PERMISSION_CHANGE': return `Changed permissions${target ? `: ${target}` : ' of a user'}`
       case 'PASSWORD_CHANGE': return `Changed password${target ? `: ${target}` : ''}`
@@ -296,8 +350,8 @@ function buildSentence(log: AuditLog, details: Record<string, any> | null, en = 
     case 'CREATE':
       return `أضاف ${resourceName}${target ? `: ${target}` : ' جديد'}`
     case 'UPDATE':
-      if (operation) return `${operation}${target ? ` — ${target}` : ''}`
-      return `عدّل بيانات ${resourceName}${target ? `: ${target}` : ''}`
+      if (operation && details?.operation !== 'Update') return `${operation}${target ? ` — ${target}` : ''}`
+      return `عدّل بيانات ${resourceName}${target ? `: ${target}` : ''}${changedFieldsSummary(details, false)}`
     case 'DELETE':
       return `حذف ${resourceName}${target ? `: ${target}` : ''}`
     case 'PERMISSION_CHANGE':
@@ -781,6 +835,7 @@ export default function AuditPage() {
                       const detailEntries = details
                         ? Object.entries(details).filter(([key]) => !HIDDEN_DETAIL_KEYS.has(key))
                         : []
+                      const fieldChanges: Array<{ field: string; from: any; to: any }> = Array.isArray(details?.fieldChanges) ? details!.fieldChanges : []
 
                       return (
                         <div
@@ -830,7 +885,7 @@ export default function AuditPage() {
                             </div>
 
                             {/* سهم التوسيع */}
-                            {(detailEntries.length > 0 || log.errorMessage || log.ipAddress) && (
+                            {(detailEntries.length > 0 || fieldChanges.length > 0 || log.errorMessage || log.ipAddress) && (
                               <svg {...stroke} className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                               </svg>
@@ -843,6 +898,23 @@ export default function AuditPage() {
                               {log.errorMessage && (
                                 <div className="bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg p-3 mb-3 mt-3">
                                   <p className="text-sm text-red-700 dark:text-red-300 font-medium">{log.errorMessage}</p>
+                                </div>
+                              )}
+
+                              {/* 🔍 التعديلات: الحقل — من … ← إلى … */}
+                              {fieldChanges.length > 0 && (
+                                <div className="mt-3 rounded-lg ring-1 ring-amber-200 dark:ring-amber-800/60 bg-amber-50/60 dark:bg-amber-900/10 p-3">
+                                  <p className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-2">{tr('التعديلات', 'Changes')}</p>
+                                  <div className="space-y-1.5">
+                                    {fieldChanges.map((c, i) => (
+                                      <div key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                                        <span className="font-bold text-gray-700 dark:text-gray-200 min-w-[110px]">{fieldLabel(c.field, isEn)}</span>
+                                        <span className="px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 line-through decoration-red-400/70 break-all">{formatChangeValue(c.field, c.from, isEn)}</span>
+                                        <span className="text-gray-400" aria-hidden="true">{isEn ? '→' : '←'}</span>
+                                        <span className="px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 font-semibold break-all">{formatChangeValue(c.field, c.to, isEn)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               )}
 

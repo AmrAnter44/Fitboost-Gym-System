@@ -406,6 +406,13 @@ function migrateDatabase(dbPath) {
     if (!columnExists(db, 'Member', 'birthdayGreetYear')) {
       db.prepare('ALTER TABLE Member ADD COLUMN birthdayGreetYear INTEGER').run();
     }
+    // 🪪 Invitation.guestNationalId — الرقم القومي للضيف (حد 3 دعوات للشخص الواحد)
+    if (tableExists(db, 'Invitation') && !columnExists(db, 'Invitation', 'guestNationalId')) {
+      db.prepare('ALTER TABLE Invitation ADD COLUMN guestNationalId TEXT').run();
+    }
+    if (tableExists(db, 'Invitation')) {
+      db.prepare('CREATE INDEX IF NOT EXISTS Invitation_guestNationalId_idx ON Invitation(guestNationalId)').run();
+    }
 
     // 🕐 Offer.allowedCheckInStart/End — ساعات الدخول المسموح بها (template للعرض)
     if (tableExists(db, 'Offer') && !columnExists(db, 'Offer', 'allowedCheckInStart')) {

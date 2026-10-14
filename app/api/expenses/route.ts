@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission, requireAnyPermission } from '../../../lib/auth'
-import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
+import { createAuditLog, getIpAddress, getUserAgent, buildFieldChanges } from '../../../lib/auditLog'
 
 // GET - جلب كل المصروفات
 
@@ -198,6 +198,7 @@ export async function PUT(request: Request) {
       updateData.category = (typeof category === 'string' && category.trim()) ? category.trim() : null
     }
 
+    const expenseBefore = await prisma.expense.findUnique({ where: { id } })
     const expense = await prisma.expense.update({
       where: { id },
       data: updateData,
@@ -209,7 +210,7 @@ export async function PUT(request: Request) {
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
       action: 'UPDATE', resource: 'Expense', resourceId: expense.id,
-      details: { type: expense.type, changes: Object.keys(updateData) },
+      details: { type: expense.type, description: expense.description, fieldChanges: await buildFieldChanges(expenseBefore, updateData) },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 

@@ -12,7 +12,7 @@ import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
 import { getNextReceiptNumber, runReceiptTransaction } from '../../../lib/receiptHelpers'
-import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
+import { createAuditLog, getIpAddress, getUserAgent, buildFieldChanges } from '../../../lib/auditLog'
 import { computeUnpaidLockAt, isPaymentLocked, paymentLockMessage } from '../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
@@ -603,6 +603,7 @@ export async function PUT(request: Request) {
         updateData.expiryDate = new Date(data.expiryDate)
       }
 
+      const ptBefore = await prisma.pT.findUnique({ where: { ptNumber: parseInt(ptNumber) } })
       const pt = await prisma.pT.update({
         where: { ptNumber: parseInt(ptNumber) },
         data: updateData,
@@ -611,7 +612,7 @@ export async function PUT(request: Request) {
       createAuditLog({
         userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
         action: 'UPDATE', resource: 'PT', resourceId: String(pt.ptNumber),
-        details: { ptNumber: pt.ptNumber, changes: Object.keys(updateData) },
+        details: { ptNumber: pt.ptNumber, clientName: pt.clientName, fieldChanges: await buildFieldChanges(ptBefore, updateData) },
         ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
       })
 

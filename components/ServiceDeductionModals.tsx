@@ -108,6 +108,7 @@ export function InvitationModal({ isOpen, memberName, memberId, memberSalesStaff
   const isLocked = !!memberSalesStaffId && !canOverrideInvitationSales
   const [guestName, setGuestName] = useState('')
   const [guestPhone, setGuestPhone] = useState('')
+  const [guestNationalId, setGuestNationalId] = useState('') // 🪪 الشخص الواحد ليه 3 دعوات بس
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [salesStaffId, setSalesStaffId] = useState<string>('')
@@ -161,6 +162,10 @@ export function InvitationModal({ isOpen, memberName, memberId, memberSalesStaff
       toast.warning(t('invitationModal.pleaseEnterGuestNameAndPhone'))
       return
     }
+    if (guestNationalId && guestNationalId.length !== 14) {
+      toast.warning(tr('الرقم القومي للضيف لازم يكون 14 رقم', 'Guest national ID must be 14 digits'))
+      return
+    }
 
     setSubmitting(true)
 
@@ -172,6 +177,7 @@ export function InvitationModal({ isOpen, memberName, memberId, memberSalesStaff
           memberId,
           guestName: guestName.trim(),
           guestPhone: guestPhone.trim(),
+          guestNationalId: guestNationalId || undefined,
           notes: notes.trim(),
           salesStaffId: salesStaffId || undefined
         })
@@ -197,6 +203,7 @@ export function InvitationModal({ isOpen, memberName, memberId, memberSalesStaff
   const handleClose = () => {
     setGuestName('')
     setGuestPhone('')
+    setGuestNationalId('')
     setNotes('')
     setSalesStaffId('')
     onClose()
@@ -269,6 +276,24 @@ export function InvitationModal({ isOpen, memberName, memberId, memberSalesStaff
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+              {tr('الرقم القومي للضيف', 'Guest national ID')} <span className="text-xs font-normal text-gray-500 dark:text-gray-400">{tr('(اختياري)', '(optional)')}</span>
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={14}
+              value={guestNationalId}
+              onChange={(e) => setGuestNationalId(e.target.value.replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660)).replace(/\D/g, '').slice(0, 14))}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 font-mono"
+              placeholder="14 رقم"
+              dir="ltr"
+              disabled={submitting}
+            />
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{tr('لو اتكتب: الشخص الواحد ليه 3 دعوات بس', 'If entered: max 3 invitations per person')}</p>
+          </div>
+
           {salesStaffList.length > 0 && (
             <div>
               <label className="flex items-center gap-1.5 text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
@@ -321,7 +346,7 @@ export function InvitationModal({ isOpen, memberName, memberId, memberSalesStaff
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={submitting || !guestName.trim() || !guestPhone.trim()}
+            disabled={submitting || !guestName.trim() || !guestPhone.trim() || (!!guestNationalId && guestNationalId.length !== 14)}
             className="flex-1 bg-primary-600 hover:bg-primary-700 text-primary-contrast py-2.5 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed font-bold text-sm transition-colors duration-200 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
           >
             {submitting ? (

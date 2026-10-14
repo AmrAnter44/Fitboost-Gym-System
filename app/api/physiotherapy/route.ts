@@ -11,7 +11,7 @@ import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
 import { getNextReceiptNumber, runReceiptTransaction } from '../../../lib/receiptHelpers'
-import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
+import { createAuditLog, getIpAddress, getUserAgent, buildFieldChanges } from '../../../lib/auditLog'
 import { computeUnpaidLockAt, isPaymentLocked, paymentLockMessage } from '../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
@@ -549,6 +549,7 @@ export async function PUT(request: Request) {
         updateData.expiryDate = new Date(data.expiryDate)
       }
 
+      const physioBefore = await prisma.physiotherapy.findUnique({ where: { physioNumber: parseInt(physioNumber) } })
       const physiotherapy = await prisma.physiotherapy.update({
         where: { physioNumber: parseInt(physioNumber) },
         data: updateData,
@@ -557,7 +558,7 @@ export async function PUT(request: Request) {
       createAuditLog({
         userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
         action: 'UPDATE', resource: 'Physiotherapy', resourceId: physiotherapy.physioNumber.toString(),
-        details: { operation: 'Update', physioNumber, clientName: physiotherapy.clientName, updatedFields: Object.keys(updateData) },
+        details: { operation: 'Update', physioNumber, clientName: physiotherapy.clientName, fieldChanges: await buildFieldChanges(physioBefore, updateData) },
         ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
       })
 

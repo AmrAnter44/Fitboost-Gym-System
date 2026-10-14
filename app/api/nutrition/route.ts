@@ -11,7 +11,7 @@ import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
 import { getNextReceiptNumber, runReceiptTransaction } from '../../../lib/receiptHelpers'
-import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
+import { createAuditLog, getIpAddress, getUserAgent, buildFieldChanges } from '../../../lib/auditLog'
 import { computeUnpaidLockAt, isPaymentLocked, paymentLockMessage } from '../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
@@ -471,7 +471,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     // ✅ التحقق من صلاحية تعديل Nutrition
-    await requirePermission(request, 'canEditNutrition')
+    const user = await requirePermission(request, 'canEditNutrition')
 
     const body = await request.json()
     const { nutritionNumber, action, ...data } = body
@@ -543,9 +543,17 @@ export async function PUT(request: Request) {
         updateData.expiryDate = new Date(data.expiryDate)
       }
 
+      const nutritionBefore = await prisma.nutrition.findUnique({ where: { nutritionNumber: parseInt(nutritionNumber) } })
       const nutrition = await prisma.nutrition.update({
         where: { nutritionNumber: parseInt(nutritionNumber) },
         data: updateData,
+      })
+
+      createAuditLog({
+        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+        action: 'UPDATE', resource: 'Nutrition', resourceId: String(nutrition.nutritionNumber),
+        details: { operation: 'Update', nutritionNumber: nutrition.nutritionNumber, clientName: nutrition.clientName, fieldChanges: await buildFieldChanges(nutritionBefore, updateData) },
+        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
       })
 
       return NextResponse.json(nutrition)

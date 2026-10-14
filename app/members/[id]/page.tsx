@@ -386,6 +386,7 @@ export default function MemberDetailPage() {
  const [invitationData, setInvitationData] = useState({
  guestName: '',
  guestPhone: '',
+ guestNationalId: '', // 🪪 الشخص الواحد ليه 3 دعوات بس
  notes: '',
  salesStaffId: ''
  })
@@ -1293,6 +1294,10 @@ export default function MemberDetailPage() {
  toast.warning(t('memberDetails.invitationModal.enterGuestInfo'))
  return
  }
+ if (invitationData.guestNationalId && invitationData.guestNationalId.length !== 14) {
+ toast.warning(tr('الرقم القومي للضيف لازم يكون 14 رقم', 'Guest national ID must be 14 digits'))
+ return
+ }
 
  setLoading(true)
 
@@ -1304,6 +1309,7 @@ export default function MemberDetailPage() {
  memberId: member.id,
  guestName: invitationData.guestName.trim(),
  guestPhone: invitationData.guestPhone.trim(),
+ guestNationalId: invitationData.guestNationalId || undefined,
  notes: invitationData.notes.trim() || undefined,
  salesStaffId: invitationData.salesStaffId || undefined
  })
@@ -1314,7 +1320,7 @@ export default function MemberDetailPage() {
  if (response.ok) {
  toast.success(t('memberDetails.invitationModal.invitationSuccess'))
 
- setInvitationData({ guestName: '', guestPhone: '', notes: '', salesStaffId: '' })
+ setInvitationData({ guestName: '', guestPhone: '', guestNationalId: '', notes: '', salesStaffId: '' })
  setActiveModal(null)
 
  fetchMember()
@@ -4234,7 +4240,7 @@ export default function MemberDetailPage() {
  onClick={(e) => {
  if (e.target === e.currentTarget) {
  setActiveModal(null)
- setInvitationData({ guestName: '', guestPhone: '', notes: '', salesStaffId: '' })
+ setInvitationData({ guestName: '', guestPhone: '', guestNationalId: '', notes: '', salesStaffId: '' })
  }
  }}
  >
@@ -4253,7 +4259,7 @@ export default function MemberDetailPage() {
  <button
  onClick={() => {
  setActiveModal(null)
- setInvitationData({ guestName: '', guestPhone: '', notes: '', salesStaffId: '' })
+ setInvitationData({ guestName: '', guestPhone: '', guestNationalId: '', notes: '', salesStaffId: '' })
  }}
  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-3xl leading-none shrink-0 mr-2"
  type="button"
@@ -4290,6 +4296,23 @@ export default function MemberDetailPage() {
  placeholder={t('memberDetails.invitationModal.guestPhonePlaceholder')}
  dir="ltr"
  />
+ </div>
+
+ <div>
+ <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+ {tr('الرقم القومي للضيف', 'Guest national ID')} <span className="text-xs text-gray-500 dark:text-gray-400">{tr('(اختياري)', '(optional)')}</span>
+ </label>
+ <input
+ type="text"
+ inputMode="numeric"
+ maxLength={14}
+ value={invitationData.guestNationalId}
+ onChange={(e) => setInvitationData({ ...invitationData, guestNationalId: e.target.value.replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660)).replace(/\D/g, '').slice(0, 14) })}
+ className="w-full px-4 py-3 ring-1 ring-gray-300 dark:ring-gray-600/60 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 font-mono"
+ placeholder="14 رقم"
+ dir="ltr"
+ />
+ <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{tr('لو اتكتب: الشخص الواحد ليه 3 دعوات بس', 'If entered: max 3 invitations per person')}</p>
  </div>
 
  {invitationSalesStaff.length > 0 && (() => {
@@ -4356,7 +4379,7 @@ export default function MemberDetailPage() {
  <button
  type="button"
  onClick={handleSubmitInvitation}
- disabled={loading || !invitationData.guestName.trim() || !invitationData.guestPhone.trim()}
+ disabled={loading || !invitationData.guestName.trim() || !invitationData.guestPhone.trim() || (!!invitationData.guestNationalId && invitationData.guestNationalId.length !== 14)}
  className="flex-1 bg-primary-600 text-primary-contrast py-2.5 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold text-sm"
  >
  {loading ? t('memberDetails.invitationModal.saving') : `${t('memberDetails.invitationModal.registerInvitation')}`}
@@ -4365,7 +4388,7 @@ export default function MemberDetailPage() {
  type="button"
  onClick={() => {
  setActiveModal(null)
- setInvitationData({ guestName: '', guestPhone: '', notes: '', salesStaffId: '' })
+ setInvitationData({ guestName: '', guestPhone: '', guestNationalId: '', notes: '', salesStaffId: '' })
  }}
  className="px-4 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold text-sm"
  >

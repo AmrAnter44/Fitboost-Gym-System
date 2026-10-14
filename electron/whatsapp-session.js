@@ -31,7 +31,11 @@ class WhatsAppSession {
     this.reconnecting = false;   // بيعيد الاتصال دلوقتي (بعد 515 مثلاً) — عشان الواجهة تقول «جاري الاتصال» مش «غير متصل»
     this.generation = 0;
     this.reconnectCount = 0;
-    this.MAX_RECONNECTS = 8;
+    this.MAX_RECONNECTS = 8;          // محاولات سريعة (backoff) — بعدها بنكمّل كل دقيقة، مش بنبطّل
+    this.SLOW_RETRY_MS = 60000;
+    this._retryTimer = null;          // المحاولة الجاية المتجدولة (بنلغيها لو حد عمل reset/stop)
+    this.lastDisconnect = null;       // آخر فصل { at, code, reason, kind }
+    this.disconnectHistory = [];      // آخر 10 فصلات — بتتحفظ على الديسك عشان تفضل بعد إعادة التشغيل
     this._cachedVersion = null;  // نكاش نسخة Baileys عشان الـ reconnect يبقى أسرع
     this.phoneNumber = null;
     this.broadcast = broadcast;
@@ -39,6 +43,8 @@ class WhatsAppSession {
 
     // Baileys version fallback
     this.BAILEYS_VERSION_FALLBACK = [2, 3000, 1023123128];
+
+    this._loadDisconnectHistory();
   }
 
   // ── HTTP helper to call Next.js internal API ────────────────────────────
@@ -69,7 +75,62 @@ class WhatsAppSession {
       phoneNumber: this.phoneNumber,
       //  جاري إعادة الاتصال (بعد 515 مثلاً) — الواجهة تعرضها كـ «جاري الاتصال» مش فصل
       reconnecting: this.reconnecting,
+      //  🔍 سبب آخر فصل + آخر 10 فصلات (عشان نعرف الواتساب بيخرج ليه)
+      lastDisconnect: this.lastDisconnect,
+      disconnectHistory: this.disconnectHistory,
     };
+  }
+
+  // ── 🔍 سجل أسباب الفصل ────────────────────────────────────────────────────
+  _historyFile() {
+    return path.join(this.authPath, 'disconnect-history.json');
+  }
+
+  _loadDisconnectHistory() {
+    try {
+      const raw = JSON.parse(fs.readFileSync(this._historyFile(), 'utf8'));
+      if (Array.isArray(raw)) {
+        this.disconnectHistory = raw.slice(0, 10);
+        this.lastDisconnect = this.disconnectHistory[0] || null;
+      }
+    } catch {}
+  }
+
+  _recordDisconnect(code, reason, kind) {
+    const entry = { at: new Date().toISOString(), code: code ?? null, reason: String(reason || '').slice(0, 300), kind };
+    this.lastDisconnect = entry;
+    this.disconnectHistory = [entry, ...this.disconnectHistory].slice(0, 10);
+    console.warn(`[WhatsApp:${this.sessionIndex}] disconnected — code=${entry.code} kind=${kind} reason=${entry.reason}`);
+    try {
+      this._ensureAuthDir();
+      fs.writeFileSync(this._historyFile(), JSON.stringify(this.disconnectHistory, null, 2));
+    } catch {}
+  }
+
+  // ── إعادة المحاولة: مابنبطّلش، ولو محاولة فشلت قبل ما الاتصال يتفتح بنجدول اللي بعدها ──
+  _clearRetry() {
+    if (this._retryTimer) { clearTimeout(this._retryTimer); this._retryTimer = null; }
+  }
+
+  _scheduleRetry(delay) {
+    this._clearRetry();
+    this._retryTimer = setTimeout(async () => {
+      this._retryTimer = null;
+      let result;
+      try { result = await this.initialize(); } catch (err) { result = { success: false, error: err?.message }; }
+      //  initialize() فشلت قبل ما تعمل socket (النت واقع مثلاً) → مفيش حدث close هييجي،
+      //  فلازم نجدول المحاولة الجاية بنفسنا بدل ما الجلسة تفضل معلّقة على «جاري الاتصال»
+      if (result && !result.success && result.error !== 'Already connected' && result.error !== 'Already initializing') {
+        this.reconnectCount++;
+        this._scheduleRetry(this._nextDelay());
+      }
+    }, delay);
+  }
+
+  _nextDelay() {
+    // أول 8 محاولات: 1.5ث، 3ث، 6ث ... لحد 30ث — بعدها كل دقيقة لحد ما يرجع
+    if (this.reconnectCount <= this.MAX_RECONNECTS) return Math.min(1500 * Math.pow(2, Math.max(0, this.reconnectCount - 1)), 30000);
+    return this.SLOW_RETRY_MS;
   }
 
   async initialize() {
@@ -169,6 +230,7 @@ class WhatsAppSession {
           this.qrCode = null;
           this.reconnecting = false;
           this.reconnectCount = 0;
+          this._clearRetry();
 
           // Extract phone number
           if (this.sock?.user?.id) {
@@ -196,30 +258,36 @@ class WhatsAppSession {
           const { DisconnectReason } = this.loadDeps();
 
           if (code === DisconnectReason.loggedOut) {
-            //  تسجيل خروج فعلي → محتاج QR جديد
+            //  تسجيل خروج فعلي (الجهاز اتشال من الموبايل / واتساب شاله) → محتاج QR جديد
+            this._recordDisconnect(code, reason, 'logged_out');
+            this._clearRetry();
             this.reconnecting = false;
             this._deleteCreds();
             this.reconnectCount = 0;
             this._api('update-session', { sessionIndex: idx, status: 'disconnected' });
             this.broadcast('disconnected', { reason: 'Logged out', sessionIndex: idx });
+          } else if (code === DisconnectReason.connectionReplaced) {
+            //  نفس الجلسة اتفتحت في مكان تاني — لو رجعنا نتصل هنطرد التانية وهي تطردنا (لفّة مالهاش آخر)
+            this._recordDisconnect(code, reason, 'replaced');
+            this._clearRetry();
+            this.reconnecting = false;
+            this.reconnectCount = 0;
+            this._api('update-session', { sessionIndex: idx, status: 'disconnected' });
+            this.broadcast('disconnected', { reason: 'Connection replaced', sessionIndex: idx });
           } else if (code === DisconnectReason.restartRequired || code === 515) {
             //  ده طبيعي بعد أول مسح — إعادة اتصال سريعة، والواجهة تفضل «جاري الاتصال»
             this.reconnecting = true;
             this._api('update-session', { sessionIndex: idx, status: 'connecting' });
             this.broadcast('connecting', { percent: 60, message: 'Reconnecting...', sessionIndex: idx })
-            setTimeout(() => this.initialize(), 800);
-          } else if (this.reconnectCount < this.MAX_RECONNECTS) {
+            this._scheduleRetry(800);
+          } else {
+            //  أي سبب تاني (نت، سيرفر واتساب، timeout...) → نفضل نحاول: سريع الأول وبعدين كل دقيقة
+            this._recordDisconnect(code, reason, 'network');
             this.reconnecting = true;
             this.reconnectCount++;
             this._api('update-session', { sessionIndex: idx, status: 'connecting' });
             this.broadcast('connecting', { percent: 40, message: 'Reconnecting...', sessionIndex: idx })
-            const delay = Math.min(1500 * Math.pow(2, this.reconnectCount - 1), 30000);
-            setTimeout(() => this.initialize(), delay);
-          } else {
-            this.reconnecting = false;
-            this.reconnectCount = 0;
-            this._api('update-session', { sessionIndex: idx, status: 'disconnected' });
-            this.broadcast('disconnected', { reason: 'Max reconnects reached', sessionIndex: idx });
+            this._scheduleRetry(this._nextDelay());
           }
         }
       });
@@ -330,6 +398,7 @@ class WhatsAppSession {
 
     } catch (err) {
       console.error(`[WhatsApp:${idx}] initialize() failed:`, err.message);
+      this._recordDisconnect(null, `initialize failed: ${err.message}`, 'init_failed');
       this.sock = null;
       this.isReady = false;
       return { success: false, error: err.message };
@@ -339,6 +408,8 @@ class WhatsAppSession {
   }
 
   _closeSocket() {
+    this._clearRetry();
+    this.reconnecting = false;
     this.generation++;
     const old = this.sock;
     this.sock = null;
@@ -368,6 +439,8 @@ class WhatsAppSession {
         fs.rmSync(this.authPath, { recursive: true, force: true });
         fs.mkdirSync(this.authPath, { recursive: true });
       }
+      //  سجل أسباب الفصل بيفضل بعد إعادة التعيين (مفيد للتشخيص)
+      if (this.disconnectHistory.length) fs.writeFileSync(this._historyFile(), JSON.stringify(this.disconnectHistory, null, 2));
     } catch {}
     this.reconnectCount = 0;
     this.phoneNumber = null;

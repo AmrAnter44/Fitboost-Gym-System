@@ -13,7 +13,7 @@ import { logError } from '../../../lib/errorLogger'
 import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment, addPoints } from '../../../lib/points'
 import { getNextReceiptNumber, runReceiptTransaction, PaymentValidationError } from '../../../lib/receiptHelpers'
-import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
+import { createAuditLog, getIpAddress, getUserAgent, buildFieldChanges } from '../../../lib/auditLog'
 import { memberCreateSchema, formatZodError } from '../../../lib/schemas/memberSchema'
 import { memberPhotoUrl } from '../../../lib/memberPhoto'
 import { sweepDuePendingRenewals } from '../../../lib/pendingRenewal'
@@ -1128,6 +1128,9 @@ export async function PUT(request: Request) {
       oldPhoneForPT = cur?.phone ?? null
     }
 
+    //  🔍 للسجل: القيم قبل التعديل (عشان نعرض «من … إلى …»)
+    const memberBefore = await prisma.member.findUnique({ where: { id } })
+
     const member = await prisma.$transaction(async (tx) => {
       const updated = await tx.member.update({
         where: { id },
@@ -1254,7 +1257,7 @@ export async function PUT(request: Request) {
       details: {
         memberNumber: member.memberNumber,
         name: member.name,
-        changes: Object.keys(updateData),
+        fieldChanges: await buildFieldChanges(memberBefore, updateData),
         ...(salesStaffChange ? { salesStaffChange } : {}),
         ...(receiptsSynced > 0 ? { receiptsSynced } : {})
       },

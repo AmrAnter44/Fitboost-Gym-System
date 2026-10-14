@@ -90,7 +90,7 @@ function labelFromDetails(log: LogRow): string | null {
   if (!log.details) return null
   try {
     const details = JSON.parse(log.details)
-    const name = details.memberName || details.name || details.resourceName || details.targetUser || details.attemptedEmail || null
+    const name = details.memberName || details.name || details.clientName || details.resourceName || details.targetUser || details.attemptedEmail || null
     const number = details.memberNumber ? ` (#${details.memberNumber})` : ''
     if (name) return `${name}${number}`
     if (details.receiptNumber) return `#${details.receiptNumber}`
