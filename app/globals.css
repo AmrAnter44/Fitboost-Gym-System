@@ -1208,3 +1208,23 @@ table {
 .toggle-switch:active .toggle-thumb {
   width: 1.75rem;
 }
+
+/* 💬 خلفية شات الدعم الفني (/support) — نقش خفيف شبه واتساب، CSS بس */
+.fb-wa-bg {
+  background-color: #efeae2;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(84, 101, 111, 0.11) 1px, transparent 1.4px),
+    radial-gradient(circle at 1px 1px, rgba(84, 101, 111, 0.07) 1px, transparent 1.4px),
+    repeating-linear-gradient(45deg, rgba(84, 101, 111, 0.025) 0 1px, transparent 1px 14px);
+  background-size: 24px 24px, 24px 24px, auto;
+  background-position: 0 0, 12px 12px, 0 0;
+}
+.dark .fb-wa-bg {
+  background-color: #0b141a;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 1.4px),
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.03) 1px, transparent 1.4px),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.015) 0 1px, transparent 1px 14px);
+  background-size: 24px 24px, 24px 24px, auto;
+  background-position: 0 0, 12px 12px, 0 0;
+}
