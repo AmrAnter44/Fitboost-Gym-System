@@ -92,14 +92,67 @@ try {
     if (-not (Test-Path $exe)) { throw 'التسطيب مخلصش' }
     Start-Sleep 6
   }
+  # 1) خدمة RustDesk لازم تكون شغالة قبل أي ظبط — غير كده أمر الباسورد بيتجاهل في صمت
+  function Wait-RdService {
+    for ($w = 0; $w -lt 20; $w++) {
+      $svc = Get-Service -Name 'RustDesk' -ErrorAction SilentlyContinue
+      if ($svc -and $svc.Status -eq 'Running') { return $true }
+      if ($svc) { try { Start-Service -Name 'RustDesk' -ErrorAction SilentlyContinue } catch {} }
+      else { try { & $exe --install-service | Out-Null } catch {} }
+      Start-Sleep 2
+    }
+    return $false
+  }
+  if (-not (Wait-RdService)) { throw 'خدمة RustDesk مش راضية تشتغل' }
+
+  # 2) السيرفر بتاعنا لازم يكون متوصل — غير كده الـ ID مش هيشتغل من برّه
+  $ok = $false
+  for ($n = 0; $n -lt 3 -and -not $ok; $n++) {
+    try { $c = New-Object Net.Sockets.TcpClient; $a = $c.BeginConnect('${SERVER_HOST}', 21116, $null, $null); $ok = $a.AsyncWaitHandle.WaitOne(4000) -and $c.Connected; $c.Close() } catch { $ok = $false }
+    if (-not $ok) { Start-Sleep 2 }
+  }
+  if (-not $ok) { throw 'الجهاز مش قادر يوصل لسيرفر الدعم (بورت 21116) — راجع النت أو الفايروول' }
+
   & $exe --config ${q(SERVER_CONFIG)} | Out-Null
   Start-Sleep 2
-  & $exe --password ${q(pw)} | Out-Null
-  Start-Sleep 2
+
+  # 3) الباسورد الثابت + التأكد إنه اتسجل فعلاً في كونفيج الخدمة
+  $cfgs = @(
+    (Join-Path $env:WINDIR 'ServiceProfiles\\LocalService\\AppData\\Roaming\\RustDesk\\config\\RustDesk.toml'),
+    (Join-Path $env:WINDIR 'System32\\config\\systemprofile\\AppData\\Roaming\\RustDesk\\config\\RustDesk.toml')
+  )
+  function Get-RdPw {
+    foreach ($f in $cfgs) {
+      if (Test-Path $f) {
+        $m = Select-String -Path $f -Pattern "^\\s*password\\s*=\\s*['""](.*)['""]" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($m) { return $m.Matches[0].Groups[1].Value }
+      }
+    }
+    return ''
+  }
+  $before = Get-RdPw
+  $set = $false
+  for ($k = 0; $k -lt 3 -and -not $set; $k++) {
+    & $exe --password ${q(pw)} | Out-Null
+    Start-Sleep 3
+    $after = Get-RdPw
+    # لو مفيش ملف كونفيج في المكانين المعروفين (نسخة RustDesk مختلفة) مانقدرش نتأكد → نعتمد على الأمر
+    $haveCfg = $false; foreach ($f in $cfgs) { if (Test-Path $f) { $haveCfg = $true } }
+    if (-not $haveCfg) { $set = $true; break }
+    if ($after -and $after -ne $before) { $set = $true }
+    elseif ($after -and -not $before -and $k -gt 0) { $set = $true }
+    else {
+      try { Restart-Service -Name 'RustDesk' -ErrorAction SilentlyContinue } catch {}
+      [void](Wait-RdService); Start-Sleep 3
+    }
+  }
+  if (-not $set) { throw 'الباسورد ماتسجلش في RustDesk — جرّب تاني' }
   & $exe --option verification-method use-permanent-password | Out-Null
   Start-Sleep 3
+
+  # 4) رقم الجهاز
   $id = ''
-  for ($i = 0; $i -lt 10 -and -not $id; $i++) { $id = (& $exe --get-id | Out-String).Trim(); if (-not $id) { Start-Sleep 2 } }
+  for ($i = 0; $i -lt 15 -and -not $id; $i++) { $id = (& $exe --get-id | Out-String).Trim(); if ($id -notmatch '^\\d{6,12}$') { $id = ''; Start-Sleep 2 } }
   if (-not $id) { throw 'مقدرتش أقرا رقم الجهاز' }
   Set-Content -Path $out -Value ('OK:' + $id) -Encoding UTF8
 } catch {
