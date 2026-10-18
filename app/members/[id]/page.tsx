@@ -2863,8 +2863,12 @@ export default function MemberDetailPage() {
  {/* حصص الدخول المتبقية — تظهر بس لو الباقة محدودة الدخلات (remainingCheckIns != null) */}
  {(member as any).remainingCheckIns !== null && (member as any).remainingCheckIns !== undefined && (() => {
  const remainingCI = Number((member as any).remainingCheckIns) || 0
- const totalCI = Number((member as any).offerBenefits?.maxCheckIns) || 0
- const usedCI = totalCI > 0 ? Math.max(0, totalCI - remainingCI) : 0
+ //  المستخدم = الدخلات المتسجلة فعلاً من بداية الاشتراك (من السيرفر)، والإجمالي = المستخدم + المتبقي.
+ //  قبل كده كان بيعتمد على الباقة بس، فلو الباقة اتمسحت/اتعدّلت أو العضو مالوش باقة كان «استخدم X من Y» بيختفي.
+ const usedFromServer = (member as any).checkInsUsedThisSub
+ const offerMax = Number((member as any).offerBenefits?.maxCheckIns) || 0
+ const usedCI = typeof usedFromServer === 'number' ? usedFromServer : (offerMax > 0 ? Math.max(0, offerMax - remainingCI) : 0)
+ const totalCI = typeof usedFromServer === 'number' ? usedFromServer + remainingCI : offerMax
  return (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-orange-500`}>
  <div className="flex items-center justify-between mb-2">

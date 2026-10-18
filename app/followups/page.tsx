@@ -3357,12 +3357,23 @@ function FollowUpsPageContent() {
                         const fid = followUp.id
                         let entityType: AssignEntityType | null = null
                         let entityId = ''
-                        if (isExpired) {
-                          entityType = 'member'
-                          entityId = fid.replace(/^expired-/, '')
-                        } else if (isExpiring) {
-                          entityType = 'member'
-                          entityId = fid.replace(/^expiring-/, '')
+                        if (isExpired || isExpiring) {
+                          //  🐛 الكارت ممكن يكون متابعة حقيقية متسجلة (id عادي مش "expired-<id>") —
+                          //     ساعتها نجيب العضو بالتليفون بدل ما نقص الـ prefix (كان بيطلّع «العضو غير موجود»)
+                          const prefix = isExpired ? 'expired-' : 'expiring-'
+                          const byPhone = !fid.startsWith(prefix) && followUp.visitor?.phone
+                            ? (allMembersData as any[]).find(m => m.phone === followUp.visitor.phone)
+                            : null
+                          if (fid.startsWith(prefix)) {
+                            entityType = 'member'
+                            entityId = fid.slice(prefix.length)
+                          } else if (byPhone) {
+                            entityType = 'member'
+                            entityId = byPhone.id
+                          } else if (followUp.visitor?.id) {
+                            entityType = 'visitor'
+                            entityId = followUp.visitor.id
+                          }
                         } else if (fid.startsWith('dayuse-')) {
                           entityType = 'dayuse'
                           entityId = fid.replace('dayuse-', '')

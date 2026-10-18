@@ -116,6 +116,15 @@ export async function GET(
       where: { memberId: member.id, isFreeSession: true }
     })
 
+    //  🎟️ الدخلات اللي اتسجلت فعلاً من بداية الاشتراك الحالي — عشان «استخدم X من Y» يطلع صح
+    //     حتى لو الباقة اتمسحت/اتعدّلت أو الدخلات اتجمعت من تجديدات قبل كده (من غير ما نعتمد على الباقة)
+    let checkInsUsedThisSub: number | null = null
+    if ((member as any).remainingCheckIns !== null && (member as any).remainingCheckIns !== undefined) {
+      checkInsUsedThisSub = await prisma.memberCheckIn.count({
+        where: { memberId: member.id, ...(member.startDate ? { checkInTime: { gte: new Date(member.startDate) } } : {}) },
+      })
+    }
+
     // 📦 الأصل الممنوح من الباقة — للخدمات اللي مبيتعملهاش سجل استخدام (زي الانبودي)
     //    عشان نقدر نعرض "استخدم X من Y" تقريبيًا. مفيش علاقة رسمية فبنجيبها بالـ id.
     let offerBenefits: any = null
@@ -174,6 +183,7 @@ export async function GET(
       referredMembersCount: referredMembers.length,
       freePTSessionsUsed,
       offerBenefits,
+      checkInsUsedThisSub,
       transferredFrom,
       pendingRenewal,
     }, { status: 200 })

@@ -92,18 +92,32 @@ export async function GET(request: Request) {
     //  رقم العضوية بيتجاب live عشان يفضل متطابق مع الميمبر حتى لو اتعدّل بعد إنشاء الـ PT
     //  ⚠️ متغطّى بـ try/catch لنفس السبب: لو DB الإنتاج لسه ماعندهاش عمود memberNumber/profileImage
     //  بعد رفع الابديت، نرجّع الاشتراكات من غير الصور/الأرقام بدل ما نكسر الصفحة كلها.
-    const phoneToMember = new Map<string, any>()
+    //  🔎 المطابقة بالتليفون بعد تنضيفه (من غير مسافات/شرط/20+) + التليفون الاحتياطي —
+    //     قبل كده كانت حرف بحرف، فلو التليفون متكتب مختلف كان بيظهر رقم الـ PT مكان رقم العضوية
+    const phoneKey = (p: string | null | undefined) => {
+      const d = String(p || '').replace(/\D/g, '')
+      return d.length >= 10 ? d.slice(-10) : ''
+    }
+    const exactPhone = new Map<string, any>()
+    const byKey = new Map<string, any>()
+    const byBackupKey = new Map<string, any>()
     try {
-      const phones = ptSessions.map(s => s.phone).filter(Boolean)
-      const membersByPhone = phones.length > 0
-        ? await prisma.member.findMany({
-            where: { phone: { in: phones } },
-            select: { id: true, phone: true, profileImage: true, memberNumber: true, inBodyScans: true, freeAssessmentSessions: true }
-          })
-        : []
-      for (const m of membersByPhone) phoneToMember.set(m.phone, m)
+      if (ptSessions.length > 0) {
+        const allMembers = await prisma.member.findMany({
+          select: { id: true, phone: true, backupPhone: true, profileImage: true, memberNumber: true, inBodyScans: true, freeAssessmentSessions: true }
+        })
+        for (const m of allMembers) {
+          if (m.phone) exactPhone.set(m.phone, m)
+          const k = phoneKey(m.phone); if (k && !byKey.has(k)) byKey.set(k, m)
+          const bk = phoneKey((m as any).backupPhone); if (bk && !byBackupKey.has(bk)) byBackupKey.set(bk, m)
+        }
+      }
     } catch (e) {
       // نكمّل من غير بيانات الميمبر
+    }
+    const memberForPhone = (phone: string) => {
+      const k = phoneKey(phone)
+      return exactPhone.get(phone) || (k ? byKey.get(k) || byBackupKey.get(k) : undefined)
     }
 
     //  🔁 التجديدات المؤجّلة (عمود pendingRenewalData جديد — raw SQL لأن الـ client ممكن يكون قديم)
@@ -118,7 +132,7 @@ export async function GET(request: Request) {
     } catch { /* العمود ممكن يكون لسه مش موجود — عادي */ }
 
     const sessionsWithImages = ptSessions.map(s => {
-      const mem = phoneToMember.get(s.phone)
+      const mem = memberForPhone(s.phone)
       return {
         ...s,
         profileImage: mem?.profileImage || null,

@@ -1755,7 +1755,7 @@ function PTPageContent() {
                             )}
                           </div>
                           <div className="text-white/80 text-xs">
-                            {session.ptNumber < 0 ? 'Day Use' : `#${session.memberNumber ?? session.ptNumber}`} • {session.phone}
+                            {session.ptNumber < 0 ? 'Day Use' : (session.memberNumber != null ? `#${session.memberNumber}` : `PT #${session.ptNumber}`)} • {session.phone}
                           </div>
                         </div>
                       </div>
