@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
-import { phoneTail, samePhone } from '@/lib/memberVerify';
+import { phoneTail, samePhone, packageId } from '@/lib/memberVerify';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,6 +61,17 @@ export async function POST(request: NextRequest) {
     });
     const member = candidate && samePhone(candidate.phone, phoneNumber) ? candidate : null;
 
+    // 🎟️ مفيش عضو بالرقم ده؟ نجرّب عملاء الحصص المخصصة (PT) / خدمات المزيد (More).
+    // بس لو الأبلكيشن قال إنه بيدعم الوضع ده (allowPackageLogin) — النسخ القديمة
+    // من الأبلكيشن لو دخلت بـ id زي "pt_5" هتاخد 401 من /profile وتعمل logout
+    // على طول، فالأحسن تفضل تشوف "البيانات غير صحيحة" زي ما كانت.
+    if (!member && body?.allowPackageLogin === true) {
+      const pkg = await findPackageLogin(String(memberNumber).trim(), phoneNumber);
+      if (pkg) {
+        return NextResponse.json({ success: true, member: pkg });
+      }
+    }
+
     if (!member) {
       return NextResponse.json(
         { success: false, error: 'البيانات غير صحيحة' },
@@ -77,6 +88,7 @@ export async function POST(request: NextRequest) {
         profileImage: member.profileImage,
         // 📜 null = العضو لسه ماوافقش على الشروط — التطبيق بيعرضها له بعد اللوجن
         termsAcceptedAt: member.termsAcceptedAt,
+        kind: 'member',
       },
     });
   } catch (error) {
@@ -86,4 +98,80 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * 🎟️ لوجن عميل حصص بس: رقم الـ PT (أو More) + تليفون مطابق.
+ * - لو فيه عضو (Member) بنفس التليفون → بنرجّع العضو ده (بياخد الأبلكيشن كامل).
+ * - غير كده بنرجّع payload بنفس شكل العضو عشان الأبلكيشن مايتلخبطش،
+ *   والـ id = "pt_<n>" / "more_<n>" و kind = 'pt' | 'more'.
+ * الدخول مش بيتقفل لما الحصص تخلص أو تنتهي — العميل بيشوف السجل + عروض التجديد.
+ */
+async function findPackageLogin(number: string, phoneNumber: unknown) {
+  if (!/^\d{1,9}$/.test(number)) return null;
+  const n = Number(number);
+  if (!Number.isSafeInteger(n) || n <= 0) return null;
+
+  let kind: 'pt' | 'more' | null = null;
+  let rec: { phone: string; clientName: string } | null = null;
+
+  const pt = await prisma.pT.findUnique({ where: { ptNumber: n }, select: { phone: true, clientName: true } });
+  if (pt && samePhone(pt.phone, phoneNumber)) {
+    kind = 'pt';
+    rec = pt;
+  } else {
+    const more = await prisma.more.findUnique({ where: { moreNumber: n }, select: { phone: true, clientName: true } });
+    if (more && samePhone(more.phone, phoneNumber)) {
+      kind = 'more';
+      rec = more;
+    }
+  }
+  if (!kind || !rec) return null;
+
+  // 👤 عنده عضوية بنفس التليفون؟ ندخّله كعضو عادي (الأفضلية للعضو النشط ثم الأحدث)
+  const tail = phoneTail(phoneNumber);
+  if (tail) {
+    const sameMembers = (
+      await prisma.member.findMany({
+        where: { phone: { contains: tail } },
+        select: {
+          id: true,
+          memberNumber: true,
+          name: true,
+          profileImage: true,
+          isActive: true,
+          termsAcceptedAt: true,
+          phone: true,
+          expiryDate: true,
+        },
+        take: 10,
+      })
+    ).filter((m) => samePhone(m.phone, phoneNumber));
+    if (sameMembers.length) {
+      sameMembers.sort(
+        (a, b) =>
+          Number(b.isActive) - Number(a.isActive) ||
+          (b.expiryDate?.getTime() ?? 0) - (a.expiryDate?.getTime() ?? 0)
+      );
+      const m = sameMembers[0];
+      return {
+        id: m.id,
+        memberNumber: m.memberNumber,
+        name: m.name,
+        profileImage: m.profileImage,
+        termsAcceptedAt: m.termsAcceptedAt,
+        kind: 'member' as const,
+      };
+    }
+  }
+
+  return {
+    id: packageId(kind, n),
+    memberNumber: String(n),
+    name: rec.clientName,
+    profileImage: null,
+    // مفيش عمود موافقة على الشروط في PT/More — الأبلكيشن بيعرض الشروط ويسجّلها محلياً
+    termsAcceptedAt: null,
+    kind,
+  };
 }

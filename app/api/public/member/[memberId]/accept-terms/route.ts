@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
-import { verifyMemberPhone, memberPhoneFrom } from '@/lib/memberVerify';
+import { verifyMemberPhone, memberPhoneFrom, parsePackageId, verifyPackagePhone } from '@/lib/memberVerify';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +28,15 @@ export async function POST(
 
     const { memberId } = await params;
     const payload = await request.json().catch(() => ({}));
+
+    // 🎟️ عميل حصص بس (pt_N / more_N): مفيش عمود موافقة في PT/More ومش عايزين نغيّر
+    // طريقة تسجيلهم — بنأكد الملكية ونرجّع نجاح، والأبلكيشن بيحفظ الموافقة محلياً.
+    if (parsePackageId(memberId)) {
+      if (!(await verifyPackagePhone(memberId, memberPhoneFrom(request, payload?.phoneNumber)))) {
+        return NextResponse.json({ error: 'يجب إدخال رقم هاتفك لتأكيد العملية' }, { status: 401 });
+      }
+      return NextResponse.json({ success: true, termsAcceptedAt: new Date(), persisted: false });
+    }
 
     // 🔒 تأكيد الملكية برقم الهاتف (ضد الـ IDOR)
     if (!(await verifyMemberPhone(memberId, memberPhoneFrom(request, payload?.phoneNumber)))) {

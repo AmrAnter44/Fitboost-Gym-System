@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Expo } from 'expo-server-sdk';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
-import { verifyMemberPhone, memberPhoneFrom } from '@/lib/memberVerify';
+import { verifyMemberPhone, memberPhoneFrom, parsePackageId } from '@/lib/memberVerify';
 
 export async function POST(
   request: NextRequest,
@@ -23,7 +23,14 @@ export async function POST(
     }
 
     const { memberId } = await params;
-    const body = await request.json();
+
+    // 🎟️ عملاء الحصص بس (pt_N / more_N): مفيش مكان للتوكن في PT/More حالياً —
+    // بنتجاهل الطلب بهدوء بدل 401/500 (الإشعارات للأعضاء بس دلوقتي).
+    if (parsePackageId(memberId)) {
+      return NextResponse.json({ success: true, skipped: true });
+    }
+
+    const body = await request.json().catch(() => ({} as any));
     const { pushToken, phoneNumber } = body;
 
     // 🔒 تأكيد الملكية برقم الهاتف (ضد الـ IDOR: منع تحويل إشعارات أي عضو)
@@ -95,6 +102,9 @@ export async function DELETE(
     }
 
     const { memberId } = await params;
+    if (parsePackageId(memberId)) {
+      return NextResponse.json({ success: true, removed: false, skipped: true });
+    }
     const body = await request.json().catch(() => ({} as any));
 
     if (!(await verifyMemberPhone(memberId, memberPhoneFrom(request, body?.phoneNumber)))) {

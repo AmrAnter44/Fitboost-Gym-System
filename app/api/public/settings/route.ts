@@ -20,7 +20,9 @@ const DEFAULTS = {
   // memberPhoneHeader = بيقبل رقم العضو في هيدر x-member-phone بدل ?phone= في الرابط
   // spaCancel = فيه مسار إلغاء حجز الاسبا للعضو
   // pushTokenDelete = بيشيل توكن الإشعارات عند تسجيل الخروج
-  capabilities: { memberPhoneHeader: true, spaCancel: true, pushTokenDelete: true },
+  // sessionsOnlyLogin = عملاء الحصص المخصصة/المزيد من غير عضوية يقدروا يدخلوا (id = pt_N / more_N)
+  //                     + مسار /member/[id]/sessions-package لعرض باقاتهم
+  capabilities: { memberPhoneHeader: true, spaCancel: true, pushTokenDelete: true, sessionsOnlyLogin: true },
 }
 
 export async function GET(request: NextRequest) {

@@ -46,3 +46,46 @@ export async function verifyMemberPhone(memberId: string, phoneNumber: unknown):
   })
   return !!member && samePhone(member.phone, phoneNumber)
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 🎟️ دخول عملاء الحصص المخصصة (PT) وخدمات المزيد (More) من غير عضوية
+//
+// العميل اللي اشترى حصص بس (من غير Member) بيدخل الأبلكيشن برقم الـ PT/More +
+// تليفونه، والسيرفر بيرجّعله id شكله "pt_<ptNumber>" أو "more_<moreNumber>".
+// مسارات الأعضاء العادية بترفض الـ ids دي تلقائياً (verifyMemberPhone بيدوّر في
+// جدول Member بس)، والمسارات اللي تدعمها بتستخدم الدوال اللي تحت.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type PackageKind = 'pt' | 'more'
+
+/** "pt_12" → { kind: 'pt', number: 12 } — أي حاجة تانية (cuid عضو عادي) → null */
+export function parsePackageId(id: unknown): { kind: PackageKind; number: number } | null {
+  if (typeof id !== 'string') return null
+  const m = /^(pt|more)_(\d{1,9})$/.exec(id)
+  if (!m) return null
+  const number = Number(m[2])
+  if (!Number.isSafeInteger(number) || number <= 0) return null
+  return { kind: m[1] as PackageKind, number }
+}
+
+export function packageId(kind: PackageKind, number: number): string {
+  return `${kind}_${number}`
+}
+
+/**
+ * 🔒 نفس فكرة verifyMemberPhone بس لـ ids الباقات: الرقم اللي اتبعت لازم يطابق
+ * تليفون سجلّ الـ PT/More. بيرجّع بيانات السجل (أو null لو مش مطابق).
+ */
+export async function verifyPackagePhone(
+  id: string,
+  phoneNumber: unknown
+): Promise<{ kind: PackageKind; number: number; phone: string; clientName: string } | null> {
+  const parsed = parsePackageId(id)
+  if (!parsed || !phoneTail(phoneNumber)) return null
+  const rec =
+    parsed.kind === 'pt'
+      ? await prisma.pT.findUnique({ where: { ptNumber: parsed.number }, select: { phone: true, clientName: true } })
+      : await prisma.more.findUnique({ where: { moreNumber: parsed.number }, select: { phone: true, clientName: true } })
+  if (!rec || !samePhone(rec.phone, phoneNumber)) return null
+  return { ...parsed, phone: rec.phone, clientName: rec.clientName }
+}
