@@ -201,7 +201,7 @@ async function main() {
   // ---- حسابات الدخول
   const USERS = [
     { email: 'owner@demo.local', name: 'مالك النظام (ديمو)', role: 'OWNER' },
-    { email: 'manager@demo.local', name: 'مدير الجيم (ديمو)', role: 'MANAGER', staff: staff[0] },
+    { email: 'manager@demo.local', name: 'مدير الجيم (ديمو)', role: 'ADMIN', staff: staff[0] },
     { email: 'reception@demo.local', name: 'ريسبشن (ديمو)', role: 'STAFF', staff: reception[0] },
     { email: 'coach@demo.local', name: 'كوتش (ديمو)', role: 'COACH', staff: coaches[0] },
     { email: 'sales@demo.local', name: 'سيلز (ديمو)', role: 'STAFF', staff: salesStaff[0], isSales: true },
