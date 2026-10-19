@@ -328,6 +328,14 @@ export default function VisitorsPage() {
         setShowForm(false)
       } else {
         toast.error(data.error || t('visitors.messages.addError'))
+        //  🔎 الرقم موجود → نوديك عليه على طول (مفيش «موجود» ومش لاقيه)
+        if (response.status === 409 && data.existingVisitor) {
+          setShowForm(false)
+          router.push(`/followups?view=list&search=${encodeURIComponent(formData.phone)}`)
+        } else if (response.status === 409 && data.existingMember?.id) {
+          setShowForm(false)
+          router.push(`/members/${data.existingMember.id}`)
+        }
       }
     } catch (error) {
       console.error(error)

@@ -1181,6 +1181,13 @@ function FollowUpsPageContent() {
       setSalesFilter('my-due')
       router.replace('/followups', { scroll: false })
     }
+    //  🔎 جاي من «الرقم ده مسجل كزائر» → افتح القايمة وابحث بالرقم عشان الزائر يبان قدامك على طول
+    const q = searchParams.get('search')
+    if (q) {
+      setViewMode('list')
+      setSearchTerm(q)
+      router.replace('/followups', { scroll: false })
+    }
   }, [searchParams, router])
 
   //  Deep-link من الـ Dashboard smart search — يفتح modal الزائر فور التحميل
@@ -1357,6 +1364,8 @@ function FollowUpsPageContent() {
         const matchesSearch =
           normalizeArabic(fu.visitor.name).includes(searchNormalized) ||
           fu.visitor.phone.includes(debouncedSearchTerm) ||
+          //  📞 التليفون بالأرقام بس — يلاقي الرقم حتى لو متسجل بمسافات أو +20
+          (digitsOnly(debouncedSearchTerm).length >= 4 && digitsOnly(fu.visitor.phone).includes(digitsOnly(debouncedSearchTerm).replace(/^20(?=1)/, '').replace(/^0/, ''))) ||
           normalizeArabic(fu.notes).includes(searchNormalized) ||
           (fu.salesName && normalizeArabic(fu.salesName).includes(searchNormalized))
 
@@ -1851,6 +1860,8 @@ function FollowUpsPageContent() {
         const ok =
           normalizeArabic(fu.visitor.name).includes(searchNormalized) ||
           fu.visitor.phone.includes(debouncedSearchTerm) ||
+          //  📞 التليفون بالأرقام بس — يلاقي الرقم حتى لو متسجل بمسافات أو +20
+          (digitsOnly(debouncedSearchTerm).length >= 4 && digitsOnly(fu.visitor.phone).includes(digitsOnly(debouncedSearchTerm).replace(/^20(?=1)/, '').replace(/^0/, ''))) ||
           normalizeArabic(fu.notes).includes(searchNormalized) ||
           (fu.salesName && normalizeArabic(fu.salesName).includes(searchNormalized))
         if (!ok) continue
@@ -1931,6 +1942,8 @@ function FollowUpsPageContent() {
       const matchesSearch =
         normalizeArabic(fu.visitor.name).includes(searchNormalized) ||
         fu.visitor.phone.includes(debouncedSearchTerm) ||
+          //  📞 التليفون بالأرقام بس — يلاقي الرقم حتى لو متسجل بمسافات أو +20
+          (digitsOnly(debouncedSearchTerm).length >= 4 && digitsOnly(fu.visitor.phone).includes(digitsOnly(debouncedSearchTerm).replace(/^20(?=1)/, '').replace(/^0/, ''))) ||
         normalizeArabic(fu.notes).includes(searchNormalized) ||
         (fu.salesName && normalizeArabic(fu.salesName).includes(searchNormalized))
 

@@ -127,20 +127,24 @@ export async function POST(request: Request) {
     }
 
     // التحقق من أن رقم الهاتف ليس مسجلاً كعضو
-    const existingMember = await prisma.member.findFirst({
-      where: {
-        OR: [
-          { phone: phone.trim() },
-          { backupPhone: phone.trim() },
-        ],
-      },
-      select: { id: true, name: true, memberNumber: true, isActive: true },
-    })
+    //  🐛 بالأرقام بس (من غير مسافات/شرط/+20) — قبل كده كانت حرف بحرف، فلو العضو متسجل بصيغة تانية
+    //     (+20 1xx...) الزائر كان بيستخبى من المتابعات (لأنها بتقارن بعد التنضيف) والإضافة تقول «موجود كزائر»
+    const phoneTail = phone.trim().replace(/\D/g, '').slice(-10)
+    //  المرشحين بآخر 4 أرقام (بيستحملوا المسافات في النص)، والمطابقة الفعلية بالـ 10 أرقام تحت
+    const memberCandidates = phoneTail.length === 10
+      ? await prisma.member.findMany({
+          where: { OR: [{ phone: { endsWith: phoneTail.slice(-4) } }, { backupPhone: { endsWith: phoneTail.slice(-4) } }] },
+          select: { id: true, name: true, memberNumber: true, isActive: true, phone: true, backupPhone: true },
+        })
+      : []
+    const existingMember = memberCandidates.find(m =>
+      [m.phone, m.backupPhone].some(p => !!p && p.replace(/\D/g, '').slice(-10) === phoneTail)
+    ) || null
 
     if (existingMember) {
       return NextResponse.json(
         {
-          error: `رقم الهاتف مسجل كعضو: ${existingMember.name} (#${existingMember.memberNumber})`,
+          error: `رقم الهاتف مسجل كعضو: ${existingMember.name}${existingMember.memberNumber ? ` (#${existingMember.memberNumber})` : ''}`,
           existingMember: {
             id: existingMember.id,
             name: existingMember.name,
@@ -159,8 +163,13 @@ export async function POST(request: Request) {
 
     // زوار الداي يوز / الانفيتيشن بيتعملوا تلقائياً ومخفيين من صفحة الزوار،
     // فلو حد ضافهم يدوي نحوّلهم لزائر عادي بدل ما نرفض برقم "مش موجود" في الواجهة
+    //  🐛 زائر موجود بس مالوش متابعة مفتوحة (اتأرشفت) → مش بيظهر في أي قايمة ومتقدرش تلاقيه،
+    //     فبدل ما نرفض بـ «موجود كزائر» نرجّعه للمتابعات بالبيانات الجديدة
+    const hasOpenFollowUp = existingVisitor && !existingVisitor.isDeleted
+      ? !!(await prisma.followUp.findFirst({ where: { visitorId: existingVisitor.id, archived: false }, select: { id: true } }))
+      : false
     const isAutoCreatedVisitor = !!existingVisitor && !existingVisitor.isDeleted &&
-      (existingVisitor.source === 'invitation' || existingVisitor.source === 'member-invitation')
+      (existingVisitor.source === 'invitation' || existingVisitor.source === 'member-invitation' || !hasOpenFollowUp)
 
     if (isAutoCreatedVisitor && existingVisitor) {
       const converted = await prisma.$transaction(async (tx) => {
@@ -207,9 +216,18 @@ export async function POST(request: Request) {
     }
 
     if (existingVisitor && !existingVisitor.isDeleted) {
+      //  اسم الزائر + السيلز المسؤول — عشان الموظف يعرف يدوّر عليه (والواجهة بتفتحه له على طول)
+      const openFu = await prisma.followUp.findFirst({
+        where: { visitorId: existingVisitor.id, archived: false },
+        orderBy: { createdAt: 'desc' },
+        select: { assignedTo: true },
+      })
+      const assignedName = openFu?.assignedTo
+        ? (await prisma.staff.findUnique({ where: { id: openFu.assignedTo }, select: { name: true } }))?.name
+        : null
       return NextResponse.json(
         {
-          error: 'رقم الهاتف مسجل مسبقاً كزائر',
+          error: `الرقم ده مسجل كزائر باسم «${existingVisitor.name}»${assignedName ? ` مع السيلز ${assignedName}` : ''} — هيتفتح لك في المتابعات`,
           existingVisitor: {
             id: existingVisitor.id,
             name: existingVisitor.name,
