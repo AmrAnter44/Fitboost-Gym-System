@@ -1358,7 +1358,8 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
           />
         </div>
 
-        {/* خيار عدم إنشاء إيصال */}
+        {/* خيار عدم إنشاء إيصال — للأونر/الأدمن بس */}
+        {isPrivilegedUser && (
         <div className="mt-3">
           <label className="flex items-center gap-2 cursor-pointer bg-amber-50 dark:bg-amber-900/30 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg p-2">
             <input
@@ -1373,6 +1374,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
             </span>
           </label>
         </div>
+        )}
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">

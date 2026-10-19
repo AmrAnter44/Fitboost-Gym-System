@@ -211,6 +211,8 @@ export default function WhatsAppPage() {
               hasClient: remote.hasClient,
               phoneNumber: remote.phoneNumber,
               reconnecting: (remote as any).reconnecting,
+              lastDisconnect: (remote as any).lastDisconnect ?? null,
+              disconnectHistory: (remote as any).disconnectHistory ?? [],
             }
 
             // Preserve existing QR if new data has no QR and isn't ready
@@ -334,6 +336,8 @@ export default function WhatsAppPage() {
               hasClient: remote.hasClient,
               phoneNumber: remote.phoneNumber,
               reconnecting: (remote as any).reconnecting,
+              lastDisconnect: (remote as any).lastDisconnect ?? null,
+              disconnectHistory: (remote as any).disconnectHistory ?? [],
             },
           }
         })
@@ -738,6 +742,45 @@ export default function WhatsAppPage() {
 
           </div>
         </div>
+
+        {/* 🔍 آخر فصل — عشان نعرف الواتساب بيخرج ليه */}
+        {s.status?.lastDisconnect && (() => {
+          const kindLabel = (k: string) => k === 'logged_out'
+            ? tr('الجهاز اتشال من واتساب (من الموبايل أو واتساب نفسه) — محتاج QR جديد', 'Device was unlinked (from the phone or by WhatsApp) — needs a new QR')
+            : k === 'replaced'
+              ? tr('نفس الجلسة اتفتحت في مكان تاني — اتأكد إن السيستم مش شغال على جهازين بنفس الجلسة', 'Session opened elsewhere — make sure it is not running on two machines')
+              : k === 'init_failed'
+                ? tr('فشل بدء الاتصال (غالباً مفيش نت) — بيعيد المحاولة لوحده', 'Failed to start (usually no internet) — retrying automatically')
+                : tr('الاتصال اتقطع (نت / سيرفر واتساب) — بيعيد المحاولة لوحده', 'Connection dropped (network / WhatsApp server) — retrying automatically')
+          const fmt = (iso: string) => new Date(iso).toLocaleString(isRTL ? 'ar-EG' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' })
+          const last = s.status!.lastDisconnect!
+          const history = s.status?.disconnectHistory || []
+          return (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-3">
+              <h2 className="font-bold text-gray-900 dark:text-gray-100 text-sm">{tr('آخر فصل', 'Last disconnect')}</h2>
+              <div className="text-sm space-y-1">
+                <p className="text-gray-800 dark:text-gray-200 font-semibold">{kindLabel(last.kind)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {fmt(last.at)}
+                  {last.code != null && <> · {tr('كود', 'code')} <span className="font-mono" dir="ltr">{last.code}</span></>}
+                  {last.reason && <> · <span dir="ltr" className="font-mono break-all">{last.reason}</span></>}
+                </p>
+              </div>
+              {history.length > 1 && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-gray-600 dark:text-gray-300 font-bold">{tr(`آخر ${history.length} فصلات`, `Last ${history.length} disconnects`)}</summary>
+                  <ul className="mt-2 space-y-1">
+                    {history.map((h, i) => (
+                      <li key={i} className="text-gray-500 dark:text-gray-400">
+                        {fmt(h.at)} · {h.code != null ? <span className="font-mono" dir="ltr">{h.code}</span> : '—'} · <span dir="ltr" className="font-mono break-all">{h.reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Test message */}
         {isConnected && (

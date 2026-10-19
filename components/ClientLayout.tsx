@@ -35,6 +35,9 @@ import InternalMailNotifier from './InternalMailNotifier'
 import FollowUpReminderBar from './FollowUpReminderBar'
 import SalesRemindersBar from './SalesRemindersBar'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { usePermissions } from '../hooks/usePermissions'
+import { useSupportUnread } from '../hooks/useSupportUnread'
 
 function LayoutContent({ children }: { children: ReactNode }) {
   const { settings } = useServiceSettings()
@@ -42,6 +45,13 @@ function LayoutContent({ children }: { children: ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const { t, locale } = useLanguage()
   const { isEmbedded } = useTabs()
+  const pathname = usePathname() || ''
+  // 💬 صفحة الدعم الفني شات فل-هايت (زي واتساب): مفيش breadcrumb ولا سكرول للصفحة نفسها
+  //    (البار العلوي للموبايل بالهامبرجر بيفضل ظاهر عشان السايدبار يتفتح من الشات)
+  const isChatPage = pathname === '/support' || pathname.startsWith('/support/')
+  // 💬 ردود FitBoost الجديدة — مصدر واحد للبادج في السايدبار والنقطة على زرار المنيو (بيرجّع 0 على /support)
+  const { user, loading: authLoading } = usePermissions()
+  const supportUnread = useSupportUnread(!authLoading && !!user && !isEmbedded, pathname)
 
   // 🎂 فحص أعياد الميلاد (نقاط + تهنئة على الأبلكيشن) مرة في اليوم من أي صفحة —
   // مش بس الداشبورد، عشان الريسبشن/الكوتش اللي بيفتحوا على صفحات تانية.
@@ -87,6 +97,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
               onClose={() => setIsSidebarOpen(false)}
               isCollapsed={isSidebarCollapsed}
               setIsCollapsed={setIsSidebarCollapsed}
+              supportUnread={supportUnread}
             />
 
             {/* Main Content Area */}
@@ -100,9 +111,15 @@ function LayoutContent({ children }: { children: ReactNode }) {
                   {/* Hamburger Menu */}
                   <button
                     onClick={() => setIsSidebarOpen(true)}
-                    className="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 flex-shrink-0"
-                    aria-label={t('nav.menu')}
+                    className="relative p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 flex-shrink-0"
+                    aria-label={supportUnread > 0
+                      ? `${t('nav.menu')} — ${locale === 'ar' ? `${supportUnread} رد جديد من الدعم الفني` : `${supportUnread} new support repl${supportUnread === 1 ? 'y' : 'ies'}`}`
+                      : t('nav.menu')}
                   >
+                    {/* 💬 نقطة خضرا لما فيه ردود جديدة من FitBoost */}
+                    {supportUnread > 0 && (
+                      <span className="absolute top-1 end-1 w-2.5 h-2.5 rounded-full bg-[#25d366] ring-2 ring-white dark:ring-gray-900" aria-hidden="true" />
+                    )}
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
@@ -125,24 +142,24 @@ function LayoutContent({ children }: { children: ReactNode }) {
               </div>
 
               {/* Breadcrumb */}
-              <Breadcrumb />
+              {!isChatPage && <Breadcrumb />}
 
               {/*  بار تذكير المتابعات (لغير السيلز) + بار تذكيرات السيلز الثابت — فوق المحتوى في كل الصفحات */}
               {!isEmbedded && <FollowUpReminderBar />}
               {!isEmbedded && <SalesRemindersBar />}
 
               {/* Main Content */}
-              <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900">
-                <div className="w-full max-w-full">
+              <main className={`flex-1 min-h-0 overflow-x-hidden bg-gray-50 dark:bg-gray-900 ${isChatPage ? 'overflow-y-hidden' : 'overflow-y-auto'}`}>
+                <div className={`w-full max-w-full ${isChatPage ? 'h-full' : ''}`}>
                   {children}
                 </div>
               </main>
 
-              {/* Floating Search Button */}
-              <FloatingSearchButton />
+              {/* Floating Search Button — مخفي في شات الدعم عشان مايغطيش زرار الإرسال */}
+              {!isChatPage && <FloatingSearchButton />}
 
               {/* Back to Top Button */}
-              <BackToTop />
+              {!isChatPage && <BackToTop />}
             </div>
           </div>
 

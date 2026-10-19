@@ -13,7 +13,7 @@ import { logError } from '../../../lib/errorLogger'
 import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment, addPoints } from '../../../lib/points'
 import { getNextReceiptNumber, runReceiptTransaction, PaymentValidationError } from '../../../lib/receiptHelpers'
-import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
+import { createAuditLog, getIpAddress, getUserAgent, buildFieldChanges } from '../../../lib/auditLog'
 import { memberCreateSchema, formatZodError } from '../../../lib/schemas/memberSchema'
 import { memberPhotoUrl } from '../../../lib/memberPhoto'
 import { sweepDuePendingRenewals } from '../../../lib/pendingRenewal'
@@ -341,7 +341,7 @@ export async function POST(request: Request) {
       staffName,
       isOther,
       customCreatedAt,
-      skipReceipt,
+      skipReceipt: skipReceiptRaw,
       coachId,
       noCoachWanted,
       salesStaffId,
@@ -353,6 +353,10 @@ export async function POST(request: Request) {
       discount,         // 💸 خصم على سعر الباقة (يظهر في الإيصال)
       originalPrice     // 💰 السعر الأصلي قبل الخصم
     } = body as any
+
+    // 🧾 «من غير إيصال» للأونر/الأدمن بس — قبل كده أي موظف كان يقدر يعلّمه (أو يتعلّم بالغلط)
+    //    فالعضو يتسجل من غير إيصال ومن غير أي خطأ في سجل التدقيق.
+    const skipReceipt = skipReceiptRaw === true && (user.role === 'OWNER' || user.role === 'ADMIN')
 
 
     // ✅ التحقق من الحقول المطلوبة
@@ -743,7 +747,8 @@ export async function POST(request: Request) {
         name: member.name,
         phone: member.phone,
         ...(forcedFromFollowUp ? { salesStaffForced: forcedFromFollowUp } : {}),
-        ...(adminOverride ? { salesStaffAdminOverride: adminOverride } : {})
+        ...(adminOverride ? { salesStaffAdminOverride: adminOverride } : {}),
+        ...(skipReceipt ? { skipReceipt: true } : { receiptNumber: receipt?.receiptNumber ?? null })
       },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
@@ -1123,6 +1128,9 @@ export async function PUT(request: Request) {
       oldPhoneForPT = cur?.phone ?? null
     }
 
+    //  🔍 للسجل: القيم قبل التعديل (عشان نعرض «من … إلى …»)
+    const memberBefore = await prisma.member.findUnique({ where: { id } })
+
     const member = await prisma.$transaction(async (tx) => {
       const updated = await tx.member.update({
         where: { id },
@@ -1249,7 +1257,7 @@ export async function PUT(request: Request) {
       details: {
         memberNumber: member.memberNumber,
         name: member.name,
-        changes: Object.keys(updateData),
+        fieldChanges: await buildFieldChanges(memberBefore, updateData),
         ...(salesStaffChange ? { salesStaffChange } : {}),
         ...(receiptsSynced > 0 ? { receiptsSynced } : {})
       },

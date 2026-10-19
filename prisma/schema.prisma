@@ -598,10 +598,13 @@ model Invitation {
   id         String   @id @default(cuid())
   guestName  String
   guestPhone String
+  guestNationalId String? // 🪪 الرقم القومي للضيف — الشخص الواحد ليه 3 دعوات بس
   notes      String?
   createdAt  DateTime @default(now())
   memberId   String
   member     Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([guestNationalId])
 }
 
 model User {

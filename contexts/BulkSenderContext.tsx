@@ -30,6 +30,8 @@ export interface BulkMeta {
   sourceFilter: string
   //  ⏰ تاريخ الريمايندر (YYYY-MM-DD) — يتحطّ كـ nextFollowUpDate لكل مين اتبعتله
   reminderDate?: string
+  //  إرسال من غير تسجيل متابعة (مثلاً رسالة للأعضاء الأكثر التزاماً — دول مش عملاء متابعة)
+  skipFollowUp?: boolean
 }
 
 export interface BulkTarget {
@@ -174,6 +176,12 @@ export function BulkSenderProvider({ children }: { children: ReactNode }) {
           .replace(/\{phone\}/g, visitor.phone)
           .replace(/\{date\}/g, new Date().toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US'))
           .replace(/\{time\}/g, new Date().toLocaleTimeString(locale === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' }))
+        //  متغيّرات خاصة بكل مستلم (مثلاً {amount} = الباقي على العضو) — visitor.vars
+        if (visitor.vars && typeof visitor.vars === 'object') {
+          for (const [k, v] of Object.entries(visitor.vars)) {
+            message = message.split(`{${k}}`).join(String(v ?? ''))
+          }
+        }
         message = addTextVariation(message)
 
         const sendBody: any = { phone: visitor.phone, message }
@@ -194,7 +202,7 @@ export function BulkSenderProvider({ children }: { children: ReactNode }) {
           successList.push({ name: visitor.name, phone: visitor.phone })
           incrementDailyCount(1)
           // Update followup —  ما نخفيش الأخطاء، السيلز محتاج يعرف لو متابعة ضاعت
-          try {
+          if (!meta.skipFollowUp) try {
             const fuRes = await fetch('/api/visitors/followups', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

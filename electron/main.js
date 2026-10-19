@@ -1074,6 +1074,10 @@ ipcMain.handle('tunnel:getState', () => tunnelManager.getState());
 ipcMain.handle('tunnel:setupStatus', () => tunnelManager.setupStatus());
 ipcMain.handle('tunnel:login', () => tunnelManager.login());
 ipcMain.handle('tunnel:create', (_e, data) => tunnelManager.createTunnel(data));
+// تونل FitBoost: الصفحة بتجيب التونل من Control (عبر /api/settings/tunnel) وتسلّمه هنا
+ipcMain.handle('tunnel:applyCloud', (_e, t) => tunnelManager.applyCloudTunnel(t));
+ipcMain.handle('tunnel:setToken', (_e, data) => tunnelManager.setManualToken(data));
+ipcMain.handle('tunnel:startQuick', () => tunnelManager.startQuick());
 ipcMain.handle('tunnel:setKeepAwake', (_e, on) => tunnelManager.setKeepAwake(!!on));
 ipcMain.handle('tunnel:setAutoLaunch', (_e, on) => tunnelManager.setAutoLaunch(!!on));
 ipcMain.on('tunnel:start', () => tunnelManager.start());

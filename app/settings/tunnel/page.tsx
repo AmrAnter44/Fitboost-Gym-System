@@ -21,7 +21,22 @@ interface TunnelState {
   mode: string;
   configured: boolean;
   loggedIn: boolean;
+  source?: string;
+  quick?: boolean;
 }
+
+interface CloudInfo {
+  tunnel: { id: string; name: string; hostname: string; localPort?: number | null } | null;
+  status: string | null;
+}
+
+const CLOUD_STATUS_AR: Record<string, string> = {
+  requested: 'مطلوب',
+  creating: 'جاري الإنشاء',
+  ready: 'جاهز',
+  failed: 'فشل',
+  disabled: 'متوقف',
+};
 
 const STATUS_AR: Record<TunnelState['status'], string> = {
   idle: 'في الانتظار',
@@ -94,6 +109,18 @@ export default function TunnelSettingsPage() {
   const [loginBusy, setLoginBusy] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
 
+  // تونل FitBoost (من Control)
+  const [cloudInfo, setCloudInfo] = useState<CloudInfo | null>(null);
+  const [cloudErr, setCloudErr] = useState<{ text: string; code?: string } | null>(null);
+  const [cloudBusy, setCloudBusy] = useState(false);
+  const [cloudOk, setCloudOk] = useState('');
+
+  // طرق احتياطية: توكن يدوي + quick tunnel
+  const [manualToken, setManualToken] = useState('');
+  const [manualHost, setManualHost] = useState('');
+  const [manualBusy, setManualBusy] = useState(false);
+  const [manualMsg, setManualMsg] = useState('');
+
   const lastPct = useRef(0);
   const logBoxRef = useRef<HTMLDivElement>(null);
 
@@ -130,6 +157,92 @@ export default function TunnelSettingsPage() {
 
     return () => { try { t.offListeners(); } catch { /* ignore */ } };
   }, [user]);
+
+  // حالة التونل في FitBoost Control (من غير الـ token)
+  const loadCloud = async () => {
+    try {
+      const res = await fetch('/api/settings/tunnel', { cache: 'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.ok) {
+        setCloudInfo({ tunnel: data.tunnel || null, status: data.status || null });
+      } else {
+        setCloudInfo(null);
+        if (data?.code === 'NOT_LINKED' || data?.code === 'NO_TOKEN' || data?.code === 'OFFLINE') {
+          setCloudErr({ text: data.error, code: data.code });
+        }
+      }
+    } catch { /* ignore */ }
+  };
+  useEffect(() => {
+    if (!user || !available) return;
+    loadCloud();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, available]);
+
+  const handleCloud = async () => {
+    const t = getTunnel();
+    if (!t || cloudBusy) return;
+    // إعداد شغّال من طريقة تانية (login/يدوي) — نأكد قبل ما نستبدله
+    if (tstate?.configured && tstate.source !== 'fitboost' && tstate.mode !== 'demo') {
+      const ok = window.confirm(tr(
+        'فيه تونل متظبط بالفعل على الجهاز ده (من تسجيل الدخول أو توكن يدوي). تفعيل تونل FitBoost هيستبدله. تكمل؟',
+        'A tunnel is already configured on this device (login or manual token). Enabling the FitBoost tunnel will replace it. Continue?'
+      ));
+      if (!ok) return;
+    }
+    setCloudBusy(true);
+    setCloudErr(null);
+    setCloudOk('');
+    try {
+      const res = await fetch('/api/settings/tunnel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ localPort: tstate?.localPort || 4001 }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok || !data?.tunnel?.token) {
+        setCloudErr({ text: data?.error || tr('فشل تفعيل التونل من FitBoost.', 'Failed to enable the FitBoost tunnel.'), code: data?.code });
+        return;
+      }
+      const r = await t.applyCloud(data.tunnel);
+      if (!r?.ok) {
+        setCloudErr({ text: r?.error || tr('فشل حفظ التونل على الجهاز.', 'Failed to save the tunnel on this device.') });
+        return;
+      }
+      setCloudOk(data.tunnel.hostname || '');
+      setCloudInfo({ tunnel: { id: data.tunnel.id, name: data.tunnel.name, hostname: data.tunnel.hostname, localPort: data.tunnel.localPort }, status: 'ready' });
+    } catch {
+      setCloudErr({ text: tr('مفيش اتصال بالسيرفر المحلي.', 'Could not reach the local server.') });
+    } finally {
+      setCloudBusy(false);
+    }
+  };
+
+  const handleManualToken = async () => {
+    const t = getTunnel();
+    if (!t || manualBusy || !manualToken.trim()) return;
+    setManualBusy(true);
+    setManualMsg('');
+    try {
+      const r = await t.setToken({ token: manualToken.trim(), hostname: manualHost.trim(), port: port.trim() });
+      if (r?.ok) { setManualMsg('✓ ' + tr('اتحفظ وجاري التشغيل…', 'Saved, starting…')); setManualToken(''); }
+      else setManualMsg('✗ ' + (r?.error || tr('فشل الحفظ.', 'Save failed.')));
+    } finally {
+      setManualBusy(false);
+    }
+  };
+
+  const cloudErrHint = (code?: string) => {
+    switch (code) {
+      case 'DNS_CONFLICT': return tr('الدومين مربوط بتونل/سجل قديم — كلّم FitBoost يأكدوا «استبدال الربط القديم» من Control وبعدين جرّب تاني.', 'The hostname points to an older tunnel/record — ask FitBoost to confirm “replace” in Control, then retry.');
+      case 'NO_HOSTNAME': return tr('الفرع ملوش دومين متسجل في FitBoost — كلّم الدعم يحددوه.', 'The branch has no hostname in FitBoost — contact support.');
+      case 'NOT_CONFIGURED': return tr('الخدمة مش متظبطة عند FitBoost لسه — استخدم الطرق الاحتياطية تحت.', 'Not configured on the FitBoost side yet — use the fallback methods below.');
+      case 'NOT_LINKED':
+      case 'NO_TOKEN': return tr('الجهاز لازم يكون مربوط بـ FitBoost الأول (الإعدادات ← الترخيص).', 'Link this device to FitBoost first (Settings → License).');
+      case 'OFFLINE': return tr('اتأكد من النت وجرّب تاني.', 'Check the internet connection and retry.');
+      default: return '';
+    }
+  };
 
   // scroll اللوجز للأسفل
   useEffect(() => {
@@ -310,8 +423,63 @@ export default function TunnelSettingsPage() {
               </div>
             </div>
 
+            {/* تفعيل أوتوماتيك من FitBoost (الطريقة الأساسية) */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-sky-200 dark:ring-sky-900/50 p-4 sm:p-6">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
+                <svg {...stroke} className="w-5 h-5 text-sky-600 dark:text-sky-400"><path strokeLinecap="round" strokeLinejoin="round" d="M13 2 4.5 13.2h5.5l-1 7.8L18 9.9H12z" /></svg>
+                {tr('تونل FitBoost', 'FitBoost Tunnel')}
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                {tr('FitBoost بيعمل التونل والدومين للفرع ده، والجهاز بياخد التوكن ويشتغل لوحده — من غير تسجيل دخول Cloudflare.', 'FitBoost creates the tunnel and hostname for this branch; the device receives its token and runs it — no Cloudflare sign-in needed.')}
+              </p>
+
+              <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-50 dark:bg-gray-900/40 mb-4 text-sm">
+                <span className="text-gray-500 dark:text-gray-400">{tr('الدومين', 'Hostname')}:</span>
+                <b className="text-gray-900 dark:text-gray-100" dir="ltr">{cloudInfo?.tunnel?.hostname || (tstate?.source === 'fitboost' ? tstate?.hostname : '') || '—'}</b>
+                {cloudInfo?.status && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold ring-1 bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-600">
+                    {locale === 'ar' ? (CLOUD_STATUS_AR[cloudInfo.status] || cloudInfo.status) : cloudInfo.status}
+                  </span>
+                )}
+                {tstate?.source === 'fitboost' && tstate?.configured && (
+                  <span className="text-green-700 dark:text-green-400 font-bold">{tr('مفعّل على الجهاز ✓', 'Active on this device ✓')}</span>
+                )}
+              </div>
+
+              <button
+                onClick={handleCloud}
+                disabled={cloudBusy}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-bold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <svg {...stroke} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M17.5 19a4.5 4.5 0 0 0 .3-9 6 6 0 0 0-11.5 1.5A3.75 3.75 0 0 0 6.5 19z" /></svg>
+                {cloudBusy ? tr('جاري التفعيل…', 'Enabling…') : tr('تفعيل التونل أوتوماتيك (من FitBoost)', 'Enable tunnel automatically (from FitBoost)')}
+              </button>
+
+              {cloudOk && (
+                <p className="mt-3 text-sm font-bold text-green-700 dark:text-green-400">
+                  ✓ {tr('اتفعّل — جاري التشغيل على', 'Enabled — starting on')} <span dir="ltr">{cloudOk}</span>
+                </p>
+              )}
+              {cloudErr && (
+                <div className="mt-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 text-sm text-red-800 dark:text-red-200">
+                  <p className="font-bold">{cloudErr.text}</p>
+                  {cloudErrHint(cloudErr.code) && <p className="mt-1">{cloudErrHint(cloudErr.code)}</p>}
+                </div>
+              )}
+            </div>
+
+            {/* طرق احتياطية (مقفولة افتراضيًا) */}
+            <details className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+              <summary className="cursor-pointer select-none list-none p-4 sm:p-6 flex items-center justify-between gap-3">
+                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{tr('طرق احتياطية', 'Fallback methods')}</span>
+                <span className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  {tr('تسجيل دخول Cloudflare · توكن يدوي · تونل مؤقت', 'Cloudflare sign-in · manual token · quick tunnel')}
+                  <svg {...stroke} className="w-4 h-4 transition-transform group-open:rotate-180"><path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" /></svg>
+                </span>
+              </summary>
+              <div className="px-4 pb-4 sm:px-6 sm:pb-6 space-y-6">
             {/* إنشاء تونل جديد */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
+            <div className="rounded-xl ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
               <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <svg {...stroke} className="w-5 h-5 text-sky-600 dark:text-sky-400"><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" /></svg>
                 {tr('إنشاء تونل جديد', 'Create New Tunnel')}
@@ -364,6 +532,45 @@ export default function TunnelSettingsPage() {
                 </div>
               )}
             </div>
+
+            {/* توكن يدوي */}
+            <div className="rounded-xl ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">{tr('توكن يدوي', 'Manual token')}</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{tr('الصق توكن التونل من لوحة Cloudflare (Zero Trust ← Tunnels).', 'Paste the tunnel token from the Cloudflare dashboard (Zero Trust → Tunnels).')}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <label className="block sm:col-span-2">
+                  <span className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">Token</span>
+                  <input value={manualToken} onChange={(e) => setManualToken(e.target.value)} type="password" autoComplete="off" dir="ltr" placeholder="eyJhIjoi…" className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                </label>
+                <label className="block">
+                  <span className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">{tr('الدومين (اختياري)', 'Hostname (optional)')}</span>
+                  <input value={manualHost} onChange={(e) => setManualHost(e.target.value)} dir="ltr" placeholder="branch1.eaglegym.website" className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                </label>
+              </div>
+              <button
+                onClick={handleManualToken}
+                disabled={manualBusy || !manualToken.trim()}
+                className="mt-4 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-700 hover:bg-gray-800 text-white rounded-lg font-bold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {manualBusy ? tr('جاري الحفظ…', 'Saving…') : tr('حفظ وتشغيل', 'Save & Start')}
+              </button>
+              {manualMsg && <p className="mt-3 text-sm text-gray-700 dark:text-gray-300">{manualMsg}</p>}
+            </div>
+
+            {/* تونل مؤقت */}
+            <div className="rounded-xl ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">{tr('تونل مؤقت (Quick Tunnel)', 'Quick tunnel')}</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{tr('رابط trycloudflare مؤقت للتجربة — بيتغيّر كل مرة ومش بيتحفظ.', 'Temporary trycloudflare link for testing — changes every time and is not saved.')}</p>
+              <button
+                onClick={() => getTunnel()?.startQuick()}
+                disabled={!!tstate?.quick && running}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {tr('تشغيل تونل مؤقت', 'Start quick tunnel')}
+              </button>
+            </div>
+              </div>
+            </details>
 
             {/* لوجز cloudflared */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">

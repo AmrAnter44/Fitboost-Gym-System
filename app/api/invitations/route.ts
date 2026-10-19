@@ -5,6 +5,17 @@ import { addPoints } from '../../../lib/points'
 import { verifyAuth } from '../../../lib/auth'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
+// 🪪 الشخص الواحد (بالرقم القومي) ليه 3 دعوات بس — على كل الأعضاء
+const MAX_INVITATIONS_PER_GUEST = 3
+
+// الرقم القومي المصري: 14 رقم — بنحوّل الأرقام العربي/الهندي لإنجليزي ونشيل المسافات
+function normalizeNationalId(raw: unknown): string {
+  return String(raw ?? '')
+    .replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/\D/g, '')
+}
+
 // GET: جلب جميع الدعوات أو دعوات عضو معين
 
 export const dynamic = 'force-dynamic'
@@ -25,7 +36,10 @@ export async function GET(request: Request) {
     // 🔒 لو اليوزر سيلز → بيشوف دعوات أعضاءه بس (اللي salesStaffId بتاعهم = staffId بتاعه)
     const where: any = {}
     if (memberId) where.memberId = memberId
-    if (user.isSales && user.staffId) {
+    //  سجل دعوات عضو معيّن (بروفايل العضو) بيتعرض كامل لأي حساب — قبل كده السيلز كان بيشوف
+    //  السجل فاضي لو العضو تابع لسيلز تاني، فالدعوة كانت بتبان إنها "متسجلتش".
+    //  التقييد فاضل بس على القايمة العامة (من غير memberId): السيلز بيشوف دعوات أعضاءه.
+    if (!memberId && user.isSales && user.staffId) {
       where.member = { salesStaffId: user.staffId }
     }
 
@@ -61,6 +75,7 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const { memberId, guestName, guestPhone, notes, salesStaffId } = body
+    const guestNationalId = normalizeNationalId(body.guestNationalId)
 
     // التحقق من البيانات المطلوبة
     if (!memberId || !guestName || !guestPhone) {
@@ -68,6 +83,10 @@ export async function POST(request: Request) {
         { error: 'Member ID, guest name, and guest phone are required' },
         { status: 400 }
       )
+    }
+    // الرقم القومي اختياري — بس لو اتكتب لازم يبقى 14 رقم (وساعتها بيتطبق حد الـ 3 دعوات)
+    if (guestNationalId && guestNationalId.length !== 14) {
+      return NextResponse.json({ error: 'الرقم القومي للضيف لازم يكون 14 رقم' }, { status: 400 })
     }
 
     // التحقق من وجود العضو وأن لديه دعوات متبقية
@@ -141,10 +160,19 @@ export async function POST(request: Request) {
         throw new Error('NO_INVITATIONS')
       }
 
+      // 🪪 حد الدعوات للشخص الواحد (بالرقم القومي، من أي عضو) — لو الرقم اتكتب
+      if (guestNationalId) {
+        const usedByGuest = await tx.invitation.count({ where: { guestNationalId } })
+        if (usedByGuest >= MAX_INVITATIONS_PER_GUEST) {
+          throw new Error('GUEST_LIMIT')
+        }
+      }
+
       const inv = await tx.invitation.create({
         data: {
           guestName,
           guestPhone,
+          guestNationalId: guestNationalId || null,
           notes,
           memberId,
         },
@@ -275,6 +303,12 @@ export async function POST(request: Request) {
   } catch (error: any) {
     if (error?.message === 'NO_INVITATIONS') {
       return NextResponse.json({ error: 'No invitations remaining' }, { status: 400 })
+    }
+    if (error?.message === 'GUEST_LIMIT') {
+      return NextResponse.json(
+        { error: `الشخص ده (بنفس الرقم القومي) استخدم ${MAX_INVITATIONS_PER_GUEST} دعوات قبل كده — مينفعش دعوة تانية`, code: 'GUEST_LIMIT' },
+        { status: 400 }
+      )
     }
     console.error('Error creating invitation:', error)
     return NextResponse.json({ error: 'Failed to create invitation' }, { status: 500 })

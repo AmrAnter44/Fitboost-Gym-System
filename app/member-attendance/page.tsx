@@ -6,11 +6,20 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { useLanguage } from '../../contexts/LanguageContext'
 import { PRIMARY_COLOR, THEME_COLORS } from '@/lib/theme/colors'
 import LoadingSkeleton from '../../components/LoadingSkeleton'
+import { usePermissions } from '../../hooks/usePermissions'
+import { useBulkSender } from '../../contexts/BulkSenderContext'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 export default function MemberAttendancePage() {
   const { t, direction } = useLanguage()
+  const { user } = usePermissions()
+  const bulkSender = useBulkSender()
+  //  📱 واتساب جماعي للأعضاء الأكثر التزاماً — للإدارة بس (الـ API مش بيرجّع التليفونات لغيرهم)
+  const canBulkMessage = user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'MANAGER'
+  const [showTopWA, setShowTopWA] = useState(false)
+  const [topWAMessage, setTopWAMessage] = useState('أهلاً {name} 👋\nشكراً على التزامك معانا في الجيم الفترة اللي فاتت 💪 كمّل على كده!')
+  const [topWAStarting, setTopWAStarting] = useState(false)
   const [startDate, setStartDate] = useState(() => {
     const date = new Date()
     date.setDate(date.getDate() - 7)
@@ -57,6 +66,36 @@ export default function MemberAttendancePage() {
 
   const handleApplyFilter = () => {
     fetchAttendanceData()
+  }
+
+  //  الأعضاء اللي ليهم رقم تليفون من قايمة الأكثر التزاماً
+  const topWATargets = topMembers.filter(item => item.member?.phone)
+
+  //  بيسلّم القايمة لنفس نظام الإرسال الجماعي بتاع المتابعات (فواصل عشوائية + حد يومي) —
+  //  من غير تسجيل متابعة لكل عضو
+  const startTopWA = async () => {
+    if (!topWAMessage.trim() || topWATargets.length === 0 || topWAStarting) return
+    const num = (key: string, def: number) => { const v = Number(typeof window !== 'undefined' ? localStorage.getItem(key) : NaN); return Number.isFinite(v) && v > 0 ? v : def }
+    setTopWAStarting(true)
+    try {
+      const ok = await bulkSender.start({
+        targets: topWATargets.map(item => ({ visitor: { id: item.member.id, name: item.member.name, phone: item.member.phone, source: 'member' } })),
+        messages: [topWAMessage],
+        config: {
+          delayMin: 15,
+          delayMax: 30,
+          batchSize: num('wa-bulk-batchSize', 12),
+          batchBreakMin: num('wa-bulk-batchBreakMin', 120),
+          batchBreakMax: num('wa-bulk-batchBreakMax', 300),
+          dailyLimit: num('wa-bulk-dailyLimit', 80),
+          sessionIndex: 'auto',
+        },
+        meta: { userName: user?.name, sourceFilter: 'top-attendance', skipFollowUp: true },
+      })
+      if (ok) setShowTopWA(false)
+    } finally {
+      setTopWAStarting(false)
+    }
   }
 
   return (
@@ -217,9 +256,67 @@ export default function MemberAttendancePage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172M9.497 14.25a7.454 7.454 0 0 0 .981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 0 0 7.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 0 0 2.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 0 1 2.916.52 6.003 6.003 0 0 1-5.395 4.972m0 0a6.726 6.726 0 0 1-2.749 1.35m0 0a6.772 6.772 0 0 1-3.044 0" />
             </svg>
             <span>{t('memberAttendance.topMembers')}</span>
+            {canBulkMessage && topWATargets.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowTopWA(true)}
+                disabled={bulkSender.running}
+                title={bulkSender.running ? (direction === 'rtl' ? 'فيه إرسال جماعي شغّال دلوقتي' : 'A bulk send is already running') : undefined}
+                className="ms-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold transition-colors duration-200"
+              >
+                <svg {...stroke} className="w-4 h-4" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" /></svg>
+                {direction === 'rtl' ? `واتساب للكل (${topWATargets.length})` : `WhatsApp all (${topWATargets.length})`}
+              </button>
+            )}
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('memberAttendance.topMembersDescription')}</p>
         </div>
+
+        {/* 📱 نافذة رسالة الواتساب للأعضاء الأكثر التزاماً */}
+        {showTopWA && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" dir={direction} onClick={(e) => { if (e.target === e.currentTarget) setShowTopWA(false) }} role="dialog" aria-modal="true">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg ring-1 ring-gray-200 dark:ring-gray-700">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                  {direction === 'rtl' ? `واتساب للأعضاء الأكثر التزاماً (${topWATargets.length})` : `WhatsApp top members (${topWATargets.length})`}
+                </h3>
+                <button type="button" onClick={() => setShowTopWA(false)} aria-label={direction === 'rtl' ? 'إغلاق' : 'Close'} className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg w-8 h-8 flex items-center justify-center">✕</button>
+              </div>
+              <div className="p-4 space-y-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  {direction === 'rtl' ? "الرسالة بتتبعت من واتساب الجيم المربوط بالسيستم، لكل عضو لوحده، وبين كل رسالة والتانية 15–30 ثانية عشان الرقم ما يتحظرش. اكتب {name} في أي مكان وهيتبدّل باسم العضو." : "Sent from the gym's connected WhatsApp, one member at a time, 15–30 seconds apart to avoid a ban. Write {name} anywhere to insert the member's name."}
+                </p>
+                <textarea
+                  value={topWAMessage}
+                  onChange={(e) => setTopWAMessage(e.target.value)}
+                  rows={5}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <div className="max-h-28 overflow-y-auto rounded-lg bg-gray-50 dark:bg-gray-900/40 p-2 text-xs text-gray-600 dark:text-gray-300">
+                  {topWATargets.map(item => item.member.name).join(' · ')}
+                </div>
+                {topWATargets.length < topMembers.length && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-bold">
+                    {direction === 'rtl' ? `${topMembers.length - topWATargets.length} عضو من القايمة مالهمش رقم تليفون ومش هيتبعتلهم` : `${topMembers.length - topWATargets.length} members have no phone and will be skipped`}
+                  </p>
+                )}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={startTopWA}
+                    disabled={!topWAMessage.trim() || topWAStarting}
+                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg transition-colors duration-200"
+                  >
+                    {topWAStarting ? (direction === 'rtl' ? 'جاري البدء...' : 'Starting...') : (direction === 'rtl' ? `ابعت لـ ${topWATargets.length} عضو` : `Send to ${topWATargets.length} members`)}
+                  </button>
+                  <button type="button" onClick={() => setShowTopWA(false)} className="px-5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold rounded-lg">
+                    {direction === 'rtl' ? 'إلغاء' : 'Cancel'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {topMembers.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

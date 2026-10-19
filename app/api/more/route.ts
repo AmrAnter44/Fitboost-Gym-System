@@ -11,7 +11,7 @@ import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
 import { getNextReceiptNumber, runReceiptTransaction } from '../../../lib/receiptHelpers'
-import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
+import { createAuditLog, getIpAddress, getUserAgent, buildFieldChanges } from '../../../lib/auditLog'
 import { computeUnpaidLockAt } from '../../../lib/sessionPaymentLimit'
 
 export const dynamic = 'force-dynamic'
@@ -488,7 +488,7 @@ export async function PUT(request: Request) {
       action: 'UPDATE',
       resource: 'More',
       resourceId: moreNumber.toString(),
-      details: updateData,
+      details: { moreNumber, clientName: updatedMore.clientName, fieldChanges: await buildFieldChanges(existingMore, allowedFields) },
       ipAddress: getIpAddress(request),
       userAgent: getUserAgent(request),
       status: 'success'

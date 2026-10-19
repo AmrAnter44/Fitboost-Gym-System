@@ -90,7 +90,7 @@ function labelFromDetails(log: LogRow): string | null {
   if (!log.details) return null
   try {
     const details = JSON.parse(log.details)
-    const name = details.memberName || details.name || details.resourceName || details.targetUser || details.attemptedEmail || null
+    const name = details.memberName || details.name || details.clientName || details.resourceName || details.targetUser || details.attemptedEmail || null
     const number = details.memberNumber ? ` (#${details.memberNumber})` : ''
     if (name) return `${name}${number}`
     if (details.receiptNumber) return `#${details.receiptNumber}`
@@ -103,7 +103,9 @@ function labelFromDetails(log: LogRow): string | null {
 export async function GET(request: Request) {
   try {
     // ✅ التحقق من صلاحية Admin
-    await requireAdmin(request)
+    const user = await requireAdmin(request)
+    //  🧾 سجل محاولات إنشاء الإيصالات (RECEIPT_CREATE) للأونر بس
+    const canViewReceiptAttempts = user.role === 'OWNER'
 
     const { searchParams } = new URL(request.url)
 
@@ -118,6 +120,10 @@ export async function GET(request: Request) {
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
 
+    if (action === 'RECEIPT_CREATE' && !canViewReceiptAttempts) {
+      return NextResponse.json({ logs: [], total: 0, canViewReceiptAttempts })
+    }
+
     // جلب الـ logs
     const result = await getAuditLogs({
       limit: limit ? parseInt(limit) : 100,
@@ -128,7 +134,9 @@ export async function GET(request: Request) {
       resource: resource as any,
       status: status as any,
       startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined
+      endDate: endDate ? new Date(endDate) : undefined,
+      //  سجل الإيصالات ليه تاب منفصل — مابيتخلطش مع باقي السجلات
+      excludeActions: ['RECEIPT_CREATE']
     })
 
     const labels = await buildResourceLabels(result.logs)
@@ -140,7 +148,7 @@ export async function GET(request: Request) {
         null,
     }))
 
-    return NextResponse.json({ logs, total: result.total })
+    return NextResponse.json({ logs, total: result.total, canViewReceiptAttempts })
   } catch (error: any) {
     console.error('Error fetching audit logs:', error)
 

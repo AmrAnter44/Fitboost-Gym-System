@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission, requireAnyPermission, isPtCommissionManagerScope } from '../../../lib/auth'
-import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
+import { createAuditLog, getIpAddress, getUserAgent, buildFieldChanges } from '../../../lib/auditLog'
 
 // GET - جلب كل الموظفين
 
@@ -315,6 +315,7 @@ export async function PUT(request: Request) {
 
     //  لو مفيش حقول Prisma عادية للتحديث (مثلاً حفظ العمولة بس) — منعملش update فاضي،
     //  نجيب الموظف عشان الـ response/audit. الحفظ الفعلي للعمولة بيتم بـ raw SQL تحت.
+    const staffBefore = await prisma.staff.findUnique({ where: { id } })
     const staff = Object.keys(updateData).length > 0
       ? await prisma.staff.update({ where: { id }, data: updateData })
       : await prisma.staff.findUnique({ where: { id } })
@@ -355,7 +356,7 @@ export async function PUT(request: Request) {
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
       action: 'UPDATE', resource: 'Staff', resourceId: staff.id,
-      details: { staffCode: staff.staffCode, name: staff.name, changes: Object.keys(updateData) },
+      details: { staffCode: staff.staffCode, name: staff.name, fieldChanges: await buildFieldChanges(staffBefore, updateData) },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 

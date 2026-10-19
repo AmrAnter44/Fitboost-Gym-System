@@ -13,6 +13,8 @@ interface SidebarProps {
   onClose: () => void
   isCollapsed: boolean
   setIsCollapsed: (value: boolean) => void
+  /** 💬 عدد ردود FitBoost الجديدة (بيتحسب في ClientLayout عشان يتشارك مع زرار منيو الموبايل) */
+  supportUnread?: number
 }
 
 const iconClass = 'w-5 h-5 flex-shrink-0'
@@ -106,12 +108,15 @@ const NavIcons: Record<string, ReactNode> = {
   myPayslips: (
     <svg className={iconClass} {...strokeProps}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z"/></svg>
   ),
+  support: (
+    <svg className={iconClass} {...strokeProps}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg>
+  ),
   chevronDown: (
     <svg className="w-4 h-4 text-gray-500 flex-shrink-0" {...strokeProps}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
   ),
 }
 
-export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed, supportUnread = 0 }: SidebarProps) {
   const pathname = usePathname()
   const { hasPermission, user, loading } = usePermissions()
   const { t, locale } = useLanguage()
@@ -175,6 +180,8 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
         ...(user?.role !== 'OWNER' && user?.role !== 'ADMIN'
           ? [{ href: '/tasks', label: locale === 'ar' ? 'مهامي' : 'My Tasks', icon: NavIcons.tasks, permission: null }]
           : []),
+        //  💬 الدعم الفني (شات مع فريق FitBoost) — لكل الأدوار
+        { href: '/support', label: locale === 'ar' ? 'الدعم الفني' : 'Support', icon: NavIcons.support, permission: null },
         ...(isCoach ? [
           { href: '/coach/my-members', label: locale === 'ar' ? 'أعضاء محتملين' : 'Potential Members', icon: NavIcons.members, permission: null },
           { href: '/coach/more', label: locale === 'ar' ? 'اشتراكات More' : 'My More', icon: NavIcons.more, permission: null },
@@ -352,7 +359,14 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
               <div className="space-y-1">
                 {group.links.map((link) => {
                   const isActive = pathname === link.href
-                  const badgeCount = link.href === '/inbox' ? inboxUnread : link.href === '/tasks' ? tasksPending : 0
+                  const badgeCount = link.href === '/inbox' ? inboxUnread : link.href === '/tasks' ? tasksPending : link.href === '/support' ? supportUnread : 0
+                  //  الدعم الفني: بادج أخضر زي واتساب
+                  const badgeColor = link.href === '/support' ? 'bg-[#25d366] text-white' : 'bg-red-500 text-white'
+                  const badgeAria = badgeCount > 0
+                    ? (link.href === '/support'
+                      ? (locale === 'ar' ? `${badgeCount} رد جديد` : `${badgeCount} new repl${badgeCount === 1 ? 'y' : 'ies'}`)
+                      : String(badgeCount))
+                    : ''
 
                   return (
                     <Link
@@ -372,13 +386,14 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
                         }
                       `}
                       title={isCollapsed ? link.label : undefined}
+                      aria-label={isCollapsed ? (badgeAria ? `${link.label} — ${badgeAria}` : link.label) : undefined}
                     >
                       {link.icon && (
                         <span className={`relative ${isActive ? 'text-primary-700 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'} transition-colors`}>
                           {link.icon}
                           {/*  نقطة حمراء على الأيقونة في وضع الطي لما فيه عناصر غير مقروءة/مفتوحة */}
                           {isCollapsed && badgeCount > 0 && (
-                            <span className="absolute -top-1 -end-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-900" aria-hidden="true" />
+                            <span className={`absolute -top-1 -end-1 w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-gray-900 ${link.href === '/support' ? 'bg-[#25d366]' : 'bg-red-500'}`} aria-hidden="true" />
                           )}
                         </span>
                       )}
@@ -391,7 +406,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
 
                       {/*  بادج العدد (صندوق الوارد / المهام المفتوحة) */}
                       {!isCollapsed && badgeCount > 0 && (
-                        <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold">
+                        <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold ${badgeColor}`} aria-label={badgeAria}>
                           {badgeCount > 99 ? '99+' : badgeCount}
                         </span>
                       )}

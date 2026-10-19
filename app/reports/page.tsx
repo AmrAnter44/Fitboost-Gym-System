@@ -13,6 +13,7 @@ import { fetchStaff } from '../../lib/api/staff'
 import { useToast } from '../../contexts/ToastContext'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { LoadingScreen } from '../../components/Spinner'
+import FullReportExportButton from '../../components/FullReportExportButton'
 import { isPTReceipt, isFloorReceipt } from '../../lib/translateReceiptType'
 import { countsAsRevenue } from '../../lib/revenueFilters'
 
@@ -157,6 +158,8 @@ export default function ReportsPage() {
           <label className={labelCls}>{t('reports.dateTo' as any)}</label>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className={inputCls} />
         </div>
+        {/* 📊 ملف Excel واحد: الاشتراكات + الملخص + المنتهيين + البواقي + الزوار */}
+        {isAdmin && <FullReportExportButton dateFrom={dateFrom} dateTo={dateTo} />}
       </div>
 
       {/* Tabs */}
@@ -983,10 +986,17 @@ function SubscriptionsTab({ dateFrom, dateTo, formatDate, direction, locale }: a
   const ar = locale === 'ar'
   const [durFilter, setDurFilter] = useState<'all' | 'month' | 'q' | 'half' | 'year' | 'other'>('all')
   const [subTypeFilter, setSubTypeFilter] = useState<'all' | 'new' | 'renew'>('all')
+  const [showExpiredList, setShowExpiredList] = useState(false) //  📋 تفاصيل المنتهيين
   const { data: receipts = [], isLoading } = useQuery({
     queryKey: ['subs-report-receipts', dateFrom, dateTo],
     queryFn: () => fetchReceiptsByDateRange(dateFrom, dateTo),
   })
+  //  الأعضاء — عشان «منتهي في الفترة»
+  const { data: members = [], isLoading: membersLoading } = useQuery({
+    queryKey: ['subs-report-members'],
+    queryFn: () => fetchMembersData(),
+  })
+  const money = (n: number) => `${Math.round(n).toLocaleString(ar ? 'ar-EG' : 'en-US')} ${ar ? 'ج.م' : 'EGP'}`
 
   //  نوع الاشتراك: جديد (Member) ولا تجديد (membershipRenewal). الـ Payment (باقي) بيتستبعد من العدّ.
   const isRenewalType = (tp: string) => ['membershipRenewal', 'تجديد عضويه', 'تجديد عضوية'].includes(tp)
@@ -1016,16 +1026,18 @@ function SubscriptionsTab({ dateFrom, dateTo, formatDate, direction, locale }: a
   const data = useMemo(() => {
     const subs = (receipts || [])
       .filter((r: any) => countsAsRevenue(r) && isFloorReceipt(r.type) && (isNewType(r.type) || isRenewalType(r.type)))
-    const buckets: Record<string, { total: number; nw: number; renew: number }> = {
-      month: { total: 0, nw: 0, renew: 0 }, q: { total: 0, nw: 0, renew: 0 },
-      half: { total: 0, nw: 0, renew: 0 }, year: { total: 0, nw: 0, renew: 0 }, other: { total: 0, nw: 0, renew: 0 },
-    }
+    const mk = () => ({ total: 0, nw: 0, renew: 0, amount: 0, nwAmount: 0, renewAmount: 0 })
+    const buckets: Record<string, ReturnType<typeof mk>> = { month: mk(), q: mk(), half: mk(), year: mk(), other: mk() }
+    const sums = { nw: 0, renew: 0, nwAmount: 0, renewAmount: 0 }
     const list: { name: string; number: string; date: string; days: number | null; bucket: string; renew: boolean; amount: number }[] = []
     for (const r of subs) {
       const b = bucketOf(daysOf(r))
       buckets[b].total++
       const renew = isRenewalType(r.type)
-      if (renew) buckets[b].renew++; else buckets[b].nw++
+      const amt = r.amount || 0
+      buckets[b].amount += amt
+      if (renew) { buckets[b].renew++; buckets[b].renewAmount += amt; sums.renew++; sums.renewAmount += amt }
+      else { buckets[b].nw++; buckets[b].nwAmount += amt; sums.nw++; sums.nwAmount += amt }
       const d = parseDetails(r)
       list.push({
         name: d.memberName || d.name || '-', number: d.memberNumber || '-',
@@ -1033,8 +1045,29 @@ function SubscriptionsTab({ dateFrom, dateTo, formatDate, direction, locale }: a
       })
     }
     list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    return { buckets, list, total: subs.length }
+    return { buckets, list, total: subs.length, sums }
   }, [receipts])
+
+  //  ⌛ منتهي في الفترة: اللي تاريخ انتهاء اشتراكهم وقع في الفترة —
+  //     «مجدّدوش»: تاريخ انتهاءهم الحالي لسه في الفترة وعدّى (الاشتراك فعلاً خلص)
+  //     «جدّدوا»: إيصالات تجديد في الفترة وتاريخ الانتهاء القديم بتاعها في الفترة
+  const expiredData = useMemo(() => {
+    const from = new Date(dateFrom); from.setHours(0, 0, 0, 0)
+    const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
+    const now = new Date()
+    const inRange = (v: any) => { if (!v) return false; const d = new Date(v); return d >= from && d <= to }
+    const notRenewed = (members as any[]).filter(m => m.expiryDate && inRange(m.expiryDate) && new Date(m.expiryDate) < now && !m.isBanned)
+    const renewedReceipts = (receipts || []).filter((r: any) => countsAsRevenue(r) && isRenewalType(r.type) && inRange(parseDetails(r).previousExpiryDate))
+    const renewedIds = new Set(renewedReceipts.map((r: any) => r.memberId || parseDetails(r).memberNumber))
+    return {
+      notRenewedList: [...notRenewed].sort((a: any, b: any) => new Date(b.expiryDate).getTime() - new Date(a.expiryDate).getTime()),
+      notRenewedCount: notRenewed.length,
+      notRenewedValue: notRenewed.reduce((sum: number, m: any) => sum + (Number(m.subscriptionPrice) || 0), 0),
+      notRenewedRemaining: notRenewed.reduce((sum: number, m: any) => sum + (Number(m.remainingAmount) || 0), 0),
+      renewedCount: renewedIds.size,
+      renewedAmount: renewedReceipts.reduce((sum: number, r: any) => sum + (r.amount || 0), 0),
+    }
+  }, [members, receipts, dateFrom, dateTo])
 
   //  الفلاتر: المدة + النوع (جديد/تجديد)
   const filtered = useMemo(() => data.list.filter(item => {
@@ -1050,7 +1083,7 @@ function SubscriptionsTab({ dateFrom, dateTo, formatDate, direction, locale }: a
       : b === 'half' ? (ar ? '6 شهور' : '6 mo') : b === 'year' ? (ar ? 'سنة' : 'year') : (ar ? 'أخرى' : 'other')
   }
 
-  if (isLoading) return <div className="py-12"><LoadingScreen /></div>
+  if (isLoading || membersLoading) return <div className="py-12"><LoadingScreen /></div>
 
   const cards: { key: string; label: string; color: string }[] = [
     { key: 'month', label: ar ? 'شهر' : '1 Month', color: 'text-blue-600 dark:text-blue-400' },
@@ -1078,9 +1111,98 @@ function SubscriptionsTab({ dateFrom, dateTo, formatDate, direction, locale }: a
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {ar ? `جديد ${bk.nw} · تجديد ${bk.renew}` : `New ${bk.nw} · Renew ${bk.renew}`}
               </p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 tabular-nums">{ar ? 'دفعوا: ' : 'Paid: '}<b className="text-gray-900 dark:text-gray-100">{money(bk.amount)}</b></p>
             </div>
           )
         })}
+      </div>
+
+      {/* 💰 الإجمالي: جديد / تجديد / الكل */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[
+          { label: ar ? 'عضو جديد (New)' : 'New members', count: data.sums.nw, amount: data.sums.nwAmount, color: 'text-emerald-600 dark:text-emerald-400' },
+          { label: ar ? 'تجديد' : 'Renewals', count: data.sums.renew, amount: data.sums.renewAmount, color: 'text-amber-600 dark:text-amber-400' },
+          { label: ar ? 'الإجمالي' : 'Total', count: data.sums.nw + data.sums.renew, amount: data.sums.nwAmount + data.sums.renewAmount, color: 'text-primary-600 dark:text-primary-400' },
+        ].map(c => (
+          <div key={c.label} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-gray-500 dark:text-gray-400">{c.label}</p>
+              <p className={`text-2xl font-black ${c.color}`}>{c.count}</p>
+            </div>
+            <p className="text-lg font-bold text-gray-800 dark:text-gray-100 tabular-nums">{money(c.amount)}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ⌛ منتهي في الفترة (Expired) — سطور بسيطة: مين خلص اشتراكه في الفترة ومجدّدش */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-red-200 dark:ring-red-900/50 p-4 sm:p-5">
+        <div className="flex items-baseline justify-between gap-3 flex-wrap">
+          <p className="text-base font-bold text-gray-900 dark:text-gray-100">{ar ? 'المنتهيين (Expired)' : 'Expired'}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{ar ? 'اللي اشتراكهم خلص في الفترة دي ولسه مجدّدوش' : 'Expired in this period and not renewed yet'}</p>
+        </div>
+        <div className="mt-3 divide-y divide-gray-100 dark:divide-gray-700">
+          <div className="flex items-center justify-between py-2.5">
+            <span className="text-sm text-gray-600 dark:text-gray-300">{ar ? 'عددهم' : 'Members'}</span>
+            <span className="text-2xl font-black text-red-600 dark:text-red-400 tabular-nums">{expiredData.notRenewedCount}</span>
+          </div>
+          <div className="flex items-center justify-between py-2.5">
+            <span className="text-sm text-gray-600 dark:text-gray-300">{ar ? 'إجمالي اشتراكاتهم' : 'Total of their subscriptions'}</span>
+            <span className="text-lg font-bold text-gray-900 dark:text-gray-100 tabular-nums">{money(expiredData.notRenewedValue)}</span>
+          </div>
+          {expiredData.notRenewedRemaining > 0 && (
+            <div className="flex items-center justify-between py-2.5">
+              <span className="text-sm text-gray-600 dark:text-gray-300">{ar ? 'لسه عليهم باقي' : 'Still owed'}</span>
+              <span className="text-lg font-bold text-orange-600 dark:text-orange-400 tabular-nums">{money(expiredData.notRenewedRemaining)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* 📋 تفاصيل المنتهيين */}
+        {expiredData.notRenewedCount > 0 && (
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => setShowExpiredList(v => !v)}
+              className="w-full inline-flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+            >
+              {showExpiredList
+                ? (ar ? 'إخفاء الأسماء' : 'Hide names')
+                : (ar ? `عرض الأسماء (${expiredData.notRenewedCount})` : `Show names (${expiredData.notRenewedCount})`)}
+            </button>
+            {showExpiredList && (
+              <div className="overflow-x-auto mt-3">
+                <table className="w-full text-sm min-w-[620px]">
+                  <thead>
+                    <tr className="text-gray-500 dark:text-gray-400 text-xs border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-start py-2 font-bold">{ar ? 'العضو' : 'Member'}</th>
+                      <th className="text-center py-2 font-bold">{ar ? 'الرقم' : '#'}</th>
+                      <th className="text-center py-2 font-bold">{ar ? 'التليفون' : 'Phone'}</th>
+                      <th className="text-center py-2 font-bold">{ar ? 'خلص يوم' : 'Expired on'}</th>
+                      <th className="text-center py-2 font-bold">{ar ? 'الاشتراك' : 'Subscription'}</th>
+                      <th className="text-center py-2 font-bold">{ar ? 'عليه باقي' : 'Owed'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {expiredData.notRenewedList.map((m: any) => (
+                      <tr key={m.id} className="border-b border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                        <td className="py-2 font-bold">
+                          <a href={`/members/${m.id}`} className="text-gray-800 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-400 hover:underline">{m.name}</a>
+                        </td>
+                        <td className="py-2 text-center text-gray-700 dark:text-gray-300 font-mono">{m.memberNumber ?? '—'}</td>
+                        <td className="py-2 text-center text-gray-700 dark:text-gray-300 font-mono" dir="ltr">{m.phone || '—'}</td>
+                        <td className="py-2 text-center text-gray-700 dark:text-gray-300">{formatDate(m.expiryDate)}</td>
+                        <td className="py-2 text-center text-gray-800 dark:text-gray-100 tabular-nums">{money(Number(m.subscriptionPrice) || 0)}</td>
+                        <td className={`py-2 text-center tabular-nums ${(Number(m.remainingAmount) || 0) > 0 ? 'text-orange-600 dark:text-orange-400 font-bold' : 'text-gray-400'}`}>
+                          {(Number(m.remainingAmount) || 0) > 0 ? money(Number(m.remainingAmount)) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {(data.buckets as any).other.total > 0 && (

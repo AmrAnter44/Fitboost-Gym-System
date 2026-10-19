@@ -20,6 +20,7 @@ export type AuditAction =
   | 'USER_DEACTIVATE'
   | 'EXPORT'
   | 'RATE_LIMIT_HIT'
+  | 'RECEIPT_CREATE' // 🧾 محاولة إنشاء إيصال (نجاح/فشل) — بتظهر للأونر بس
 
 export type AuditResource =
   | 'Member'
@@ -58,6 +59,74 @@ export interface AuditLogData {
   userAgent?: string
   status?: AuditStatus
   errorMessage?: string
+}
+
+// ==================== 🔍 تفاصيل التعديل (من → إلى) ====================
+
+export type FieldChange = { field: string; from: any; to: any }
+
+// حقول مالهاش معنى للمستخدم أو تقيلة (صور/باسورد/حقول داخلية)
+const NOISY_FIELDS = new Set([
+  'id', 'updatedAt', 'createdAt', 'password', 'profileImage', 'image', 'imageUrl', 'photo',
+  'unpaidSessionsLockAt', 'itemDetails', 'coachAssignedAt', 'salesAssignedAt', 'lastSyncedAt',
+])
+// حقول بتشيل id موظف → نعرض الاسم بدل الـ id
+const STAFF_ID_FIELDS = new Set(['coachId', 'salesStaffId', 'staffId', 'trainerId', 'assignedTo'])
+
+function normalizeAuditValue(v: any): any {
+  if (v === undefined || v === null || v === '') return null
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : v.toISOString()
+  if (typeof v === 'object') {
+    // عمليات Prisma زي { increment: 1 }
+    if ('increment' in v) return `+${v.increment}`
+    if ('decrement' in v) return `-${v.decrement}`
+    if ('set' in v) return normalizeAuditValue(v.set)
+    try { return JSON.stringify(v).slice(0, 200) } catch { return null }
+  }
+  if (typeof v === 'string' && (v.startsWith('data:') || v.length > 300)) return undefined // صورة/نص تقيل → مانعرضوش
+  return v
+}
+
+/**
+ * بيقارن القيم القديمة بالجديدة ويرجّع الحقول اللي اتغيّرت بس: [{ field, from, to }]
+ * (لو قيمة اتبعتت بنفس القيمة القديمة مابتظهرش). مابترميش خطأ أبداً.
+ */
+export async function buildFieldChanges(
+  before: Record<string, any> | null | undefined,
+  updates: Record<string, any> | null | undefined,
+): Promise<FieldChange[]> {
+  try {
+    if (!updates) return []
+    const changes: FieldChange[] = []
+    for (const [field, raw] of Object.entries(updates)) {
+      if (NOISY_FIELDS.has(field) || raw === undefined) continue
+      const to = normalizeAuditValue(raw)
+      const from = normalizeAuditValue(before ? before[field] : null)
+      if (to === undefined || from === undefined) continue
+      if (String(from ?? '') === String(to ?? '')) continue
+      changes.push({ field, from, to })
+      if (changes.length >= 40) break
+    }
+    // 👤 أسماء الموظفين بدل الـ ids
+    const ids = new Set<string>()
+    for (const c of changes) {
+      if (!STAFF_ID_FIELDS.has(c.field)) continue
+      if (typeof c.from === 'string') ids.add(c.from)
+      if (typeof c.to === 'string') ids.add(c.to)
+    }
+    if (ids.size > 0) {
+      const rows = await prisma.staff.findMany({ where: { id: { in: [...ids] } }, select: { id: true, name: true } }).catch(() => [])
+      const names = new Map<string, string>(rows.map((r: { id: string; name: string }) => [r.id, r.name] as [string, string]))
+      for (const c of changes) {
+        if (!STAFF_ID_FIELDS.has(c.field)) continue
+        if (typeof c.from === 'string') c.from = names.get(c.from) || c.from
+        if (typeof c.to === 'string') c.to = names.get(c.to) || c.to
+      }
+    }
+    return changes
+  } catch {
+    return []
+  }
 }
 
 /**
@@ -409,6 +478,7 @@ export async function getAuditLogs(options: {
   status?: AuditStatus
   startDate?: Date
   endDate?: Date
+  excludeActions?: string[]
 }) {
   const where: any = {}
 
@@ -423,6 +493,7 @@ export async function getAuditLogs(options: {
   }
 
   if (options.action) where.action = options.action
+  else if (options.excludeActions?.length) where.action = { notIn: options.excludeActions }
   if (options.resource) where.resource = options.resource
   if (options.status) where.status = options.status
 

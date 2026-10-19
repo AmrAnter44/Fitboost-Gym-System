@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
-import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
+import { createAuditLog, getIpAddress, getUserAgent, buildFieldChanges } from '../../../lib/auditLog'
 
 // GET - جلب جميع الزوار مع فلترة وبحث
 
@@ -363,7 +363,7 @@ export async function PUT(request: Request) {
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
       action: 'UPDATE', resource: 'Visitor', resourceId: visitor.id,
-      details: { name: visitor.name, changes: Object.keys(updateData) },
+      details: { name: visitor.name, fieldChanges: await buildFieldChanges(existingVisitor, updateData) },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 

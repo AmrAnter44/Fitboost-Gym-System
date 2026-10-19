@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
 import { usePermissions } from '../hooks/usePermissions'
@@ -127,6 +128,8 @@ const STAGE_LABELS: Record<string, { ar: string; en: string; color: string }> = 
   lost: { ar: 'خسرناه', en: 'Lost', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
 }
 
+export const COLLECTION_RETURN_KEY = 'collectionDashboardReturn'
+
 export default function CollectionDashboard() {
   const { locale } = useLanguage()
   const toast = useToast()
@@ -136,7 +139,17 @@ export default function CollectionDashboard() {
 
   const [data, setData] = useState<SalesStaffData[]>([])
   const [loading, setLoading] = useState(true)
-  const [expandedStaff, setExpandedStaff] = useState<string | null>(null)
+  //  ↩️ لما ندخل بروفايل عضو من هنا ونرجع (Back) نرجّع نفس الحالة: السيلز المفتوح + الفترة.
+  //  بتتحفظ لحظة الضغط على العضو وبتتمسح أول ما الصفحة تفتح تاني (ومدتها 30 دقيقة).
+  const [returnState] = useState<{ expandedStaff: string | null; dateFrom: string; dateTo: string } | null>(() => {
+    try {
+      const raw = sessionStorage.getItem(COLLECTION_RETURN_KEY)
+      const saved = raw ? JSON.parse(raw) : null
+      return saved && Date.now() - saved.at < 30 * 60 * 1000 ? saved : null
+    } catch { return null }
+  })
+  useEffect(() => { try { sessionStorage.removeItem(COLLECTION_RETURN_KEY) } catch {} }, [])
+  const [expandedStaff, setExpandedStaff] = useState<string | null>(returnState?.expandedStaff ?? null)
 
   // Date range filter — defaults to current month
   const todayDate = new Date()
@@ -149,8 +162,8 @@ export default function CollectionDashboard() {
     const day = String(d.getDate()).padStart(2, '0')
     return `${y}-${m}-${day}`
   }
-  const [dateFrom, setDateFrom] = useState<string>(fmt(firstOfMonth))
-  const [dateTo, setDateTo] = useState<string>(fmt(lastOfMonth))
+  const [dateFrom, setDateFrom] = useState<string>(returnState?.dateFrom || fmt(firstOfMonth))
+  const [dateTo, setDateTo] = useState<string>(returnState?.dateTo || fmt(lastOfMonth))
 
   // Commission editing
   const [editingCommission, setEditingCommission] = useState<string | null>(null) // staffId
@@ -161,6 +174,10 @@ export default function CollectionDashboard() {
     fromTotal: boolean
   }>({ type: '', rate: '', tiers: [], fromTotal: false })
   const [savingComm, setSavingComm] = useState(false)
+
+  const rememberForReturn = () => {
+    try { sessionStorage.setItem(COLLECTION_RETURN_KEY, JSON.stringify({ expandedStaff, dateFrom, dateTo, at: Date.now() })) } catch {}
+  }
 
   const fetchData = useCallback(async () => {
     try {
@@ -655,7 +672,7 @@ export default function CollectionDashboard() {
                     </h4>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {staff.members.map(member => (
-                        <div key={member.id} className="bg-white dark:bg-gray-800 rounded-xl p-3 ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-purple-300 dark:hover:ring-purple-700/60 hover:shadow-sm transition-all duration-150">
+                        <Link key={member.id} href={`/members/${member.id}`} onClick={rememberForReturn} className="block cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-purple-300 dark:hover:ring-purple-700/60 hover:shadow-sm transition-all duration-150">
                           <div className="flex items-center gap-3">
                             {/* أفاتار */}
                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
@@ -697,7 +714,7 @@ export default function CollectionDashboard() {
                               </span>
                             )}
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   </div>

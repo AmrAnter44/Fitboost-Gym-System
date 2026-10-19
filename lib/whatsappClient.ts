@@ -17,6 +17,15 @@ export interface SessionInfo {
   hasClient: boolean
   phoneNumber?: string | null
   reconnecting?: boolean   // بيعيد الاتصال دلوقتي (بعد 515 مثلاً)
+  lastDisconnect?: DisconnectEntry | null      // 🔍 سبب آخر فصل
+  disconnectHistory?: DisconnectEntry[]        // آخر 10 فصلات
+}
+
+export interface DisconnectEntry {
+  at: string
+  code: number | null
+  reason: string
+  kind: 'logged_out' | 'replaced' | 'network' | 'init_failed'
 }
 
 export interface ConversationInfo {

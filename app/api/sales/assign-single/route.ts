@@ -49,13 +49,25 @@ export async function POST(request: Request) {
     }
 
     if (entityType === 'member') {
-      const member = await prisma.member.findUnique({ where: { id: entityId }, select: { id: true } })
+      const member = await prisma.member.findUnique({ where: { id: entityId }, select: { id: true, phone: true } })
       if (!member) return NextResponse.json({ error: 'العضو غير موجود' }, { status: 404 })
 
       await prisma.member.update({
         where: { id: entityId },
         data: { salesStaffId: newOwner }
       })
+
+      //  متابعات العضو المفتوحة (منتهي/قرب ينتهي — متسجلة كـ Visitor بنفس التليفون) تتحوّل للسيلز الجديد
+      //  كمان، عشان الكارت في المتابعات يبيّن التحويل
+      if (member.phone) {
+        const visitors = await prisma.visitor.findMany({ where: { phone: member.phone }, select: { id: true } })
+        if (visitors.length > 0) {
+          await prisma.followUp.updateMany({
+            where: { visitorId: { in: visitors.map(v => v.id) }, archived: false },
+            data: { assignedTo: newOwner }
+          })
+        }
+      }
 
       return NextResponse.json({ success: true, entityType, entityId, salesStaffId: newOwner })
     }
