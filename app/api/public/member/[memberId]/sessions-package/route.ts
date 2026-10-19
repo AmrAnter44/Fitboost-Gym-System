@@ -9,6 +9,12 @@ import {
   phoneTail,
   samePhone,
 } from '@/lib/memberVerify'
+import { packageBlockReason, packageBlockMessage, PackageBlockReason } from '@/lib/packageUsability'
+
+function isToday(d: Date): boolean {
+  const now = new Date()
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -25,6 +31,16 @@ function statusOf(p: {
   if (p.isActive === false) return 'expired'
   if (p.expiryDate && p.expiryDate.getTime() < Date.now()) return 'expired'
   return 'active'
+}
+
+/** هل الباقة تنفع يتخصم منها حصة + سبب المنع (نفس قواعد مسار الخصم) */
+function deductInfo(row: Parameters<typeof packageBlockReason>[0], alreadyToday = false) {
+  const reason: PackageBlockReason | null = packageBlockReason(row) ?? (alreadyToday ? 'already-today' : null)
+  return {
+    canDeduct: reason === null,
+    deductBlockReason: reason,
+    deductBlockMessage: reason ? packageBlockMessage(reason, row) : null,
+  }
 }
 
 /**
@@ -83,7 +99,7 @@ export async function GET(
           ptNumber: true, clientName: true, phone: true, coachName: true,
           sessionsPurchased: true, sessionsRemaining: true,
           startDate: true, expiryDate: true, remainingAmount: true,
-          isFrozen: true, freezeUntil: true, pendingRenewalData: true,
+          isFrozen: true, freezeUntil: true, pendingRenewalData: true, unpaidSessionsLockAt: true,
         },
       }),
       prisma.more.findMany({
@@ -93,7 +109,7 @@ export async function GET(
         select: {
           moreNumber: true, clientName: true, phone: true, coachName: true,
           sessionsPurchased: true, sessionsRemaining: true,
-          startDate: true, expiryDate: true, remainingAmount: true, isActive: true,
+          startDate: true, expiryDate: true, remainingAmount: true, isActive: true, unpaidSessionsLockAt: true,
         },
       }),
       prisma.systemSettings.findUnique({ where: { id: 'singleton' }, select: { remainingEnabled: true } }),
@@ -144,6 +160,7 @@ export async function GET(
         freezeUntil: p.isFrozen ? p.freezeUntil : null,
         hasPendingRenewal: !!p.pendingRenewalData,
         status: statusOf(p),
+        ...deductInfo(p),
         sessions: ptSessions.filter((s) => s.ptNumber === p.ptNumber).slice(0, SESSIONS_PER_PACKAGE).map(strip),
       })),
       ...mores.map((m) => ({
@@ -160,6 +177,7 @@ export async function GET(
         freezeUntil: null,
         hasPendingRenewal: false,
         status: statusOf(m),
+        ...deductInfo(m, moreSessions.some((s) => s.moreNumber === m.moreNumber && s.attended && isToday(s.sessionDate))),
         sessions: moreSessions.filter((s) => s.moreNumber === m.moreNumber).slice(0, SESSIONS_PER_PACKAGE).map(strip),
       })),
     ]
@@ -176,6 +194,9 @@ export async function GET(
 
     return NextResponse.json({
       kind,
+      // 📱 العميل يقدر يخصم حصة بنفسه من الأبلكيشن (POST ./deduct) — نفس الأعضاء
+      // (مفيش إعداد في السيستم بيقفل الخصم الذاتي للأعضاء، فهنا كمان مفتوح دايماً لعملاء الحصص)
+      canSelfDeduct: kind !== 'member',
       packages,
       hasActive: packages.some((p) => p.status === 'active' || p.status === 'frozen'),
       totalDue: remainingEnabled ? Math.round(totalDue * 100) / 100 : null,
