@@ -26,11 +26,22 @@ export async function GET(request: NextRequest) {
   try {
     const sixtyMinutesAgo = new Date(Date.now() - 60 * 60 * 1000)
 
-    const currentCount = await prisma.memberCheckIn.count({
-      where: {
-        checkInTime: { gte: sixtyMinutesAgo },
-      },
-    })
+    const [checkIns, invitations] = await Promise.all([
+      prisma.memberCheckIn.findMany({
+        where: { checkInTime: { gte: sixtyMinutesAgo } },
+        select: { memberId: true },
+        distinct: ['memberId'],
+      }),
+      prisma.invitation.findMany({
+        where: { createdAt: { gte: sixtyMinutesAgo } },
+        select: { memberId: true },
+      }),
+    ])
+
+    // 👥 الدعوة = العضو + صاحبه داخلين: الضيف بيتحسب، والعضو بيتحسب لو ماعملش check-in
+    const membersInside = new Set(checkIns.map(c => c.memberId))
+    invitations.forEach(inv => membersInside.add(inv.memberId))
+    const currentCount = membersInside.size + invitations.length
 
     const result = { currentCount }
 

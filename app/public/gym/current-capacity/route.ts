@@ -21,7 +21,14 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const currentCount = recentCheckIns.length;
+    // 👥 الدعوة = العضو + صاحبه داخلين: الضيف بيتحسب، والعضو بيتحسب لو ماعملش check-in
+    const recentInvitations = await prisma.invitation.findMany({
+      where: { createdAt: { gte: sixtyMinutesAgo } },
+      select: { memberId: true },
+    });
+    const membersInside = new Set(recentCheckIns.map((c) => c.memberId));
+    recentInvitations.forEach((inv) => membersInside.add(inv.memberId));
+    const currentCount = membersInside.size + recentInvitations.length;
 
     // Get total active members for percentage calculation
     const totalActiveMembers = await prisma.member.count({
