@@ -157,6 +157,55 @@ export async function POST(request: Request) {
       where: { phone },
     })
 
+    // زوار الداي يوز / الانفيتيشن بيتعملوا تلقائياً ومخفيين من صفحة الزوار،
+    // فلو حد ضافهم يدوي نحوّلهم لزائر عادي بدل ما نرفض برقم "مش موجود" في الواجهة
+    const isAutoCreatedVisitor = !!existingVisitor && !existingVisitor.isDeleted &&
+      (existingVisitor.source === 'invitation' || existingVisitor.source === 'member-invitation')
+
+    if (isAutoCreatedVisitor && existingVisitor) {
+      const converted = await prisma.$transaction(async (tx) => {
+        const v = await tx.visitor.update({
+          where: { id: existingVisitor.id },
+          data: {
+            name: name.trim(),
+            notes: notes?.trim() || existingVisitor.notes,
+            source: source || 'walk-in',
+            interestedIn: interestedIn?.trim() || existingVisitor.interestedIn,
+            status: 'pending',
+            referrerMemberNumber: typeof referrerMemberNumber === 'string' && referrerMemberNumber.trim() ? referrerMemberNumber.trim() : existingVisitor.referrerMemberNumber,
+          },
+        })
+        // ما نكررش متابعة لو في واحدة شغالة من الداي يوز / الانفيتيشن
+        const activeFollowUp = await tx.followUp.findFirst({
+          where: { visitorId: v.id, archived: false },
+        })
+        if (!activeFollowUp) {
+          await tx.followUp.create({
+            data: {
+              visitorId: v.id,
+              notes: 'زيارة أولية - في انتظار التواصل',
+              nextFollowUpDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              ...(salesStaffId ? { assignedTo: salesStaffId } : {})
+            },
+          })
+        }
+        return v
+      })
+
+      if (normalizedGender) {
+        try { await prisma.$executeRawUnsafe(`UPDATE Visitor SET gender = ? WHERE id = ?`, normalizedGender, converted.id) } catch { /* عمود ممكن يكون لسه مش موجود */ }
+      }
+
+      createAuditLog({
+        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+        action: 'UPDATE', resource: 'Visitor', resourceId: converted.id,
+        details: { name: converted.name, phone: converted.phone, source: converted.source, convertedFrom: existingVisitor.source },
+        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+      })
+
+      return NextResponse.json(converted, { status: 201 })
+    }
+
     if (existingVisitor && !existingVisitor.isDeleted) {
       return NextResponse.json(
         {
