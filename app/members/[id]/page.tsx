@@ -1,7 +1,7 @@
 // app/members/[id]/page.tsx - إصلاح الأرقام العشرية
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { ReceiptToPrint } from '../../../components/ReceiptToPrint'
@@ -1589,6 +1589,9 @@ export default function MemberDetailPage() {
  }
  }
 
+ //  الباقي وقت فتح فورم التعديل — بنقارن بيه عشان نعرف المستخدم غيّره ولا لأ
+ const editBasicInfoOriginalRemaining = useRef<number>(0)
+
  const handleEditBasicInfo = async () => {
  if (!member || !editBasicInfoData.name.trim() || !editBasicInfoData.phone.trim()) {
  toast.warning(t('memberDetails.editModal.enterNameAndPhone'))
@@ -1622,7 +1625,10 @@ export default function MemberDetailPage() {
  freeAssessmentSessions: parseInt(editBasicInfoData.freeAssessmentSessions.toString()),
  freeMoreSessions: parseInt(editBasicInfoData.freeMoreSessions.toString()),
  remainingFreezeDays: parseInt(editBasicInfoData.remainingFreezeDays.toString()),
- remainingAmount: parseInt(editBasicInfoData.remainingAmount.toString()),
+ //  الباقي يتبعت بس لو اتعدّل في الفورم — عشان قيمة قديمة متكتبش فوق دفعات اتعملت بعد فتح الصفحة
+ ...(Number(editBasicInfoData.remainingAmount) !== Number(editBasicInfoOriginalRemaining.current)
+ ? { remainingAmount: parseInt(editBasicInfoData.remainingAmount.toString()) }
+ : {}),
  remainingDueDate: editBasicInfoData.remainingDueDate || null,
  coachId: editBasicInfoData.coachId,
  salesStaffId: editBasicInfoData.salesStaffId || null,
@@ -2364,7 +2370,7 @@ export default function MemberDetailPage() {
  freeAssessmentSessions: member.freeAssessmentSessions ?? 0,
  freeMoreSessions: member.freeMoreSessions ?? 0,
  remainingFreezeDays: member.remainingFreezeDays ?? 0,
- remainingAmount: member.remainingAmount ?? 0,
+ remainingAmount: (editBasicInfoOriginalRemaining.current = member.remainingAmount ?? 0),
  remainingDueDate: (member as any).remainingDueDate ? formatDateYMD((member as any).remainingDueDate) : '',
  coachId: member.coachId || null,
  salesStaffId: (member as any).salesStaffId || null,

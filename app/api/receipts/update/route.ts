@@ -204,11 +204,18 @@ export async function PUT(request: Request) {
     //    subscriptionPrice بييجي من الـ patch، والمتبقي (remainingAmount) بيتحسب = السعر − المدفوع
     let moneyRemaining: number | null = null
     let moneyPriceChanged = false
+    //  🐛 الفرق اللي اتعمل في المدفوع/السعر — عشان الباقي على العضو يتعدّل بالفرق بس.
+    //     قبل كده كان بيتحسب «السعر − مدفوع الإيصال ده» فلو اتعدّل إيصال دفعة (200 من 1800)
+    //     الباقي كان يرجع 1600 ويتجاهل كل الدفعات التانية.
+    let paidDelta = 0
+    let priceDelta = 0
     {
       const baseForMoney: Record<string, any> =
         finalItemDetails ?? (existingReceipt.itemDetails ? JSON.parse(existingReceipt.itemDetails) : {})
       const hasMoney =
         'subscriptionPrice' in baseForMoney || 'paidAmount' in baseForMoney || 'remainingAmount' in baseForMoney
+      const oldPaid = Number(baseForMoney.paidAmount) || 0
+      const oldPrice = Number(baseForMoney.subscriptionPrice) || 0
 
       if (hasMoney) {
         let moneyTouched = false
@@ -236,7 +243,12 @@ export async function PUT(request: Request) {
         if (moneyTouched) {
           const spFinal = Number(baseForMoney.subscriptionPrice) || 0
           const paidFinal = Number(baseForMoney.paidAmount) || 0
-          const remaining = Math.max(0, spFinal - paidFinal)
+          paidDelta = paidFinal - oldPaid
+          priceDelta = spFinal - oldPrice
+          //  إيصال «دفع باقي» فيه الباقي قبل الدفعة (previousRemaining) → الباقي بعده = اللي قبله − المدفوع
+          const remaining = 'previousRemaining' in baseForMoney
+            ? Math.max(0, (Number(baseForMoney.previousRemaining) || 0) + priceDelta - paidFinal)
+            : Math.max(0, spFinal - paidFinal)
           baseForMoney.remainingAmount = remaining
           moneyRemaining = remaining
           finalItemDetails = baseForMoney
@@ -283,8 +295,11 @@ export async function PUT(request: Request) {
             memberData.subscriptionPrice = Math.round(parseFloat(String(subscription.subscriptionPrice))) || 0
           }
           if (moneyRemaining !== null) {
-            memberData.remainingAmount = moneyRemaining
-            if (moneyRemaining === 0) memberData.remainingDueDate = null
+            //  الباقي الحالي على العضو − الزيادة في المدفوع + الزيادة في السعر (من غير ما نلغي الدفعات التانية)
+            const cur = await prisma.member.findUnique({ where: { id: existingReceipt.memberId }, select: { remainingAmount: true } })
+            const newMemberRemaining = Math.max(0, (Number(cur?.remainingAmount) || 0) - paidDelta + priceDelta)
+            memberData.remainingAmount = newMemberRemaining
+            if (newMemberRemaining === 0) memberData.remainingDueDate = null
           }
 
           if (Object.keys(memberData).length > 0) {
