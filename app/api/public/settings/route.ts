@@ -22,7 +22,8 @@ const DEFAULTS = {
   // pushTokenDelete = بيشيل توكن الإشعارات عند تسجيل الخروج
   // sessionsOnlyLogin = عملاء الحصص المخصصة/المزيد من غير عضوية يقدروا يدخلوا (id = pt_N / more_N)
   //                     + مسار /member/[id]/sessions-package لعرض باقاتهم
-  capabilities: { memberPhoneHeader: true, spaCancel: true, pushTokenDelete: true, sessionsOnlyLogin: true },
+  // publicOffers = مسار /api/public/offers (باقات الاشتراك والحصص من السيستم نفسه)
+  capabilities: { memberPhoneHeader: true, spaCancel: true, pushTokenDelete: true, sessionsOnlyLogin: true, publicOffers: true },
 }
 
 export async function GET(request: NextRequest) {
