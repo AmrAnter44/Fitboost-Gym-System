@@ -33,6 +33,9 @@ const OUT_REL = argVal('out', 'prisma/demo.db');
 const OUT_ABS = path.isAbsolute(OUT_REL) ? OUT_REL : path.join(ROOT, OUT_REL);
 const MEMBER_COUNT = parseInt(argVal('members', '120'), 10);
 const DEMO_PASSWORD = argVal('password', 'demo1234');
+// 🍏 حساب مراجعة متاجر التطبيقات (FB Team) — بيتعمل مع كل تصفير يومي عشان Apple/Google يقدروا يدخلوا دايماً
+const REVIEW_EMAIL = 'review@fitboost.website';
+const REVIEW_PASSWORD = argVal('review-password', 'Review@2026');
 
 // ---------------------------------------------------------------- rng (deterministic)
 let _seed = 20260820;
@@ -205,6 +208,8 @@ async function main() {
     { email: 'reception@demo.local', name: 'ريسبشن (ديمو)', role: 'STAFF', staff: reception[0] },
     { email: 'coach@demo.local', name: 'كوتش (ديمو)', role: 'COACH', staff: coaches[0] },
     { email: 'sales@demo.local', name: 'سيلز (ديمو)', role: 'STAFF', staff: salesStaff[0], isSales: true },
+    // موظف ريسبشن عادي (يومي/فلوسي/مهام) لمراجعة أبلكيشن FB Team
+    { email: REVIEW_EMAIL, name: 'App Review (FB Team)', role: 'STAFF', staff: reception[1], ownPassword: REVIEW_PASSWORD },
   ];
   for (let i = 0; i < USERS.length; i++) {
     const u = USERS[i];
@@ -213,7 +218,7 @@ async function main() {
         id: `demo_user_${i}`,
         email: u.email,
         name: u.name,
-        password: passwordHash,
+        password: u.ownPassword ? await bcrypt.hash(u.ownPassword, 10) : passwordHash,
         role: u.role,
         isActive: true,
         isSales: !!u.isSales,

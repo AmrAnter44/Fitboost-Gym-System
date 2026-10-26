@@ -5,14 +5,15 @@ import { getRemoteStatus, setupRemoteSupport } from '../../../../lib/remoteSuppo
 export const dynamic = 'force-dynamic'
 
 /**
- * 🖥️ الدعم الفني عن بُعد (RustDesk) — للأونر بس
+ * 🖥️ الدعم الفني عن بُعد (RustDesk) — لأي موظف عامل لوجين
+ * (زرار «دعم عن بُعد» في صفحة الدعم الفني + كارت الإعدادات للأونر)
  *   GET  → الحالة (متسطّب؟ متظبط على سيرفر FitBoost؟ رقم الجهاز)
  *   POST → تسطيب/ظبط (ويندوز هيسأل Yes)
+ * الباسورد عمره ما بيرجع هنا — عند فيت بوست بس.
  */
-async function requireOwner(request: Request) {
+async function requireUser(request: Request) {
   const user = await verifyAuth(request)
   if (!user) throw new Error('Unauthorized')
-  if (user.role !== 'OWNER') throw new Error('Forbidden')
   return user
 }
 
@@ -24,7 +25,7 @@ function errorResponse(e: any) {
 
 export async function GET(request: Request) {
   try {
-    await requireOwner(request)
+    await requireUser(request)
     return NextResponse.json(getRemoteStatus())
   } catch (e) {
     return errorResponse(e)
@@ -33,7 +34,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    await requireOwner(request)
+    await requireUser(request)
     const r = await setupRemoteSupport('manual')
     return NextResponse.json({ success: r.ok, message: r.message, status: r })
   } catch (e) {

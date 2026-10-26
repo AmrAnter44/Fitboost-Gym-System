@@ -15,6 +15,7 @@ import { usePermissions } from '../hooks/usePermissions'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
 import { compressImage } from '../lib/imageCompress'
+import RemoteSupportButton from './RemoteSupportButton'
 import {
   SUPPORT_WHATSAPP_URL,
   SupportFetchError,
@@ -514,6 +515,7 @@ export default function SupportChat() {
           </h1>
           <p className="text-xs text-[#667781] dark:text-[#8696a0] truncate" aria-live="polite">{statusLine}</p>
         </div>
+        <RemoteSupportButton />
         <a
           href={SUPPORT_WHATSAPP_URL}
           target="_blank"
