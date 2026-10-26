@@ -3512,8 +3512,19 @@ function FollowUpsPageContent() {
 
                   {/* Follow-up Info */}
                   <div className="space-y-2 sm:space-y-2.5">
-                    {/* اسم الزائر ورقم الهاتف - بروز أكبر */}
-                    <div className="bg-gradient-to-r from-primary-50 via-white to-primary-50 dark:from-primary-900/20 dark:via-gray-800 dark:to-primary-900/20 p-3 sm:p-4 rounded-xl ring-1 ring-primary-200 dark:ring-primary-900/50 shadow-sm">
+                    {/* اسم الزائر ورقم الهاتف - بروز أكبر — 👆 الضغط بيفتح بروفايل العضو (أو سجل الزائر لو مش عضو) */}
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        const mid = getMemberIdByPhone(followUp.visitor.phone)
+                        if (mid) router.push(`/members/${mid}`)
+                        else openHistoryModal(followUp.visitor as any)
+                      }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLElement).click() }}
+                      title={getMemberIdByPhone(followUp.visitor.phone) ? (locale === 'ar' ? 'فتح بروفايل العضو' : 'Open member profile') : (locale === 'ar' ? 'عرض سجل الزائر' : 'Open visitor history')}
+                      className="cursor-pointer hover:ring-2 hover:ring-primary-400 transition-shadow bg-gradient-to-r from-primary-50 via-white to-primary-50 dark:from-primary-900/20 dark:via-gray-800 dark:to-primary-900/20 p-3 sm:p-4 rounded-xl ring-1 ring-primary-200 dark:ring-primary-900/50 shadow-sm"
+                    >
                       <div className="flex flex-col gap-2.5">
                         {/* الاسم */}
                         <div className="flex items-center gap-2">
@@ -3554,6 +3565,7 @@ function FollowUpsPageContent() {
                                    بيظهر لكل الحسابات (بما فيهم السيلز) حتى لو الأرقام مخفية. */}
                               <a
                                 href={`tel:${followUp.visitor.phone.replace(/[^\d+]/g, '')}`}
+                                onClick={(e) => e.stopPropagation()}
                                 className="sm:hidden bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm transition-colors duration-200 inline-flex items-center gap-1"
                                 title={locale === 'ar' ? 'اتصال' : 'Call'}
                               >
@@ -3561,7 +3573,7 @@ function FollowUpsPageContent() {
                                 {locale === 'ar' ? 'اتصال' : 'Call'}
                               </a>
                               <button
-                                onClick={() => openTemplateModal(followUp.visitor)}
+                                onClick={(e) => { e.stopPropagation(); openTemplateModal(followUp.visitor) }}
                                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm transition-colors duration-200 inline-flex items-center gap-1"
                                 title={t('followups.table.readyMessages')}
                               >

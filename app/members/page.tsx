@@ -372,7 +372,7 @@ function MembersPageContent() {
 
         if (filterStatus === 'expired') {
           // استثناء اللي لسه ما بدأوش - دول مش منتهيين
-          const startDate = member.startDate ? new Date(member.startDate) : null
+          const startDate = member.startDate ? (() => { const d = new Date(member.startDate); d.setHours(0, 0, 0, 0); return d })() : null // 🗓️ باليوم مش بالساعة (البداية متخزنة 00:00 UTC = 3 الفجر عندنا)
           const today = new Date()
           today.setHours(0, 0, 0, 0)
           const notStartedYet = member.isActive && startDate && startDate > today
@@ -734,43 +734,88 @@ function MembersPageContent() {
     ((filterSubFrom || filterSubTo) ? 1 : 0)
 
   //  🗓️ صف فلتر تاريخ الانتهاء (من/إلى) — يظهر بس لما الحالة تكون منتهي/بيخلص
-  const expiryStatusActive = ['expired', 'expiring-soon', 'expiring-today', 'expiring-tomorrow'].includes(filterStatus)
+  //  ⬅️ «الكل» و«نشط» كمان: عشان تجيب اللي هيخلص في فترة جاية (مش المنتهيين بس)
+  const expiryStatusActive = ['all', 'active', 'expired', 'expiring-soon', 'expiring-today', 'expiring-tomorrow'].includes(filterStatus)
+  //  اختصارات الفترة + لون الصف (أحمر مع المنتهيين بس، محايد مع الباقي)
+  const expiryShortcuts = (() => {
+    const t = new Date()
+    const ymd = (d: Date) => formatDateYMD(d)
+    const monthStart = new Date(t.getFullYear(), t.getMonth(), 1)
+    const ar = locale === 'ar'
+    if (filterStatus === 'expired') {
+      return [
+        { key: 'today', label: ar ? 'لحد النهاردة' : 'Until today', from: '', to: ymd(t) },
+        { key: 'this', label: ar ? 'الشهر ده' : 'This month', from: ymd(monthStart), to: ymd(t) },
+      ]
+    }
+    return [] as { key: string; label: string; from: string; to: string }[] //  مع الكل/نشط: من غير اختصارات
+  })()
+  const expiryAccent = filterStatus === 'expired'
+    ? { text: 'text-red-700 dark:text-red-300', chipActive: 'bg-red-600 text-white ring-red-600' }
+    : { text: 'text-gray-700 dark:text-gray-200', chipActive: 'bg-primary-600 text-primary-contrast ring-primary-600' }
+
   const expiryRangeRow = expiryStatusActive ? (
-    <div className="flex flex-wrap items-center gap-2 mt-2 p-2.5 rounded-xl bg-red-50/70 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-800/60">
-      <span className="text-xs font-bold text-red-700 dark:text-red-300 inline-flex items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-2 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/60 ring-1 ring-gray-200 dark:ring-gray-700">
+      {/* العنوان */}
+      <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${expiryAccent.text}`}>
         <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        {locale === 'ar' ? 'تاريخ الانتهاء:' : 'Expiry:'}
+        {filterStatus === 'expired'
+          ? (locale === 'ar' ? 'خلص اشتراكهم' : 'Expired between')
+          : (locale === 'ar' ? 'الاشتراك بيخلص' : 'Expires between')}
       </span>
-      <div className="flex items-center gap-1.5">
-        <span className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'من' : 'From'}</span>
+
+      {/* من / إلى — خانة واحدة متصلة */}
+      <div className="inline-flex items-center h-9 rounded-lg ring-1 ring-gray-300 dark:ring-gray-600 bg-white dark:bg-gray-800 overflow-hidden">
+        <span className="px-2 text-[11px] font-bold text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'من' : 'From'}</span>
         <input
           type="date"
           value={filterExpFrom}
           max={filterExpTo || undefined}
           onChange={(e) => setFilterExpFrom(e.target.value)}
-          className="px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          className="h-full px-1.5 bg-transparent text-gray-900 dark:text-gray-100 text-xs focus:outline-none"
         />
-        <span className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'إلى' : 'To'}</span>
+        <span className="h-5 w-px bg-gray-200 dark:bg-gray-600" aria-hidden="true" />
+        <span className="px-2 text-[11px] font-bold text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'إلى' : 'To'}</span>
         <input
           type="date"
           value={filterExpTo}
           min={filterExpFrom || undefined}
           onChange={(e) => setFilterExpTo(e.target.value)}
-          className="px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          className="h-full px-1.5 bg-transparent text-gray-900 dark:text-gray-100 text-xs focus:outline-none"
         />
       </div>
-      <button
-        type="button"
-        onClick={() => { setFilterExpFrom(''); setFilterExpTo(new Date().toISOString().split('T')[0]) }}
-        className="px-2.5 py-1.5 rounded-lg bg-red-600 text-white text-[11px] font-bold hover:bg-red-700 transition-colors duration-200"
-      >
-        {locale === 'ar' ? 'لحد النهاردة' : 'Until today'}
-      </button>
-      {(filterExpFrom || filterExpTo) && (
-        <button type="button" onClick={() => { setFilterExpFrom(''); setFilterExpTo('') }} className="text-[11px] text-red-600 dark:text-red-300 hover:underline font-bold">
-          {locale === 'ar' ? 'مسح' : 'Clear'}
-        </button>
-      )}
+
+      {/* اختصارات */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {expiryShortcuts.map(sc => {
+          const active = filterExpFrom === sc.from && filterExpTo === sc.to
+          return (
+            <button
+              key={sc.key}
+              type="button"
+              onClick={() => { setFilterExpFrom(sc.from); setFilterExpTo(sc.to) }}
+              className={`h-8 px-3 rounded-full text-[11px] font-bold ring-1 transition-colors duration-200 ${
+                active
+                  ? expiryAccent.chipActive
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              {sc.label}
+            </button>
+          )
+        })}
+        {(filterExpFrom || filterExpTo) && (
+          <button
+            type="button"
+            onClick={() => { setFilterExpFrom(''); setFilterExpTo('') }}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors duration-200"
+            title={locale === 'ar' ? 'مسح التاريخ' : 'Clear dates'}
+            aria-label={locale === 'ar' ? 'مسح التاريخ' : 'Clear dates'}
+          >
+            <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+          </button>
+        )}
+      </div>
       {/*  📊 Excel للأعضاء المنتهيين — بيطلّع اللي ظاهر بالفلاتر الحالية (أونر بس) */}
       {filterStatus === 'expired' && user?.role === 'OWNER' &&filteredMembers.length > 0 && (
         <button
@@ -818,7 +863,7 @@ function MembersPageContent() {
 
     if (filterStatus === 'all') return true
     if (filterStatus === 'expired') {
-      const startDate = member.startDate ? new Date(member.startDate) : null
+      const startDate = member.startDate ? (() => { const d = new Date(member.startDate); d.setHours(0, 0, 0, 0); return d })() : null // 🗓️ باليوم مش بالساعة (البداية متخزنة 00:00 UTC = 3 الفجر عندنا)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       const notStartedYet = member.isActive && startDate && startDate > today
@@ -845,7 +890,7 @@ function MembersPageContent() {
     active: membersData.filter(m => isMemberActiveNow(m)).length,
     expired: membersData.filter(m => {
       if (isMemberActiveNow(m)) return false
-      const startDate = m.startDate ? new Date(m.startDate) : null
+      const startDate = m.startDate ? (() => { const d = new Date(m.startDate); d.setHours(0, 0, 0, 0); return d })() : null // 🗓️ باليوم مش بالساعة (البداية متخزنة 00:00 UTC = 3 الفجر عندنا)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       const notStartedYet = m.isActive && startDate && startDate > today

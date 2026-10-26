@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
 import { phoneTail, samePhone, packageId } from '@/lib/memberVerify';
+import { absoluteImageUrl } from '@/lib/publicImageUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
     // من الأبلكيشن لو دخلت بـ id زي "pt_5" هتاخد 401 من /profile وتعمل logout
     // على طول، فالأحسن تفضل تشوف "البيانات غير صحيحة" زي ما كانت.
     if (!member && body?.allowPackageLogin === true) {
-      const pkg = await findPackageLogin(String(memberNumber).trim(), phoneNumber);
+      const pkg = await findPackageLogin(String(memberNumber).trim(), phoneNumber, request);
       if (pkg) {
         return NextResponse.json({ success: true, member: pkg });
       }
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
         id: member.id,
         memberNumber: member.memberNumber,
         name: member.name,
-        profileImage: member.profileImage,
+        profileImage: absoluteImageUrl(request, member.profileImage),
         // 📜 null = العضو لسه ماوافقش على الشروط — التطبيق بيعرضها له بعد اللوجن
         termsAcceptedAt: member.termsAcceptedAt,
         kind: 'member',
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
  *   والـ id = "pt_<n>" / "more_<n>" و kind = 'pt' | 'more'.
  * الدخول مش بيتقفل لما الحصص تخلص أو تنتهي — العميل بيشوف السجل + عروض التجديد.
  */
-async function findPackageLogin(number: string, phoneNumber: unknown) {
+async function findPackageLogin(number: string, phoneNumber: unknown, request: Request) {
   if (!/^\d{1,9}$/.test(number)) return null;
   const n = Number(number);
   if (!Number.isSafeInteger(n) || n <= 0) return null;
@@ -158,7 +159,7 @@ async function findPackageLogin(number: string, phoneNumber: unknown) {
         id: m.id,
         memberNumber: m.memberNumber,
         name: m.name,
-        profileImage: m.profileImage,
+        profileImage: absoluteImageUrl(request, m.profileImage),
         termsAcceptedAt: m.termsAcceptedAt,
         kind: 'member' as const,
       };

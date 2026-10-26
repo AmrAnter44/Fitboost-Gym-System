@@ -492,7 +492,7 @@ export default function SearchModal() {
     const isActive = member.isActive
     const isFrozen = member.isFrozen
     const expiryDate = member.expiryDate ? new Date(member.expiryDate) : null
-    const startDate = member.startDate ? new Date(member.startDate) : null
+    const startDate = member.startDate ? (() => { const d = new Date(member.startDate); d.setHours(0, 0, 0, 0); return d })() : null // 🗓️ باليوم مش بالساعة (البداية متخزنة 00:00 UTC = 3 الفجر عندنا)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
@@ -683,7 +683,7 @@ export default function SearchModal() {
         const member = foundResults[0].data
         const today = new Date()
         today.setHours(0, 0, 0, 0)
-        const startDate = member.startDate ? new Date(member.startDate) : null
+        const startDate = member.startDate ? (() => { const d = new Date(member.startDate); d.setHours(0, 0, 0, 0); return d })() : null // 🗓️ باليوم مش بالساعة (البداية متخزنة 00:00 UTC = 3 الفجر عندنا)
         const expiryDate = member.expiryDate ? new Date(member.expiryDate) : null
         const hasStarted = !startDate || startDate <= today
         const notExpired = !expiryDate || expiryDate >= today
@@ -787,7 +787,7 @@ export default function SearchModal() {
           const member = foundResults[0].data
           const today = new Date()
           today.setHours(0, 0, 0, 0)
-          const startDate = member.startDate ? new Date(member.startDate) : null
+          const startDate = member.startDate ? (() => { const d = new Date(member.startDate); d.setHours(0, 0, 0, 0); return d })() : null // 🗓️ باليوم مش بالساعة (البداية متخزنة 00:00 UTC = 3 الفجر عندنا)
           const expiryDate = member.expiryDate ? new Date(member.expiryDate) : null
           const hasStarted = !startDate || startDate <= today
           const notExpired = !expiryDate || expiryDate >= today
@@ -1371,7 +1371,7 @@ export default function SearchModal() {
                                       (() => {
                                         const today = new Date()
                                         today.setHours(0, 0, 0, 0)
-                                        const startDate = result.data.startDate ? new Date(result.data.startDate) : null
+                                        const startDate = result.data.startDate ? (() => { const d = new Date(result.data.startDate); d.setHours(0, 0, 0, 0); return d })() : null // 🗓️ باليوم مش بالساعة (البداية متخزنة 00:00 UTC = 3 الفجر عندنا)
                                         const expiryDate = result.data.expiryDate ? new Date(result.data.expiryDate) : null
                                         if (!startDate && !expiryDate && !result.data.isActive && result.data.memberNumber === null) return 'bg-gray-500 text-white'
                                         if (result.data.isBanned) return 'bg-gray-900 text-white'
@@ -1386,7 +1386,7 @@ export default function SearchModal() {
                                       {(() => {
                                         const today = new Date()
                                         today.setHours(0, 0, 0, 0)
-                                        const startDate = result.data.startDate ? new Date(result.data.startDate) : null
+                                        const startDate = result.data.startDate ? (() => { const d = new Date(result.data.startDate); d.setHours(0, 0, 0, 0); return d })() : null // 🗓️ باليوم مش بالساعة (البداية متخزنة 00:00 UTC = 3 الفجر عندنا)
                                         const expiryDate = result.data.expiryDate ? new Date(result.data.expiryDate) : null
                                         if (!startDate && !expiryDate && !result.data.isActive && result.data.memberNumber === null) return ` ${locale === 'ar' ? 'ليس عضوية' : 'Non-Member'}`
                                         if (result.data.isBanned) return ` ${locale === 'ar' ? 'محظور' : 'Banned'}`
@@ -1427,7 +1427,7 @@ export default function SearchModal() {
                                     {(() => {
                                       const today = new Date()
                                       today.setHours(0, 0, 0, 0)
-                                      const startDate = result.data.startDate ? new Date(result.data.startDate) : null
+                                      const startDate = result.data.startDate ? (() => { const d = new Date(result.data.startDate); d.setHours(0, 0, 0, 0); return d })() : null // 🗓️ باليوم مش بالساعة (البداية متخزنة 00:00 UTC = 3 الفجر عندنا)
 
                                       // يبدأ بعد X يوم
                                       if (startDate && startDate > today) {
@@ -1488,7 +1488,7 @@ export default function SearchModal() {
                                 {(() => {
                                   const today = new Date()
                                   today.setHours(0, 0, 0, 0)
-                                  const startDate = result.data.startDate ? new Date(result.data.startDate) : null
+                                  const startDate = result.data.startDate ? (() => { const d = new Date(result.data.startDate); d.setHours(0, 0, 0, 0); return d })() : null // 🗓️ باليوم مش بالساعة (البداية متخزنة 00:00 UTC = 3 الفجر عندنا)
                                   const hasStarted = !startDate || startDate <= today
                                   return result.data.isActive && hasStarted && (result.data.invitations > 0 || result.data.freePTSessions > 0 || (settings.inBodyEnabled && result.data.inBodyScans > 0) || (settings.nutritionEnabled && result.data.freeNutritionSessions > 0) || (settings.physiotherapyEnabled && result.data.freePhysioSessions > 0) || (settings.groupClassEnabled && result.data.freeGroupClassSessions > 0))
                                 })() && (

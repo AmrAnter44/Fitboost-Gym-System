@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { apiCache, CACHE_TTL } from '@/lib/cache';
+import { absoluteImageUrl } from '@/lib/publicImageUrl';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
 import { verifyMemberPhone, memberPhoneFrom } from '@/lib/memberVerify';
 
@@ -165,6 +166,8 @@ export async function GET(
     const result = {
       member: {
         ...memberPublic,
+        //  📱 لينك كامل للصورة (المسار لوحده مبيفتحش في الأبلكيشن)
+        profileImage: absoluteImageUrl(request, memberPublic.profileImage),
         remainingDays,
         status,
         subscriptionType,

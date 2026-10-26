@@ -38,6 +38,8 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
   const phoneLocked = hidePhone && !!prefillData?.phone
   // كل المستخدمين يقدروا يعدلوا التواريخ في فورم إضافة العضو
   const canEditDates = true
+  //  🔓 تاريخ الانتهاء مع الباقة بيتحسب تلقائي — الأونر بس يقدر يعدّله بإيده
+  const isOwner = user?.role === 'OWNER'
   const { t, tr, direction, locale } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
@@ -122,6 +124,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
 
   // مدة الباقة المُطبَّقة (للحساب التلقائي للتاريخ النهاية لما البداية تتغير)
   const [appliedOfferDuration, setAppliedOfferDuration] = useState<number | null>(null)
+  const expiryLocked = !canEditDates || (appliedOfferDuration !== null && !isOwner)
   // سعر الباقة الأصلي + الحد الأدنى (للتحقق من الخصم)
   const [appliedOfferPrice, setAppliedOfferPrice] = useState<number | null>(null)
   const [appliedOfferMinPrice, setAppliedOfferMinPrice] = useState<number | null>(null)
@@ -1081,7 +1084,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
           <div>
             <label className="flex items-center text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 gap-1">
               {t('members.expiryDate')} <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(yyyy-mm-dd)</span>
-              {(!canEditDates || appliedOfferDuration !== null) && <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>}
+              {expiryLocked && <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>}
             </label>
             <div className="flex gap-2">
               {/* لو الـ user مختار باقة، الـ expiry بيتحسب تلقائياً من start + duration ومش قابل للتعديل */}
@@ -1089,8 +1092,8 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
                 type="text"
                 value={formData.expiryDate}
                 onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                readOnly={!canEditDates || appliedOfferDuration !== null}
-                className={`flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 ${(!canEditDates || appliedOfferDuration !== null) ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-70' : ''}`}
+                readOnly={expiryLocked}
+                className={`flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 ${expiryLocked ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-70' : ''}`}
                 placeholder="2025-12-18"
                 pattern="\d{4}-\d{2}-\d{2}"
               />
@@ -1098,10 +1101,10 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
                 type="date"
                 value={formData.expiryDate}
                 onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                disabled={!canEditDates || appliedOfferDuration !== null}
-                className={`px-3 py-2 text-white rounded-lg transition-colors duration-200 text-sm font-bold ${(canEditDates && appliedOfferDuration === null) ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'bg-gray-400 cursor-not-allowed opacity-60'}`}
+                disabled={expiryLocked}
+                className={`px-3 py-2 text-white rounded-lg transition-colors duration-200 text-sm font-bold ${!expiryLocked ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'bg-gray-400 cursor-not-allowed opacity-60'}`}
                 style={{ colorScheme: 'dark', width: '45px' }}
-                title={canEditDates ? (appliedOfferDuration !== null ? (direction === 'rtl' ? 'بيتحسب تلقائياً من تاريخ البداية + مدة الباقة' : 'Auto-computed') : t('members.form.selectDate')) : (direction === 'rtl' ? 'صلاحية الأدمن فقط' : 'Admin only')}
+                title={canEditDates ? (expiryLocked ? (direction === 'rtl' ? 'بيتحسب تلقائياً من تاريخ البداية + مدة الباقة' : 'Auto-computed') : t('members.form.selectDate')) : (direction === 'rtl' ? 'صلاحية الأدمن فقط' : 'Admin only')}
                 aria-label={t('members.form.selectDate')}
               />
             </div>
@@ -1109,7 +1112,9 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                 {direction === 'rtl'
-                  ? `بيتحسب تلقائياً (${appliedOfferDuration} يوم من تاريخ البداية). غيّر الباقة لو محتاج فترة مختلفة.`
+                  ? (isOwner
+                    ? `بيتحسب تلقائياً (${appliedOfferDuration} يوم من تاريخ البداية) — تقدر تعدّله بإيدك (أونر).`
+                    : `بيتحسب تلقائياً (${appliedOfferDuration} يوم من تاريخ البداية). غيّر الباقة لو محتاج فترة مختلفة.`)
                   : `Auto-computed (${appliedOfferDuration} days from start). Change package if you need a different duration.`}
               </p>
             )}
