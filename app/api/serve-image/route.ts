@@ -33,9 +33,13 @@ function allowedRoots(): string[] {
 
 /** هل الـ resolved path داخل واحد من الجذور المسموحة */
 function isInsideAllowedRoot(resolved: string): boolean {
-  return allowedRoots().some((root) => {
+  //  ويندوز مش بيفرّق بين الحروف الكبيرة والصغيرة (C:\Users ≠ c:\users كنص بس هما نفس الفولدر)
+  const norm = (p: string) => (process.platform === 'win32' ? p.toLowerCase() : p)
+  const target = norm(resolved)
+  return allowedRoots().some((r) => {
+    const root = norm(r)
     const withSep = root.endsWith(path.sep) ? root : root + path.sep
-    return resolved === root || resolved.startsWith(withSep)
+    return target === root || target.startsWith(withSep)
   })
 }
 
@@ -61,9 +65,26 @@ function validateResolvedFile(resolved: string): string | null {
  */
 function resolveSafeImagePath(imagePath: string): string | null {
   // absolute path → لازم يكون داخل جذر مسموح
-  if (path.isAbsolute(imagePath)) {
+  //  (بنفحص صيغة ويندوز كمان — عشان على سيرفر لينكس "C:\..." مش بيتعتبر absolute)
+  if (path.isAbsolute(imagePath) || path.win32.isAbsolute(imagePath)) {
     const resolved = path.resolve(imagePath)
-    return validateResolvedFile(resolved)
+    const direct = validateResolvedFile(resolved)
+    if (direct) return direct
+
+    //  🔁 الداتا اتنقلت من جهاز تاني (نسخة احتياطية / جهاز جديد / اسم مستخدم ويندوز مختلف):
+    //     المسار المتسجّل بيشاور على فولدر الجهاز القديم (C:\Users\pc\...) — فبندوّر على نفس
+    //     اسم الملف في فولدرات الصور المسموحة على الجهاز الحالي. اسم الملف بس (من غير أي فولدرات)
+    //     فمفيش path traversal.
+    const fileName = path.win32.basename(imagePath)
+    const parent = path.win32.basename(path.win32.dirname(imagePath)) // members / staff-checkin
+    if (!fileName || fileName.includes('..')) return null
+    for (const root of allowedRoots()) {
+      for (const candidate of [path.resolve(root, parent, fileName), path.resolve(root, fileName)]) {
+        const ok = validateResolvedFile(candidate)
+        if (ok) return ok
+      }
+    }
+    return null
   }
 
   // relative path

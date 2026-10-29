@@ -100,7 +100,9 @@ export async function POST(request: Request) {
 
     const isElectron = process.env.UPLOADS_PATH !== undefined
     const imageUrl = isElectron
-      ? `/api/serve-image?path=${encodeURIComponent(filepath)}`
+      //  📦 مسار نسبي جوّه فولدر السيستم (مش المسار الكامل بتاع الجهاز) — عشان لو الداتا والصور اتنقلوا
+      //     لجهاز تاني / اسم مستخدم تاني الصور تفضل شغالة من غير أي تعديل
+      ? `/api/serve-image?path=${encodeURIComponent(`uploads/members/${filename}`)}`
       : `/uploads/members/${filename}`
 
     return NextResponse.json({
@@ -136,6 +138,12 @@ export async function DELETE(request: Request) {
     if (imageUrl.startsWith('/api/serve-image?path=')) {
       const urlObj = new URL(imageUrl, 'http://localhost')
       filepath = urlObj.searchParams.get('path') || ''
+      //  مسار نسبي (uploads/members/x.jpg) أو مسار جهاز قديم → اسم الملف جوّه فولدر الصور الحالي
+      if (!path.isAbsolute(filepath) || !isPathInsideMembersUploads(filepath)) {
+        const name = path.win32.basename(filepath)
+        if (!name || name.includes('..')) return NextResponse.json({ error: 'مسار غير صحيح' }, { status: 400 })
+        filepath = path.join(getMembersUploadsDir(), name)
+      }
     } else if (imageUrl.startsWith('/uploads/members/')) {
       const filename = path.basename(imageUrl)
       // 🔒 منع path traversal: لازم الـ filename يبقى فقط اسم ملف بدون /
