@@ -1953,6 +1953,19 @@ function migrateDatabase(dbPath) {
     // فهرس ترتيب قائمة الأعضاء (createdAt DESC) — بدونه كل تحميل للقائمة يعمل فرز كامل
     db.exec('CREATE INDEX IF NOT EXISTS Member_createdAt_idx ON Member(createdAt)');
 
+    // 🔐 صف FitBoost Admin (fallback-fitboost-account) اتعمل قبل كده بإيميل Control الحقيقي
+    //    → الأونر لما يدخل بإيميله بيتلقى هنا ويترفض بـ "Invalid password" ومبيروحش لـ Control.
+    //    نرجّعه للإيميل الثابت (لو مفيش صف تاني واخد الإيميل ده).
+    try {
+      db.prepare(`
+        UPDATE User SET email = 'fitboost@system.local', name = 'FitBoost Admin'
+        WHERE id = 'fallback-fitboost-account' AND email <> 'fitboost@system.local'
+          AND NOT EXISTS (SELECT 1 FROM User WHERE email = 'fitboost@system.local' AND id <> 'fallback-fitboost-account')
+      `).run();
+    } catch (e) {
+      console.error('⚠️ fallback owner email fix failed:', e.message);
+    }
+
     db.close();
   } catch (error) {
     console.error('❌ Migration error:', error);

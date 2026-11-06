@@ -14,6 +14,7 @@ import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
 import { getNextReceiptNumber, runReceiptTransaction } from '../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent, buildFieldChanges } from '../../../lib/auditLog'
 import { computeUnpaidLockAt, isPaymentLocked, paymentLockMessage } from '../../../lib/sessionPaymentLimit'
+import { memberNumberForPhone } from '../../../lib/memberLookup'
 
 export const dynamic = 'force-dynamic'
 
@@ -375,6 +376,7 @@ export async function POST(request: Request) {
             staffName: staffName || '',
             itemDetails: JSON.stringify({
               ptNumber: pt.ptNumber,
+              memberNumber: await memberNumberForPhone(tx, phone), //  🪪 رقم عضوية العميل (مش رقم البي تي)
               clientName,
               phone: phone,
               sessionsPurchased: Number(sessionsPurchased),

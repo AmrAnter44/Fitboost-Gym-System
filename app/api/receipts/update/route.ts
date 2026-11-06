@@ -85,6 +85,19 @@ function mergeSubscriptionIntoDetails(
     }
   }
 
+  //  مدة الاشتراك (بالأيام) تتظبط مع التواريخ الجديدة — نفس حسبة إنشاء الإيصال
+  //  (بنحسبها كل ما التواريخ تتبعت — حتى لو ماتغيرتش — عشان الإيصالات القديمة اللي مدتها غلط تتصلح)
+  if ((sub.startDate !== undefined || sub.expiryDate !== undefined)
+    && 'subscriptionDays' in merged && merged.startDate && merged.expiryDate) {
+    const days = Math.ceil((new Date(merged.expiryDate).getTime() - new Date(merged.startDate).getTime()) / (1000 * 60 * 60 * 24))
+    if (Number.isFinite(days) && merged.subscriptionDays !== days) {
+      oldValues.subscriptionDays = merged.subscriptionDays ?? null
+      merged.subscriptionDays = days
+      newValues.subscriptionDays = days
+      changed.push('subscriptionDays')
+    }
+  }
+
   if (typeof sub.coachName === 'string') {
     const newCoach = sub.coachName.trim()
     if (merged.coachName !== newCoach) {
@@ -195,6 +208,36 @@ export async function PUT(request: Request) {
       subChanged = result.changed
       subOldValues = result.oldValues
       subNewValues = result.newValues
+
+      //  📦 اسم الباقة يمشي مع المدة — وإلا الإيصال يقول «سنه» والمدة 3 شهور.
+      //     لو الاسم الحالي باقة مدتها مطابقة (± 3 أيام) يفضل زي ما هو (فيه باقات بنفس المدة وأسامي مختلفة).
+      //     غير كده: باقة واحدة بس بنفس المدة → اسمها؛ وإلا المدة نفسها (3 شهور / 45 يوم).
+      const datesSent = subscription.startDate !== undefined || subscription.expiryDate !== undefined
+      const days = Number(finalItemDetails?.subscriptionDays)
+      if (datesSent && finalItemDetails?.packageName && Number.isFinite(days) && days > 0) {
+        let newPackage: string | null = null
+        let currentFits = false
+        try {
+          const offers = await prisma.offer.findMany({ where: { isActive: true }, select: { name: true, duration: true } })
+          const matches = offers.filter(o => Math.abs(o.duration - days) <= 3)
+          const current = String(finalItemDetails.packageName).trim()
+          currentFits = matches.some(o => o.name.trim() === current)
+          const names = Array.from(new Set(matches.map(o => o.name.trim())))
+          if (names.length === 1) newPackage = names[0]
+        } catch { /* الباقات مش متاحة → نكتب المدة */ }
+        if (currentFits) newPackage = finalItemDetails.packageName
+        if (!newPackage) {
+          const months = Math.round(days / 30)
+          newPackage = days >= 28 ? (months === 1 ? 'شهر' : months === 2 ? 'شهرين' : `${months} شهور`) : `${days} يوم`
+        }
+        if (newPackage !== finalItemDetails.packageName) {
+          if (finalItemDetails.originalPackageName === undefined) finalItemDetails.originalPackageName = finalItemDetails.packageName
+          subOldValues.packageName = finalItemDetails.packageName
+          finalItemDetails.packageName = newPackage
+          subNewValues.packageName = newPackage
+          subChanged.push('packageName')
+        }
+      }
     } else if (itemDetails) {
       finalItemDetails = itemDetails
     }

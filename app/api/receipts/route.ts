@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requireAnyPermission, isPtCommissionManagerScope } from '../../../lib/auth'
+import { withMemberNumbers } from '../../../lib/memberLookup'
 
 export const dynamic = 'force-dynamic'
 
@@ -156,7 +157,7 @@ export async function GET(request: Request) {
         where: { OR: or },
         orderBy: { receiptNumber: 'desc' }
       })
-      return NextResponse.json(receipts)
+      return NextResponse.json(await withMemberNumbers(prisma, receipts))
     }
     if (ptNumber) {
       const receipts = await prisma.receipt.findMany({
@@ -242,7 +243,7 @@ export async function GET(request: Request) {
       ])
       const hasMore = page * pageSize < total
       return NextResponse.json({
-        receipts,
+        receipts: await withMemberNumbers(prisma, receipts), //  🪪 رقم العضوية للإيصالات القديمة للبي تي
         total,
         page,
         pageSize,

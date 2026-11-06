@@ -3219,7 +3219,7 @@ export default function MemberDetailPage() {
 
  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-4">
  <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
- <p className="text-xs opacity-80 mb-1">{tr('رقم PT', 'PT #')}</p>
+ <p className="text-xs opacity-80 mb-1">{tr('رقم اشتراك البرايفت', 'PT subscription #')}</p>
  <p className="text-xl md:text-2xl font-bold">#{ptSubscription.ptNumber}</p>
  </div>
 

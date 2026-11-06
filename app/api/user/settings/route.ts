@@ -4,6 +4,18 @@ import { verifyAuth } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
+const FALLBACK_OWNER_ID = 'fallback-fitboost-account'
+
+//  بيانات الصف المحلي اللي بيتعمل للحسابات اللي مش في الـ DB (إعدادات بس).
+//  FitBoost Admin دايمًا بإيميل ثابت — لو اتكتب إيميل Control الحقيقي، الدخول بيه هيتلقى
+//  هنا ويترفض بدل ما يروح لـ Control.
+function placeholderIdentity(user: { userId: string; email?: string; name?: string }) {
+  if (user.userId === FALLBACK_OWNER_ID) {
+    return { email: 'fitboost@system.local', name: 'FitBoost Admin' }
+  }
+  return { email: user.email || `${user.userId}@system.local`, name: user.name || 'System User' }
+}
+
 // GET - جلب إعدادات المستخدم
 export async function GET(request: Request) {
   try {
@@ -30,8 +42,7 @@ export async function GET(request: Request) {
       const newUser = await prisma.user.create({
         data: {
           id: user.userId,
-          email: user.email || `${user.userId}@system.local`,
-          name: user.name || 'System User',
+          ...placeholderIdentity(user),
           password: '---',
           role: user.role || 'OWNER',
         },
@@ -77,8 +88,7 @@ export async function PUT(request: Request) {
       update: updateData,
       create: {
         id: user.userId,
-        email: user.email || `${user.userId}@system.local`,
-        name: user.name || 'System User',
+        ...placeholderIdentity(user),
         password: '---',
         role: user.role || 'OWNER',
         ...updateData,

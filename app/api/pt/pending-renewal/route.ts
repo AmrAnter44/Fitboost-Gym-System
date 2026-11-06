@@ -12,6 +12,7 @@ import {
 } from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 import { activatePendingPTIfNeeded } from '../../../../lib/ptPendingRenewal'
+import { memberNumberForPhone } from '../../../../lib/memberLookup'
 
 export const dynamic = 'force-dynamic'
 
@@ -174,6 +175,7 @@ export async function POST(request: Request) {
           ptNumber: ptNum,
           itemDetails: JSON.stringify({
             ptNumber: ptNum,
+            memberNumber: await memberNumberForPhone(tx, pt.phone),
             clientName: pt.clientName,
             phone: pt.phone,
             coachName: pending.coachName || pt.coachName,

@@ -12,6 +12,7 @@ import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
 import { getNextReceiptNumber, runReceiptTransaction } from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
+import { memberNumberForPhone } from '../../../../lib/memberLookup'
 
 export const dynamic = 'force-dynamic'
 
@@ -155,6 +156,7 @@ export async function POST(request: Request) {
             itemDetails: JSON.stringify({
               kind: 'ptUpgrade',
               ptNumber: ptNum,
+              memberNumber: await memberNumberForPhone(tx, pt.phone),
               clientName: pt.clientName,
               phone: pt.phone,
               coachName: pt.coachName,

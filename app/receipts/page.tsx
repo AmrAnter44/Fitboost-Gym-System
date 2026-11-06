@@ -1104,7 +1104,7 @@ export default function ReceiptsPage() {
  )}
  {details.ptNumber && (
  <span className="text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2.5 py-1 rounded-full font-semibold shadow-sm">
- {details.ptNumber < 0 ? 'Day Use' : `PT #${details.ptNumber}`}
+ {details.ptNumber < 0 ? 'Day Use' : (direction === 'rtl' ? `اشتراك برايفت #${details.ptNumber}` : `PT sub #${details.ptNumber}`)}
  </span>
  )}
  </div>

@@ -226,7 +226,7 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
       message += `*تفاصيل التدريب*\n`
       message += `━━━━━━━━━━━━━━━━━━━━\n`
       if (details.ptNumber) {
-        message += `- رقم PT: ${details.ptNumber}\n`
+        message += `- رقم اشتراك البرايفت: ${details.ptNumber}\n`
       }
       if (details.sessions || details.sessionsPurchased) {
         message += `- عدد الجلسات: ${details.sessions || details.sessionsPurchased}\n`

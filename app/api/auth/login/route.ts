@@ -158,7 +158,7 @@ export async function POST(request: Request) {
     }
 
     // البحث عن المستخدم بالإيميل أو الاسم
-    const user = await prisma.user.findFirst({
+    let user = await prisma.user.findFirst({
       where: {
         OR: [
           { email: email },
@@ -170,6 +170,12 @@ export async function POST(request: Request) {
         staff: true  // ✅ جلب بيانات الموظف
       }
     })
+
+    // 🔐 صف FitBoost Admin المحلي (إعدادات بس، باسورد '---') مش حساب دخول —
+    //    نعامله كأنه مش موجود عشان الطلب يروح لـ Control (باسورد + كود التحقق)
+    if (user && (user.id === 'fallback-fitboost-account' || user.password === '---')) {
+      user = null
+    }
 
     // 🔐 FitBoost Admin: إيميل مش موجود في الجيم → نسأل Control (نفس حساب Control + كود التحقق)
     if (!user && typeof email === 'string' && email.includes('@') && typeof password === 'string' && password) {

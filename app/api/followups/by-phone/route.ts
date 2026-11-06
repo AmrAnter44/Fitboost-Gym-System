@@ -38,6 +38,26 @@ function phoneVariants(input: string): string[] {
   return Array.from(variants).filter(v => v.length >= 6)
 }
 
+//  👤 لو الرقم ده بتاع عضو مشترك بالفعل — المطابقة بآخر 10 أرقام (الأساسي أو الاحتياطي)
+async function findMemberByPhone(rawPhone: string) {
+  const tail = rawPhone.replace(/\D/g, '').slice(-10)
+  if (tail.length !== 10) return null
+  const candidates = await prisma.member.findMany({
+    where: { OR: [{ phone: { endsWith: tail.slice(-4) } }, { backupPhone: { endsWith: tail.slice(-4) } }] },
+    select: { id: true, memberNumber: true, name: true, phone: true, backupPhone: true, isActive: true, expiryDate: true, createdAt: true },
+  })
+  const same = (p: string | null) => !!p && p.replace(/\D/g, '').slice(-10) === tail
+  const matches = candidates.filter(m => same(m.phone) || same(m.backupPhone))
+  if (matches.length === 0) return null
+  //  الأفضلية: نفس التليفون الأساسي ← النشط ← الأحدث
+  matches.sort((a, b) =>
+    Number(same(b.phone)) - Number(same(a.phone)) ||
+    Number(b.isActive) - Number(a.isActive) ||
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  const m = matches[0]
+  return { id: m.id, memberNumber: m.memberNumber, name: m.name, isActive: m.isActive, expiryDate: m.expiryDate }
+}
+
 // Resolve a phone number to its most recent follow-up so the member-creation form
 // can surface the assigned sales staff. Used by reception when typing a phone
 // in MemberForm.
@@ -52,6 +72,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ found: false }, { status: 200 })
     }
 
+    const member = await findMemberByPhone(rawPhone).catch(() => null)
     const phones = phoneVariants(rawPhone)
 
     // ابحث عن أي متابعة (archived أو غير archived) للزائر بأي صيغة من صيغ الموبايل
@@ -69,7 +90,7 @@ export async function GET(request: Request) {
     })
 
     if (followUps.length === 0) {
-      return NextResponse.json({ found: false }, { status: 200 })
+      return NextResponse.json({ found: false, member }, { status: 200 })
     }
 
     // الأولوية ١: أحدث متابعة عندها assignedStaff (FK محفوظ)
@@ -77,6 +98,7 @@ export async function GET(request: Request) {
     if (withAssigned && withAssigned.assignedStaff) {
       return NextResponse.json({
         found: true,
+        member,
         salesStaffId: withAssigned.assignedStaff.id,
         salesStaffName: withAssigned.assignedStaff.name,
         visitorName: withAssigned.visitor?.name || null,
@@ -100,6 +122,7 @@ export async function GET(request: Request) {
       if (staff) {
         return NextResponse.json({
           found: true,
+          member,
           salesStaffId: staff.id,
           salesStaffName: staff.name,
           visitorName: withSalesName.visitor?.name || null,
@@ -112,6 +135,7 @@ export async function GET(request: Request) {
       // عشان الـ UI يقدر يعرض رسالة "كان مع: <name>" بدون auto-assign
       return NextResponse.json({
         found: true,
+        member,
         salesStaffId: null,
         salesStaffName: withSalesName.salesName.trim(),
         visitorName: withSalesName.visitor?.name || null,
@@ -124,6 +148,7 @@ export async function GET(request: Request) {
     const anyFollowUp = followUps[0]
     return NextResponse.json({
       found: true,
+      member,
       salesStaffId: null,
       salesStaffName: null,
       visitorName: anyFollowUp.visitor?.name || null,

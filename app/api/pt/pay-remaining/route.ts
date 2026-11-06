@@ -14,6 +14,7 @@ import {
   PaymentValidationError,
 } from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
+import { memberNumberForPhone } from '../../../../lib/memberLookup'
 
 export const dynamic = 'force-dynamic'
 
@@ -130,6 +131,7 @@ export async function POST(request: Request) {
           ptNumber: pt.ptNumber,
           itemDetails: JSON.stringify({
             ptNumber: pt.ptNumber,
+            memberNumber: await memberNumberForPhone(tx, pt.phone),
             clientName: pt.clientName,
             phone: pt.phone,
             coachName: pt.coachName,

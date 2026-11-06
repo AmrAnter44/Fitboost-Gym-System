@@ -568,11 +568,14 @@ function FollowUpsPageContent() {
 
     return allMembersData
       .filter(m => {
-        if (!m.expiryDate || !m.isActive) return false
+        if (!m.expiryDate) return false
         //  الأعضاء المحظورين مبيظهروش في المتابعات
         if (m.isBanned) return false
         const expiryDate = new Date(m.expiryDate)
         expiryDate.setHours(0, 0, 0, 0)
+        //  اللي بينتهي النهاردة ممكن حالته تتقلب «منتهي» من أول اليوم (ساعة الانتهاء عدّت) —
+        //  ومش هيظهر في «المنتهين» (لسه مش قبل النهاردة) — فنسيبه هنا
+        if (!m.isActive && expiryDate.getTime() !== today.getTime()) return false
         // الأعضاء النشطين اللي اشتراكهم هينتهي في خلال الأيام المحددة
         if (!(expiryDate >= today && expiryDate <= futureDate)) return false
         //  السيلز بيشوف أعضاءه المسنّدين له + الأعضاء غير المسنّدين (عشان يتابعهم)
@@ -598,6 +601,27 @@ function FollowUpsPageContent() {
         }
       })
   }, [allMembersData, expiringDays, user, permissionsLoading, canManageSales])
+
+  //  📅 أرقام الأعضاء اللي اشتراكهم بينتهي النهاردة (فلتر «بينتهي النهاردة»)
+  //     بالتليفون مش بالمصدر — عشان العضو اللي عنده متابعة حقيقية (مش «قرب ينتهي») يظهر برضو
+  const expiringTodayPhones = useMemo(() => {
+    const set = new Set<string>()
+    if (permissionsLoading) return set
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    for (const m of allMembersData) {
+      if (!m.expiryDate || m.isBanned || !m.phone) continue
+      const exp = new Date(m.expiryDate); exp.setHours(0, 0, 0, 0)
+      if (exp.getTime() !== today.getTime()) continue
+      if (user?.isSales && !canManageSales) {
+        if (!user.staffId) continue
+        if ((m as any).salesStaffId && (m as any).salesStaffId !== user.staffId) continue
+      }
+      set.add(String(m.phone).replace(/\D/g, '').slice(-10))
+    }
+    return set
+  }, [allMembersData, user, permissionsLoading, canManageSales])
+  const isExpiringToday = useCallback((phone?: string | null) =>
+    !!phone && expiringTodayPhones.has(String(phone).replace(/\D/g, '').slice(-10)), [expiringTodayPhones])
 
   //  تحسين الأداء: تنظيف رقم التليفون (memoized)
   const normalizePhone = useCallback((phone: string) => {
@@ -1407,6 +1431,8 @@ function FollowUpsPageContent() {
             matchesSource = fu.visitor.source === 'expired-member'
           } else if (sourceFilter === 'expiring-member') {
             matchesSource = fu.visitor.source === 'expiring-member'
+          } else if (sourceFilter === 'expiring-today') {
+            matchesSource = isExpiringToday(fu.visitor.phone)
           } else if (sourceFilter === 'member-invitation') {
             matchesSource = fu.visitor.source === 'member-invitation'
           } else if (sourceFilter === 'dayuse') {
@@ -1466,7 +1492,7 @@ function FollowUpsPageContent() {
         //  ترتيب حسب تاريخ الإضافة: الأحدث أولاً
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       })
-  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, contactMethodFilter, priorityFilter, sourceFilter, genderFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority, getFollowUpPriority, user, isMyFollowUp])
+  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, contactMethodFilter, priorityFilter, sourceFilter, genderFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority, getFollowUpPriority, user, isMyFollowUp, isExpiringToday])
 
   // إعادة تعيين الصفحة للأولى عند تغيير الفلاتر
   useEffect(() => {
@@ -1903,6 +1929,7 @@ function FollowUpsPageContent() {
         const src = fu.visitor.source
         if (sourceFilter === 'expired-member' && src !== 'expired-member') continue
         else if (sourceFilter === 'expiring-member' && src !== 'expiring-member') continue
+        else if (sourceFilter === 'expiring-today' && !isExpiringToday(fu.visitor.phone)) continue
         else if (sourceFilter === 'member-invitation' && src !== 'member-invitation') continue
         else if (sourceFilter === 'dayuse' && src !== 'invitation') continue
         else if (sourceFilter === 'website' && src !== 'website') continue
@@ -1931,7 +1958,7 @@ function FollowUpsPageContent() {
       else notContacted++
     }
     return { myFollowUps, todayCount, notContacted, contacted, contactedWhatsapp, contactedCall }
-  }, [allFollowUps, isMyFollowUp, getFollowUpPriority, user?.isSales, canManageSales, debouncedSearchTerm, resultFilter, priorityFilter, salesFilter, assignedStaffFilter, sourceFilter, dateFromFilter, dateToFilter])
+  }, [allFollowUps, isMyFollowUp, getFollowUpPriority, user?.isSales, canManageSales, debouncedSearchTerm, resultFilter, priorityFilter, salesFilter, assignedStaffFilter, sourceFilter, dateFromFilter, dateToFilter, isExpiringToday])
 
   //  قائمة مفلترة بكل الفلاتر **ما عدا** فلتر المصدر (Source) وفلتر «تم التواصل»
   //  — تُستخدم لحساب أرقام أزرار المصدر. بنتجاهل contacted هنا عشان عدّاد «أعضاء منتهين»
@@ -2007,13 +2034,14 @@ function FollowUpsPageContent() {
       //  عدّادات المصدر بتتجاهل فلتر contacted عشان «بدون متابعة» يفضل جزء من «أعضاء منتهين»
       expiredMembers: base.filter(fu => fu.visitor.source === 'expired-member').length,
       expiringMembers: base.filter(fu => fu.visitor.source === 'expiring-member').length,
+      expiringToday: base.filter(fu => isExpiringToday(fu.visitor.phone)).length,
       dayUse: base.filter(fu => fu.visitor.source === 'invitation').length,
       invitations: base.filter(fu => fu.visitor.source === 'member-invitation').length,
       website: base.filter(fu => fu.visitor.source === 'website').length,
       visitors: base.filter(fu => !['expired-member', 'expiring-member', 'member-invitation', 'invitation', 'website'].includes(fu.visitor.source)).length,
       convertedToMembers: followUps.filter(fu => isVisitorAMember(fu.visitor.phone)).length,
     }
-  }, [followUpsFilteredExceptSource, followUps, isVisitorAMember, getFollowUpPriority, contactedFilter])
+  }, [followUpsFilteredExceptSource, followUps, isVisitorAMember, getFollowUpPriority, contactedFilter, isExpiringToday])
 
   //  أعضاء عيد ميلادهم اليوم — النشطين والمنتهيين (المنتهي بيظهر عشان يتعمله عرض/خصم تجديد)
   const birthdayMembers = useMemo(() => {
@@ -3089,6 +3117,30 @@ function FollowUpsPageContent() {
             <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             {t('followups.sources.expiringMembers')} ({stats.expiringMembers})
           </button>
+          {/* 📅 بينتهي النهاردة — بالتليفون (حتى لو العضو عنده متابعة حقيقية) */}
+          <button onClick={() => setSourceFilter('expiring-today')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors duration-200 inline-flex items-center gap-1 ${sourceFilter === 'expiring-today' ? 'bg-orange-600 text-white' : 'bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/50'}`}>
+            <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            {locale === 'ar' ? 'بينتهي النهاردة' : 'Expires today'} ({stats.expiringToday})
+          </button>
+          {sourceFilter === 'expiring-today' && filteredFollowUps.length > 0 && (
+            <button
+              onClick={() => {
+                //  كله (حتى اللي اتكلّم قبل كده) — الفاصل «تخطّي اللي اتكلم من X يوم» لسه شغّال
+                setBulkScriptContactFilter('all')
+                if (bulkScriptMessages.every(m => !m.trim())) {
+                  setBulkScriptMessages([locale === 'ar'
+                    ? 'أهلاً {name} 👋\nبنفكّرك إن اشتراكك في الجيم بينتهي النهاردة.\nجدّد دلوقتي عشان تمرينك مايقفش 💪'
+                    : 'Hi {name} 👋\nYour gym membership expires today.\nRenew now to keep training 💪'])
+                }
+                setShowBulkScriptModal(true)
+                fetchWaSessions()
+              }}
+              className="px-3 py-1 rounded-full text-xs font-bold bg-green-600 hover:bg-green-700 text-white inline-flex items-center gap-1 transition-colors duration-200"
+            >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              {locale === 'ar' ? 'ابعتلهم واتساب' : 'WhatsApp them'} ({filteredFollowUps.length})
+            </button>
+          )}
           <button onClick={() => setSourceFilter('member-invitation')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors duration-200 inline-flex items-center gap-1 ${sourceFilter === 'member-invitation' ? 'bg-cyan-600 text-white' : 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/50'}`}>
             <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
             {t('followups.sources.memberInvitations')} ({stats.invitations})

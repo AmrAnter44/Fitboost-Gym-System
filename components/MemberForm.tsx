@@ -77,6 +77,14 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
     salesStaffName: string | null
     visitorName: string | null
   } | null>(null)
+  //  👤 الرقم ده بتاع عضو مشترك بالفعل (نفس lookup المتابعات)
+  const [matchedMember, setMatchedMember] = useState<{
+    id: string
+    memberNumber: string | null
+    name: string
+    isActive: boolean
+    expiryDate: string | null
+  } | null>(null)
 
   const [formData, setFormData] = useState({
     memberNumber: '',
@@ -224,6 +232,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
     const phone = formData.phone.trim()
     if (phone.length < 10) {
       setMatchedFollowUp(null)
+      setMatchedMember(null)
       return
     }
     let cancelled = false
@@ -233,6 +242,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
         if (!res.ok) return
         const data = await res.json()
         if (cancelled) return
+        setMatchedMember(data.member || null)
         if (data.found) {
           setMatchedFollowUp({
             salesStaffId: data.salesStaffId || null,
@@ -685,6 +695,44 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
                 dir="ltr"
               />
             </div>
+            {/* 👤 الرقم ده بتاع عضو مشترك بالفعل */}
+            {matchedMember && (
+              <div className={`mt-2 flex items-center gap-2.5 p-2.5 rounded-xl border ${matchedMember.isActive
+                ? 'bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30'
+                : 'bg-gray-50 border-gray-200 dark:bg-gray-800/60 dark:border-gray-700'}`}>
+                <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center ${matchedMember.isActive
+                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300'
+                  : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                  </svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{matchedMember.name}</span>
+                    {matchedMember.memberNumber && (
+                      <span dir="ltr" className="shrink-0 px-1.5 rounded-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-[11px] font-bold leading-5 text-gray-700 dark:text-gray-200">
+                        #{matchedMember.memberNumber}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+                    {direction === 'rtl' ? 'عضو' : 'Member'}{' '}
+                    <span className={`font-bold ${matchedMember.isActive ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                      {matchedMember.isActive ? (direction === 'rtl' ? 'نشط' : 'Active') : (direction === 'rtl' ? 'منتهي' : 'Expired')}
+                    </span>
+                    {matchedMember.expiryDate && (
+                      <> {direction === 'rtl' ? (matchedMember.isActive ? 'لحد' : 'من') : (matchedMember.isActive ? 'until' : 'since')}{' '}
+                        <span dir="ltr">{new Date(matchedMember.expiryDate).toLocaleDateString('en-GB')}</span></>
+                    )}
+                  </div>
+                </div>
+                <a href={`/members/${matchedMember.id}`} target="_blank" rel="noopener noreferrer"
+                  className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                  {direction === 'rtl' ? 'البروفايل' : 'Profile'}
+                </a>
+              </div>
+            )}
             {/* لو الرقم متطابق مع متابعة، نعرض رسالة مختلفة حسب الحالة */}
             {matchedFollowUp && (() => {
               const canOverride = user?.role === 'OWNER' || user?.role === 'ADMIN'

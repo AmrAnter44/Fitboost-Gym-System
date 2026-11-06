@@ -400,7 +400,7 @@ function generateReceiptHTML(data: ReceiptData): string {
     
     ${details.ptNumber ? `
       <div class="member-number">
-        رقم PT: ${details.ptNumber}
+        رقم اشتراك البرايفت: ${details.ptNumber}
       </div>
     ` : ''}
     

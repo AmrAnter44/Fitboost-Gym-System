@@ -2303,7 +2303,7 @@ function MembersPageContent() {
                     <span>Excel</span>
                   </button>
                 )}
-                {canExportRemaining && remainingWATargets.length > 0 && (
+                {remainingWATargets.length > 0 && (
                   <button
                     onClick={() => setShowRemainingWA(true)}
                     type="button"

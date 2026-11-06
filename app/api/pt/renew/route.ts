@@ -14,6 +14,7 @@ import { PtRenewInputSchema, firstIssue } from '../../../../lib/schemas/financia
 import { logError } from '../../../../lib/errorLogger'
 import { stashPendingRenewal } from '../../../../lib/ptPendingRenewal'
 import { computeUnpaidLockAt } from '../../../../lib/sessionPaymentLimit'
+import { memberNumberForPhone } from '../../../../lib/memberLookup'
 
 export const dynamic = 'force-dynamic'
 
@@ -189,6 +190,7 @@ export async function POST(request: Request) {
             staffName: staffName || '',
             itemDetails: JSON.stringify({
               ptNumber: updatedPT.ptNumber,
+              memberNumber: await memberNumberForPhone(tx, phone || existingPT.phone),
               clientName: existingPT.clientName,
               phone: phone || existingPT.phone,
               sessionsPurchased: Number(sessionsPurchased),
