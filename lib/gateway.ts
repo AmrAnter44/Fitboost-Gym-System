@@ -247,6 +247,38 @@ export async function adminReverify(email: string, password: string): Promise<bo
   }
 }
 
+// ---- «تفعيل بحساب FitBoost» (جهاز لسه مش مربوط) ----
+
+export type AdminActivateGym = { id: string; name: string; branches: { id: string; name: string }[] }
+export type AdminActivateResult =
+  | { step: 'code' }
+  | { step: 'pick'; ticket: string; expiresInSec?: number; gyms: AdminActivateGym[] }
+  | { step: 'done'; link: LinkResult; admin: { name: string; email: string } }
+
+/**
+ * ربط الجهاز بحساب Control super admin (باسورد + كود التحقق) بنفس هوية التسطيب بتاعة hello:
+ *  { email, password } → code ؛ { email, password, code } → pick ؛ { ticket, gymId, branchId } → done (والربط اتحفظ)
+ */
+export async function adminActivate(
+  input: { email?: string; password?: string; code?: string } | { ticket: string; gymId: string; branchId: string }
+): Promise<AdminActivateResult> {
+  const inst = getInstall()
+  const res = await gw<any>('admin-activate', {
+    anonymous: true,
+    timeoutMs: 20_000,
+    body: { ...input, installId: inst.id, installSecret: inst.secret, label: deviceLabel(), appVersion: APP_VERSION },
+  })
+  if (res?.token) {
+    const { admin, ...link } = res as LinkResult & { admin?: { name: string; email: string } }
+    await saveLink(link)
+    lastStatus = { status: 'linked', at: Date.now() }
+    import('./cloudBackup').then((m) => m.reportCloudBackupState()).catch(() => {})
+    return { step: 'done', link, admin: admin ?? { name: '', email: '' } }
+  }
+  if (res?.step === 'pick') return { step: 'pick', ticket: res.ticket, expiresInSec: res.expiresInSec, gyms: res.gyms ?? [] }
+  return { step: 'code' }
+}
+
 /** يحوّل خطأ الـ gateway لرد مفهوم لواجهة السيستم */
 export function gatewayErrorResponse(e: unknown) {
   const { NextResponse } = require('next/server') as typeof import('next/server')

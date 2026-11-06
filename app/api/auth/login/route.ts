@@ -10,43 +10,9 @@ import { logLogin, logLoginFailure, logRateLimitHit, getIpAddress, getUserAgent 
 import { DEFAULT_PERMISSIONS } from '../../../../types/permissions'
 import { validateLicense } from '../../../../lib/license'
 import { adminLogin, getDeviceToken, GatewayError } from '../../../../lib/gateway'
+import { cookieSecure, fitboostAdminSessionResponse, getJwtSecret } from '../../../../lib/fitboostAdminSession'
 
 export const dynamic = 'force-dynamic'
-
-// JWT secret is read lazily inside the handler so `next build` can compile this
-// route in CI environments that don't set the env var.
-function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET
-  if (!secret) {
-    throw new Error('JWT_SECRET environment variable is required')
-  }
-  if (secret.length < 32) {
-    throw new Error('JWT_SECRET must be at least 32 characters')
-  }
-  return secret
-}
-
-/**
- * Cookies should be marked Secure only when actually served over HTTPS.
- * On a gym LAN where employees connect via plain HTTP to the host PC's
- * Fitboost server, Secure cookies would be silently dropped by the browser,
- * forcing repeated login redirects and "access denied" loops.
- *
- * Detects the request's protocol from:
- *   1. x-forwarded-proto header (proxies / reverse-proxies)
- *   2. request.url scheme (direct connection)
- *   3. Falls back to NODE_ENV (true in production HTTPS-by-default scenarios)
- */
-function cookieSecure(request?: Request): boolean {
-  if (request) {
-    const xfProto = request.headers.get('x-forwarded-proto')
-    if (xfProto) return xfProto.toLowerCase() === 'https'
-    try {
-      return new URL(request.url).protocol === 'https:'
-    } catch { /* fall through */ }
-  }
-  return process.env.NODE_ENV === 'production'
-}
 
 /** Timing-safe string equality (constant-time) */
 function timingSafeEqualStrings(a: string, b: string): boolean {
@@ -206,7 +172,20 @@ export async function POST(request: Request) {
     })
 
     // 🔐 FitBoost Admin: إيميل مش موجود في الجيم → نسأل Control (نفس حساب Control + كود التحقق)
-    if (!user && typeof email === 'string' && email.includes('@') && typeof password === 'string' && password && (await getDeviceToken())) {
+    if (!user && typeof email === 'string' && email.includes('@') && typeof password === 'string' && password) {
+      if (!(await getDeviceToken())) {
+        // الجهاز لسه مش مربوط بـ Control → مفيش طريقة نتحقق من حساب FitBoost إلا بالتفعيل
+        await logLoginFailure({
+          email,
+          reason: 'Device not linked',
+          ipAddress: getIpAddress(request),
+          userAgent: getUserAgent(request)
+        })
+        return NextResponse.json(
+          { error: 'الجهاز لسه مش مفعّل — فعّله بحساب FitBoost', code: 'DEVICE_NOT_LINKED' },
+          { status: 409 }
+        )
+      }
       try {
         const r = await adminLogin(email.trim(), password, typeof code === 'string' && code.trim() ? code.trim() : undefined)
         if (r.step === 'code') {
@@ -214,45 +193,7 @@ export async function POST(request: Request) {
           return NextResponse.json({ needsCode: true })
         }
         if (r.ok) {
-          const adminUser = {
-            id: 'fallback-fitboost-account',
-            name: r.name ? `FitBoost · ${r.name}` : 'FitBoost Admin',
-            email: r.email || email.trim().toLowerCase(),
-            role: 'OWNER' as const,
-            staffId: null,
-            permissions: DEFAULT_PERMISSIONS.OWNER
-          }
-          const token = jwt.sign(
-            {
-              userId: adminUser.id,
-              name: adminUser.name,
-              email: adminUser.email,
-              role: adminUser.role,
-              staffId: null,
-              permissions: DEFAULT_PERMISSIONS.OWNER
-            },
-            getJwtSecret(),
-            { expiresIn: '12h' } // جلسة قصيرة لحساب بيدخل على كل الجيمات
-          )
-          const response = NextResponse.json({ success: true, user: adminUser })
-          response.cookies.set('auth-token', token, {
-            httpOnly: true,
-            secure: cookieSecure(request),
-            sameSite: 'strict',
-            path: '/',
-            maxAge: 60 * 60 * 12
-          })
-          try {
-            await logLogin({
-              userId: adminUser.id,
-              userEmail: adminUser.email,
-              userName: adminUser.name,
-              userRole: adminUser.role,
-              ipAddress: getIpAddress(request),
-              userAgent: getUserAgent(request)
-            })
-          } catch { /* audit اختياري */ }
-          return response
+          return await fitboostAdminSessionResponse(request, { name: r.name, email: r.email || email.trim() })
         }
       } catch (e) {
         if (e instanceof GatewayError) {

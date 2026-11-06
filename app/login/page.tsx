@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '../../contexts/LanguageContext'
+import FitboostActivate from '../../components/FitboostActivate'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -18,6 +19,8 @@ export default function LoginPage() {
   //  حساب FitBoost Admin: بعد الإيميل والباسورد، Control بيطلب كود التحقق بخطوتين
   const [needsCode, setNeedsCode] = useState(false)
   const [code, setCode] = useState('')
+  //  الجهاز لسه مش مربوط بـ Control → تفعيل بحساب FitBoost من هنا على طول
+  const [notLinked, setNotLinked] = useState(false)
   const [gymLogo, setGymLogo] = useState<string | null>(null)
 
   useEffect(() => {
@@ -47,6 +50,11 @@ export default function LoginPage() {
       })
 
       const data = await response.json()
+
+      if (response.status === 409 && data.code === 'DEVICE_NOT_LINKED') {
+        setNotLinked(true)
+        return
+      }
 
       if (response.ok && data.needsCode) {
         setNeedsCode(true)
@@ -168,6 +176,30 @@ export default function LoginPage() {
           </div>
         )}
 
+        {notLinked ? (
+          <div className="space-y-3">
+            <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 text-amber-800 dark:text-amber-300 p-3 rounded-lg text-sm" dir="rtl">
+              <p className="font-bold">{tr('الجهاز لسه مش مفعّل — فعّله بحساب FitBoost', 'This device is not activated yet — activate it with your FitBoost account')}</p>
+              <p className="mt-1 opacity-80">{tr('ادخل كود التحقق واختار الجيم والفرع، وهتدخل FitBoost Admin على طول.', 'Enter the verification code and pick the gym and branch — you will be signed in as FitBoost Admin.')}</p>
+            </div>
+            <FitboostActivate
+              initialEmail={email}
+              initialPassword={password}
+              login
+              autoStart
+              onDone={(r) => {
+                if (r.user) {
+                  window.location.href = /FBTeam\//.test(navigator.userAgent) ? '/me' : '/members'
+                } else {
+                  setNotLinked(false)
+                  setPassword('')
+                  setError(tr('الجهاز اتفعّل — سجّل دخول تاني', 'Device activated — please sign in again'))
+                }
+              }}
+              onCancel={() => { setNotLinked(false); setError('') }}
+            />
+          </div>
+        ) : (
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
@@ -257,6 +289,7 @@ export default function LoginPage() {
             <span>{loading ? 'Logging in...' : 'Login'}</span>
           </button>
         </form>
+        )}
         </div>
       </div>
 

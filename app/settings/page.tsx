@@ -16,6 +16,7 @@ import ImportSheetSection from '../../components/ImportSheetSection'
 import WebsiteDataSection from '../../components/settings/WebsiteDataSection'
 import WebsiteContactCard from '../../components/settings/WebsiteContactCard'
 import PWAInstallButton from '../../components/PWAInstallButton'
+import FitboostActivate from '../../components/FitboostActivate'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -442,6 +443,7 @@ export default function SettingsPage() {
   const [currentLicense, setCurrentLicense] = useState<any>(null)
   const [activationCode, setActivationCode] = useState('')
   const [deviceInfo, setDeviceInfo] = useState<{ id: string; status: string } | null>(null)
+  const [showFbActivate, setShowFbActivate] = useState(false)
   const [savingLicense, setSavingLicense] = useState(false)
 
   useEffect(() => {
@@ -2776,6 +2778,34 @@ export default function SettingsPage() {
                     )}
                   </button>
                 </div>
+
+                {!currentLicense?.linked && (
+                  <div className="pt-1 border-t border-gray-100 dark:border-gray-700">
+                    {showFbActivate ? (
+                      <div className="pt-3 space-y-2">
+                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{tr('تفعيل بحساب FitBoost', 'Activate with FitBoost account')}</p>
+                        <FitboostActivate
+                          onDone={(r) => {
+                            setShowFbActivate(false)
+                            setCurrentLicense({ ...r.license, linked: true })
+                            setSaveMessage({ type: 'success', text: `${tr('تم ربط الجهاز', 'Device linked')}: ${r.license?.gymName} — ${r.license?.branchName}` })
+                            setTimeout(() => setSaveMessage(null), 4000)
+                            fetchCurrentLicense()
+                          }}
+                          onCancel={() => setShowFbActivate(false)}
+                        />
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowFbActivate(true)}
+                        className="mt-3 w-full sm:w-auto px-4 py-2 rounded-lg ring-1 ring-primary-300 dark:ring-primary-700 text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-sm font-bold"
+                      >
+                        {tr('تفعيل بحساب FitBoost', 'Activate with FitBoost account')}
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg text-sm text-gray-700 dark:text-gray-300 space-y-1">
                   <p>{tr('• الكود لجهاز واحد وصالح ٧٢ ساعة', '• Each code is for one device and valid for 72 hours')}</p>
