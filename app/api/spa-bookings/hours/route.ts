@@ -1,9 +1,10 @@
-// app/api/spa-bookings/hours/route.ts — مواعيد تشغيل الاسبا (ليميت)
+// app/api/spa-bookings/hours/route.ts — مواعيد تشغيل الاسبا (ليميت) + مواعيد الرجالة/السيدات (جيم مكس)
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { verifyAuth, requireAnyPermission } from '../../../../lib/auth'
 import { getSpaHours, normalizeTime, timeToMinutes, DEFAULT_SPA_OPEN, DEFAULT_SPA_CLOSE } from '../../../../lib/spaHours'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
+import { getSpaGenderSlots, sanitizeSpaSlots } from '../../../../lib/genderSchedule'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,8 +15,8 @@ export async function GET(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'يجب تسجيل الدخول أولاً' }, { status: 401 })
     }
-    const hours = await getSpaHours(prisma)
-    return NextResponse.json(hours)
+    const [hours, genderSlots] = await Promise.all([getSpaHours(prisma), getSpaGenderSlots(prisma)])
+    return NextResponse.json({ ...hours, genderSlots })
   } catch (error) {
     console.error('❌ خطأ في جلب مواعيد الاسبا:', error)
     return NextResponse.json({ error: 'فشل جلب مواعيد الاسبا' }, { status: 500 })
@@ -28,6 +29,30 @@ export async function PUT(request: Request) {
     const user = await requireAnyPermission(request, ['canAccessSettings', 'canEditSpaBooking'])
 
     const body = await request.json()
+
+    // نضمن وجود صف الإعدادات (من غير ما نلمس الأعمدة الجديدة — الـ client ممكن يكون قديم)
+    await prisma.systemSettings.upsert({
+      where: { id: 'singleton' },
+      update: {},
+      create: { id: 'singleton' },
+    })
+
+    //  🚻 مواعيد الرجالة/السيدات بس (من غير ما نلمس ساعات التشغيل)
+    if (body.genderSlots !== undefined && body.openTime === undefined && body.closeTime === undefined) {
+      const genderSlots = sanitizeSpaSlots(body.genderSlots)
+      await prisma.$executeRawUnsafe(
+        `UPDATE SystemSettings SET spaGenderSlots = ? WHERE id = 'singleton'`,
+        genderSlots.length ? JSON.stringify(genderSlots) : null
+      )
+      createAuditLog({
+        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+        action: 'UPDATE', resource: 'System', resourceId: 'singleton',
+        details: { operation: 'UpdateSpaGenderSlots', count: genderSlots.length },
+        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+      })
+      return NextResponse.json({ success: true, genderSlots })
+    }
+
     const openTime = normalizeTime(body.openTime, DEFAULT_SPA_OPEN)
     const closeTime = normalizeTime(body.closeTime, DEFAULT_SPA_CLOSE)
 
@@ -38,13 +63,6 @@ export async function PUT(request: Request) {
         { status: 400 }
       )
     }
-
-    // نضمن وجود صف الإعدادات (من غير ما نلمس الأعمدة الجديدة — الـ client ممكن يكون قديم)
-    await prisma.systemSettings.upsert({
-      where: { id: 'singleton' },
-      update: {},
-      create: { id: 'singleton' },
-    })
 
     // الكتابة بـ raw SQL (الأعمدة جديدة — تفادي الـ client القديم)
     await prisma.$executeRawUnsafe(

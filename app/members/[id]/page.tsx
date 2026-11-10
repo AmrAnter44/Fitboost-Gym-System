@@ -2674,6 +2674,7 @@ export default function MemberDetailPage() {
  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-white">
  <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
  <p className="text-sm opacity-90">{t('memberDetails.status')}</p>
+ <div className="flex items-center justify-between gap-2">
  <p className="text-lg font-bold">
  {member.isBanned
  ? `${locale === 'ar' ? 'محظور' : 'Banned'}`
@@ -2686,6 +2687,18 @@ export default function MemberDetailPage() {
  : `${t('memberDetails.expired')}`
  }
  </p>
+ {/* 🧊 فك الفريز من كارت الحالة — نفس بوب أب التأكيد بتاع كارت أيام الفريز */}
+ {member.isFrozen && !member.isBanned && (
+ <button
+ type="button"
+ onClick={handleUnfreeze}
+ disabled={loading}
+ className="shrink-0 px-3 py-1 rounded-lg bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition-colors"
+ >
+ {locale === 'ar' ? 'فك' : 'Unfreeze'}
+ </button>
+ )}
+ </div>
  </div>
  <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
  <p className="text-sm opacity-90">{t('common.startDate')}</p>

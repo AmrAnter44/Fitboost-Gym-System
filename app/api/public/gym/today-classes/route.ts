@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { apiCache } from '@/lib/cache';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
 import { verifyMemberPhone, memberPhoneFrom } from '@/lib/memberVerify';
+import { isMixedGymEnabled, getMemberGender, classAllowedForGender } from '@/lib/genderSchedule';
 
 // Cache TTL: 5 minutes — schedule rarely changes during the day
 const TODAY_CLASSES_TTL = 5 * 60 * 1000
@@ -58,6 +59,13 @@ export async function GET(request: NextRequest) {
       searchParams.get('memberId') || '',
       memberPhoneFrom(request, searchParams.get('phone'))
     )
+
+    //  🚻 جيم مكس: العضو يشوف كلاسات جنسه + المختلط بس (الجدول نفسه متكاش كامل، الفلترة بعده)
+    const memberIdParam = searchParams.get('memberId') || ''
+    if (memberIdParam && (await isMixedGymEnabled(prisma))) {
+      const g = await getMemberGender(prisma, memberIdParam)
+      classes = classes.filter((c) => classAllowedForGender(c.gender, g))
+    }
 
     const classIds = classes.map((c) => c.id)
     const [bookedCounts, bookedNames] = await Promise.all([

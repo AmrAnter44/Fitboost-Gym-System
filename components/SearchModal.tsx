@@ -7,6 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useSearch } from '../contexts/SearchContext'
 import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 import { LoadingScreen } from './Spinner'
+import { useToast } from '../contexts/ToastContext'
 
 interface SearchResult {
   type: 'member' | 'pt'
@@ -242,6 +243,34 @@ export default function SearchModal() {
   const [searched, setSearched] = useState(false)
   const [lastSearchTime, setLastSearchTime] = useState<Date | null>(null)
   const [attendanceMessage, setAttendanceMessage] = useState<{type: 'success' | 'error', text: string, staff?: any} | null>(null)
+  //  🧊 فك الفريز من نتيجة البحث
+  const toast = useToast()
+  const [unfreezeTarget, setUnfreezeTarget] = useState<{ id: string; name: string } | null>(null)
+  const [unfreezing, setUnfreezing] = useState(false)
+  const confirmUnfreeze = async () => {
+    if (!unfreezeTarget) return
+    setUnfreezing(true)
+    try {
+      const res = await fetch('/api/members/freeze', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: unfreezeTarget.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast.success(data.message || (locale === 'ar' ? 'تم فك الفريز' : 'Unfrozen'))
+      //  نحدّث الكارت من غير ما نعيد البحث (الحالة + تاريخ الانتهاء + رصيد الفريز)
+      const fresh = await fetch(`/api/members/${unfreezeTarget.id}`).then(r => (r.ok ? r.json() : null)).catch(() => null)
+      setResults(prev => prev.map(r => r.type === 'member' && r.data?.id === unfreezeTarget.id
+        ? { ...r, data: { ...r.data, isFrozen: false, ...(fresh ? { isActive: fresh.isActive, expiryDate: fresh.expiryDate, remainingFreezeDays: fresh.remainingFreezeDays } : {}) } }
+        : r))
+      setUnfreezeTarget(null)
+    } catch (e: any) {
+      toast.error(e?.message || (locale === 'ar' ? 'فشل فك الفريز' : 'Unfreeze failed'))
+    } finally {
+      setUnfreezing(false)
+    }
+  }
   const memberIdRef = useRef<HTMLInputElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
   const searchSeqRef = useRef(0) //  🛡️ حارس تسلسل — يمنع رد سكان قديم يكتب فوق سكان أحدث
@@ -1365,7 +1394,7 @@ export default function SearchModal() {
                                     <p className="text-xs text-gray-600 dark:text-gray-300">{locale === 'ar' ? 'الباقة' : 'Package'}</p>
                                     <p className="text-xs sm:text-sm font-bold text-primary-600 dark:text-primary-400">{getPackageName(result.data.startDate, result.data.expiryDate)}</p>
                                   </div>
-                                  <div className="bg-gray-50 dark:bg-gray-700 p-1.5 sm:p-2 rounded">
+                                  <div className="relative bg-gray-50 dark:bg-gray-700 p-1.5 sm:p-2 rounded">
                                     <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.status')}</p>
                                     <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold ${
                                       (() => {
@@ -1401,6 +1430,20 @@ export default function SearchModal() {
                                         return ` ${t('search.expired')}`
                                       })()}
                                     </span>
+                                    {/* 🧊 فك الفريز من البحث على طول (بوب أب تأكيد) */}
+                                    {result.data.isFrozen && !result.data.isBanned && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setUnfreezeTarget({ id: result.data.id, name: result.data.name })}
+                                        title={locale === 'ar' ? 'فك الفريز' : 'Unfreeze'}
+                                        className="absolute end-1.5 sm:end-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-orange-600 hover:bg-orange-700 text-white shadow-sm transition-colors"
+                                      >
+                                        <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                                        </svg>
+                                        {locale === 'ar' ? 'فك' : 'Unfreeze'}
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
 
@@ -1724,6 +1767,29 @@ export default function SearchModal() {
         onSuccess={() => refreshResults()}
       />
 
+      {unfreezeTarget && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/50" onClick={() => !unfreezing && setUnfreezeTarget(null)}>
+          <div dir={direction} onClick={e => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? 'فك الفريز' : 'Unfreeze'}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+              {locale === 'ar'
+                ? <>فك تجميد اشتراك <strong>{unfreezeTarget.name}</strong>؟ الأيام اللي ما اتستخدمتش هترجع لرصيد الفريز.</>
+                : <>Unfreeze <strong>{unfreezeTarget.name}</strong>? Unused days go back to the freeze balance.</>}
+            </p>
+            <div className="flex gap-2 mt-5">
+              <button type="button" onClick={confirmUnfreeze} disabled={unfreezing}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-60">
+                {unfreezing ? '...' : (locale === 'ar' ? 'فك الفريز' : 'Unfreeze')}
+              </button>
+              <button type="button" onClick={() => setUnfreezeTarget(null)} disabled={unfreezing}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+                {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <style jsx global>{`
         @keyframes fadeIn {
           from {

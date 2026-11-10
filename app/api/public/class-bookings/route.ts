@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit'
 import { verifyMemberPhone, memberPhoneFrom } from '@/lib/memberVerify'
+import { isMixedGymEnabled, getMemberGender, classAllowedForGender } from '@/lib/genderSchedule'
 
 // Get member's bookings for today
 export async function GET(request: NextRequest) {
@@ -100,6 +101,17 @@ export async function POST(request: NextRequest) {
         { error: 'Class not found' },
         { status: 404 }
       )
+    }
+
+    //  🚻 جيم مكس: الكلاس الرجالي للرجالة بس والنسائي للسيدات بس (المختلط للكل)
+    if (await isMixedGymEnabled(prisma)) {
+      const g = await getMemberGender(prisma, memberId)
+      if (!classAllowedForGender((classSchedule as any).gender, g)) {
+        return NextResponse.json(
+          { error: (classSchedule as any).gender === 'female' ? 'الكلاس ده للسيدات بس' : 'الكلاس ده للرجالة بس' },
+          { status: 403 }
+        )
+      }
     }
 
     // Get today's date at 00:00:00

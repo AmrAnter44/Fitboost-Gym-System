@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyMemberPhone, memberPhoneFrom } from '@/lib/memberVerify';
 import { getSpaHours, checkWithinSpaHours } from '@/lib/spaHours';
+import { isMixedGymEnabled, getMemberGender, getSpaGenderSlots, spaSlotsForGender, checkSpaGenderSlot } from '@/lib/genderSchedule';
 
 export async function GET(
   request: NextRequest,
@@ -55,8 +56,16 @@ export async function GET(
       },
     });
 
+    //  🚻 جيم مكس: مواعيد الاسبا الخاصة بجنس العضو بس (مواعيد الجنس التاني مابترجعش)
+    let genderSlots: ReturnType<typeof spaSlotsForGender> | null = null;
+    if (await isMixedGymEnabled(prisma)) {
+      const slots = await getSpaGenderSlots(prisma);
+      if (slots.length) genderSlots = spaSlotsForGender(slots, await getMemberGender(prisma, memberId));
+    }
+
     return NextResponse.json({
       bookings,
+      genderSlots,
       stats: {
         total: totalBookings,
         upcoming: upcomingCount,
@@ -163,6 +172,18 @@ export async function POST(
         { error: 'لا يمكن الحجز في تاريخ سابق' },
         { status: 400 }
       );
+    }
+
+    // 🚻 جيم مكس: الحجز لازم يقع جوه مواعيد جنس العضو (لو الخدمة ليها مواعيد رجالة/سيدات)
+    if (await isMixedGymEnabled(prisma)) {
+      const slots = await getSpaGenderSlots(prisma);
+      if (slots.length) {
+        const g = await getMemberGender(prisma, memberId);
+        const genderCheck = checkSpaGenderSlot(slots, serviceType, bookingDay, bookingTime, duration, g);
+        if (!genderCheck.ok) {
+          return NextResponse.json({ error: genderCheck.error }, { status: 400 });
+        }
+      }
     }
 
     // 💆 لو الحجز النهاردة — نمنع أي سلوت وقته عدّى (مثلاً بعد ما ميعاد الاسبا يخلص)

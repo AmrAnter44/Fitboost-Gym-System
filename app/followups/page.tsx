@@ -29,6 +29,7 @@ const SalesMgmtPanel = nextDynamic(() => import('../../components/SalesMgmtPanel
   ssr: false,
   loading: () => <div className="skeleton-shimmer h-64 rounded-xl" />
 })
+const VisitorAddedNotifier = nextDynamic(() => import('../../components/VisitorAddedNotifier'), { ssr: false })
 const FollowUpCalendar = nextDynamic(() => import('../../components/FollowUpCalendar'), {
   ssr: false,
   loading: () => <div className="skeleton-shimmer h-96 rounded-xl" />
@@ -495,6 +496,21 @@ function FollowUpsPageContent() {
   const [assignedStaffFilter, setAssignedStaffFilter] = useState('all') //  فلتر بموظف سيلز محدد
   const [dateFromFilter, setDateFromFilter] = useState('') //  فلتر تاريخ من (YYYY-MM-DD)
   const [dateToFilter, setDateToFilter] = useState('')   //  فلتر تاريخ إلى (YYYY-MM-DD)
+  //  📞 السيلز المختار في «موظف السيلز» اتواصل مع كام شخص (النهاردة / الشهر / الفترة) — من السيرفر
+  const contactStatsStaffId = assignedStaffFilter !== 'all' && assignedStaffFilter !== '__unassigned__' ? assignedStaffFilter : ''
+  type ContactStat = { people: number; contacts: number; whatsapp: number; call: number }
+  const { data: staffContactStats } = useQuery<{ today: ContactStat; month: ContactStat; range: ContactStat | null } | null>({
+    queryKey: ['followup-contact-stats', contactStatsStaffId, dateFromFilter, dateToFilter],
+    enabled: !!contactStatsStaffId,
+    queryFn: async () => {
+      const qs = new URLSearchParams({ staffId: contactStatsStaffId })
+      if (dateFromFilter) qs.set('from', dateFromFilter)
+      if (dateToFilter) qs.set('to', dateToFilter)
+      const r = await fetch(`/api/followups/contact-stats?${qs}`, { cache: 'no-store' })
+      return r.ok ? r.json() : null
+    },
+    refetchInterval: 60000,
+  })
 
   //  لو المستخدم سيلز  يشوف متابعاته بس تلقائياً (مرة واحدة بس)
   //  استثناء: مسؤول السيلز (canManageSales) يشوف الكل افتراضياً
@@ -3296,6 +3312,27 @@ function FollowUpsPageContent() {
               </select>
             </div>
           )}
+          {/* 📞 السيلز المختار اتواصل مع كام شخص — من السيرفر (مش من القايمة المحمّلة) */}
+          {staffContactStats && (
+            <div className="basis-full order-last flex flex-wrap items-center gap-2 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-800 text-sm">
+              <span className="font-bold text-green-800 dark:text-green-300 inline-flex items-center gap-1.5">
+                <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                {locale === 'ar'
+                  ? `${staffList.find((s: any) => s.id === assignedStaffFilter)?.name || ''} اتواصل مع:`
+                  : `${staffList.find((s: any) => s.id === assignedStaffFilter)?.name || ''} contacted:`}
+              </span>
+              {[
+                { label: locale === 'ar' ? 'النهاردة' : 'Today', s: staffContactStats.today },
+                { label: locale === 'ar' ? 'الشهر ده' : 'This month', s: staffContactStats.month },
+                ...(staffContactStats.range ? [{ label: locale === 'ar' ? 'الفترة المحددة' : 'Selected range', s: staffContactStats.range }] : []),
+              ].map(({ label, s }) => (
+                <span key={label} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white dark:bg-gray-800 ring-1 ring-green-200 dark:ring-green-800 text-gray-700 dark:text-gray-200"
+                  title={locale === 'ar' ? `واتساب ${s.whatsapp} · مكالمة ${s.call} · إجمالي مرات التواصل ${s.contacts}` : `WhatsApp ${s.whatsapp} · Call ${s.call} · ${s.contacts} contacts`}>
+                  {label}: <strong className="text-green-700 dark:text-green-400">{s.people}</strong> {locale === 'ar' ? 'شخص' : 'people'}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="min-w-[140px]">
             <label className="block text-xs font-bold mb-1 text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -3385,6 +3422,16 @@ function FollowUpsPageContent() {
 
       {/* Sales Management View — admin/owner only */}
       {viewMode === 'sales-mgmt' && canManageSales && <SalesMgmtPanel />}
+
+      {/* 👋 زوار جدد من آخر مرة فتح المتابعات — «افتح» بيدوّر عليه في القايمة
+          (والفلاتر بترجع «الكل» — وإلا «متابعاتي» مثلاً بتخفي الزائر الجديد اللي لسه مش متعيّن) */}
+      <VisitorAddedNotifier onOpen={(q) => {
+        setViewMode('list')
+        setSalesFilter('all'); setAssignedStaffFilter('all'); setSourceFilter('all')
+        setResultFilter('all'); setContactedFilter('all'); setContactMethodFilter('all'); setPriorityFilter('all')
+        setGenderFilter('all'); setSocialFilter([]); setDateFromFilter(''); setDateToFilter(''); setSearchId('')
+        setSearchTerm(q)
+      }} />
 
       {/* Visitors View — صفحة الزوار جوا المتابعات */}
       {viewMode === 'visitors' && hasPermission('canViewVisitors') && <VisitorsPanel />}

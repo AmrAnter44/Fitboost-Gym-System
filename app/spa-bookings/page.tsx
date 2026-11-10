@@ -14,6 +14,8 @@ import { SpaBooking, SpaServiceType, SpaBookingStatus } from '../../types/spa'
 import BookingFormModal from '../../components/spa/BookingFormModal'
 import BookingCard from '../../components/spa/BookingCard'
 import StatusBadge from '../../components/spa/StatusBadge'
+import SpaGenderSlotsModal, { type SpaGenderSlot } from '../../components/SpaGenderSlotsModal'
+import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 
 export default function SpaBookingsPage() {
   const { t, tr, direction, locale } = useLanguage()
@@ -23,6 +25,9 @@ export default function SpaBookingsPage() {
 
   // 💆 صلاحية ضبط مواعيد تشغيل الاسبا (ليميت)
   const canManageSpaHours = hasPermission('canAccessSettings') || hasPermission('canEditSpaBooking')
+  //  🚻 مواعيد الرجالة/السيدات — بتظهر بس مع الجيم المكس
+  const { settings: serviceSettings } = useServiceSettings()
+  const [showGenderSlots, setShowGenderSlots] = useState(false)
 
   // States
   const [showForm, setShowForm] = useState(false)
@@ -89,7 +94,7 @@ export default function SpaBookingsPage() {
     queryFn: async () => {
       const res = await fetch('/api/spa-bookings/hours')
       if (!res.ok) throw new Error('failed')
-      return res.json() as Promise<{ openTime: string; closeTime: string }>
+      return res.json() as Promise<{ openTime: string; closeTime: string; genderSlots?: SpaGenderSlot[] }>
     },
     enabled: !permissionsLoading && hasPermission('canViewSpaBookings'),
     staleTime: 5 * 60 * 1000,
@@ -193,6 +198,21 @@ export default function SpaBookingsPage() {
           <p className="text-gray-600 dark:text-gray-300 mt-1">{t('spa.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
+          {canManageSpaHours && serviceSettings.mixedGymEnabled && (
+            <button
+              onClick={() => setShowGenderSlots(true)}
+              //  نستنى المواعيد المحفوظة تتحمّل — وإلا الشاشة تفتح فاضية و«حفظ» يمسحها
+              disabled={!spaHours}
+              className="bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 text-gray-700 dark:text-gray-200 px-4 py-3 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-wait transition-colors duration-200 flex items-center gap-2"
+              title={tr('مواعيد الرجالة والسيدات في الأبليكيشن', 'Men/women slots in the app')}
+            >
+              <span className="text-lg">🚻</span>
+              <span>{tr('مواعيد رجالة / سيدات', 'Men / women slots')}</span>
+              {!!spaHours?.genderSlots?.length && (
+                <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary-500 text-primary-contrast font-bold">{spaHours.genderSlots.length}</span>
+              )}
+            </button>
+          )}
           {canManageSpaHours && (
             <button
               onClick={openHoursModal}
@@ -459,6 +479,13 @@ export default function SpaBookingsPage() {
       )}
 
       {/* 💆 SPA Hours (ليميت) Modal */}
+      {showGenderSlots && (
+        <SpaGenderSlotsModal
+          initial={spaHours?.genderSlots || []}
+          onClose={() => setShowGenderSlots(false)}
+          onSaved={() => { setShowGenderSlots(false); queryClient.invalidateQueries({ queryKey: ['spa-hours'] }) }}
+        />
+      )}
       {showHoursModal && (
         <div
           className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
