@@ -34,10 +34,19 @@ async function loadBitmap(file: File): Promise<ImageBitmap | HTMLImageElement> {
 export async function compressImage(
   file: File,
   maxDim: number = DEFAULT_MAX_DIM,
-  quality: number = DEFAULT_QUALITY
+  quality: number = DEFAULT_QUALITY,
+  opts: {
+    /** 📷 دايمًا JPEG حتى لو صغيرة أو PNG/WebP — صورة العضو بتترفع لبوابة Hikvision وهي بتاخد JPEG بس */
+    forceJpeg?: boolean
+    /** أقصى حجم بالبايت — بنقلل الجودة لحد ما نوصله (البوابة: 200KB) */
+    maxBytes?: number
+  } = {}
 ): Promise<File> {
   try {
-    if (!file.type.startsWith('image/') || file.size < MIN_SIZE_TO_COMPRESS) {
+    if (!file.type.startsWith('image/')) return file
+    const alreadyOk =
+      file.type === 'image/jpeg' && (!opts.maxBytes || file.size <= opts.maxBytes)
+    if (file.size < MIN_SIZE_TO_COMPRESS && (!opts.forceJpeg || alreadyOk)) {
       return file
     }
 
@@ -61,10 +70,18 @@ export async function compressImage(
     ctx.drawImage(bitmap as CanvasImageSource, 0, 0, outW, outH)
     if ('close' in bitmap) bitmap.close()
 
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, 'image/jpeg', quality)
-    )
-    if (!blob || blob.size >= file.size) return file
+    const encode = (q: number) =>
+      new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', q))
+    let blob = await encode(quality)
+    if (opts.maxBytes) {
+      for (const q of [0.72, 0.62, 0.52, 0.42]) {
+        if (!blob || blob.size <= opts.maxBytes) break
+        if (q < quality) blob = await encode(q)
+      }
+    }
+    if (!blob) return file
+    //  الأصل أصغر وهو أصلاً JPEG مقبول → نسيبه
+    if (blob.size >= file.size && (!opts.forceJpeg || alreadyOk)) return file
 
     const newName = file.name.replace(/\.[^.]+$/, '') + '.jpg'
     return new File([blob], newName, { type: 'image/jpeg' })

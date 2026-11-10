@@ -23,9 +23,28 @@ import {
   addUser,
   modifyUser,
   deleteUser,
+  uploadFace,
+  deleteFace,
   HikvisionError,
   type GateConnection,
 } from '../hikvision/client'
+import { loadMemberFaceJpeg } from './memberFace'
+
+//  📷 فشل رفع الصورة بيتسجّل في GateMemberSync.lastError بالبادئة دي.
+//  ده بيخلّي المُصالِح يعيد رفع الصورة بس كل ١٥ دقيقة (من غير ما يعيد
+//  كتابة المستخدم)، والواجهة تفرّق بين "المزامنة فشلت" و"الصورة ما اترفعتش".
+export const FACE_ERROR_PREFIX = '📷 '
+
+/** مسح من الجهاز: الوش الأول (best-effort) وبعدين المستخدم. */
+async function removeFromDevice(conn: GateConnection, employeeNo: string): Promise<void> {
+  try {
+    await deleteFace(conn, employeeNo)
+  } catch (e) {
+    //  أغلب الأجهزة بتمسح الوش مع المستخدم أصلاً — فشل هنا مش مانع
+    console.warn('[gates] مسح الوش فشل (هنكمّل بمسح المستخدم):', (e as Error)?.message)
+  }
+  await deleteUser(conn, employeeNo)
+}
 
 /** الجهاز بياخد التاريخ بصيغة محلية من غير منطقة زمنية. */
 function toDeviceTime(d: Date): string {
@@ -78,6 +97,18 @@ type MemberForSync = {
 export interface SyncOutcome {
   action: 'added' | 'modified' | 'deleted' | 'skipped' | 'failed'
   reason?: string
+  /** حالة رفع صورة الوش لو اتحاولت في المرة دي */
+  face?: 'uploaded' | 'failed' | 'noPhoto'
+  faceError?: string
+}
+
+export interface SyncOptions {
+  dryRun?: boolean
+  now?: Date
+  /** ارفع صورة الوش حتى لو حالة المستخدم متزامنة (الصورة اتغيّرت / زرار "ارفع الصورة") */
+  forceFace?: boolean
+  /** قيمة profileImage الجديدة لو معروفة (من الـ middleware) — عشان مانقراش القديمة قبل الـ commit */
+  faceImage?: string | null
 }
 
 /**
@@ -89,7 +120,7 @@ export interface SyncOutcome {
 export async function syncMemberToGate(
   gate: GateRow,
   member: MemberForSync,
-  opts: { dryRun?: boolean; now?: Date } = {}
+  opts: SyncOptions = {}
 ): Promise<SyncOutcome> {
   const now = opts.now ?? new Date()
 
@@ -107,13 +138,17 @@ export async function syncMemberToGate(
     return { action: 'skipped', reason: 'مش مستحق ومش متبعت قبل كده' }
   }
 
+  //  آخر فشل كان في الصورة بس (المستخدم نفسه اتكتب تمام) → نعيد الصورة بس
+  const faceRetry = !!existing?.lastError?.startsWith(FACE_ERROR_PREFIX)
+
   //  الحالة زي ما هي؟ مانتعبش الجهاز
-  if (
-    existing &&
+  const userInSync =
+    !!existing &&
     existing.isAllowed === want.enabled &&
     (existing.validUntil?.getTime() ?? null) === (want.endTime?.getTime() ?? null) &&
-    !existing.lastError
-  ) {
+    (!existing.lastError || faceRetry)
+
+  if (userInSync && !opts.forceFace && !faceRetry) {
     return { action: 'skipped', reason: 'متزامن بالفعل' }
   }
 
@@ -130,14 +165,29 @@ export async function syncMemberToGate(
   }
 
   const conn = toConnection(gate)
-  let action: SyncOutcome['action'] = existing ? 'modified' : 'added'
+  let action: SyncOutcome['action'] = userInSync ? 'skipped' : existing ? 'modified' : 'added'
+  //  مستخدم جديد فعلاً على الجهاز (مش موجود قبل كده) → محتاج صورة
+  let freshlyAdded = false
 
   try {
-    if (existing) {
-      await modifyUser(conn, payload)
+    if (userInSync) {
+      //  المستخدم سليم على الجهاز — الشغل هنا على الصورة بس
+    } else if (existing) {
+      try {
+        await modifyUser(conn, payload)
+      } catch (e) {
+        //  السجل عندنا موجود بس المستخدم مش على الجهاز: أول إضافة كانت فشلت
+        //  (الجهاز كان مقفول/مفصول)، أو الجهاز اتعمله reset. نضيفه من جديد.
+        const missing = e instanceof HikvisionError && /NotExist|notFound|noUser/i.test(e.body ?? e.message)
+        if (!missing) throw e
+        await addUser(conn, payload)
+        freshlyAdded = true
+        action = 'added'
+      }
     } else {
       try {
         await addUser(conn, payload)
+        freshlyAdded = true
       } catch (e) {
         //  الريسبشن ممكن يكون سجّل وش العضو على الجهاز قبل ما السيستم يبعته،
         //  فالمستخدم موجود أصلاً. ده مسار عادي مش خطأ.
@@ -160,19 +210,45 @@ export async function syncMemberToGate(
     return { action: 'failed', reason: msg }
   }
 
+  //  📷 صورة الوش — بعد ما المستخدم بقى موجود على الجهاز (الجهاز بيرفض وش لمستخدم مش موجود).
+  //  لو المستخدم كان متسجّل على الجهاز أصلاً (الريسبشن سجّل وشه هناك) مابنكتبش فوق وشه
+  //  إلا لو الصورة اتغيّرت في السيستم (forceFace).
+  let face: SyncOutcome['face']
+  let faceError: string | undefined
+  if (opts.forceFace || freshlyAdded || faceRetry) {
+    try {
+      const image =
+        opts.faceImage !== undefined
+          ? opts.faceImage
+          : (await prisma.member.findUnique({ where: { id: member.id }, select: { profileImage: true } }))?.profileImage
+      const jpeg = await loadMemberFaceJpeg(image)
+      if (!jpeg) {
+        face = 'noPhoto'
+      } else {
+        await uploadFace(conn, member.memberNumber, jpeg)
+        face = 'uploaded'
+      }
+    } catch (e) {
+      face = 'failed'
+      faceError = e instanceof Error ? e.message : String(e)
+      console.error('[gates] رفع صورة الوش فشل', gate.name, member.memberNumber, faceError)
+    }
+  }
+
+  const lastError = faceError ? FACE_ERROR_PREFIX + faceError : null
   await prisma.gateMemberSync.upsert({
     where: { gateId_memberId: { gateId: gate.id, memberId: member.id } },
     create: {
       gateId: gate.id, memberId: member.id, employeeNo: member.memberNumber,
-      isAllowed: want.enabled, validUntil: want.endTime, lastError: null,
+      isAllowed: want.enabled, validUntil: want.endTime, lastError,
     },
     update: {
       employeeNo: member.memberNumber, isAllowed: want.enabled,
-      validUntil: want.endTime, lastError: null, syncedAt: new Date(),
+      validUntil: want.endTime, lastError, syncedAt: new Date(),
     },
   })
 
-  return { action }
+  return { action, face, faceError }
 }
 
 /** بيشيل العضو من الجهاز نهائيًا (زرار "امسح الوش" في صفحة العضو). */
@@ -187,7 +263,7 @@ export async function removeMemberFromGates(
     const gate = await prisma.gate.findUnique({ where: { id: row.gateId } })
     if (!gate) continue
     try {
-      await deleteUser(toConnection(gate as GateRow), row.employeeNo)
+      await removeFromDevice(toConnection(gate as GateRow), row.employeeNo)
       await prisma.gateMemberSync.delete({ where: { id: row.id } })
       removed++
     } catch (e) {
@@ -214,26 +290,40 @@ async function anyGatesEnabled(): Promise<boolean> {
   return gatesPresent.value
 }
 
-/** مزامنة عضو واحد على كل الأجهزة المفعّلة. بتتنادى بعد إنشاء/تجديد/تجميد. */
-export async function syncMember(memberId: string): Promise<void> {
-  if (!(await anyGatesEnabled())) return
+export interface MemberSyncResult extends SyncOutcome {
+  gateId: string
+  gateName: string
+}
+
+/** مزامنة عضو واحد على كل الأجهزة المفعّلة. بتتنادى بعد إنشاء/تجديد/تجميد/تغيير الصورة. */
+export async function syncMember(
+  memberId: string,
+  opts: Pick<SyncOptions, 'forceFace' | 'faceImage'> = {}
+): Promise<MemberSyncResult[]> {
+  if (!(await anyGatesEnabled())) return []
 
   const [gates, member] = await Promise.all([
     prisma.gate.findMany({ where: { isEnabled: true } }),
     prisma.member.findUnique({ where: { id: memberId }, select: MEMBER_FIELDS }),
   ])
-  if (!member || gates.length === 0) return
+  if (!member || gates.length === 0) return []
+  const out: MemberSyncResult[] = []
   for (const gate of gates) {
-    await syncMemberToGate(gate as GateRow, member as MemberForSync)
+    const r = await syncMemberToGate(gate as GateRow, member as MemberForSync, opts)
+    out.push({ ...r, gateId: gate.id, gateName: gate.name })
   }
+  return out
 }
 
 /**
  * نسخة لا تفشل أبدًا — للنداء من مسارات الأعضاء.
  * البوابة ماتوقّعش عملية تجديد؛ المُصالِح هيصلّح أي فشل بعد شوية.
  */
-export function syncMemberInBackground(memberId: string): void {
-  syncMember(memberId).catch(err => {
+export function syncMemberInBackground(
+  memberId: string,
+  opts: Pick<SyncOptions, 'forceFace' | 'faceImage'> = {}
+): void {
+  syncMember(memberId, opts).catch(err => {
     console.error('[gates] فشلت مزامنة العضو', memberId, err?.message ?? err)
   })
 }
@@ -294,6 +384,7 @@ export async function reconcileAll(
         r.failed++
         if (r.errors.length < 5) r.errors.push(`${m.memberNumber}: ${out.reason}`)
       } else r.skipped++
+      if (out.face === 'failed' && r.errors.length < 5) r.errors.push(`${m.memberNumber}: ${FACE_ERROR_PREFIX}${out.faceError}`)
     }
 
     r.onDevice = await prisma.gateMemberSync.count({ where: { gateId: gate.id } })
@@ -309,7 +400,7 @@ export async function reconcileAll(
       })
       for (const v of victims) {
         try {
-          await deleteUser(toConnection(gate as GateRow), v.employeeNo)
+          await removeFromDevice(toConnection(gate as GateRow), v.employeeNo)
           await prisma.gateMemberSync.delete({ where: { id: v.id } })
           r.deleted++
         } catch (e) {

@@ -1,7 +1,7 @@
 // components/ImageUpload.tsx
 'use client'
 
-import { useState, useRef, useId } from 'react'
+import { useState, useRef, useId, useEffect } from 'react'
 import CameraModal from './CameraModal'
 import { useLanguage } from '../contexts/LanguageContext'
 import { compressImage } from '../lib/imageCompress'
@@ -14,14 +14,23 @@ interface ImageUploadProps {
   disabled?: boolean
   label?: string
   variant?: 'profile' | 'idCard'
+  /** 📷 زرار «صوّر من البوابة» (كاميرا جهاز Hikvision) — لصورة العضو بس، وبيظهر لو في بوابة مفعّلة */
+  gateCapture?: boolean
 }
+
+interface GateOption { id: string; name: string }
+
+//  صورة البروفايل بتترفع لبوابة الوش: JPEG بس، ≤ 200KB، ومقاس معقول
+const PROFILE_MAX_DIM = 640
+const PROFILE_MAX_BYTES = 190 * 1024
 
 export default function ImageUpload({
   currentImage,
   onImageChange,
   disabled = false,
   label,
-  variant = 'profile'
+  variant = 'profile',
+  gateCapture = false
 }: ImageUploadProps) {
   const { t } = useLanguage()
   const inputId = useId()
@@ -29,6 +38,52 @@ export default function ImageUpload({
   const [preview, setPreview] = useState<string | null>(currentImage || null)
   const [isCameraOpen, setIsCameraOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // 📷 البوابات المتاحة للتصوير
+  const [gates, setGates] = useState<GateOption[]>([])
+  const [gateId, setGateId] = useState<string>('')
+  const [gateCapturing, setGateCapturing] = useState(false)
+  const [gateMsg, setGateMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!gateCapture || disabled) return
+    let cancelled = false
+    fetch('/api/gates/available')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (cancelled || !d?.success) return
+        setGates(d.gates || [])
+        if (d.gates?.length) setGateId(prev => prev || d.gates[0].id)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [gateCapture, disabled])
+
+  const handleGateCapture = async () => {
+    if (!gateId) return
+    setGateCapturing(true)
+    setGateMsg(null)
+    try {
+      const res = await fetch(`/api/gates/${gateId}/capture-face`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success && data.imageUrl) {
+        setPreview(data.dataUrl || data.imageUrl)
+        onImageChange(data.imageUrl)
+      } else {
+        setGateMsg([data.error, data.detail].filter(Boolean).join(' — ') || 'التصوير من البوابة فشل')
+      }
+    } catch {
+      setGateMsg('مشكلة في الاتصال بالسيستم')
+    } finally {
+      setGateCapturing(false)
+    }
+  }
+
+  //  صورة العضو دايمًا JPEG صغيرة (عشان تترفع للبوابة) — صور البطاقة زي ما كانت
+  const prepare = (file: File) =>
+    variant === 'profile'
+      ? compressImage(file, PROFILE_MAX_DIM, 0.85, { forceJpeg: true, maxBytes: PROFILE_MAX_BYTES })
+      : compressImage(file)
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -43,7 +98,7 @@ export default function ImageUpload({
     setUploading(true)
     try {
       // ضغط الصورة قبل الرفع — صورة الموبايل 3-5MB بتنزل لـ ~100KB
-      const compressed = await compressImage(file)
+      const compressed = await prepare(file)
       const formData = new FormData()
       formData.append('image', compressed)
 
@@ -96,7 +151,7 @@ export default function ImageUpload({
 
     setUploading(true)
     try {
-      const compressed = await compressImage(file)
+      const compressed = await prepare(file)
       const formData = new FormData()
       formData.append('image', compressed)
 
@@ -228,6 +283,43 @@ export default function ImageUpload({
                 </>
               )}
             </label>
+          </div>
+        )}
+
+        {!disabled && gateCapture && gates.length > 0 && (
+          <div className="flex flex-col items-center gap-2 w-full">
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              {gates.length > 1 && (
+                <select
+                  value={gateId}
+                  onChange={e => setGateId(e.target.value)}
+                  disabled={gateCapturing}
+                  className="px-2 py-2 rounded-lg text-sm bg-white dark:bg-gray-700 ring-1 ring-gray-300 dark:ring-gray-600 text-gray-800 dark:text-gray-100"
+                  aria-label="البوابة"
+                >
+                  {gates.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                </select>
+              )}
+              <button
+                type="button"
+                onClick={handleGateCapture}
+                disabled={gateCapturing || uploading}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-sm transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {gateCapturing ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" {...stroke}>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" />
+                      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeLinecap="round" />
+                    </svg>
+                    <span>بص للكاميرا بتاعة البوابة…</span>
+                  </>
+                ) : (
+                  <span>📷 صوّر من البوابة</span>
+                )}
+              </button>
+            </div>
+            {gateMsg && <p className="text-xs text-red-600 dark:text-red-400 text-center max-w-xs">{gateMsg}</p>}
           </div>
         )}
 

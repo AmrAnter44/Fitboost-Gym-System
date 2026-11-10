@@ -1022,6 +1022,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
         <ImageUpload
+          gateCapture
           currentImage={imagePreview || null}
           onImageChange={(imageUrl) => {
             if (imageUrl) {

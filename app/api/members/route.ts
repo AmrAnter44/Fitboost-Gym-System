@@ -1072,7 +1072,12 @@ export async function PUT(request: Request) {
       const isPhotoEndpointUrl =
         typeof profileImage === 'string' && /^\/api\/members\/[^/]+\/photo$/.test(profileImage)
       if (!isPhotoEndpointUrl) {
-        updateData.profileImage = profileImage
+        //  📷 نفس الصورة؟ ماتتكتبش — كتابة profileImage معناها "الصورة اتغيّرت"
+        //  وبتجبر رفع الوش للبوابات من جديد (lib/prisma.ts)
+        const current = await prisma.member.findUnique({ where: { id }, select: { profileImage: true } })
+        if ((current?.profileImage ?? '') !== (profileImage ?? '')) {
+          updateData.profileImage = profileImage
+        }
       }
     }
 
@@ -1314,6 +1319,13 @@ export async function DELETE(request: Request) {
 
     const memberToDelete = await prisma.member.findUnique({ where: { id }, select: { name: true, memberNumber: true } })
     await prisma.member.delete({ where: { id } })
+
+    //  🚪 العضو اتمسح من السيستم → يتشال من البوابات (الوش + المستخدم) في الخلفية.
+    //  removeMemberFromGates بيشتغل على GateMemberSync مش على Member، فمسح العضو قبله مش مشكلة.
+    void import('../../../lib/gates/sync')
+      .then(({ removeMemberFromGates }) => removeMemberFromGates(id))
+      .then(r => { if (r.errors.length) console.error('[gates] مسح العضو المحذوف من البوابات:', r.errors.join(' · ')) })
+      .catch(err => console.error('[gates] مسح العضو المحذوف من البوابات فشل:', err?.message || err))
 
     // 📝 Audit log
     createAuditLog({

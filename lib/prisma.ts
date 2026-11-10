@@ -14,14 +14,34 @@ const globalForPrisma = globalThis as unknown as {
 //
 //    ده مسار السرعة بس — المُصالِح في instrumentation.ts هو ضمان الصحة،
 //    وبيمسك كمان اللي بيعدّي من raw SQL (اللي مابيعدّيش من هنا أصلاً).
-async function fireGateSync(memberId: string | undefined) {
+//    📷 لو الـ profileImage اتبعت في الـ data → الصورة اتغيّرت: بنجبر رفع الوش
+//    للبوابات، وبنبعت القيمة الجديدة نفسها (لأن التعديل غالبًا جوّه $transaction
+//    ولو قرينا من الداتابيز قبل الـ commit هنلاقي الصورة القديمة).
+//    التأخير البسيط بيدّي الـ transaction فرصة تخلص قبل ما المزامنة تقرا العضو.
+async function fireGateSync(memberId: string | undefined, faceImage?: string | null) {
   if (!memberId) return
   try {
     const { syncMemberInBackground } = await import('./gates/sync')
-    syncMemberInBackground(memberId)
+    const opts = faceImage !== undefined ? { forceFace: true, faceImage } : {}
+    setTimeout(() => syncMemberInBackground(memberId, opts), 1500)
   } catch (err: any) {
     console.error('[gates] sync enqueue failed:', err?.message || err)
   }
+}
+
+/** قيمة profileImage لو كانت جزء من العملية (undefined = الصورة ماتلمستش). */
+function touchedProfileImage(params: { action: string; args?: any }): string | null | undefined {
+  const pick = (data: any) =>
+    data && typeof data === 'object' && 'profileImage' in data
+      ? (typeof data.profileImage === 'object' && data.profileImage !== null ? data.profileImage.set : data.profileImage)
+      : undefined
+  if (params.action === 'upsert') {
+    return pick(params.args?.update) ?? pick(params.args?.create)
+  }
+  const v = pick(params.args?.data)
+  //  عضو جديد من غير صورة — مفيش حاجة نجبرها
+  if (params.action === 'create' && !v) return undefined
+  return v
 }
 
 async function setupPragmas(client: PrismaClient) {
@@ -66,7 +86,7 @@ function createPrismaClient() {
     if (params.model === 'Member') {
       // updateMany/deleteMany مابيرجّعوش صفوف، فبيتسابوا للمُصالِح
       if (params.action === 'create' || params.action === 'update' || params.action === 'upsert') {
-        void fireGateSync(result?.id)
+        void fireGateSync(result?.id, touchedProfileImage(params))
       }
     }
 

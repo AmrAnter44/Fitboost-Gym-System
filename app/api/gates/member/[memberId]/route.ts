@@ -61,7 +61,10 @@ export async function DELETE(request: Request, { params }: { params: { memberId:
   }
 }
 
-/** إعادة إرسال العضو للأجهزة — لو حصل فشل وعايز تعيد المحاولة */
+/**
+ * إعادة إرسال العضو للأجهزة — لو حصل فشل وعايز تعيد المحاولة.
+ * `?face=1` = «ارفع الصورة للبوابة»: بيرفع صورة العضو حتى لو المستخدم متزامن.
+ */
 export async function POST(request: Request, { params }: { params: { memberId: string } }) {
   try {
     const user = await verifyAuth(request)
@@ -69,8 +72,41 @@ export async function POST(request: Request, { params }: { params: { memberId: s
     const privileged = user.role === 'OWNER' || user.role === 'ADMIN'
     if (!privileged && !user.permissions?.canEditMembers) throw new Error('Forbidden')
 
-    await syncMember(params.memberId)
-    return NextResponse.json({ success: true })
+    const forceFace = new URL(request.url).searchParams.get('face') === '1'
+    const results = await syncMember(params.memberId, forceFace ? { forceFace: true } : {})
+
+    if (forceFace && results.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'مفيش بوابة مفعّلة، أو العضو مش موجود' },
+        { status: 400 }
+      )
+    }
+
+    //  الفشل لازم يبان للموظف مش يتخبّى ورا success
+    const errors = results
+      .filter(r => r.action === 'failed' || r.face === 'failed')
+      .map(r => `${r.gateName}: ${r.action === 'failed' ? r.reason : r.faceError}`)
+    const uploaded = results.filter(r => r.face === 'uploaded').length
+    const noPhoto = results.some(r => r.face === 'noPhoto')
+    const skipped = results.filter(r => r.action === 'skipped' && !r.face)
+
+    if (errors.length > 0 && uploaded === 0 && results.every(r => r.action === 'failed' || r.face === 'failed')) {
+      return NextResponse.json({ success: false, error: errors.join(' · '), results }, { status: 502 })
+    }
+
+    let note: string | undefined
+    if (forceFace) {
+      if (noPhoto) note = 'العضو مالوش صورة في السيستم — صوّره الأول'
+      else if (uploaded > 0) note = `الصورة اترفعت على ${uploaded} بوابة ✅`
+      else if (skipped.length > 0) note = 'العضو مش متبعت للبوابة (اشتراكه مش ساري) — الصورة هتترفع لما يتبعت'
+    }
+
+    return NextResponse.json({
+      success: true,
+      results,
+      note,
+      warning: errors.length > 0 ? `فشل في: ${errors.join(' · ')}` : undefined,
+    })
   } catch (e) {
     return gateErrorResponse(e)
   }

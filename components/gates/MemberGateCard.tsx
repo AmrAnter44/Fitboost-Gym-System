@@ -9,6 +9,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 
+//  نفس البادئة اللي في lib/gates/sync.ts (FACE_ERROR_PREFIX) — منسوخة عشان مانجيبش كود سيرفر للمتصفح
+const FACE_ERROR_PREFIX = '📷 ';
+
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const;
 
 interface GateStatus {
@@ -24,15 +27,18 @@ export default function MemberGateCard({
   memberId,
   enabled,
   canEdit,
+  hasPhoto = false,
 }: {
   memberId: string;
+  /** العضو عنده صورة في السيستم — بيظهر زرار «ارفع الصورة للبوابة» */
+  hasPhoto?: boolean;
   /** من SystemSettings.gatesEnabled — الكارت مايظهرش لو الميزة مقفولة */
   enabled: boolean;
   canEdit: boolean;
 }) {
   const { tr, direction } = useLanguage();
   const [rows, setRows] = useState<GateStatus[] | null>(null);
-  const [busy, setBusy] = useState<'del' | 'sync' | null>(null);
+  const [busy, setBusy] = useState<'del' | 'sync' | 'face' | null>(null);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   const load = useCallback(async () => {
@@ -47,16 +53,19 @@ export default function MemberGateCard({
 
   if (!enabled || rows === null) return null;
 
-  const act = async (kind: 'del' | 'sync') => {
+  const act = async (kind: 'del' | 'sync' | 'face') => {
     if (kind === 'del' && !confirm(tr('تمسح وش العضو من الجهاز؟\n\nلو رجع يجدّد هيحتاج يسجّل وشه تاني.', 'Delete the member\'s face from the device?\n\nIf they renew, they will need to enroll their face again.'))) return;
     setBusy(kind);
     setMsg(null);
     try {
-      const res = await fetch(`/api/gates/member/${memberId}`, { method: kind === 'del' ? 'DELETE' : 'POST' });
+      const url = kind === 'face' ? `/api/gates/member/${memberId}?face=1` : `/api/gates/member/${memberId}`;
+      const res = await fetch(url, { method: kind === 'del' ? 'DELETE' : 'POST' });
       const data = await res.json();
       setMsg(data.success
-        ? { type: 'ok', text: data.warning || data.note || tr('تم', 'Done') }
-        : { type: 'err', text: data.error || tr('العملية فشلت', 'Operation failed') });
+        ? (data.warning
+            ? { type: 'err', text: data.warning }
+            : { type: 'ok', text: data.note || tr('تم', 'Done') })
+        : { type: 'err', text: [data.error, data.detail].filter(Boolean).join(' — ') || tr('العملية فشلت', 'Operation failed') });
       load();
     } catch {
       setMsg({ type: 'err', text: tr('مشكلة في الاتصال', 'Connection problem') });
@@ -76,7 +85,7 @@ export default function MemberGateCard({
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {tr('العضو ده لسه مش متبعت لأي بوابة.', 'This member has not been sent to any gate yet.')}
           <span className="block text-xs mt-1">
-            {tr('بيتبعت تلقائيًا لما يبقى اشتراكه ساري — وبعدين يسجّل وشه على الجهاز.', 'Sent automatically once their subscription is active — then they enroll their face on the device.')}
+            {tr('بيتبعت تلقائيًا لما يبقى اشتراكه ساري — ومعاه صورته لو متصوّر في السيستم (أو يسجّل وشه على الجهاز).', 'Sent automatically once their subscription is active — with their photo if one is saved (or they enroll on the device).')}
           </span>
         </p>
       ) : (
@@ -85,7 +94,9 @@ export default function MemberGateCard({
             <div key={r.gateId} className="flex items-center justify-between gap-2 text-sm">
               <span className="text-gray-700 dark:text-gray-300">{r.gateName}</span>
               <div className="flex items-center gap-2">
-                {r.lastError ? (
+                {r.lastError?.startsWith(FACE_ERROR_PREFIX) ? (
+                  <span className="text-xs text-amber-600 dark:text-amber-400" title={r.lastError}>{tr('📷 الصورة ما اترفعتش', '📷 Photo not uploaded')}</span>
+                ) : r.lastError ? (
                   <span className="text-xs text-red-600 dark:text-red-400" title={r.lastError}>{tr('فشلت المزامنة', 'Sync failed')}</span>
                 ) : r.isAllowed ? (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold">
@@ -102,6 +113,13 @@ export default function MemberGateCard({
         </div>
       )}
 
+      {/*  سبب فشل رفع الصورة مكتوب — الموظف محتاج يعرف يعمل إيه (يصوّر تاني / يعيد المزامنة) */}
+      {rows.filter(r => r.lastError?.startsWith(FACE_ERROR_PREFIX)).map(r => (
+        <p key={`fe-${r.gateId}`} className="text-xs mb-2 text-amber-700 dark:text-amber-400">
+          {r.gateName}: {r.lastError!.slice(FACE_ERROR_PREFIX.length)}
+        </p>
+      ))}
+
       {msg && (
         <p className={`text-xs mb-3 ${msg.type === 'ok' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
           {msg.text}
@@ -117,6 +135,15 @@ export default function MemberGateCard({
           >
             {busy === 'sync' ? '…' : tr('إعادة مزامنة', 'Resync')}
           </button>
+          {hasPhoto && (
+            <button
+              onClick={() => act('face')}
+              disabled={busy !== null}
+              className="px-3 py-1.5 rounded-lg text-sm font-semibold ring-1 ring-emerald-300 dark:ring-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50"
+            >
+              {busy === 'face' ? tr('بيرفع…', 'Uploading…') : tr('🔄 ارفع الصورة للبوابة', '🔄 Upload photo to gate')}
+            </button>
+          )}
           {rows.length > 0 && (
             <button
               onClick={() => act('del')}

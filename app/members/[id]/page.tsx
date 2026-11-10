@@ -2785,6 +2785,7 @@ export default function MemberDetailPage() {
  memberId={member.id}
  enabled={!!settings?.gatesEnabled}
  canEdit={hasPermission('canEditMembers')}
+ hasPhoto={!!member.profileImage}
  />
  </div>
 
@@ -3702,6 +3703,7 @@ export default function MemberDetailPage() {
  {/* تعديل الصورة */}
  <div className="mb-4">
  <ImageUpload
+ gateCapture
  currentImage={editBasicInfoData.profileImage}
  onImageChange={(imageUrl) => setEditBasicInfoData({ ...editBasicInfoData, profileImage: imageUrl })}
  disabled={loading}
@@ -6273,6 +6275,7 @@ export default function MemberDetailPage() {
  onImageChange={(imageUrl) => uploadMissingImage(missingImageUpload.field, imageUrl)}
  disabled={missingImageUploading}
  variant={missingImageUpload.field === 'profileImage' ? 'profile' : 'idCard'}
+ gateCapture={missingImageUpload.field === 'profileImage'}
  />
  {missingImageUploading && (
  <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">

@@ -620,6 +620,7 @@ export default function MemberDetailPage() {
             </div>
 
             <ImageUpload
+              gateCapture
               currentImage={member.profileImage}
               onImageChange={async (url) => {
                 try {
