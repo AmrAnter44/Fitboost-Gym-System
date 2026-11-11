@@ -104,6 +104,11 @@ export default function GroupClassPage() {
     coachName: '',
     duration: 60,
   })
+  //  🧑‍🏫 مين بيقدّم الكلاس: كابتن من الجيم (موظف) أو كابتن من برا (بيتعمله حساب موظف بـ ID للحضور)
+  const [instructorMode, setInstructorMode] = useState<'staff' | 'external'>('staff')
+  const [instructorStaffId, setInstructorStaffId] = useState('')
+  const [externalCoach, setExternalCoach] = useState({ name: '', phone: '' })
+  const [instructors, setInstructors] = useState<Array<{ id: string; name: string; phone: string | null; staffCode: string; external: boolean }>>([])
   const [editingSchedule, setEditingSchedule] = useState<any | null>(null)
   const [savingSchedule, setSavingSchedule] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -651,19 +656,35 @@ export default function GroupClassPage() {
     }
   }
 
+  const fetchInstructors = async () => {
+    try {
+      const res = await fetch('/api/group-classes/instructors')
+      if (res.ok) setInstructors(await res.json())
+    } catch { /* الفورم بيشتغل بالكتابة اليدوي */ }
+  }
+
   const openScheduleModal = () => {
     setShowScheduleModal(true)
     fetchSchedules()
+    fetchInstructors()
   }
 
   const resetScheduleForm = () => {
     setScheduleForm({ dayOfWeek: 0, gender: 'mixed', startTime: '09:00', className: '', coachName: '', duration: 60 })
+    setInstructorMode('staff')
+    setInstructorStaffId('')
+    setExternalCoach({ name: '', phone: '' })
     setEditingSchedule(null)
   }
 
   const handleSaveSchedule = async () => {
-    if (!scheduleForm.className.trim() || !scheduleForm.coachName.trim() || !scheduleForm.startTime) {
-      toast.error(t('settingsPage.groupClassSchedules.fillAllFields'))
+    const hasInstructor = instructorMode === 'external'
+      ? !!(externalCoach.name.trim() && externalCoach.phone.trim())
+      : !!(instructorStaffId || scheduleForm.coachName.trim())
+    if (!scheduleForm.className.trim() || !hasInstructor || !scheduleForm.startTime) {
+      toast.error(instructorMode === 'external' && !hasInstructor
+        ? tr('اكتب اسم الكابتن ورقم تليفونه', 'Enter the coach name and phone')
+        : t('settingsPage.groupClassSchedules.fillAllFields'))
       return
     }
     setSavingSchedule(true)
@@ -672,17 +693,32 @@ export default function GroupClassPage() {
         ? `/api/group-classes/schedule/${editingSchedule.id}`
         : '/api/group-classes/schedule'
       const method = editingSchedule ? 'PUT' : 'POST'
+      const body = {
+        ...scheduleForm,
+        ...(instructorMode === 'external'
+          ? { externalName: externalCoach.name.trim(), externalPhone: externalCoach.phone.trim() }
+          : instructorStaffId ? { instructorStaffId } : { clearInstructor: true }),
+      }
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(scheduleForm),
+        body: JSON.stringify(body),
       })
       if (!res.ok) {
         const err = await res.json()
         toast.error(err.error || t('settingsPage.groupClassSchedules.saveFailed'))
         return
       }
+      const saved = await res.json().catch(() => null)
       toast.success(editingSchedule ? t('settingsPage.groupClassSchedules.updated') : t('settingsPage.groupClassSchedules.added'))
+      //  🪪 كابتن من برا اتعمله حساب جديد → نعرض الـ ID بتاعه للحضور والانصراف
+      if (saved?.instructor?.created) {
+        toast.info(tr(
+          `اتعمل حساب للكابتن ${saved.instructor.name} — الـ ID بتاعه: ${saved.instructor.staffCode} (يعمل بيه حضور وانصراف)`,
+          `Coach account created for ${saved.instructor.name} — ID: ${saved.instructor.staffCode} (for check-in/out)`
+        ), 12000)
+        fetchInstructors()
+      }
       resetScheduleForm()
       fetchSchedules()
     } catch {
@@ -1549,15 +1585,69 @@ export default function GroupClassPage() {
                       className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     />
                   </div>
-                  <div>
+                  <div className="sm:col-span-2">
                     <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('settingsPage.groupClassSchedules.instructor')}</label>
-                    <input
-                      type="text"
-                      placeholder={t('settingsPage.groupClassSchedules.instructorPlaceholder')}
-                      value={scheduleForm.coachName}
-                      onChange={e => setScheduleForm(p => ({ ...p, coachName: e.target.value }))}
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    />
+                    {/* 🧑‍🏫 كابتن من الجيم / كابتن من برا (بيتعمله ID للحضور والانصراف) */}
+                    <div className="inline-flex rounded-lg ring-1 ring-gray-300 dark:ring-gray-600 p-0.5 mb-2">
+                      {([['staff', tr('كابتن من الجيم', 'Gym coach')], ['external', tr('كابتن من برا', 'External coach')]] as const).map(([mode, label]) => (
+                        <button key={mode} type="button" onClick={() => setInstructorMode(mode)}
+                          className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${instructorMode === mode
+                            ? 'bg-primary-500 text-primary-contrast'
+                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {instructorMode === 'staff' ? (
+                      instructors.length > 0 ? (
+                        <select
+                          value={instructorStaffId}
+                          onChange={e => {
+                            const s = instructors.find(x => x.id === e.target.value)
+                            setInstructorStaffId(e.target.value)
+                            setScheduleForm(p => ({ ...p, coachName: s ? s.name : p.coachName }))
+                          }}
+                          className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        >
+                          <option value="">{scheduleForm.coachName && !instructorStaffId ? scheduleForm.coachName : tr('— اختار الكابتن —', '— Select coach —')}</option>
+                          {instructors.map(s => (
+                            <option key={s.id} value={s.id}>
+                              {s.name} · {s.staffCode}{s.phone ? ` · ${s.phone}` : ''}{s.external ? ` (${tr('من برا', 'external')})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          placeholder={t('settingsPage.groupClassSchedules.instructorPlaceholder')}
+                          value={scheduleForm.coachName}
+                          onChange={e => setScheduleForm(p => ({ ...p, coachName: e.target.value }))}
+                          className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        />
+                      )
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          placeholder={tr('اسم الكابتن', 'Coach name')}
+                          value={externalCoach.name}
+                          onChange={e => setExternalCoach(p => ({ ...p, name: e.target.value }))}
+                          className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        />
+                        <input
+                          type="tel"
+                          dir="ltr"
+                          placeholder="01xxxxxxxxx"
+                          value={externalCoach.phone}
+                          onChange={e => setExternalCoach(p => ({ ...p, phone: e.target.value }))}
+                          className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        />
+                        <p className="sm:col-span-2 text-[11px] text-gray-500 dark:text-gray-400">
+                          {tr('هيتعمله حساب في الموظفين بـ ID يعمل بيه حضور وانصراف. لو رقمه متسجل قبل كده هيستخدم نفس الحساب.',
+                            'A staff account with an ID for check-in/out will be created. If the phone already exists, that account is reused.')}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('settingsPage.groupClassSchedules.duration')}</label>
@@ -1640,6 +1730,16 @@ export default function GroupClassPage() {
                                     </span>
                                   </p>
                                   <p className="text-xs text-gray-500 dark:text-gray-400"> {s.coachName} · {s.duration} {t('homepageClassBookings.minutes')}</p>
+                                  {(s.instructorPhone || s.instructorCode) && (
+                                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex flex-wrap gap-x-2">
+                                      {s.instructorPhone && <span dir="ltr">{s.instructorPhone}</span>}
+                                      {s.instructorCode && (
+                                        <span className="px-1.5 rounded bg-gray-100 dark:bg-gray-700 font-bold text-gray-700 dark:text-gray-200" title={tr('الـ ID للحضور والانصراف', 'ID for check-in/out')}>
+                                          ID {s.instructorCode}
+                                        </span>
+                                      )}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                               <div className="flex gap-2">
@@ -1654,6 +1754,9 @@ export default function GroupClassPage() {
                                       coachName: s.coachName,
                                       duration: s.duration,
                                     })
+                                    setInstructorMode('staff')
+                                    setInstructorStaffId(s.instructorStaffId || '')
+                                    setExternalCoach({ name: '', phone: '' })
                                   }}
                                   aria-label={t('settingsPage.groupClassSchedules.edit')}
                                   title={t('settingsPage.groupClassSchedules.edit')}

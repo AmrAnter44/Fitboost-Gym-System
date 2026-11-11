@@ -24,6 +24,7 @@ model Member {
   gender            String?      // 🚻 'male' | 'female' | 'unknown' — للجيم المكس (اختياري)
   source            String?
   profileImage      String?
+  photoUploadUntil  DateTime? // 📷 الريسيبشن سمح للعضو يرفع صورته من الأبليكيشن مرة واحدة لحد الوقت ده (10 دقايق)
   idCardFront       String?
   idCardBack        String?
   inBodyScans       Int          @default(0)
@@ -1344,6 +1345,8 @@ model ClassSchedule {
   coachName   String   // اسم الكوتش
   duration    Int      @default(60) // المدة بالدقائق
   gender      String   @default("mixed") // "male" رجالي | "female" نسائي | "mixed" مختلط
+  instructorStaffId String?  // 🧑‍🏫 الموظف اللي بيقدّم الكلاس (كابتن الجيم أو كابتن من برا اتعمله حساب موظف) — حضوره بالـ staffCode
+  instructorPhone   String?  // 📞 تليفون الكابتن
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

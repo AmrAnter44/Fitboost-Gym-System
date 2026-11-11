@@ -13,6 +13,7 @@ import TransferMembershipForm from '../../../components/TransferMembershipForm'
 import QuickMemberFollowUpModal from '../../../components/QuickMemberFollowUpModal'
 import { sessionsLeftBeforePayment, isPaymentLocked } from '../../../lib/sessionPaymentLimit'
 import ImageUpload from '../../../components/ImageUpload'
+import AllowAppPhotoButton from '../../../components/AllowAppPhotoButton'
 import { LoadingScreen } from '../../../components/Spinner'
 import { formatDateYMD, calculateRemainingDays, calculateDaysBetween } from '../../../lib/dateFormatter'
 import { prepareReceiptMessage } from '../../../lib/whatsappReceiptMessage'
@@ -6290,6 +6291,12 @@ export default function MemberDetailPage() {
  variant={missingImageUpload.field === 'profileImage' ? 'profile' : 'idCard'}
  gateCapture={missingImageUpload.field === 'profileImage'}
  />
+ {/* 📷 أو العضو يرفعها بنفسه من الأبليكيشن (مرة واحدة، 10 دقايق) */}
+ {missingImageUpload.field === 'profileImage' && member && (
+ <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+ <AllowAppPhotoButton memberId={member.id} onUploaded={() => { setMissingImageUpload(null); fetchMember() }} />
+ </div>
+ )}
  {missingImageUploading && (
  <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
  {locale === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
@@ -6770,8 +6777,7 @@ export default function MemberDetailPage() {
  alt={member?.name || ''}
  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
  onClick={(e) => e.stopPropagation()}
- />
- <button
+ /> <button
  type="button"
  onClick={() => setZoomedImage(null)}
  aria-label={locale === 'ar' ? 'إغلاق' : 'Close'}

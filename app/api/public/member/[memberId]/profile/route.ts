@@ -4,6 +4,7 @@ import { apiCache, CACHE_TTL } from '@/lib/cache';
 import { absoluteImageUrl } from '@/lib/publicImageUrl';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
 import { verifyMemberPhone, memberPhoneFrom } from '@/lib/memberVerify';
+import { getPhotoUploadUntil } from '@/lib/memberPhotoUpload';
 
 export async function GET(
   request: NextRequest,
@@ -163,11 +164,17 @@ export async function GET(
       }
     }
 
+    //  📷 الريسيبشن سامح للعضو يرفع صورته (10 دقايق، مرة واحدة)؟ — الأبليكيشن يظهر زرار الرفع
+    const photoUntil = await getPhotoUploadUntil(prisma, memberId)
+    const canUploadPhoto = !!photoUntil && photoUntil > Date.now()
+
     const result = {
       member: {
         ...memberPublic,
         //  📱 لينك كامل للصورة (المسار لوحده مبيفتحش في الأبلكيشن)
         profileImage: absoluteImageUrl(request, memberPublic.profileImage),
+        canUploadPhoto,
+        photoUploadUntil: canUploadPhoto ? new Date(photoUntil!).toISOString() : null,
         remainingDays,
         status,
         subscriptionType,

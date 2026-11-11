@@ -102,6 +102,14 @@ export default function VisitorsPage() {
   })
 
   const [showForm, setShowForm] = useState(false)
+  //  ⚡ جاي من «إضافة زائر» في الإجراءات السريعة (?action=new) → افتح الفورم على طول
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.location.pathname !== '/visitors') return
+    if (new URLSearchParams(window.location.search).get('action') === 'new') {
+      setShowForm(true)
+      router.replace('/visitors', { scroll: false })
+    }
+  }, [router])
   const [submitting, setSubmitting] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [selectedVisitorForHistory, setSelectedVisitorForHistory] = useState<Visitor | null>(null)
@@ -628,10 +636,20 @@ export default function VisitorsPage() {
         </div>
       </div>
 
-      {/* Add Visitor Form */}
+      {/* Add Visitor Form — بوب أب في نص الشاشة (كان بيظهر تحت ومش باين) */}
       {showForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">{t('visitors.form.title')}</h2>
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-black/50 overflow-y-auto animate-fadeIn"
+          onClick={() => { if (!submitting) setShowForm(false) }}
+          onKeyDown={(e) => { if (e.key === 'Escape' && !submitting) setShowForm(false) }}>
+        <div role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-2xl my-6 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 p-6">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('visitors.form.title')}</h2>
+            <button type="button" onClick={() => setShowForm(false)} disabled={submitting} aria-label={direction === 'rtl' ? 'إغلاق' : 'Close'}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -793,6 +811,7 @@ export default function VisitorsPage() {
               {submitting ? t('visitors.form.saving') : t('visitors.form.submit')}
             </button>
           </form>
+        </div>
         </div>
       )}
 

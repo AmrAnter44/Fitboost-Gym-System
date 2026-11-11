@@ -52,7 +52,8 @@ export default function CoachMyMembers() {
   const [loading, setLoading] = useState(true)
   const [members, setMembers] = useState<AssignedMember[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired'>('all')
+  //  الكوتش أول ما يفتح يشوف النشطين بس — المنتهيين في تاب لوحدهم (كانوا داخلين في بعض)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired'>('active')
   const [deductPopup, setDeductPopup] = useState<{
     show: boolean
     member: AssignedMember | null
@@ -328,9 +329,9 @@ export default function CoachMyMembers() {
 
         <div className="mb-3 flex flex-wrap gap-2">
           {([
-            ['all', locale === 'ar' ? 'الكل' : 'All', members.length],
             ['active', locale === 'ar' ? 'نشط' : 'Active', activeCount],
             ['expired', locale === 'ar' ? 'منتهي' : 'Expired', expiredCount],
+            ['all', locale === 'ar' ? 'الكل' : 'All', members.length],
           ] as const).map(([key, label, count]) => (
             <button
               key={key}

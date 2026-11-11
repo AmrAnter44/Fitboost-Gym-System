@@ -8,6 +8,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useConfirm } from '../../hooks/useConfirm';
+import ConfirmDialog from '../ConfirmDialog';
 
 //  نفس البادئة اللي في lib/gates/sync.ts (FACE_ERROR_PREFIX) — منسوخة عشان مانجيبش كود سيرفر للمتصفح
 const FACE_ERROR_PREFIX = '📷 ';
@@ -40,6 +42,8 @@ export default function MemberGateCard({
   const [rows, setRows] = useState<GateStatus[] | null>(null);
   const [busy, setBusy] = useState<'del' | 'sync' | 'face' | null>(null);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  //  بوب أب تأكيد جوّه الصفحة بدل confirm() — نوافذ المتصفح الأصلية بتعلّق الكتابة في Electron
+  const { confirm: askConfirm, isOpen: confirmOpen, options: confirmOptions, handleConfirm, handleCancel } = useConfirm();
 
   const load = useCallback(async () => {
     try {
@@ -54,7 +58,13 @@ export default function MemberGateCard({
   if (!enabled || rows === null) return null;
 
   const act = async (kind: 'del' | 'sync' | 'face') => {
-    if (kind === 'del' && !confirm(tr('تمسح وش العضو من الجهاز؟\n\nلو رجع يجدّد هيحتاج يسجّل وشه تاني.', 'Delete the member\'s face from the device?\n\nIf they renew, they will need to enroll their face again.'))) return;
+    if (kind === 'del' && !(await askConfirm({
+      title: tr('مسح الوش من الجهاز', 'Delete face from device'),
+      message: tr('تمسح وش العضو من الجهاز؟ لو رجع يجدّد هيحتاج يسجّل وشه تاني.', 'Delete the member\'s face from the device? If they renew, they will need to enroll their face again.'),
+      confirmText: tr('امسح', 'Delete'),
+      cancelText: tr('إلغاء', 'Cancel'),
+      type: 'danger',
+    }))) return;
     setBusy(kind);
     setMsg(null);
     try {
@@ -155,6 +165,7 @@ export default function MemberGateCard({
           )}
         </div>
       )}
+      <ConfirmDialog isOpen={confirmOpen} title={confirmOptions.title} message={confirmOptions.message} confirmText={confirmOptions.confirmText} cancelText={confirmOptions.cancelText} onConfirm={handleConfirm} onCancel={handleCancel} type={confirmOptions.type} />
     </div>
   );
 }

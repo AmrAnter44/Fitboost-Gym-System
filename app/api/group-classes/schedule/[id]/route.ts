@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/auth'
+import { resolveInstructor, setClassInstructor } from '@/lib/classInstructor'
 
 // PUT - تعديل موعد
 export async function PUT(
@@ -12,7 +13,17 @@ export async function PUT(
 
     const { id } = await params
     const body = await request.json()
-    const { dayOfWeek, startTime, className, coachName, duration, isActive, gender } = body
+    const { dayOfWeek, startTime, className, duration, isActive, gender, instructorStaffId, externalName, externalPhone, clearInstructor } = body
+    let { coachName } = body
+
+    //  🧑‍🏫 الكابتن (لو اتبعت): موظف من الجيم أو كابتن من برا
+    let instructor = null
+    try {
+      instructor = await resolveInstructor(prisma, { instructorStaffId, externalName, externalPhone })
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 400 })
+    }
+    if (instructor) coachName = instructor.name
 
     if (gender !== undefined && !['male', 'female', 'mixed'].includes(gender)) {
       return NextResponse.json({ error: 'نوع الكلاس غير صحيح' }, { status: 400 })
@@ -31,7 +42,10 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json(schedule)
+    if (instructor) await setClassInstructor(prisma, id, instructor)
+    else if (clearInstructor) await setClassInstructor(prisma, id, null)
+
+    return NextResponse.json({ ...schedule, instructor })
   } catch (error: any) {
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })

@@ -685,6 +685,9 @@ function migrateDatabase(dbPath) {
       const classScheduleCols = [
         { col: 'gender',   def: "TEXT NOT NULL DEFAULT 'mixed'" },
         { col: 'duration', def: 'INTEGER NOT NULL DEFAULT 60' },
+        // 🧑‍🏫 مين بيقدّم الكلاس (موظف) + تليفونه
+        { col: 'instructorStaffId', def: 'TEXT' },
+        { col: 'instructorPhone',   def: 'TEXT' },
       ];
       for (const { col, def } of classScheduleCols) {
         if (!columnExists(db, 'ClassSchedule', col)) {
@@ -1792,6 +1795,8 @@ function migrateDatabase(dbPath) {
       { col: 'nationalId',    def: 'TEXT' },
       { col: 'birthDate',     def: 'DATETIME' },
       { col: 'profileImage',  def: 'TEXT' },
+      // 📷 سماح مؤقت (10 دقايق) للعضو يرفع صورته من الأبليكيشن مرة واحدة
+      { col: 'photoUploadUntil', def: 'DATETIME' },
       { col: 'coachId',       def: 'TEXT' },
       //  تاريخ تعيين/تغيير الكوتش — إشعارات الكوتش «اتأسند ليك» بتعتمد عليه
       { col: 'coachAssignedAt',       def: 'DATETIME' },
@@ -1942,6 +1947,9 @@ function migrateDatabase(dbPath) {
           className TEXT NOT NULL,
           coachName TEXT NOT NULL,
           duration INTEGER NOT NULL DEFAULT 60,
+          gender TEXT NOT NULL DEFAULT 'mixed',
+          instructorStaffId TEXT,
+          instructorPhone TEXT,
           isActive INTEGER NOT NULL DEFAULT 1,
           createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
           updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))

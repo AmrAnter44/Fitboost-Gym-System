@@ -29,7 +29,6 @@ const SalesMgmtPanel = nextDynamic(() => import('../../components/SalesMgmtPanel
   ssr: false,
   loading: () => <div className="skeleton-shimmer h-64 rounded-xl" />
 })
-const VisitorAddedNotifier = nextDynamic(() => import('../../components/VisitorAddedNotifier'), { ssr: false })
 const FollowUpCalendar = nextDynamic(() => import('../../components/FollowUpCalendar'), {
   ssr: false,
   loading: () => <div className="skeleton-shimmer h-96 rounded-xl" />
@@ -3422,16 +3421,6 @@ function FollowUpsPageContent() {
 
       {/* Sales Management View — admin/owner only */}
       {viewMode === 'sales-mgmt' && canManageSales && <SalesMgmtPanel />}
-
-      {/* 👋 زوار جدد من آخر مرة فتح المتابعات — «افتح» بيدوّر عليه في القايمة
-          (والفلاتر بترجع «الكل» — وإلا «متابعاتي» مثلاً بتخفي الزائر الجديد اللي لسه مش متعيّن) */}
-      <VisitorAddedNotifier onOpen={(q) => {
-        setViewMode('list')
-        setSalesFilter('all'); setAssignedStaffFilter('all'); setSourceFilter('all')
-        setResultFilter('all'); setContactedFilter('all'); setContactMethodFilter('all'); setPriorityFilter('all')
-        setGenderFilter('all'); setSocialFilter([]); setDateFromFilter(''); setDateToFilter(''); setSearchId('')
-        setSearchTerm(q)
-      }} />
 
       {/* Visitors View — صفحة الزوار جوا المتابعات */}
       {viewMode === 'visitors' && hasPermission('canViewVisitors') && <VisitorsPanel />}

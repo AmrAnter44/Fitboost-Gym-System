@@ -11,6 +11,8 @@ import { LoadingScreen } from '../../../components/Spinner';
 import GateReport from '../../../components/gates/GateReport';
 import GateListenerSetup from '../../../components/gates/GateListenerSetup';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { useConfirm } from '../../../hooks/useConfirm';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const;
 
@@ -46,6 +48,8 @@ export default function GatesPage() {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string; detail?: string } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  //  بوب أب تأكيد جوّه الصفحة بدل confirm() — نوافذ المتصفح الأصلية بتعلّق الكتابة في Electron
+  const { confirm: askConfirm, isOpen: confirmOpen, options: confirmOptions, handleConfirm, handleCancel } = useConfirm();
 
   const [gatesEnabled, setGatesEnabled] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
@@ -161,7 +165,13 @@ export default function GatesPage() {
   };
 
   const remove = async (g: Gate) => {
-    if (!confirm(tr(`تشيل "${g.name}" من السيستم؟\n\nالمستخدمين المسجّلين على الجهاز نفسه مش هيتمسحوا.`, `Remove "${g.name}" from the system?\n\nUsers enrolled on the device itself will not be deleted.`))) return;
+    if (!(await askConfirm({
+      title: tr('شيل البوابة', 'Remove gate'),
+      message: tr(`تشيل "${g.name}" من السيستم؟ المستخدمين المسجّلين على الجهاز نفسه مش هيتمسحوا.`, `Remove "${g.name}" from the system? Users enrolled on the device itself will not be deleted.`),
+      confirmText: tr('شيل', 'Remove'),
+      cancelText: tr('إلغاء', 'Cancel'),
+      type: 'danger',
+    }))) return;
     setBusy(`del-${g.id}`);
     const { ok, data } = await call(`/api/gates/${g.id}`, { method: 'DELETE' });
     setBusy(null);
@@ -412,6 +422,7 @@ export default function GatesPage() {
         {/* ── التقرير ── */}
         <GateReport />
       </div>
+      <ConfirmDialog isOpen={confirmOpen} title={confirmOptions.title} message={confirmOptions.message} confirmText={confirmOptions.confirmText} cancelText={confirmOptions.cancelText} onConfirm={handleConfirm} onCancel={handleCancel} type={confirmOptions.type} />
     </div>
   );
 }

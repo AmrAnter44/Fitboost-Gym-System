@@ -159,7 +159,8 @@ export async function PUT(request: Request) {
         maxCheckIns: parseInt(maxCheckIns) || 0,
         ptCommission: parseFloat(ptCommission) || 0,
         icon: icon || '📅',
-        isActive: isActive !== undefined ? isActive : true,
+        //  فورم التعديل مابيبعتش الحالة — نسيبها زي ما هي (قبل كده الباقة المتوقفة كانت بترجع نشطة مع أي تعديل)
+        ...(isActive !== undefined ? { isActive: !!isActive } : {}),
         upgradeEligibilityDays: upgradeEligibilityDays ? parseInt(upgradeEligibilityDays) : null,
         upgradePoints: upgradePoints !== undefined ? parseInt(upgradePoints) || 0 : 0,
         allowedCheckInStart: validStart,
