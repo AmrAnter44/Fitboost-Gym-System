@@ -8,6 +8,7 @@ import { useSearch } from '../contexts/SearchContext'
 import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 import { LoadingScreen } from './Spinner'
 import { useToast } from '../contexts/ToastContext'
+import OpenGateButton from './gates/OpenGateButton'
 
 interface SearchResult {
   type: 'member' | 'pt'
@@ -1158,9 +1159,13 @@ export default function SearchModal() {
                         </button>
                       </div>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1.5">
-                       {t('search.pressEnter')}
-                    </p>
+                    {/* التلميح + 🚪 افتح البوابة تحت زرار البحث (مش بيظهر لو مفيش بوابات مفعّلة) */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 mt-1.5">
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                         {t('search.pressEnter')}
+                      </p>
+                      <OpenGateButton />
+                    </div>
                   </div>
                 </div>
               )}
@@ -1255,9 +1260,12 @@ export default function SearchModal() {
                       </div>
                     </div>
 
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1.5">
-                       {direction === 'rtl' ? 'هتلاقى نتائج تطابق الاسم أو رقم الهاتف للقيمة دي' : 'Searches both name and phone for this value'}
-                    </p>
+                    <div className="flex flex-wrap items-center justify-between gap-2 mt-1.5">
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                         {direction === 'rtl' ? 'هتلاقى نتائج تطابق الاسم أو رقم الهاتف للقيمة دي' : 'Searches both name and phone for this value'}
+                      </p>
+                      <OpenGateButton />
+                    </div>
                   </div>
                 </div>
               )}

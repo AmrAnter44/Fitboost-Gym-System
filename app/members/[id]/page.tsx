@@ -855,6 +855,31 @@ export default function MemberDetailPage() {
  setShowPointsHistory(true)
  }
 
+ //  ↩️ إلغاء عملية فريز (ريست): الأيام ترجع للرصيد وتاريخ الانتهاء يرجع زي ما كان — آخر فريز بس
+ const [cancelFreezeConfirmId, setCancelFreezeConfirmId] = useState<string | null>(null)
+ const [cancellingFreeze, setCancellingFreeze] = useState(false)
+ const cancelFreezeOperation = async (freezeRequestId: string) => {
+ if (!member) return
+ setCancellingFreeze(true)
+ try {
+ const response = await fetch('/api/members/freeze', {
+ method: 'DELETE',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ memberId: member.id, freezeRequestId }),
+ })
+ const result = await response.json()
+ if (!response.ok) throw new Error(result.error)
+ toast.success(result.message || (locale === 'ar' ? 'تم إلغاء الفريز' : 'Freeze cancelled'))
+ setCancelFreezeConfirmId(null)
+ fetchFreezeHistory()
+ fetchMember()
+ } catch (e: any) {
+ toast.error(e?.message || (locale === 'ar' ? 'فشل إلغاء الفريز' : 'Failed to cancel freeze'))
+ } finally {
+ setCancellingFreeze(false)
+ }
+ }
+
  const fetchFreezeHistory = async () => {
  setFreezeHistoryLoading(true)
  try {
@@ -2675,7 +2700,6 @@ export default function MemberDetailPage() {
  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-white">
  <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
  <p className="text-sm opacity-90">{t('memberDetails.status')}</p>
- <div className="flex items-center justify-between gap-2">
  <p className="text-lg font-bold">
  {member.isBanned
  ? `${locale === 'ar' ? 'محظور' : 'Banned'}`
@@ -2688,18 +2712,6 @@ export default function MemberDetailPage() {
  : `${t('memberDetails.expired')}`
  }
  </p>
- {/* 🧊 فك الفريز من كارت الحالة — نفس بوب أب التأكيد بتاع كارت أيام الفريز */}
- {member.isFrozen && !member.isBanned && (
- <button
- type="button"
- onClick={handleUnfreeze}
- disabled={loading}
- className="shrink-0 px-3 py-1 rounded-lg bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition-colors"
- >
- {locale === 'ar' ? 'فك' : 'Unfreeze'}
- </button>
- )}
- </div>
  </div>
  <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
  <p className="text-sm opacity-90">{t('common.startDate')}</p>
@@ -3175,7 +3187,7 @@ export default function MemberDetailPage() {
  const remaining = member.remainingFreezeDays ?? 0
  //  إجمالي الفريز من الباقة (الأصح). لو مفيش باقة، نرجع لمجموع سجل الفريز + المتبقي.
  const pkgFreeze = Number((member as any).offerBenefits?.freezeDays) || 0
- const historyUsed = freezeHistory.reduce((s: number, f: any) => s + (Number(f?.days) || 0), 0)
+ const historyUsed = freezeHistory.reduce((s: number, f: any) => s + (f?.status === 'cancelled' ? 0 : (Number(f?.days) || 0)), 0)
  const totalFreeze = pkgFreeze > 0 ? Math.max(pkgFreeze, remaining) : (historyUsed + remaining)
  const usedFreezeDays = Math.max(0, totalFreeze - remaining)
  return (
@@ -5362,15 +5374,22 @@ export default function MemberDetailPage() {
  ) : (
  <div className="space-y-3">
  {freezeHistory.map((entry: any) => {
+ //  ↩️ «إلغاء العملية» على آخر عملية فريز بس (السجل مترتب الأحدث الأول) —
+ //  لو آخر عملية اتلغت، الزرار مابينزلش على اللي قبلها
+ const isLatestApproved = entry.status === 'approved' && freezeHistory[0]?.id === entry.id
  const statusColor = entry.status === 'approved'
  ? 'bg-green-500 dark:bg-green-600'
  : entry.status === 'rejected'
  ? 'bg-red-500 dark:bg-red-600'
+ : entry.status === 'cancelled'
+ ? 'bg-gray-500 dark:bg-gray-600'
  : 'bg-amber-500 dark:bg-amber-600'
  const statusLabel = entry.status === 'approved'
  ? (locale === 'ar' ? 'مقبول' : 'Approved')
  : entry.status === 'rejected'
  ? (locale === 'ar' ? 'مرفوض' : 'Rejected')
+ : entry.status === 'cancelled'
+ ? (locale === 'ar' ? 'ملغي — الأيام رجعت' : 'Cancelled — days returned')
  : (locale === 'ar' ? 'قيد الانتظار' : 'Pending')
  return (
  <div
@@ -5407,6 +5426,31 @@ export default function MemberDetailPage() {
  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
  {new Date(entry.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
  </p>
+ {isLatestApproved && (
+ cancelFreezeConfirmId === entry.id ? (
+ <div className="mt-3 flex flex-wrap items-center gap-2 p-2 rounded-lg bg-white/70 dark:bg-gray-800/70 ring-1 ring-red-200 dark:ring-red-900/50">
+ <span className="text-xs font-semibold text-red-700 dark:text-red-300 flex-1 min-w-[180px]">
+ {locale === 'ar'
+ ? 'متأكد؟ الأيام هترجع لرصيد الفريز وتاريخ الانتهاء هيرجع زي ما كان قبل الفريز.'
+ : 'Sure? Days return to the freeze balance and the expiry goes back to what it was.'}
+ </span>
+ <button type="button" onClick={() => cancelFreezeOperation(entry.id)} disabled={cancellingFreeze}
+ className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 hover:bg-red-700 text-white disabled:opacity-50">
+ {cancellingFreeze ? '...' : (locale === 'ar' ? 'تأكيد الإلغاء' : 'Confirm')}
+ </button>
+ <button type="button" onClick={() => setCancelFreezeConfirmId(null)} disabled={cancellingFreeze}
+ className="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+ {locale === 'ar' ? 'تراجع' : 'Back'}
+ </button>
+ </div>
+ ) : (
+ <button type="button" onClick={() => setCancelFreezeConfirmId(entry.id)}
+ className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ring-1 ring-red-300 dark:ring-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
+ <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-3.5 h-3.5" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" /></svg>
+ {locale === 'ar' ? 'إلغاء العملية' : 'Undo freeze'}
+ </button>
+ )
+ )}
  </div>
  <div className="text-center shrink-0">
  <div className={`${entry.isBack ? 'bg-indigo-600 dark:bg-indigo-700' : 'bg-cyan-600 dark:bg-cyan-700'} text-white px-4 py-2 rounded-lg shadow-md`}>

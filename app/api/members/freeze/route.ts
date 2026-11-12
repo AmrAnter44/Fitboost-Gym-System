@@ -303,3 +303,101 @@ export async function PUT(request: Request) {
     }, { status: 500 })
   }
 }
+
+// DELETE - ↩️ إلغاء عملية فريز بالكامل (ريست): كأنها ما اتعملتش
+//  - الأيام اللي اتخصمت ترجع لرصيد الفريز
+//  - تاريخ الانتهاء يرجع زي ما كان قبل الفريز
+//  - لو العضو لسه مجمّد يتفك
+//  - طلب الفريز يتعلّم «ملغي» (بيفضل في السجل)
+//  آخر فريز بس — عشان الحسبة تفضل صح (أي فريز بعده أو تجديد بيبني على التاريخ ده).
+//  لو الفريز اتفك بدري قبل كده، الأيام اللي ما اتستخدمتش رجعت ساعتها — فبنرجّع الباقي بس.
+export async function DELETE(request: Request) {
+  try {
+    const user = await requireAnyPermission(request, ['canEditMembers', 'canCreateMembers'])
+    const { memberId, freezeRequestId } = await request.json()
+    if (!memberId || !freezeRequestId) {
+      return NextResponse.json({ error: 'بيانات غير كاملة' }, { status: 400 })
+    }
+
+    const member = await prisma.member.findUnique({ where: { id: memberId } })
+    if (!member) return NextResponse.json({ error: 'العضو غير موجود' }, { status: 404 })
+
+    const fr: any = await prisma.freezeRequest.findFirst({ where: { id: freezeRequestId, memberId } })
+    if (!fr || fr.status !== 'approved') {
+      return NextResponse.json({ error: 'الفريز ده مش موجود أو اتلغى قبل كده' }, { status: 400 })
+    }
+    //  آخر عملية فريز للعضو (أياً كانت حالتها) — لو آخر واحدة اتلغت، اللي قبلها مايتلغيش
+    const latest = await prisma.freezeRequest.findFirst({
+      where: { memberId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    })
+    if (latest?.id !== fr.id) {
+      return NextResponse.json({ error: 'تقدر تلغي آخر عملية فريز بس' }, { status: 400 })
+    }
+
+    //  الأيام اللي فعلاً اتخصمت: الفريز العادي اللي اتفك بدري رجّع الباقي وقتها
+    const DAY = 1000 * 60 * 60 * 24
+    const start = new Date(fr.startDate).getTime()
+    const end = new Date(fr.endDate).getTime()
+    let effectiveDays = Number(fr.days) || 0
+    if (!fr.isBack && end < start + effectiveDays * DAY) {
+      effectiveDays = Math.min(effectiveDays, Math.max(0, Math.ceil((end - start) / DAY)))
+    }
+
+    let newExpiry = member.expiryDate
+    if (member.expiryDate && effectiveDays > 0) {
+      const d = new Date(member.expiryDate)
+      d.setDate(d.getDate() - effectiveDays)
+      newExpiry = d
+    }
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const expMid = newExpiry ? new Date(newExpiry) : null
+    if (expMid) expMid.setHours(0, 0, 0, 0)
+
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.freezeRequest.update({ where: { id: fr.id }, data: { status: 'cancelled' } })
+      return tx.member.update({
+        where: { id: memberId },
+        data: {
+          expiryDate: newExpiry,
+          remainingFreezeDays: (member.remainingFreezeDays || 0) + effectiveDays,
+          isFrozen: false,
+          isActive: !expMid || expMid >= today,
+        },
+      })
+    })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'Member', resourceId: memberId,
+      details: {
+        operation: 'CancelFreeze', memberNumber: member.memberNumber, memberName: member.name,
+        freezeDays: fr.days, returnedDays: effectiveDays, isBack: !!fr.isBack,
+        oldExpiryDate: member.expiryDate ? new Date(member.expiryDate).toISOString().split('T')[0] : null,
+        newExpiryDate: newExpiry ? new Date(newExpiry).toISOString().split('T')[0] : null,
+      },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: `تم إلغاء الفريز — رجع ${effectiveDays} يوم لرصيد الفريز`,
+      member: {
+        expiryDate: updated.expiryDate,
+        remainingFreezeDays: updated.remainingFreezeDays,
+        isFrozen: updated.isFrozen,
+        returnedDays: effectiveDays,
+      },
+    })
+  } catch (error: any) {
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول أولاً' }, { status: 401 })
+    }
+    if (error.message?.includes('Forbidden')) {
+      return NextResponse.json({ error: 'ليس لديك صلاحية إلغاء الفريز' }, { status: 403 })
+    }
+    console.error('❌ خطأ في إلغاء الفريز:', error)
+    return NextResponse.json({ error: 'حدث خطأ أثناء إلغاء الفريز' }, { status: 500 })
+  }
+}

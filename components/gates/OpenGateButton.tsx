@@ -20,6 +20,8 @@ export default function OpenGateButton() {
   const [gates, setGates] = useState<AvailableGate[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  //  الفشل: الزرار نفسه بيبقى أحمر لثواني (من غير جملة) — والسبب في الـ tooltip
+  const [failed, setFailed] = useState<{ id: string; reason: string } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -36,10 +38,17 @@ export default function OpenGateButton() {
     return () => clearTimeout(t);
   }, [msg]);
 
+  useEffect(() => {
+    if (!failed) return;
+    const t = setTimeout(() => setFailed(null), 3500);
+    return () => clearTimeout(t);
+  }, [failed]);
+
   if (gates.length === 0) return null;
 
   const open = async (g: AvailableGate) => {
     setBusy(g.id);
+    setFailed(null);
     try {
       const res = await fetch(`/api/gates/${g.id}/door`, {
         method: 'POST',
@@ -48,11 +57,13 @@ export default function OpenGateButton() {
       });
       const data = await res.json().catch(() => ({}));
       const ok = res.ok && data.success !== false;
-      setMsg(ok
-        ? { ok: true, text: gates.length > 1 ? `${tr('اتفتحت', 'Opened')}: ${g.name}` : tr('البوابة اتفتحت', 'Gate opened') }
-        : { ok: false, text: data.error || tr('فتح البوابة فشل', 'Failed to open the gate') });
+      if (ok) {
+        setMsg({ ok: true, text: gates.length > 1 ? `${tr('اتفتحت', 'Opened')}: ${g.name}` : tr('البوابة اتفتحت', 'Gate opened') });
+      } else {
+        setFailed({ id: g.id, reason: data.error || tr('فتح البوابة فشل', 'Failed to open the gate') });
+      }
     } catch {
-      setMsg({ ok: false, text: tr('مفيش اتصال بالسيرفر', 'No connection to the server') });
+      setFailed({ id: g.id, reason: tr('مفيش اتصال بالسيرفر', 'No connection to the server') });
     } finally {
       setBusy(null);
     }
@@ -66,7 +77,9 @@ export default function OpenGateButton() {
           type="button"
           onClick={() => open(g)}
           disabled={busy !== null}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white shadow-sm disabled:opacity-50 transition"
+          title={failed?.id === g.id ? failed.reason : undefined}
+          className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold active:scale-[0.98] text-white shadow-sm disabled:opacity-50 transition ${
+            failed?.id === g.id ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-emerald-600 hover:bg-emerald-700'}`}
         >
           <svg className="w-5 h-5" {...stroke}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 11V7a4 4 0 017.83-1.17M5 11h14v10H5z" />

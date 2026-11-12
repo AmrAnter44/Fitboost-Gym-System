@@ -1586,17 +1586,19 @@ export default function GroupClassPage() {
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('settingsPage.groupClassSchedules.instructor')}</label>
-                    {/* 🧑‍🏫 كابتن من الجيم / كابتن من برا (بيتعمله ID للحضور والانصراف) */}
-                    <div className="inline-flex rounded-lg ring-1 ring-gray-300 dark:ring-gray-600 p-0.5 mb-2">
-                      {([['staff', tr('كابتن من الجيم', 'Gym coach')], ['external', tr('كابتن من برا', 'External coach')]] as const).map(([mode, label]) => (
-                        <button key={mode} type="button" onClick={() => setInstructorMode(mode)}
-                          className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${instructorMode === mode
-                            ? 'bg-primary-500 text-primary-contrast'
-                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
-                          {label}
-                        </button>
-                      ))}
+                    {/* 🧑‍🏫 العنوان + اختيار كابتن من الجيم / من برا في سطر واحد */}
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <label className="text-sm font-medium text-gray-600 dark:text-gray-300">{t('settingsPage.groupClassSchedules.instructor')}</label>
+                      <div className="inline-flex shrink-0 rounded-lg bg-gray-100 dark:bg-gray-900/60 p-0.5" role="tablist">
+                        {([['staff', tr('من الجيم', 'Gym')], ['external', tr('من برا', 'External')]] as const).map(([mode, label]) => (
+                          <button key={mode} type="button" role="tab" aria-selected={instructorMode === mode} onClick={() => setInstructorMode(mode)}
+                            className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${instructorMode === mode
+                              ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'}`}>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     {instructorMode === 'staff' ? (
                       instructors.length > 0 ? (
