@@ -8,6 +8,7 @@ import { useServiceSettings } from '@/contexts/ServiceSettingsContext'
 import { LoadingScreen } from '@/components/Spinner'
 import { useGateEvents } from '@/hooks/useGateEvents'
 import GateDeniedModal from '@/components/gates/GateDeniedModal'
+import OpenGateButton from '@/components/gates/OpenGateButton'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -649,11 +650,12 @@ export default function SearchPage() {
 
   return (
     <div className="container mx-auto p-2 sm:p-3 md:p-4 min-h-screen" dir={direction}>
-      <div className="mb-2 sm:mb-3">
+      <div className="mb-2 sm:mb-3 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
           <svg className="w-7 h-7 text-primary-500" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           <span>{t('search.title')}</span>
         </h1>
+        <OpenGateButton />
       </div>
 
       {searchMode === 'id' && (
