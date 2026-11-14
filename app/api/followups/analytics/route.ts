@@ -23,15 +23,26 @@ export async function GET(request: Request) {
     const staffId = searchParams.get('staffId')
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
+    //  📍 فلتر المصدر: expired | expiring | invitations | dayuse | others (من غير = الكل)
+    const source = searchParams.get('source')
 
     // Build where clause
     const where: any = {
       archived: false // Only count non-archived followups
     }
 
-    if (staffId) {
+    if (staffId === '__unassigned__') {
+      where.assignedTo = null
+    } else if (staffId) {
       where.assignedTo = staffId
     }
+
+    const SPECIAL_SOURCES = ['expired-member', 'expiring-member', 'member-invitation', 'invitation']
+    if (source === 'expired') where.visitor = { source: 'expired-member' }
+    else if (source === 'expiring') where.visitor = { source: 'expiring-member' }
+    else if (source === 'invitations') where.visitor = { source: 'member-invitation' }
+    else if (source === 'dayuse') where.visitor = { source: 'invitation' }
+    else if (source === 'others') where.visitor = { source: { notIn: SPECIAL_SOURCES } }
 
     if (startDate && endDate) {
       where.createdAt = {
@@ -162,7 +173,14 @@ export async function GET(request: Request) {
       return fu.stage === 'converted' && new Date(fu.updatedAt) >= startOfMonth
     }).length
 
+    //  👥 السيلز للفلتر (النشطين اللي وظيفتهم سيلز)
+    const isSales = (p: string | null) => String(p || '').split(',').map(x => x.trim().toLowerCase()).some(x => x === 'sales' || x === 'سيلز')
+    const salesStaff = (await prisma.staff.findMany({ where: { isActive: true }, select: { id: true, name: true, position: true }, orderBy: { name: 'asc' } }))
+      .filter(s => isSales(s.position))
+      .map(s => ({ id: s.id, name: s.name }))
+
     return NextResponse.json({
+      salesStaff,
       total,
       converted,
       convertedThisMonth,
@@ -180,7 +198,8 @@ export async function GET(request: Request) {
       metadata: {
         startDate: startDate || null,
         endDate: endDate || null,
-        filteredByStaff: staffId || null
+        filteredByStaff: staffId || null,
+        filteredBySource: source || null
       }
     })
 

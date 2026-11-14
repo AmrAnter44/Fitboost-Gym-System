@@ -493,7 +493,40 @@ export async function GET(request: Request) {
 
     newAssignments.sort((a, b) => a.daysAgo - b.daysAgo)
 
-    return NextResponse.json({ renewals, expiringSoon, halfTimeWithBalance, newAssignments })
+    // ============================================================
+    // 5. 🎂 أعياد ميلاد أعضاءه (النهاردة + الـ 7 أيام الجاية)
+    //    أعضاءه = اللي هو الكوتش المسؤول عنهم (coachId) + عملاء الـ PT بتوعه اللي لسه عندهم حصص
+    // ============================================================
+    const birthdays: Array<{ memberId: string; memberName: string; phone: string | null; daysUntil: number; age: number | null }> = []
+    try {
+      const tail10 = (p: unknown) => String(p || '').replace(/[^0-9]/g, '').slice(-10)
+      const ptClients = await prisma.pT.findMany({
+        where: { AND: [ptScope, { sessionsRemaining: { gt: 0 } }] },
+        select: { phone: true },
+      })
+      const ptTails = new Set(ptClients.map(p => tail10(p.phone)).filter(t => t.length === 10))
+      const withBirthday = await prisma.member.findMany({
+        where: { birthDate: { not: null }, isBanned: false },
+        select: { id: true, name: true, phone: true, birthDate: true, coachId: true },
+      })
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      for (const m of withBirthday) {
+        const mine = (coachStaff && m.coachId === coachStaff.id) || ptTails.has(tail10(m.phone))
+        if (!mine || !m.birthDate) continue
+        const b = new Date(m.birthDate)
+        let next = new Date(today.getFullYear(), b.getMonth(), b.getDate())
+        if (next < today) next = new Date(today.getFullYear() + 1, b.getMonth(), b.getDate())
+        const daysUntil = Math.round((next.getTime() - today.getTime()) / DAY_MS)
+        if (daysUntil > WINDOW_DAYS) continue
+        const age = b.getFullYear() > 1900 ? next.getFullYear() - b.getFullYear() : null
+        birthdays.push({ memberId: m.id, memberName: m.name, phone: m.phone || null, daysUntil, age: age && age > 0 && age < 120 ? age : null })
+      }
+      birthdays.sort((a, b) => a.daysUntil - b.daysUntil)
+    } catch (e) {
+      console.error('coach/notifications birthdays error:', e)
+    }
+
+    return NextResponse.json({ renewals, expiringSoon, halfTimeWithBalance, newAssignments, birthdays })
   } catch (error) {
     console.error('coach/notifications error:', error)
     return NextResponse.json(

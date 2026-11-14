@@ -1,6 +1,7 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts'
 import { useLanguage } from '../../contexts/LanguageContext'
 
@@ -22,17 +23,35 @@ const IconUser = (p: { className?: string }) => (
   </svg>
 )
 
-export default function SalesDashboard() {
-  const { t, direction } = useLanguage()
+//  📍 فلاتر المصدر — نفس تقسيمة أزرار المصادر في قايمة المتابعات
+const SOURCE_FILTERS: Array<{ key: string; ar: string; en: string; on: string }> = [
+  { key: 'all', ar: 'كل المصادر', en: 'All sources', on: 'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-800' },
+  { key: 'expired', ar: 'أعضاء منتهيين', en: 'Expired members', on: 'bg-red-600 text-white' },
+  { key: 'expiring', ar: 'قربوا يخلصوا', en: 'Expiring soon', on: 'bg-amber-500 text-white' },
+  { key: 'invitations', ar: 'دعوات أعضاء', en: 'Member invitations', on: 'bg-cyan-600 text-white' },
+  { key: 'dayuse', ar: 'Day Use', en: 'Day Use', on: 'bg-pink-600 text-white' },
+  { key: 'others', ar: 'باقي المصادر', en: 'Other sources', on: 'bg-primary-600 text-primary-contrast' },
+]
 
-  const { data: analytics, isLoading } = useQuery({
-    queryKey: ['followup-analytics'],
+export default function SalesDashboard() {
+  const { t, direction, locale } = useLanguage()
+  const ar = locale === 'ar'
+  const [staffId, setStaffId] = useState('')
+  const [source, setSource] = useState('all')
+
+  const { data: analytics, isLoading, isFetching } = useQuery({
+    queryKey: ['followup-analytics', staffId, source],
     queryFn: async () => {
-      const res = await fetch('/api/followups/analytics')
+      const qs = new URLSearchParams()
+      if (staffId) qs.set('staffId', staffId)
+      if (source !== 'all') qs.set('source', source)
+      const res = await fetch(`/api/followups/analytics${qs.toString() ? `?${qs}` : ''}`)
       if (!res.ok) throw new Error('Failed to fetch analytics')
       return res.json()
     },
-    staleTime: 2 * 60 * 1000
+    staleTime: 2 * 60 * 1000,
+    //  الأرقام القديمة تفضل ظاهرة وهو بيحمّل الفلتر الجديد (من غير ما الشاشة تفضى)
+    placeholderData: keepPreviousData,
   })
 
   if (isLoading) {
@@ -62,6 +81,39 @@ export default function SalesDashboard() {
 
   return (
     <div className="space-y-6" dir={direction}>
+      {/* 🔎 الفلاتر: السيلز + المصدر */}
+      <div className={`${cardCls} !p-4 flex flex-col gap-3`}>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="text-sm font-bold text-gray-700 dark:text-gray-300">{ar ? 'السيلز' : 'Sales'}</label>
+          <select
+            value={staffId}
+            onChange={e => setStaffId(e.target.value)}
+            className="min-w-[200px] px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
+            <option value="">{ar ? 'كل السيلز' : 'All sales'}</option>
+            <option value="__unassigned__">{ar ? 'بدون سيلز' : 'Unassigned'}</option>
+            {(analytics.salesStaff || []).map((s: { id: string; name: string }) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+          {isFetching && <span className="text-xs text-gray-400" aria-live="polite">{ar ? 'بيحدّث...' : 'Updating...'}</span>}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {SOURCE_FILTERS.map(f => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setSource(f.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${source === f.key
+                ? f.on
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+            >
+              {ar ? f.ar : f.en}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Primary stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className={cardCls}>

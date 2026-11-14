@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react'
 import nextDynamic from 'next/dynamic'
+import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import ExcelJS from 'exceljs'
 import { useLanguage } from '../../contexts/LanguageContext'
@@ -388,6 +389,7 @@ function RevenueTab({ dateFrom, dateTo, paymentFilter, setPaymentFilter, typeFil
 // =========== FOLLOWUPS TAB ===========
 function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: any) {
   const toast = useToast()
+  const router = useRouter()
   const { data: followups = [], isLoading } = useQuery({
     queryKey: ['followups-report', dateFrom, dateTo],
     queryFn: () => fetchFollowUpsByDateRange(dateFrom, dateTo),
@@ -403,7 +405,44 @@ function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: an
     return `${datePart} · ${timePart}`
   }
 
-  const filtered = useMemo(() => {
+  //  🔎 فلاتر: السيلز + المصدر (منتهيين / قربوا يخلصوا / دعوات / Day Use / زوار / باقي المصادر)
+  const ar = locale === 'ar'
+  const [salesFilter, setSalesFilter] = useState('')
+  const [sourceFilter, setSourceFilter] = useState('all')
+  const SPECIAL_SOURCES = ['expired-member', 'expiring-member', 'member-invitation', 'invitation']
+  const SOURCE_PILLS: Array<{ key: string; ar: string; en: string; on: string }> = [
+    { key: 'all', ar: 'كل المصادر', en: 'All sources', on: 'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-800' },
+    { key: 'expired-member', ar: 'أعضاء منتهيين', en: 'Expired members', on: 'bg-red-600 text-white' },
+    { key: 'expiring-member', ar: 'قربوا يخلصوا', en: 'Expiring soon', on: 'bg-amber-500 text-white' },
+    { key: 'member-invitation', ar: 'دعوات أعضاء', en: 'Member invitations', on: 'bg-cyan-600 text-white' },
+    { key: 'invitation', ar: 'Day Use', en: 'Day Use', on: 'bg-pink-600 text-white' },
+    { key: 'visitors', ar: 'زوار', en: 'Visitors', on: 'bg-emerald-600 text-white' },
+    { key: 'others', ar: 'باقي المصادر', en: 'Other sources', on: 'bg-primary-600 text-primary-contrast' },
+  ]
+
+  //  💰 «باقي X» جنب الاسم: الشخص ده عضو عليه باقي دلوقتي (المطابقة بآخر 10 أرقام من التليفون)
+  const { data: members = [] } = useQuery({
+    queryKey: ['followups-report-members'],
+    queryFn: () => fetchMembersData(),
+    staleTime: 60 * 1000,
+  })
+  const tail10 = (p: any) => String(p || '').replace(/\D/g, '').slice(-10)
+  const remainingByPhone = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const mem of members as any[]) {
+      const rem = Number(mem.remainingAmount) || 0
+      if (rem <= 0) continue
+      for (const ph of [mem.phone, mem.backupPhone]) {
+        const t = tail10(ph)
+        if (t.length === 10) m.set(t, (m.get(t) || 0) + rem)
+      }
+    }
+    return m
+  }, [members])
+  const remainingOf = (f: any) => remainingByPhone.get(tail10(f.visitor?.phone)) || 0
+
+  //  المتابعات في الفترة (قبل فلاتر السيلز/المصدر) — منها قايمة السيلز وعدّادات المصادر
+  const inRange = useMemo(() => {
     const from = new Date(dateFrom); from.setHours(0, 0, 0, 0)
     const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
     return followups.filter((f: any) => {
@@ -411,6 +450,35 @@ function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: an
       return d >= from && d <= to
     })
   }, [followups, dateFrom, dateTo])
+
+  const salesOptions = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const f of inRange as any[]) if (f.assignedStaff?.id) m.set(f.assignedStaff.id, f.assignedStaff.name)
+    return Array.from(m, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, 'ar'))
+  }, [inRange])
+
+  const matchesSource = (f: any, key: string) => {
+    const src = f.visitor?.source || ''
+    if (key === 'all') return true
+    if (key === 'others') return !SPECIAL_SOURCES.includes(src)
+    //  زوار حقيقيين (walk-in / سوشيال / إحالة ...) — من غير متابعات الأعضاء النشطين ('member')
+    if (key === 'visitors') return !!src && !SPECIAL_SOURCES.includes(src) && src !== 'member' && src !== 'other'
+    return src === key
+  }
+  const matchesSales = (f: any) =>
+    !salesFilter ? true : salesFilter === '__unassigned__' ? !f.assignedStaff?.id : f.assignedStaff?.id === salesFilter
+
+  const filtered = useMemo(
+    () => (inRange as any[]).filter(f => matchesSales(f) && matchesSource(f, sourceFilter)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [inRange, salesFilter, sourceFilter, remainingByPhone]
+  )
+  //  عدد كل مصدر (بعد فلتر السيلز) — يظهر جنب الزرار
+  const sourceCounts = useMemo(() => {
+    const bySales = (inRange as any[]).filter(matchesSales)
+    return Object.fromEntries(SOURCE_PILLS.map(p => [p.key, bySales.filter(f => matchesSource(f, p.key)).length]))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inRange, salesFilter, remainingByPhone])
 
   const exportExcel = async () => {
     try {
@@ -440,11 +508,40 @@ function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: an
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex flex-wrap justify-between items-end gap-3 mb-4">
+        {/*  فلتر السيلز */}
+        <div className="min-w-[200px]">
+          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{ar ? 'السيلز' : 'Sales'}</label>
+          <select
+            value={salesFilter}
+            onChange={(e) => setSalesFilter(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+          >
+            <option value="">{ar ? 'كل السيلز' : 'All sales'}</option>
+            <option value="__unassigned__">{ar ? 'بدون سيلز' : 'Unassigned'}</option>
+            {salesOptions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
         <button onClick={exportExcel} type="button" className={exportBtnCls}>
           <IconDownload className="w-4 h-4" />
           <span>{t('reports.exportExcel' as any)}</span>
         </button>
+      </div>
+
+      {/*  فلتر المصدر */}
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {SOURCE_PILLS.map(p => (
+          <button
+            key={p.key}
+            type="button"
+            onClick={() => setSourceFilter(p.key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${sourceFilter === p.key
+              ? p.on
+              : 'bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+          >
+            {ar ? p.ar : p.en} ({sourceCounts[p.key] ?? 0})
+          </button>
+        ))}
       </div>
 
       <SummaryCard Icon={IconNote} label={t('reports.count' as any)} value={filtered.length} />
@@ -461,8 +558,26 @@ function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: an
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
               {filtered.map((f: any, i: number) => (
-                <tr key={f.id || i} className={tableTrCls}>
-                  <td className={`${tableTdCls} font-bold text-gray-900 dark:text-gray-100`}>{f.visitor?.name || '-'}</td>
+                //  📜 الضغط على الصف → المتابعات على الشخص ده + سجل متابعاته (الكومنتات والتفاصيل)
+                <tr
+                  key={f.id || i}
+                  onClick={() => {
+                    if (!f.visitor?.id) return
+                    const qs = new URLSearchParams({ view: 'list', history: f.visitor.id })
+                    if (f.visitor.phone) qs.set('search', f.visitor.phone)
+                    router.push(`/followups?${qs}`)
+                  }}
+                  title={ar ? 'افتح سجل المتابعات' : 'Open follow-up history'}
+                  className={`${tableTrCls} cursor-pointer hover:bg-primary-50/60 dark:hover:bg-primary-900/20`}
+                >
+                  <td className={`${tableTdCls} font-bold text-gray-900 dark:text-gray-100`}>
+                    {f.visitor?.name || '-'}
+                    {remainingOf(f) > 0 && (
+                      <span className="ms-2 inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 whitespace-nowrap">
+                        {ar ? 'باقي' : 'Due'} {Math.round(remainingOf(f)).toLocaleString(ar ? 'ar-EG' : 'en-US')}
+                      </span>
+                    )}
+                  </td>
                   <td className={`${tableTdCls} font-mono`}>{f.visitor?.phone || '-'}</td>
                   <td className={tableTdCls}>{f.visitor?.source || '-'}</td>
                   <td className={tableTdCls}>{f.assignedStaff?.name || '-'}</td>

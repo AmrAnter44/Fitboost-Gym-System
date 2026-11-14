@@ -151,6 +151,8 @@ export default function CoachDashboard() {
     expiringSoon: ExpiringNotification[]
     halfTimeWithBalance: HalfTimeNotification[]
     newAssignments: NewAssignmentNotification[]
+    //  🎂 أعياد ميلاد أعضاءه (النهاردة + الـ 7 أيام الجاية)
+    birthdays?: Array<{ memberId: string; memberName: string; phone: string | null; daysUntil: number; age: number | null }>
   } | null>(null)
   //  Target الشهري للكوتش + التقدّم
   const [targetInfo, setTargetInfo] = useState<{
@@ -677,7 +679,8 @@ export default function CoachDashboard() {
           coachNotifications.renewals.length > 0 ||
           coachNotifications.expiringSoon.length > 0 ||
           coachNotifications.halfTimeWithBalance.length > 0 ||
-          coachNotifications.newAssignments.length > 0
+          coachNotifications.newAssignments.length > 0 ||
+          (coachNotifications.birthdays?.length ?? 0) > 0
         ) && (
           <>
           <div className="flex justify-between items-center mb-3">
@@ -692,6 +695,49 @@ export default function CoachDashboard() {
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {/* 🎂 أعياد ميلاد أعضاءه */}
+            {(coachNotifications.birthdays?.length ?? 0) > 0 && (
+              <div className="bg-pink-50 dark:bg-pink-900/20 ring-1 ring-pink-200 dark:ring-pink-900/50 rounded-xl p-4 shadow-sm">
+                <h3 className="font-bold text-pink-800 dark:text-pink-200 mb-3 flex items-center gap-2">
+                  <svg {...stroke} className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.871c1.355 0 2.697.056 4.024.166C17.155 8.51 18 9.473 18 10.608v2.513M15 8.25v-1.5m-6 1.5v-1.5m12 9.75-1.5.75a3.354 3.354 0 0 1-3 0 3.354 3.354 0 0 0-3 0 3.354 3.354 0 0 1-3 0 3.354 3.354 0 0 0-3 0 3.354 3.354 0 0 1-3 0L3 16.5m15-3.379a48.474 48.474 0 0 0-6-.371c-2.032 0-4.034.126-6 .371m12 0c.39.049.777.102 1.163.16 1.07.16 1.837 1.094 1.837 2.175v5.169c0 .621-.504 1.125-1.125 1.125H4.125A1.125 1.125 0 0 1 3 20.625v-5.17c0-1.08.768-2.014 1.837-2.174A47.78 47.78 0 0 1 6 13.12M12.265 3.11a.375.375 0 1 1-.53 0L12 2.845l.265.265Zm-3 0a.375.375 0 1 1-.53 0L9 2.845l.265.265Zm6 0a.375.375 0 1 1-.53 0L15 2.845l.265.265Z" />
+                  </svg>
+                  <span>{locale === 'ar' ? 'أعياد ميلاد أعضائك' : 'Member birthdays'} ({coachNotifications.birthdays!.length})</span>
+                </h3>
+                <ul className="text-sm space-y-2 text-gray-800 dark:text-gray-200">
+                  {coachNotifications.birthdays!.slice(0, 5).map((b) => (
+                    <li key={b.memberId} className="bg-white dark:bg-gray-800 rounded-lg p-2 flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="font-medium">{b.memberName}</span>
+                        {b.age && <span className="text-xs text-gray-500 dark:text-gray-400 ms-1">({locale === 'ar' ? `${b.age} سنة` : `turns ${b.age}`})</span>}
+                        <div className={`text-xs font-bold ${b.daysUntil === 0 ? 'text-pink-600 dark:text-pink-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          {b.daysUntil === 0
+                            ? (locale === 'ar' ? '🎉 النهاردة' : '🎉 Today')
+                            : b.daysUntil === 1
+                              ? (locale === 'ar' ? 'بكره' : 'Tomorrow')
+                              : (locale === 'ar' ? `بعد ${b.daysUntil} أيام` : `In ${b.daysUntil} days`)}
+                        </div>
+                      </div>
+                      {b.daysUntil === 0 && b.phone && (
+                        <a
+                          href={`https://wa.me/${String(b.phone).replace(/[^0-9]/g, '').replace(/^0/, '20')}?text=${encodeURIComponent(locale === 'ar' ? `كل سنة وانت طيب يا ${b.memberName.split(' ')[0]} 🎉🎂` : `Happy birthday ${b.memberName.split(' ')[0]} 🎉🎂`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 px-2 py-1 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-bold"
+                        >
+                          {locale === 'ar' ? 'هنّيه' : 'Wish'}
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                  {coachNotifications.birthdays!.length > 5 && (
+                    <li className="text-xs text-gray-500 dark:text-gray-400 italic">
+                      +{coachNotifications.birthdays!.length - 5} {locale === 'ar' ? 'تاني' : 'more'}
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
             {coachNotifications.renewals.length > 0 && (
               <div className="bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded-xl p-4 shadow-sm">
                 <h3 className="font-bold text-green-800 dark:text-green-200 mb-3 flex items-center gap-2">

@@ -35,6 +35,8 @@ interface FollowUpFormProps {
   dayUseRecords: any[]
   invitations: any[]
   initialVisitorId?: string
+  //  بيانات احتياطية (مثلاً من الكاليندر) لو الشخص مش موجود في القوايم المحمّلة
+  initialVisitorInfo?: { name: string; phone: string; source?: string } | null
   initialDate?: string
   onSubmit: (formData: {
     visitorId: string
@@ -58,6 +60,7 @@ export default function FollowUpForm({
   dayUseRecords,
   invitations,
   initialVisitorId = '',
+  initialVisitorInfo = null,
   initialDate = '',
   onSubmit,
   onClose
@@ -128,6 +131,16 @@ export default function FollowUpForm({
     // البحث في Invitations
     const invitation = invitations.find(inv => `invitation-${inv.id}` === formData.visitorId)
     if (invitation) return { name: invitation.guestName, phone: invitation.guestPhone, type: t('followups.form.types.invitation') }
+
+    //  احتياطي: البيانات جاية مع المتابعة نفسها (الكاليندر) — مثلاً الزائر مش في القايمة المحمّلة للحساب ده
+    if (initialVisitorInfo && formData.visitorId === initialVisitorId) {
+      const src = initialVisitorInfo.source
+      const type = src === 'expired-member' ? t('followups.form.types.expiredMember')
+        : src === 'expiring-member' ? t('followups.form.types.expiringMember')
+        : src === 'member-invitation' ? t('followups.form.types.invitation')
+        : t('followups.form.types.visitor')
+      return { name: initialVisitorInfo.name, phone: initialVisitorInfo.phone, type }
+    }
 
     return null
   }

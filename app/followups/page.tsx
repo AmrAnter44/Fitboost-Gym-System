@@ -138,6 +138,7 @@ function FollowUpsPageContent() {
   const [selectedVisitorForHistory, setSelectedVisitorForHistory] = useState<Visitor | null>(null)
   const [selectedVisitorId, setSelectedVisitorId] = useState<string>('')
   const [calendarInitialDate, setCalendarInitialDate] = useState<string>('')
+  const [selectedVisitorInfo, setSelectedVisitorInfo] = useState<{ name: string; phone: string; source?: string } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [selectedVisitorForTemplate, setSelectedVisitorForTemplate] = useState<Visitor | null>(null)
@@ -476,6 +477,7 @@ function FollowUpsPageContent() {
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
+  const [pendingHistoryVisitorId, setPendingHistoryVisitorId] = useState<string | null>(null)
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   //  بحث برقم العضو منفصل — يطابق رقم عضوية العضو (للأعضاء المنتهيين/القرب ينتهوا)
   const [searchId, setSearchId] = useState('')
@@ -906,6 +908,11 @@ function FollowUpsPageContent() {
         visitorData = { name: invitation.guestName, phone: invitation.guestPhone, source: 'member-invitation' }
       }
 
+      //  احتياطي: البيانات اللي اتفتح بيها الفورم (من الكارت/الكاليندر)
+      if (!visitorData && selectedVisitorInfo && formData.visitorId === selectedVisitorId) {
+        visitorData = { name: selectedVisitorInfo.name, phone: selectedVisitorInfo.phone, source: selectedVisitorInfo.source || 'other' }
+      }
+
       const response = await fetch('/api/visitors/followups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -922,6 +929,7 @@ function FollowUpsPageContent() {
         await queryClient.invalidateQueries({ queryKey: ['invitations-followups'] })
         setShowForm(false)
         setSelectedVisitorId('')
+        setSelectedVisitorInfo(null)
       } else {
         const data = await response.json()
         toast.error(data.error || (locale === 'ar' ? 'فشل إضافة المتابعة' : 'Failed to add follow-up'))
@@ -932,10 +940,12 @@ function FollowUpsPageContent() {
     } finally {
       setSubmitting(false)
     }
-  }, [visitors, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, queryClient, toast, locale])
+  }, [visitors, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, selectedVisitorInfo, selectedVisitorId, queryClient, toast, locale])
 
   const openQuickFollowUp = useCallback((visitor: Visitor) => {
     setSelectedVisitorId(visitor.id)
+    //  بيانات احتياطية: لو الزائر مش في القايمة المحمّلة (مثلاً زائر اتمسح قبل كده ورقمه اتربط بمتابعة عضو منتهي)
+    setSelectedVisitorInfo(visitor?.name && visitor?.phone ? { name: visitor.name, phone: visitor.phone, source: (visitor as any).source } : null)
     setShowForm(true)
     // لا نحتاج scroll - هيظهر كـ modal
   }, [])
@@ -1222,12 +1232,25 @@ function FollowUpsPageContent() {
     }
     //  🔎 جاي من «الرقم ده مسجل كزائر» → افتح القايمة وابحث بالرقم عشان الزائر يبان قدامك على طول
     const q = searchParams.get('search')
+    //  📜 جاي من تقرير المتابعات (?history=visitorId) → نفتح سجل متابعات الشخص لما القايمة تحمّل
+    const h = searchParams.get('history')
+    if (h) setPendingHistoryVisitorId(h)
     if (q) {
       setViewMode('list')
       setSearchTerm(q)
       router.replace('/followups', { scroll: false })
     }
   }, [searchParams, router])
+
+  //  📜 سجل متابعات شخص معيّن (جاي من تقرير المتابعات) — بيتفتح أول ما المتابعات تحمّل
+  useEffect(() => {
+    if (!pendingHistoryVisitorId || !allFollowUps || allFollowUps.length === 0) return
+    const match = allFollowUps.find(fu => fu.visitor?.id === pendingHistoryVisitorId)
+    if (match) {
+      openHistoryModal(match.visitor as any)
+      setPendingHistoryVisitorId(null)
+    }
+  }, [pendingHistoryVisitorId, allFollowUps, openHistoryModal])
 
   //  Deep-link من الـ Dashboard smart search — يفتح modal الزائر فور التحميل
   const [hasOpenedFromUrl, setHasOpenedFromUrl] = useState(false)
@@ -2394,11 +2417,13 @@ function FollowUpsPageContent() {
           invitations={sortedInvitations}
           initialVisitorId={selectedVisitorId}
           initialDate={calendarInitialDate}
+          initialVisitorInfo={selectedVisitorInfo}
           onSubmit={handleSubmit}
           onClose={() => {
             setShowForm(false)
             setSelectedVisitorId('')
             setCalendarInitialDate('')
+            setSelectedVisitorInfo(null)
           }}
         />
       )}
@@ -3409,10 +3434,12 @@ function FollowUpsPageContent() {
           followUps={filteredFollowUps}
           onOpenFollowUp={(fu) => {
             setSelectedVisitorId(fu.visitor?.id || '')
+            setSelectedVisitorInfo(fu.visitor ? { name: fu.visitor.name, phone: fu.visitor.phone, source: fu.visitor.source } : null)
             setShowForm(true)
           }}
           onAddFollowUp={(date) => {
             setCalendarInitialDate(date)
+            setSelectedVisitorInfo(null)
             setSelectedVisitorId('')
             setShowForm(true)
           }}

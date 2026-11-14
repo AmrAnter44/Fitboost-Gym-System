@@ -6,9 +6,9 @@ import { useState, useRef, useEffect } from 'react'
 const PLATFORMS: { value: string; ar: string; en: string; dot: string }[] = [
   { value: 'facebook',        ar: 'فيسبوك',          en: 'Facebook',        dot: '#1877F2' },
   { value: 'instagram',       ar: 'انستجرام',        en: 'Instagram',       dot: '#E4405F' },
-  { value: 'tiktok',          ar: 'تيك توك',         en: 'TikTok',          dot: '#111111' },
+  { value: 'tiktok',          ar: 'تيك توك',         en: 'TikTok',          dot: '#25F4EE' },
   { value: 'chatgpt',         ar: 'ChatGPT',         en: 'ChatGPT',         dot: '#10A37F' },
-  { value: 'google_maps',     ar: 'جوجل ماب / Google Maps', en: 'Google Maps', dot: '#34A853' },
+  { value: 'google_maps',     ar: 'جوجل ماب',        en: 'Google Maps', dot: '#34A853' },
   { value: 'walk-in',         ar: 'زيارة مباشرة',    en: 'Walk In',         dot: '#16A34A' },
   { value: 'call-in',         ar: 'اتصال',           en: 'Call In',         dot: '#0EA5E9' },
   { value: 'friend_referral', ar: 'إحالة من صديق',   en: 'Friend Referral', dot: '#F59E0B' },
@@ -95,7 +95,7 @@ export default function SocialMediaFilter({ selected, onChange, locale = 'ar', f
       </button>
 
       {open && (
-        <div className={`absolute z-50 mt-2 rounded-xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-200 dark:ring-gray-700 p-2 animate-modal-in end-0 ${fullWidth ? 'w-full min-w-[13rem]' : 'w-56'}`}>
+        <div className={`absolute z-50 mt-2 rounded-xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-200 dark:ring-gray-700 p-2 animate-modal-in start-0 ${fullWidth ? 'w-full min-w-[14rem]' : 'w-60'}`}>
           <div className="flex items-center justify-between px-2 py-1.5">
             <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{ar ? 'فلتر بالمصدر' : 'Filter by source'}</span>
             {count > 0 && (
@@ -104,7 +104,7 @@ export default function SocialMediaFilter({ selected, onChange, locale = 'ar', f
               </button>
             )}
           </div>
-          <div className="space-y-0.5 max-h-64 overflow-y-auto overscroll-contain">
+          <div className="space-y-0.5 max-h-[70vh] overflow-y-auto overscroll-contain scrollbar-thin">
             {PLATFORMS.map(p => {
               const on = selected.includes(p.value)
               return (
@@ -124,7 +124,7 @@ export default function SocialMediaFilter({ selected, onChange, locale = 'ar', f
                     )}
                   </span>
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: p.dot }} />
-                  <span className="flex-1 text-start">{ar ? p.ar : p.en}</span>
+                  <span className="flex-1 text-start whitespace-nowrap">{ar ? p.ar : p.en}</span>
                 </button>
               )
             })}
