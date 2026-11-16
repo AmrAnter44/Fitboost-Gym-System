@@ -201,6 +201,28 @@ export default function LoginPage() {
           </div>
         ) : (
         <form onSubmit={handleLogin} className="space-y-4">
+          {/* الجيم التجريبي بس (demo.fitboost.website): بيانات حساب الديمو بتتحط في
+              متغيرات البيئة بتاعة النسخة دي، فأي حد (ومراجع Apple) يقدر يجرّب. */}
+          {process.env.NEXT_PUBLIC_DEMO_EMAIL && process.env.NEXT_PUBLIC_DEMO_PASSWORD && (
+            <div className="rounded-xl bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-800 p-3 text-sm">
+              <p className="font-bold text-gray-900 dark:text-gray-100">
+                {tr('جيم تجريبي — جرّب من غير حساب', 'Demo gym — try it without an account')}
+              </p>
+              <p className="mt-1 text-gray-600 dark:text-gray-400" dir="ltr">
+                {process.env.NEXT_PUBLIC_DEMO_EMAIL} / {process.env.NEXT_PUBLIC_DEMO_PASSWORD}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail(process.env.NEXT_PUBLIC_DEMO_EMAIL!)
+                  setPassword(process.env.NEXT_PUBLIC_DEMO_PASSWORD!)
+                }}
+                className="mt-2 font-semibold text-primary-600 dark:text-primary-400 hover:underline"
+              >
+                {tr('املأ بيانات الديمو', 'Fill demo credentials')}
+              </button>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
               Email or Username
