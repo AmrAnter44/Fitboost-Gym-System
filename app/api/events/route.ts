@@ -14,9 +14,11 @@ function deny(e: any) {
 export async function GET(request: Request) {
   try { await requirePermission(request, 'canAccessSettings') } catch (e) { return deny(e) }
   const events = await prisma.gymEvent.findMany({ orderBy: { startsAt: 'desc' }, take: 100 })
-  const { countMemberDevices } = await import('../../../lib/memberBroadcast')
-  const devices = await countMemberDevices().catch(() => 0)
-  return NextResponse.json({ events, devices })
+  const { countMemberDevices, countAudienceMembers, parseSegments } = await import('../../../lib/memberBroadcast')
+  const segments = parseSegments(new URL(request.url).searchParams.get('segments'))
+  const devices = await countMemberDevices(segments).catch(() => 0)
+  const audience = await countAudienceMembers(segments).catch(() => 0)
+  return NextResponse.json({ events, devices, audience })
 }
 
 export async function POST(request: Request) {

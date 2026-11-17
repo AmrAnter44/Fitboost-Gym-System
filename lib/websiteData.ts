@@ -5,7 +5,7 @@
 // والفرع بيتحدد هناك من التوكن — فمفيش أي فرع يقدر يلمس بيانات فرع تاني.
 
 import { NextResponse } from 'next/server'
-import { requireAdmin, type UserPayload } from './auth'
+import { requireAdmin, requireAnyPermissionFresh, type UserPayload } from './auth'
 import { prisma } from './prisma'
 import { validateLicense } from './license'
 
@@ -31,11 +31,15 @@ export interface LicensedBranch {
  * وبيرجّع الجيم والفرع اللي هيتعدّل عليهم — أو NextResponse بالخطأ.
  */
 export async function resolveLicensedBranch(
-  request: Request
+  request: Request,
+  //  allowStaff: موظف عنده canManageWebsiteData يقدر يعدّل بيانات/أسعار الويبسايت (الأدمن/الأونر دايمًا)
+  opts: { allowStaff?: boolean } = {}
 ): Promise<LicensedBranch | NextResponse> {
   let user: UserPayload
   try {
-    user = await requireAdmin(request)
+    user = opts.allowStaff
+      ? await requireAnyPermissionFresh(request, ['canManageWebsiteData'])
+      : await requireAdmin(request)
   } catch (e: any) {
     const unauthorized = e?.message === 'Unauthorized'
     return NextResponse.json(

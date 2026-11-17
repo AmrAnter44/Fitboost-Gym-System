@@ -575,6 +575,18 @@ export async function PUT(request: Request) {
       if (data.phone !== undefined) updateData.phone = data.phone
       if (data.coachName !== undefined) updateData.coachName = data.coachName
 
+      //  🔁 نقل العقد لكوتش تاني: لازم حساب الكوتش (coachUserId) يتنقل مع الاسم —
+      //  وإلا الكوتش القديم يفضل شايف العميل (الكوتش بيشوف عملاءه بالـ userId أو الاسم)
+      if (data.coachName !== undefined) {
+        const cur = await prisma.pT.findUnique({ where: { ptNumber: parseInt(ptNumber) }, select: { coachName: true } })
+        if (cur && cur.coachName !== data.coachName) {
+          const newCoach = data.coachName
+            ? await prisma.staff.findFirst({ where: { name: data.coachName }, include: { user: { select: { id: true } } } })
+            : null
+          updateData.coachUserId = newCoach?.user?.id ?? null
+        }
+      }
+
       // الحقول الرقمية
       if (data.sessionsPurchased !== undefined) updateData.sessionsPurchased = parseInt(data.sessionsPurchased)
       if (data.sessionsRemaining !== undefined) updateData.sessionsRemaining = parseInt(data.sessionsRemaining)

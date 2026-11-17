@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 // GET: كل بيانات الويبسايت للفرع المربوط بالرخصة (عن طريق Control)
 export async function GET(request: Request) {
   try {
-    const ctx = await resolveLicensedBranch(request)
+    const ctx = await resolveLicensedBranch(request, { allowStaff: true })
     if (ctx instanceof NextResponse) return ctx
 
     const data = await gw<{
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 // POST: إضافة عنصر جديد (كوتش / عرض / باقة PT / كلاس / اشتراك)
 export async function POST(request: Request) {
   try {
-    const ctx = await resolveLicensedBranch(request)
+    const ctx = await resolveLicensedBranch(request, { allowStaff: true })
     if (ctx instanceof NextResponse) return ctx
 
     const body = await request.json().catch(() => null)

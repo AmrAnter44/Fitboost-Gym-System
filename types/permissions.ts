@@ -105,6 +105,8 @@ export interface Permissions {
   //  📦 إدارة الباقات/العروض — يسمح للموظف يضيف/يعدّل الباقات من غير ما ياخد كل الإعدادات
   //  (اختيارية + OFF افتراضيًا؛ الأدمن/الأونر عندهم canAccessSettings فبيقدروا أصلاً)
   canManageOffers?: boolean
+  //  🌐 تعديل بيانات وأسعار الويبسايت (عروض/باقات/كوتشات) — OFF افتراضيًا
+  canManageWebsiteData?: boolean
 
   // صلاحيات اختبار اللياقة
 
@@ -719,6 +721,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canAccessSettings: 'الوصول للإعدادات',
   canAccessAdmin: 'الوصول للوحة الإدارة',
   canManageOffers: 'إدارة الباقات/العروض',
+  canManageWebsiteData: 'تعديل بيانات وأسعار الويبسايت',
   canViewSpaBookings: 'عرض حجوزات SPA',
   canCreateSpaBooking: 'إنشاء حجز SPA',
   canEditSpaBooking: 'تعديل حجز SPA',
@@ -886,6 +889,7 @@ export const PERMISSION_GROUPS = {
       'canAccessSettings',
       'canAccessAdmin',
       'canManageOffers',
+      'canManageWebsiteData',
     ] as Array<keyof Permissions>,
   },
   spa: {
@@ -940,6 +944,44 @@ export const PERMISSION_GROUPS = {
     ] as Array<keyof Permissions>,
   },
 }
+
+/**
+ * 🎯 قوالب جاهزة في فورم الصلاحيات — زرار واحد يفتح كل صلاحيات الوظيفة
+ * (بيضيف على المحدد، ودوسة تانية وهو مفعّل بتشيل صلاحياته)
+ */
+export const PERMISSION_PRESETS: Array<{ key: string; label: string; labelEn: string; icon: string; permissions: Array<keyof Permissions> }> = [
+  {
+    key: 'salesManager',
+    label: 'سيلز مانجر',
+    labelEn: 'Sales Manager',
+    icon: '📈',
+    permissions: [
+      'canViewMembers', 'canCreateMembers', 'canEditMembers',
+      'canViewVisitors', 'canCreateVisitor', 'canEditVisitor', 'canDeleteVisitor',
+      'canViewFollowUps', 'canCreateFollowUp', 'canEditFollowUp', 'canDeleteFollowUp', 'canManageSales',
+      'canViewDayUse', 'canCreateDayUse',
+      'canViewReceipts',
+      'canViewReports',
+      'canViewWhatsAppInbox', 'canSendWhatsApp',
+    ],
+  },
+  {
+    key: 'fitnessManager',
+    label: 'فيتنس مانجر',
+    labelEn: 'Fitness Manager',
+    icon: '🏋️',
+    permissions: [
+      'canViewMembers',
+      'canViewPT', 'canCreatePT', 'canEditPT', 'canDeletePT', 'canRegisterPTAttendance', 'canViewAllPT', 'canAccessPTCommission',
+      'canViewGroupClass', 'canCreateGroupClass', 'canEditGroupClass', 'canDeleteGroupClass', 'canRegisterClassAttendance',
+      'canViewNutrition', 'canCreateNutrition', 'canEditNutrition', 'canDeleteNutrition', 'canRegisterNutritionAttendance',
+      'canViewPhysiotherapy', 'canCreatePhysiotherapy', 'canEditPhysiotherapy', 'canDeletePhysiotherapy', 'canRegisterPhysioAttendance',
+      'canViewMore', 'canRegisterMoreAttendance', 'canDeleteMore', 'canAccessMoreCommission',
+      'canViewAttendance',
+      'canViewReports',
+    ],
+  },
+]
 
 /**
  * أيقونات الصلاحيات
@@ -1012,6 +1054,7 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canAccessSettings: '⚙️',
   canAccessAdmin: '👨‍💼',
   canManageOffers: '📦',
+  canManageWebsiteData: '🌐',
   canViewSpaBookings: '👁️',
   canCreateSpaBooking: '➕',
   canEditSpaBooking: '✏️',

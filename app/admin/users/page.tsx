@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useToast } from '../../../contexts/ToastContext'
 import { LoadingScreen } from '../../../components/Spinner'
-import { Permissions, PERMISSION_GROUPS, PERMISSION_LABELS, PERMISSION_ICONS } from '../../../types/permissions'
+import { Permissions, PERMISSION_GROUPS, PERMISSION_LABELS, PERMISSION_ICONS, PERMISSION_PRESETS } from '../../../types/permissions'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -1148,6 +1148,41 @@ export default function AdminUsersPage() {
                       {direction === 'rtl' ? 'إلغاء الكل' : 'Clear all'}
                     </button>
                   </div>
+                </div>
+
+                {/* 🎯 قوالب جاهزة — دوسة تفتح كل صلاحيات الوظيفة، ودوسة تانية تشيلها */}
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                    {direction === 'rtl' ? 'قوالب جاهزة:' : 'Presets:'}
+                  </span>
+                  {PERMISSION_PRESETS.map(preset => {
+                    const active = preset.permissions.every(p => permissions[p])
+                    return (
+                      <button
+                        key={preset.key}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setPermissions(prev => {
+                          const next = { ...prev }
+                          //  عند الإلغاء: نسيب الصلاحيات المشتركة مع قالب تاني مفعّل
+                          const keep = new Set(active
+                            ? PERMISSION_PRESETS.filter(o => o.key !== preset.key && o.permissions.every(p => prev[p])).flatMap(o => o.permissions)
+                            : [])
+                          for (const p of preset.permissions) if (!keep.has(p)) next[p] = !active
+                          return next
+                        })}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full border transition-colors ${
+                          active
+                            ? 'bg-primary-600 border-primary-600 text-white hover:bg-primary-700'
+                            : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-primary-400 hover:text-primary-600 dark:hover:text-primary-300'
+                        }`}
+                      >
+                        <span aria-hidden="true">{active ? '✓' : preset.icon}</span>
+                        {direction === 'rtl' ? preset.label : preset.labelEn}
+                        <span className={`text-[10px] font-semibold ${active ? 'text-white/80' : 'text-gray-400'}`}>({preset.permissions.length})</span>
+                      </button>
+                    )
+                  })}
                 </div>
 
                 {/* Summary chip — total selected */}

@@ -18,6 +18,8 @@ import { LoadingScreen } from '../../../components/Spinner'
 import { formatDateYMD, calculateRemainingDays, calculateDaysBetween } from '../../../lib/dateFormatter'
 import { prepareReceiptMessage } from '../../../lib/whatsappReceiptMessage'
 import { usePermissions } from '../../../hooks/usePermissions'
+import MemberMedicalCard from '../../../components/MemberMedicalCard'
+import MemberDowngradeCard from '../../../components/MemberDowngradeCard'
 import { maskPhone, displayPhone } from '../../../lib/maskPhone'
 import PermissionDenied from '../../../components/PermissionDenied'
 import MemberGateCard from '../../../components/gates/MemberGateCard'
@@ -2833,6 +2835,9 @@ export default function MemberDetailPage() {
  })()}
  </div>
 
+ {/*  🩺 الهيستوري الطبي — البروفايل بس */}
+ <MemberMedicalCard memberId={member.id} canEdit={hasPermission('canEditMembers')} />
+
  {/* المكافآت والخصائص */}
  <div className="mb-6">
  <h3 className="text-base font-bold text-gray-700 dark:text-white mb-3 flex items-center gap-2">
@@ -3441,6 +3446,17 @@ export default function MemberDetailPage() {
  </button>
  )}
  </div>
+ )}
+
+ {/* ⬇️ داون جريد — بيظهر بس لو عليه باقي وعدّى ميعاده */}
+ {hasPermission('canCreateMembers') && member?.id && !member?.isBanned && (
+ <MemberDowngradeCard
+ memberId={member.id}
+ startDate={member.startDate as any}
+ expiryDate={member.expiryDate as any}
+ refreshKey={`${member.remainingAmount}|${member.expiryDate}`}
+ onDone={() => { fetchMember(); fetchMemberReceipts() }}
+ />
  )}
 
  {/* Transfer membership */}

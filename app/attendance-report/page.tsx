@@ -581,11 +581,11 @@ export default function AttendanceReportPage() {
               const currentTime = new Date()
 
               //  نافذة الشيفت الديناميكية: السجل المفتوح يُعتبر «شغّال دلوقتي» طالما لسه
-              //  في وقت شيفته — (ساعات العمل + 4 ساعات buffer، بحد أدنى 12 ساعة).
+              //  في وقت شيفته — (ساعات العمل + 8 ساعات buffer، بحد أدنى 16 ساعة — زي نافذة الانصراف في الـ API).
               //  ده بيدعم الشيفت الليلي اللي بيعدّي منتصف الليل (مثلاً 11م → 7ص) فميتحسبش
               //  «سجل قديم / نسي يسجّل خروج» وهو لسه في شيفته — بدل مقارنة اليوم بالتقويم.
               const baseHours = att.staff?.workingHours && att.staff.workingHours > 0 ? att.staff.workingHours : 8
-              const shiftWindowHours = Math.max(baseHours + 4, 12)
+              const shiftWindowHours = Math.max(baseHours + 8, 16)
               const hoursSinceCheckIn = (currentTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60)
               const isActiveShift = att.checkOut === null && hoursSinceCheckIn <= shiftWindowHours
               const isActuallyInside = isActiveShift

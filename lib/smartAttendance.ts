@@ -65,7 +65,9 @@ export async function applyRemoteBranchLocation(loc: { lat?: unknown; lng?: unkn
 
 export function openWindowHours(workingHours?: number | null) {
   const base = workingHours && workingHours > 0 ? workingHours : 8
-  return { base, window: Math.max(base + 4, 12) }
+  //  نافذة الانصراف: الشيفت + 8 ساعات (أقل حاجة 16) — الموظف اللي بيقعد أوفر تايم (مثلاً 12 ساعة في شيفت 8)
+  //  سكان خروجه يتحسب انصراف بالمدة الحقيقية، مش يتقفل تلقائي على 8 ويبدأ حضور جديد
+  return { base, window: Math.max(base + 8, 16) }
 }
 
 /** السجل المفتوح الحالي للموظف (بنفس منطق الطريقة القديمة) — من غير ما يعدّل حاجة */

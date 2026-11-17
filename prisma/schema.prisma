@@ -62,6 +62,7 @@ model Member {
   allowedCheckInEnd   String?    // HH:MM format
   coachId           String?
   noCoachWanted     Boolean      @default(false)  //  العضو مش عايز كابتن (اختيار صريح)
+  medicalHistory    String?      //  🩺 JSON: [{ condition, chronic }] — بيظهر في البروفايل بس
   //  تاريخ آخر تعيين/تغيير كوتش — يستخدم لإشعار الكوتش بـ "عضو جديد اتأسند ليك"
   // حتى لو العضو نفسه قديم (re-assignment) لأن createdAt مش بيتغير
   coachAssignedAt   DateTime?
@@ -695,6 +696,7 @@ model Permission {
   canAccessSettings       Boolean @default(false)
   canAccessAdmin          Boolean @default(false)
   canManageOffers         Boolean @default(false)  //  📦 إدارة الباقات/العروض
+  canManageWebsiteData    Boolean @default(false)  //  🌐 تعديل بيانات/أسعار الويبسايت
   canViewSpaBookings      Boolean @default(false)
   canCreateSpaBooking     Boolean @default(false)
   canEditSpaBooking       Boolean @default(false)

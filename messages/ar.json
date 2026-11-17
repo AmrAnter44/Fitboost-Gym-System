@@ -360,6 +360,8 @@
       "presentNow": "متواجد الآن",
       "hasMembers": "لديه {count} عضو مسجل",
       "coachNote": "المدربين المتواجدين حالياً في الجيم محددين باللون الأخضر",
+      "noCoachWanted": "مش عايز كابتن",
+      "noCoachWantedHint": "بدون تعيين مدرب",
       "changeImage": "تغيير الصورة",
       "uploadImage": "رفع صورة",
       "imageSizeRecommendation": "يُفضل صورة بحجم 500×500 بكسل أو أكبر",

@@ -579,11 +579,11 @@ function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: an
                     )}
                   </td>
                   <td className={`${tableTdCls} font-mono`}>{f.visitor?.phone || '-'}</td>
-                  <td className={tableTdCls}>{f.visitor?.source || '-'}</td>
+                  <td className={`${tableTdCls} whitespace-nowrap`}>{fuLabel(FU_SOURCE_LABELS, f.visitor?.source, ar)}</td>
                   <td className={tableTdCls}>{f.assignedStaff?.name || '-'}</td>
-                  <td className={tableTdCls}><StageBadge stage={f.stage} /></td>
-                  <td className={tableTdCls}><PriorityBadge priority={f.priority} /></td>
-                  <td className={tableTdCls}>{f.result || '-'}</td>
+                  <td className={tableTdCls}><StageBadge stage={f.stage} ar={ar} /></td>
+                  <td className={tableTdCls}><PriorityBadge priority={f.priority} ar={ar} /></td>
+                  <td className={`${tableTdCls} whitespace-nowrap`}>{fuLabel(FU_RESULT_LABELS, f.result, ar)}</td>
                   <td className={`${tableTdCls} text-center font-bold`}>{f.contactCount || 0}</td>
                   <td className={`${tableTdCls} whitespace-nowrap`}>{formatDateTime(f.lastContactedAt)}</td>
                 </tr>
@@ -988,24 +988,78 @@ function SummaryCard({ Icon, label, value }: { Icon: (p: { className?: string })
   )
 }
 
-function StageBadge({ stage }: { stage: string }) {
+//  🌐 ترجمة قيم المتابعات في التقرير — عربي في السيستم العربي وإنجليزي في الإنجليزي
+const FU_SOURCE_LABELS: Record<string, [string, string]> = {
+  'expired-member': ['عضو منتهي', 'Expired member'],
+  'expiring-member': ['قرب يخلص', 'Expiring soon'],
+  'member-invitation': ['دعوة عضو', 'Member invitation'],
+  'invitation': ['Day Use', 'Day Use'],
+  'member': ['عضو', 'Member'],
+  'facebook': ['فيسبوك', 'Facebook'],
+  'instagram': ['انستجرام', 'Instagram'],
+  'tiktok': ['تيك توك', 'TikTok'],
+  'chatgpt': ['ChatGPT', 'ChatGPT'],
+  'google_maps': ['جوجل ماب', 'Google Maps'],
+  'walk-in': ['زيارة مباشرة', 'Walk in'],
+  'call-in': ['اتصال', 'Call in'],
+  'phone': ['تليفون', 'Phone'],
+  'friend_referral': ['إحالة من صديق', 'Friend referral'],
+  'suggestion': ['اقتراح', 'Suggestion'],
+  'website': ['الموقع', 'Website'],
+  'whatsapp': ['واتساب', 'WhatsApp'],
+  'other': ['أخرى', 'Other'],
+}
+const FU_STAGE_LABELS: Record<string, [string, string]> = {
+  new: ['جديد', 'New'],
+  contacted: ['تم التواصل', 'Contacted'],
+  interested: ['مهتم', 'Interested'],
+  negotiation: ['تفاوض', 'Negotiation'],
+  not_interested: ['مش مهتم', 'Not interested'],
+  converted: ['اشترك', 'Converted'],
+  won: ['اشترك', 'Won'],
+  lost: ['خسرناه', 'Lost'],
+}
+const FU_PRIORITY_LABELS: Record<string, [string, string]> = {
+  high: ['عالية', 'High'],
+  medium: ['متوسطة', 'Medium'],
+  low: ['منخفضة', 'Low'],
+}
+const FU_RESULT_LABELS: Record<string, [string, string]> = {
+  'interested': ['مهتم', 'Interested'],
+  'not-interested': ['مش مهتم', 'Not interested'],
+  'no-answer': ['لم يرد', 'No answer'],
+  'postponed': ['مؤجل', 'Postponed'],
+  'subscribed': ['اشترك', 'Subscribed'],
+  'success': ['نجح', 'Success'],
+}
+//  قيمة مش معروفة → تظهر زي ما هي (بدل ما تختفي)
+function fuLabel(map: Record<string, [string, string]>, v: string | null | undefined, ar: boolean) {
+  if (!v) return '-'
+  const l = map[v]
+  return l ? (ar ? l[0] : l[1]) : v
+}
+
+function StageBadge({ stage, ar = true }: { stage: string; ar?: boolean }) {
   const colors: Record<string, string> = {
     new: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
     contacted: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300',
     interested: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300',
     not_interested: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300',
     converted: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
+    won: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
+    negotiation: 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300',
+    lost: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300',
   }
-  return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${colors[stage] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>{stage || '-'}</span>
+  return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${colors[stage] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>{fuLabel(FU_STAGE_LABELS, stage, ar)}</span>
 }
 
-function PriorityBadge({ priority }: { priority: string }) {
+function PriorityBadge({ priority, ar = true }: { priority: string; ar?: boolean }) {
   const colors: Record<string, string> = {
     high: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300',
     medium: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300',
     low: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300',
   }
-  return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${colors[priority] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>{priority || '-'}</span>
+  return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${colors[priority] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>{fuLabel(FU_PRIORITY_LABELS, priority, ar)}</span>
 }
 
 // 🚻 كارت إيرادات الرجالة مقابل الستات — يظهر في تبويب الإيرادات لو الجيم مكس

@@ -15,7 +15,7 @@ const ALLOWED: Record<string, string> = {
 // رفع صورة (صورة الكوتش) على نفس الـ bucket اللي الويبسايت بيقرا منه
 export async function POST(request: Request) {
   try {
-    const ctx = await resolveLicensedBranch(request)
+    const ctx = await resolveLicensedBranch(request, { allowStaff: true })
     if (ctx instanceof NextResponse) return ctx
 
     const form = await request.formData()

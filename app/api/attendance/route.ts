@@ -65,9 +65,9 @@ export async function GET(request: Request) {
     }
 
     if (includeActive) {
-      //  نافذة السجلات المفتوحة النشطة: آخر 18 ساعة (تغطّي أطول شيفت ليلي + buffer)
+      //  نافذة السجلات المفتوحة النشطة: آخر 24 ساعة (أوسع من نافذة الانصراف — شيفت طويل + أوفر تايم)
       const activeCutoff = new Date()
-      activeCutoff.setHours(activeCutoff.getHours() - 18)
+      activeCutoff.setHours(activeCutoff.getHours() - 24)
       whereClause.OR = [
         ...(dateFilter ? [{ checkIn: dateFilter }] : []),
         { checkOut: null, checkIn: { gte: activeCutoff } },
@@ -180,10 +180,10 @@ export async function POST(request: Request) {
 
     const now = new Date()
 
-    //  Window ديناميكي: max(workingHours + 4h buffer, 12h)
+    //  Window ديناميكي: max(workingHours + 8h buffer, 16h) — يسمح بأوفر تايم (12 ساعة في شيفت 8)
     //  بيدعم الشيفت الليلي/الطويل، ولو الموظف نسي يخرج ورجع تاني يوم لسه ممكن يتسجّل انصراف.
     const baseHours = staff.workingHours && staff.workingHours > 0 ? staff.workingHours : 8
-    const checkOutWindow = Math.max(baseHours + 4, 12)
+    const checkOutWindow = Math.max(baseHours + 8, 16)
 
     //  كل السجلات المفتوحة للموظف (اللي لسه ملهاش انصراف) — مرتّبة من الأحدث
     const openRecords = await prisma.attendance.findMany({

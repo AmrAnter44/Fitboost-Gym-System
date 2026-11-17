@@ -360,6 +360,8 @@
       "presentNow": "Present Now",
       "hasMembers": "Has {count} registered members",
       "coachNote": "Coaches currently present at the gym are highlighted in green",
+      "noCoachWanted": "No coach wanted",
+      "noCoachWantedHint": "No coach assigned",
       "changeImage": "Change Image",
       "uploadImage": "Upload Image",
       "imageSizeRecommendation": "Preferably 500×500 pixels or larger",

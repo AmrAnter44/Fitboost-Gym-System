@@ -1216,6 +1216,10 @@ export default function SettingsPage() {
       { id: 'website-data', label: locale === 'ar' ? 'بيانات الويبسايت' : 'Website Data' }
     ] : []),
     //  📦 الباقات والعروض — لموظف عنده صلاحية إدارة الباقات (مش أدمن — الأدمن عنده الروابط السريعة)
+    //  🌐 بيانات الويبسايت — لموظف عنده صلاحية تعديل بيانات/أسعار الويبسايت
+    ...(!(user?.role === 'ADMIN' || user?.role === 'OWNER') && (user as any)?.permissions?.canManageWebsiteData ? [
+      { id: 'website-data', label: locale === 'ar' ? 'بيانات الويبسايت' : 'Website Data' }
+    ] : []),
     ...(!(user?.role === 'ADMIN' || user?.role === 'OWNER') && (user as any)?.permissions?.canManageOffers ? [
       { id: 'packages-offers', label: locale === 'ar' ? 'الباقات والعروض' : 'Packages & Offers' }
     ] : []),
@@ -3298,10 +3302,10 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {activeSection === 'website-data' && (user?.role === 'ADMIN' || user?.role === 'OWNER') && (
+          {activeSection === 'website-data' && (user?.role === 'ADMIN' || user?.role === 'OWNER' || (user as any)?.permissions?.canManageWebsiteData) && (
             <div className="space-y-6">
               <WebsiteDataSection />
-              <WebsiteContactCard />
+              {(user?.role === 'ADMIN' || user?.role === 'OWNER') && <WebsiteContactCard />}
             </div>
           )}
 

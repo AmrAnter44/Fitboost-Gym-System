@@ -344,6 +344,7 @@ export async function POST(request: Request) {
       skipReceipt: skipReceiptRaw,
       coachId,
       noCoachWanted,
+      medicalHistory,   //  🩺 الهيستوري الطبي
       salesStaffId,
       offerId,          // 📦 الباقة المختارة من الفورم
       ptCommissionAmount,
@@ -738,6 +739,17 @@ export async function POST(request: Request) {
       } catch (e) { console.error('set noCoachWanted failed:', e) }
     }
 
+    //  🩺 الهيستوري الطبي — raw SQL (عمود جديد)
+    if (member?.id && Array.isArray(medicalHistory)) {
+      const { sanitizeMedicalHistory } = await import('../../../lib/medicalHistory')
+      const entries = sanitizeMedicalHistory(medicalHistory)
+      if (entries.length) {
+        try {
+          await prisma.$executeRawUnsafe(`UPDATE Member SET medicalHistory = ? WHERE id = ?`, JSON.stringify(entries), member.id)
+        } catch (e) { console.error('set medicalHistory failed:', e) }
+      }
+    }
+
     // 📝 Audit log
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
@@ -932,12 +944,14 @@ export async function PUT(request: Request) {
     const body = await request.json()
     let { id, profileImage, idCardFront, idCardBack, ...data } = body
 
-    //  🔒 الصلاحية المحدودة: يُسمح فقط بتعديل الاسم ورقم الموبايل — نعقّم أي حقل تاني
+    //  🔒 الصلاحية المحدودة: يُسمح فقط بتعديل الاسم ورقم الموبايل والجنس — نعقّم أي حقل تاني
+    //  (الجنس عشان بوب أب «تحديد الجنس» للجيم المكس — قبل كده كان بيترمي من غير خطأ والعدد يرجع)
     if (!isFullMemberEdit) {
       profileImage = undefined
       idCardFront = undefined
       idCardBack = undefined
-      data = { name: data.name, phone: data.phone }
+      const allowedGender = ['male', 'female', 'unknown'].includes(data.gender) ? data.gender : undefined
+      data = { name: data.name, phone: data.phone, gender: allowedGender }
     }
 
     const updateData: any = {}

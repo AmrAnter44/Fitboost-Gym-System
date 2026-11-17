@@ -352,6 +352,11 @@ function migrateDatabase(dbPath) {
       db.prepare('ALTER TABLE Permission ADD COLUMN canManageOffers INTEGER NOT NULL DEFAULT 0').run();
     }
 
+    // ✅ صلاحية تعديل بيانات/أسعار الويبسايت (canManageWebsiteData) — جديدة، off افتراضيًا
+    if (!columnExists(db, 'Permission', 'canManageWebsiteData')) {
+      db.prepare('ALTER TABLE Permission ADD COLUMN canManageWebsiteData INTEGER NOT NULL DEFAULT 0').run();
+    }
+
     // ✅ صلاحية مساعد الموارد البشرية (canAccessHR) — جديدة، off افتراضيًا للموظفين
     if (!columnExists(db, 'Permission', 'canAccessHR')) {
       db.prepare('ALTER TABLE Permission ADD COLUMN canAccessHR INTEGER NOT NULL DEFAULT 0').run();
@@ -561,6 +566,7 @@ function migrateDatabase(dbPath) {
       { col: 'transferredFromAt',       def: 'DATETIME' },
       { col: 'transferredFromPhone',    def: 'TEXT' },      //  📤 الرقم القديم اللي اتنقلت منه العضوية
       { col: 'noCoachWanted',           def: 'INTEGER NOT NULL DEFAULT 0' }, //  العضو مش عايز كابتن
+      { col: 'medicalHistory',          def: 'TEXT' },     //  🩺 الهيستوري الطبي (JSON)
       { col: 'pendingRenewalStartDate',  def: 'DATETIME' }, //  🔁 تجديد مجدول: تاريخ بداية التجديد المؤجل
       { col: 'pendingRenewalExpiryDate', def: 'DATETIME' }, //  🔁 تاريخ نهاية التجديد المؤجل
       { col: 'pendingRenewalData',       def: 'TEXT' },     //  🔁 JSON بتفاصيل التجديد المؤجل

@@ -10,6 +10,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     return NextResponse.json({ error: 'ليس لديك صلاحية' }, { status: e?.message === 'Unauthorized' ? 401 : 403 })
   }
   const { id } = await ctx.params
+  const { broadcastToMembers, parseSegments } = await import('../../../../../lib/memberBroadcast')
+  const segments = parseSegments((await request.json().catch(() => null))?.segments)
   const ev = await prisma.gymEvent.findUnique({ where: { id } })
   if (!ev) return NextResponse.json({ error: 'الإيفنت مش موجود' }, { status: 404 })
   if (!ev.isActive) return NextResponse.json({ error: 'الإيفنت متوقف' }, { status: 400 })
@@ -21,12 +23,11 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   await prisma.gymEvent.update({ where: { id }, data: { notifiedAt: new Date() } })
 
   const when = ev.startsAt.toLocaleString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' })
-  const { broadcastToMembers } = await import('../../../../../lib/memberBroadcast')
   const r = await broadcastToMembers({
     title: `📣 ${ev.title}`,
     body: [when, ev.description].filter(Boolean).join('\n').slice(0, 220),
     data: { type: 'event', eventId: ev.id },
-  })
+  }, segments)
   await prisma.gymEvent.update({ where: { id }, data: { notifiedCount: r.sent } })
   return NextResponse.json({ ok: true, ...r })
 }

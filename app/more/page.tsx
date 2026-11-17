@@ -180,6 +180,7 @@ export default function MorePage() {
   })
 
   const [staffList, setStaffList] = useState<any[]>([])
+  const [activeStaffNames, setActiveStaffNames] = useState<string[] | null>(null) //  الموظفين الموجودين والنشطين — فلتر الكوتش مايعرضش الغير نشط ولا الممسوح
   const [packages, setPackages] = useState<any[]>([])
 
   useEffect(() => {
@@ -201,6 +202,9 @@ export default function MorePage() {
 
     fetchMoreSubscriptions()
     fetchStaff()
+    fetch('/api/staff?scope=names').then(r => (r.ok ? r.json() : null)).then((d: any) => {
+      if (Array.isArray(d)) setActiveStaffNames(d.filter((x: any) => x.isActive !== false).map((x: any) => String(x.name || '').trim()))
+    }).catch(() => {})
     fetchPackages()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.moreEnabled, authLoading, user])
@@ -1055,7 +1059,8 @@ export default function MorePage() {
             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
           >
             <option value="">{locale === 'ar' ? 'كل الكوتشات' : 'All Coaches'}</option>
-            {(Array.from(new Set(moreSubscriptions.map(s => s.coachName).filter((name): name is string => !!name))) as string[]).sort().map(coach => (
+            {/*  الموظف الغير نشط أو الممسوح مايظهرش هنا */}
+            {(Array.from(new Set(moreSubscriptions.map(s => s.coachName).filter((name): name is string => !!name && (!activeStaffNames || activeStaffNames.includes(name.trim()))))) as string[]).sort().map(coach => (
               <option key={coach} value={coach}>{coach}</option>
             ))}
           </select>

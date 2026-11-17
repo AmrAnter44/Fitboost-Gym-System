@@ -264,9 +264,9 @@ export default function MoreCommissionPage() {
         if (!n || known.has(n)) continue
         known.add(n)
         const staffMatch = (Array.isArray(staffData) ? staffData : []).find((st) => normName(st.name) === n)
-        extra.push(staffMatch
-          ? { ...staffMatch }
-          : { id: `more-coach-${n}`, name: s.coachName.trim(), isActive: true, isVirtual: true })
+        //  موظف غير نشط أو ممسوح (مالوش سجل موظف) → مايظهرش
+        if (!staffMatch || !staffMatch.isActive) continue
+        extra.push({ ...staffMatch })
       }
       setCoaches([...activeCoaches, ...extra])
 

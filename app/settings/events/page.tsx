@@ -32,22 +32,37 @@ const toLocalInput = (iso?: string | null) => {
 
 const empty = { title: '', description: '', startsAt: '', endsAt: '', notify: true }
 
+//  🎯 مين يوصله الإشعار — من غير اختيار = كل الأعضاء
+const SEGMENT_GROUPS = [
+  { label: ['الأعضاء', 'Members'], items: [
+    { key: 'members-active', ar: 'الناشطين', en: 'Active', dot: 'bg-emerald-500' },
+    { key: 'members-expiring', ar: 'قربوا يخلصوا (7 أيام)', en: 'Expiring (7 days)', dot: 'bg-amber-500' },
+    { key: 'members-expired', ar: 'المنتهيين', en: 'Expired', dot: 'bg-red-500' },
+  ] },
+  { label: ['الحصص المخصصة', 'Personal training'], items: [
+    { key: 'pt-active', ar: 'الناشطين', en: 'Active', dot: 'bg-emerald-500' },
+    { key: 'pt-expired', ar: 'المنتهيين', en: 'Expired', dot: 'bg-red-500' },
+  ] },
+]
+
 export default function EventsSettingsPage() {
   const { tr, locale, direction } = useLanguage()
   const toast = useToast()
   const { hasPermission, loading: permLoading } = usePermissions()
   const [events, setEvents] = useState<GymEvent[] | null>(null)
   const [devices, setDevices] = useState(0)
+  const [audience, setAudience] = useState(0)
   const [form, setForm] = useState(empty)
   const [editing, setEditing] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [segments, setSegments] = useState<string[]>([])
 
   const load = () =>
-    fetch('/api/events', { cache: 'no-store' })
+    fetch('/api/events' + (segments.length ? `?segments=${segments.join(',')}` : ''), { cache: 'no-store' })
       .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then(d => { setEvents(d.events || []); setDevices(d.devices || 0) })
+      .then(d => { setEvents(d.events || []); setDevices(d.devices || 0); setAudience(d.audience || 0) })
       .catch(() => setEvents([]))
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [segments.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (permLoading) return <LoadingScreen />
   if (!hasPermission('canAccessSettings')) return <PermissionDenied />
@@ -56,8 +71,8 @@ export default function EventsSettingsPage() {
     new Date(iso).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
 
   const notify = async (id: string, askFirst = true) => {
-    if (askFirst && !confirm(tr(`هيتبعت إشعار لـ ${devices} عضو عندهم الأبلكيشن. تكمل؟`, `A notification will be sent to ${devices} members with the app. Continue?`))) return
-    const r = await fetch(`/api/events/${id}/notify`, { method: 'POST' })
+    if (askFirst && !confirm(tr(`هيتبعت إشعار لـ ${devices} عضو عندهم الأبلكيشن${segments.length ? ' (حسب الفلتر)' : ''}. تكمل؟`, `A notification will be sent to ${devices} members with the app${segments.length ? ' (filtered)' : ''}. Continue?`))) return
+    const r = await fetch(`/api/events/${id}/notify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ segments }) })
     const j = await r.json().catch(() => ({}))
     if (r.ok) toast.success(tr(`اتبعت لـ ${j.sent} عضو`, `Sent to ${j.sent} members`))
     else toast.error(j.error || tr('فشل الإرسال', 'Send failed'))
@@ -132,11 +147,76 @@ export default function EventsSettingsPage() {
           <label className={label}>{tr('تفاصيل (اختياري)', 'Details (optional)')}</label>
           <textarea className={input} rows={3} maxLength={1000} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
         </div>
+        {/*  🔔 إشعار للأعضاء — سويتش + مين يوصله + العدد */}
         {!editing && (
-          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-            <input type="checkbox" className="w-4 h-4" checked={form.notify} onChange={e => setForm({ ...form, notify: e.target.checked })} />
-            {tr(`ابعت إشعار لكل أعضاء الفرع اللي عندهم الأبلكيشن (${devices})`, `Notify all branch members with the app (${devices})`)}
-          </label>
+          <div className="rounded-2xl ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-900/40">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="w-9 h-9 rounded-xl bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 flex items-center justify-center shrink-0">
+                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" /></svg>
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">{tr('ابعت إشعار للأعضاء', 'Notify members')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{tr('بيوصل على أبلكيشن الأعضاء أول ما تنشر', 'Sent to the members app when you publish')}</p>
+                </div>
+              </div>
+              <button type="button" role="switch" aria-checked={form.notify} onClick={() => setForm({ ...form, notify: !form.notify })}
+                className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.notify ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.notify ? 'start-[1.375rem]' : 'start-0.5'}`} />
+              </button>
+            </div>
+
+            <div className={`p-4 space-y-4 ${form.notify ? '' : 'opacity-50'}`}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{tr('مين يوصله؟', 'Who gets it?')}</p>
+                <button type="button" aria-pressed={segments.length === 0} onClick={() => setSegments([])}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${segments.length === 0
+                    ? 'bg-primary-500 text-primary-contrast'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
+                  {tr('كل الأعضاء', 'Everyone')}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {SEGMENT_GROUPS.map(g => (
+                  <div key={g.label[0]} className="rounded-xl bg-gray-50 dark:bg-gray-900/40 p-3">
+                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">{tr(g.label[0], g.label[1])}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {g.items.map(it => {
+                        const on = segments.includes(it.key)
+                        return (
+                          <button key={it.key} type="button" aria-pressed={on}
+                            onClick={() => setSegments(prev => on ? prev.filter(x => x !== it.key) : [...prev, it.key])}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ring-1 transition-colors ${on
+                              ? 'bg-white dark:bg-gray-800 ring-primary-500 text-gray-900 dark:text-white'
+                              : 'bg-white/60 dark:bg-gray-800/60 ring-gray-200 dark:ring-gray-700 text-gray-600 dark:text-gray-300 hover:ring-gray-300 dark:hover:ring-gray-600'}`}>
+                            <span className={`w-2 h-2 rounded-full ${it.dot}`} aria-hidden="true" />
+                            {tr(it.ar, it.en)}
+                            {on && <span className="text-primary-600 dark:text-primary-400" aria-hidden="true">✓</span>}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl ring-1 ring-gray-200 dark:ring-gray-700 px-3 py-2.5">
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">{tr('أعضاء في الفلتر', 'Members matched')}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-white">{audience.toLocaleString('en-US')}</p>
+                </div>
+                <div className={`rounded-xl ring-1 px-3 py-2.5 ${devices ? 'ring-emerald-200 dark:ring-emerald-800 bg-emerald-50 dark:bg-emerald-900/20' : 'ring-amber-200 dark:ring-amber-800 bg-amber-50 dark:bg-amber-900/20'}`}>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">{tr('هيوصلهم الإشعار', 'Will receive it')}</p>
+                  <p className={`text-xl font-bold ${devices ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>{devices.toLocaleString('en-US')}</p>
+                </div>
+              </div>
+              {devices === 0 && audience > 0 && (
+                <p className="text-xs text-amber-700 dark:text-amber-400">{tr('محدش من دول نازل عنده أبلكيشن الأعضاء — الإشعار بيوصل للي عندهم الأبلكيشن بس.', 'None of these have the members app — only app users get notified.')}</p>
+              )}
+              <p className="text-[11px] text-gray-400 dark:text-gray-500">{tr('نفس الفلتر بيتطبق على زرار «ابعت إشعار» في الإيفنتات تحت.', 'The same filter applies to the «Notify» buttons below.')}</p>
+            </div>
+          </div>
         )}
         <div className="flex gap-2">
           <button onClick={save} disabled={busy} className="flex-1 min-h-[44px] rounded-lg bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold disabled:opacity-60">

@@ -16,7 +16,7 @@ type Item = { id: string; data_type: string; name: string }
 // الـ gateway بيتأكد إن العنصر تابع لفرع الجهاز — غير كده 404
 export async function PUT(request: Request, routeCtx: Ctx) {
   try {
-    const ctx = await resolveLicensedBranch(request)
+    const ctx = await resolveLicensedBranch(request, { allowStaff: true })
     if (ctx instanceof NextResponse) return ctx
     const { id } = await routeCtx.params
     const safeId = encodeURIComponent(id)
@@ -55,7 +55,7 @@ export async function PUT(request: Request, routeCtx: Ctx) {
 
 export async function DELETE(request: Request, routeCtx: Ctx) {
   try {
-    const ctx = await resolveLicensedBranch(request)
+    const ctx = await resolveLicensedBranch(request, { allowStaff: true })
     if (ctx instanceof NextResponse) return ctx
     const { id } = await routeCtx.params
 

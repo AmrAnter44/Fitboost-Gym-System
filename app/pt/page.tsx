@@ -128,6 +128,19 @@ function PTPageContent() {
     staleTime: 5 * 60 * 1000, // المدربين مش بيتغيروا كتير
   })
 
+  //  أسماء الموظفين الموجودين والنشطين — فلتر الكوتش مايعرضش الغير نشط ولا الممسوح
+  //  (null = معرفناش نجيب القايمة → نعرض الأسماء من الاشتراكات زي ما هي)
+  const { data: activeStaffNames = null } = useQuery<string[] | null>({
+    queryKey: ['active-staff-names'],
+    queryFn: async () => {
+      const r = await fetch('/api/staff?scope=names')
+      const d = r.ok ? await r.json() : null
+      return Array.isArray(d) ? d.filter((s: any) => s.isActive !== false).map((s: any) => String(s.name || '').trim()) : null
+    },
+    enabled: !permissionsLoading,
+    staleTime: 5 * 60 * 1000,
+  })
+
   const [showForm, setShowForm] = useState(false)
   const [editingSession, setEditingSession] = useState<PTSession | null>(null)
   //  🔁 مودال التجديد المعلّق (تعديل تفاصيله + دفع باقيه)
@@ -162,6 +175,7 @@ function PTPageContent() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
   const [filterSessions, setFilterSessions] = useState<'all' | 'low' | 'zero'>('all')
   const [filterType, setFilterType] = useState<'all' | 'regular' | 'dayuse'>('all')
+  const [filterRemaining, setFilterRemaining] = useState(false) //  💰 اللي عليهم بواقي
   //  فلتر فترة الاشتراك (createdAt) — فترة يكتبها المستخدم
   const [subFrom, setSubFrom] = useState('')
   const [subTo, setSubTo] = useState('')
@@ -917,7 +931,10 @@ function PTPageContent() {
     // فلتر فترة الاشتراك — على تاريخ بداية الاشتراك (اشترك في الفترة)
     const matchesSubDate = inSubRange(session.startDate)
 
-    return matchesSearch && matchesId && matchesCoach && matchesStatus && matchesSessions && matchesType && matchesSubDate
+    //  💰 فلتر البواقي — اللي عليهم فلوس باقية في الـ PT
+    const matchesRemaining = !filterRemaining || (Number(session.remainingAmount) || 0) > 0
+
+    return matchesSearch && matchesId && matchesCoach && matchesStatus && matchesSessions && matchesType && matchesSubDate && matchesRemaining
   })
 
   // التحقق من الصلاحيات
@@ -1518,11 +1535,12 @@ function PTPageContent() {
               <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
               <span>{t('pt.quickFilters')}</span>
             </h3>
-            {(filterStatus !== 'all' || filterSessions !== 'all') && (
+            {(filterStatus !== 'all' || filterSessions !== 'all' || filterRemaining) && (
               <button
                 onClick={() => {
                   setFilterStatus('all')
                   setFilterSessions('all')
+                  setFilterRemaining(false)
                 }}
                 className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors duration-200 inline-flex items-center gap-1"
               >
@@ -1594,7 +1612,7 @@ function PTPageContent() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <button
               onClick={() => setFilterSessions('all')}
               className={`px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 ${
@@ -1629,6 +1647,24 @@ function PTPageContent() {
               <div className="text-sm">{t('pt.sessionsZero')}</div>
               <div className="text-xs opacity-70">({filteredSessions.filter(s => s.sessionsRemaining === 0).length})</div>
             </button>
+
+            {/*  💰 عليهم بواقي — بيتجمع مع باقي الفلاتر */}
+            <button
+              onClick={() => setFilterRemaining(v => !v)}
+              aria-pressed={filterRemaining}
+              className={`px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 ${
+                filterRemaining
+                  ? 'bg-rose-600 text-white shadow-sm ring-1 ring-rose-500'
+                  : 'bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/30 shadow-sm'
+              }`}
+            >
+              <div className="text-sm">{tr('عليهم بواقي', 'With remaining')}</div>
+              <div className="text-xs opacity-70">
+                ({filteredSessions.filter(s => (Number(s.remainingAmount) || 0) > 0).length}
+                {' · '}
+                {filteredSessions.reduce((sum, s) => sum + Math.max(0, Number(s.remainingAmount) || 0), 0).toLocaleString()} {t('pt.egp')})
+              </div>
+            </button>
           </div>
         </div>
 
@@ -1645,7 +1681,8 @@ function PTPageContent() {
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             >
               <option value="">{t('pt.allCoaches')}</option>
-              {(Array.from(new Set(sessions.map(s => s.coachName).filter((name): name is string => !!name))) as string[]).sort().map(coach => (
+              {/*  الموظف الغير نشط أو الممسوح مايظهرش هنا */}
+              {(Array.from(new Set(sessions.map(s => s.coachName).filter((name): name is string => !!name && (!activeStaffNames || activeStaffNames.includes(name.trim()))))) as string[]).sort().map(coach => (
                 <option key={coach} value={coach}>{coach}</option>
               ))}
             </select>

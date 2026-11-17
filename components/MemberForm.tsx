@@ -5,6 +5,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import PaymentMethodSelector from '../components/Paymentmethodselector'
 import CoachSelector from './CoachSelector'
 import SalesStaffSelector from './SalesStaffSelector'
+import MedicalHistoryEditor from './MedicalHistoryEditor'
+import type { MedicalEntry } from '../lib/medicalHistory'
 import ImageUpload from './ImageUpload'
 import { calculateDaysBetween, formatDateYMD } from '../lib/dateFormatter'
 // ReceiptToPrint popup — يظهر بعد إنشاء العضو بدل الطباعة التلقائية
@@ -122,6 +124,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
     skipReceipt: false, // خيار عدم إنشاء إيصال
     coachId: null as string | null, // ‍ معرف الكوتش
     noCoachWanted: false, //  العضو مش عايز كابتن
+    medicalHistory: [] as MedicalEntry[], //  🩺 الهيستوري الطبي
     salesStaffId: null as string | null, // موظف السيلز
     ptCommissionAmount: null as number | null, // عمولة الكوتش من الباقة (null = استخدام الافتراضي من الإعدادات)
     referralMemberNumber: '', // رقم العضو المُحيل
@@ -413,6 +416,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
       customCreatedAt: customCreatedAt ? customCreatedAt.toISOString() : null,
       coachId: formData.coachId, // ‍ إرسال معرف الكوتش
       noCoachWanted: formData.noCoachWanted, //  العضو مش عايز كابتن
+      medicalHistory: formData.medicalHistory.filter(e => e.condition.trim()), //  🩺
       salesStaffId: formData.salesStaffId || null, // موظف السيلز
       ptCommissionAmount: formData.ptCommissionAmount, // عمولة الباقة (null أو رقم)
       referralMemberNumber: formData.referralMemberNumber, // رقم العضو المُحيل
@@ -1429,6 +1433,21 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
           </label>
         </div>
         )}
+      </div>
+
+      {/*  🩺 الهيستوري الطبي — بيظهر في بروفايل العضو بس (مش في السكان) */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+        <p className="flex items-center gap-1.5 text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+          <span aria-hidden="true">🩺</span>
+          {direction === 'rtl' ? 'الهيستوري الطبي (اختياري)' : 'Medical history (optional)'}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          {direction === 'rtl' ? 'أي مرض أو إصابة عند العضو — بيظهر في البروفايل بتاعه بس' : 'Any illness or injury — shown only on the member profile'}
+        </p>
+        <MedicalHistoryEditor
+          value={formData.medicalHistory}
+          onChange={(v) => setFormData(prev => ({ ...prev, medicalHistory: v }))}
+        />
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
