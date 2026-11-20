@@ -178,7 +178,13 @@ export async function GET(request: Request) {
         },
       },
     })
-    const visitors = visitorsRaw.map(v => {
+    //  🚫 اللي اشتركوا مايظهروش في شيت الزوار — رقمهم بقى رقم عضو (أي عضو، نشط أو منتهي)
+    //  المطابقة بآخر 10 أرقام عشان +20 / 0 / مسافات مايفرّقوش
+    const last10 = (p: string | null | undefined) => String(p || '').replace(/\D/g, '').slice(-10)
+    const memberPhones = new Set(
+      (await prisma.member.findMany({ select: { phone: true } })).map(m => last10(m.phone)).filter(Boolean)
+    )
+    const visitors = visitorsRaw.filter(v => !memberPhones.has(last10(v.phone))).map(v => {
       const f = v.followUps[0]
       return {
         name: v.name, phone: v.phone, gender: v.gender, source: v.source, interestedIn: v.interestedIn, status: v.status,

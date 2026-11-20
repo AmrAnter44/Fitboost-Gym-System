@@ -732,6 +732,19 @@ export async function POST(request: Request) {
       }
     }
 
+    //  ✅ الزائر اللي اشترك: سجله في الزوار يتقلب «اشترك» — عشان مايفضلش زائر ويتبعتله عروض
+    if (member?.id && member.phone) {
+      try {
+        const l10 = String(member.phone).replace(/\D/g, '').slice(-10)
+        if (l10.length >= 9) {
+          await prisma.visitor.updateMany({
+            where: { isDeleted: false, status: { not: 'subscribed' }, phone: { endsWith: l10 } },
+            data: { status: 'subscribed' },
+          })
+        }
+      } catch (e) { console.error('mark visitor subscribed failed:', e) }
+    }
+
     //  🚫 noCoachWanted — raw SQL (عمود جديد، آمن حتى لو الـ Prisma client لسه outdated)
     if (member?.id && noCoachWanted) {
       try {
