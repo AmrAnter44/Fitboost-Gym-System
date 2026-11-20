@@ -123,3 +123,11 @@ cloud-photos-manifest.json
 # جلسات واتساب على السيرفر (لكل نسخة مجلدها)
 .whatsapp-auth/
 exports/
+
+# 🚪 أسرار البوابات (مفاتيح الديمو) — ماتترفعش أبداً
+prisma/.gates-*
+.gates-*
+
+# 📄 ملفات مرجعية تقيلة (دليل البوابات PDF)
+/pdf gates/
+*.pdf
