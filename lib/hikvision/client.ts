@@ -528,3 +528,103 @@ export async function captureFace(conn: GateConnection, timeoutMs = 30_000): Pro
     res.status, res.body.slice(0, 1000), 'timeout'
   )
 }
+
+// ═══════════════════════════════════════════════════ استقبال الأحداث (HTTP Listening)
+//  من دليل ISAPI (General Application) — 12.2 + 15.3.5/15.3.6:
+//    GET  /ISAPI/Event/notification/httpHosts           → XML_HttpHostNotificationList
+//    PUT  /ISAPI/Event/notification/httpHosts           → بيستبدل القايمة كلها
+//    POST /ISAPI/Event/notification/httpHosts/<ID>/test → XML_HttpHostTestResult
+//  الـ PUT بيستبدل كل السيرفرات — فبنقرا القايمة الأول ونعدّل خانة واحدة بس،
+//  عشان مانمسحش أي سيرفر تاني متظبط على الجهاز.
+
+const ISAPI_NS = 'http://www.isapi.org/ver20/XMLSchema'
+
+export interface ListenerTarget {
+  ipAddress: string
+  portNo: number
+  url: string // المسار بس، مثلاً /api/gates/event/<secret>
+}
+
+export interface ListenerSlot {
+  id: string
+  ipAddress: string
+  portNo: number
+  url: string
+}
+
+const tag = (block: string, name: string) => new RegExp(`<${name}>([^<]*)</${name}>`, 'i').exec(block)?.[1]?.trim() ?? ''
+
+function hostBlock(id: string, t: ListenerTarget, format: 'JSON' | 'XML'): string {
+  return (
+    `<HttpHostNotification>` +
+    `<id>${id}</id>` +
+    `<url>${t.url}</url>` +
+    `<protocolType>HTTP</protocolType>` +
+    `<parameterFormatType>${format}</parameterFormatType>` +
+    `<addressingFormatType>ipaddress</addressingFormatType>` +
+    `<ipAddress>${t.ipAddress}</ipAddress>` +
+    `<portNo>${t.portNo}</portNo>` +
+    `<httpAuthenticationMethod>none</httpAuthenticationMethod>` +
+    `</HttpHostNotification>`
+  )
+}
+
+/** السيرفرات المتظبطة على الجهاز دلوقتي. */
+export async function getListeners(conn: GateConnection): Promise<{ slots: ListenerSlot[]; blocks: string[] }> {
+  const res = await request(conn, 'GET', '/ISAPI/Event/notification/httpHosts', undefined, 8000)
+  assertOk(res, 'قراءة إعدادات استقبال الأحداث')
+  const blocks = res.body.match(/<HttpHostNotification\b[\s\S]*?<\/HttpHostNotification>/gi) || []
+  const slots = blocks.map(b => ({
+    id: tag(b, 'id'),
+    ipAddress: tag(b, 'ipAddress'),
+    portNo: Number(tag(b, 'portNo')) || 0,
+    url: tag(b, 'url'),
+  }))
+  return { slots, blocks }
+}
+
+/** الصيغة اللي الجهاز يدعمها — JSON لو متاح (أسهل في القراية)، وإلا XML. */
+async function preferredFormat(conn: GateConnection): Promise<'JSON' | 'XML'> {
+  try {
+    const res = await request(conn, 'GET', '/ISAPI/Event/notification/httpHosts/capabilities', undefined, 6000)
+    const opt = /<parameterFormatType[^>]*opt="([^"]*)"/i.exec(res.body)?.[1] || ''
+    if (/json/i.test(opt)) return 'JSON'
+    if (/xml/i.test(opt)) return 'XML'
+  } catch { /* الجهاز مش بيدعم capabilities — نكمّل بـ JSON */ }
+  return 'JSON'
+}
+
+/**
+ * يظبط الجهاز يبعت الأحداث للسيستم.
+ * الخانة المختارة: اللي عليها نفس المسار بتاعنا، أو أول خانة فاضية، أو أول خانة لو كله مشغول.
+ */
+export async function configureListener(conn: GateConnection, target: ListenerTarget): Promise<{ id: string; replaced?: ListenerSlot }> {
+  const { slots, blocks } = await getListeners(conn)
+  const format = await preferredFormat(conn)
+  const isEmpty = (s: ListenerSlot) => !s.ipAddress || s.ipAddress === '0.0.0.0'
+  const ours = slots.findIndex(s => s.url && s.url === target.url)
+  const free = slots.findIndex(isEmpty)
+  const idx = ours >= 0 ? ours : free >= 0 ? free : 0
+  const id = slots[idx]?.id || '1'
+  const replaced = idx >= 0 && slots[idx] && !isEmpty(slots[idx]) && ours < 0 ? slots[idx] : undefined
+
+  const newBlocks = blocks.length ? [...blocks] : ['']
+  newBlocks[blocks.length ? idx : 0] = hostBlock(id, target, format)
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><HttpHostNotificationList version="2.0" xmlns="${ISAPI_NS}">${newBlocks.join('')}</HttpHostNotificationList>`
+
+  const res = await request(conn, 'PUT', '/ISAPI/Event/notification/httpHosts', xml, 10_000)
+  assertOk(res, 'ظبط إرسال الأحداث للسيستم')
+  return { id, replaced }
+}
+
+/** الجهاز بيجرّب يوصل للعنوان — بيرجّع وصف الخطأ لو فشل (فاضي = تمام). */
+export async function testListener(conn: GateConnection, id: string, target: ListenerTarget): Promise<{ ok: boolean; error?: string }> {
+  const format = await preferredFormat(conn)
+  const body = hostBlock(id, target, format).replace('<HttpHostNotification>', `<HttpHostNotification version="2.0" xmlns="${ISAPI_NS}">`)
+  const res = await request(conn, 'POST', `/ISAPI/Event/notification/httpHosts/${encodeURIComponent(id)}/test`, body, 15_000)
+  if (res.status < 200 || res.status >= 300) return { ok: false, error: describeFailure(res) }
+  const err = tag(res.body, 'errorDescription')
+  //  بعض الفيرموير بيرجّع "ok" أو "normal" بدل الفاضي
+  if (!err || /^(ok|normal|success|connect\s*ok)$/i.test(err)) return { ok: true }
+  return { ok: false, error: err }
+}

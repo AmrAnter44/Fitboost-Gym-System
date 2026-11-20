@@ -8,6 +8,7 @@ import { PRIMARY_COLOR, THEME_COLORS } from '@/lib/theme/colors'
 import LoadingSkeleton from '../../components/LoadingSkeleton'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useBulkSender } from '../../contexts/BulkSenderContext'
+import RushHoursCard from '../../components/RushHoursCard'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -32,6 +33,7 @@ export default function MemberAttendancePage() {
 
   const [loading, setLoading] = useState(false)
   const [dailyStats, setDailyStats] = useState<any[]>([])
+  const [hourlyStats, setHourlyStats] = useState<{ hour: number; count: number }[]>([]) //  ⏰ أوقات الزحمة
   const [topMembers, setTopMembers] = useState<any[]>([])
   const [totalCheckIns, setTotalCheckIns] = useState(0)
   const [uniqueMembers, setUniqueMembers] = useState(0)
@@ -49,6 +51,7 @@ export default function MemberAttendancePage() {
 
       if (historyData.stats) {
         setDailyStats(historyData.stats.dailyStats || [])
+        setHourlyStats(historyData.stats.hourlyStats || [])
         setTopMembers(historyData.stats.topMembers || [])
         setTotalCheckIns(historyData.stats.totalCheckIns || 0)
         setUniqueMembers(historyData.stats.uniqueMembers || 0)
@@ -247,6 +250,9 @@ export default function MemberAttendancePage() {
           )}
         </div>
       </div>
+
+      {/*  ⏰ أوقات الزحمة */}
+      <RushHoursCard hourly={hourlyStats} days={dailyStats.length} ar={direction === 'rtl'} />
 
       {/* Top Members */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden mb-6">

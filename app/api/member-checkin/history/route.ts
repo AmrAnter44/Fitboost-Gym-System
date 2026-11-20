@@ -88,7 +88,7 @@ export async function GET(request: Request) {
       const startMs = startDate.getTime()
       const endMs = endDate.getTime()
 
-      const [dailyRaw, totalCheckIns, uniqueRaw, topMembers] = await Promise.all([
+      const [dailyRaw, totalCheckIns, uniqueRaw, topMembers, hourlyRaw] = await Promise.all([
         // تجميع باليوم المحلي (نفس نمط dashboard/summary) — وده كمان بيصلّح
         // انحراف التوقيت اللي كان بيحسب حضور بعد نص الليل على اليوم اللي قبله
         prisma.$queryRaw<Array<{ day: string; count: bigint }>>`
@@ -116,6 +116,15 @@ export async function GET(request: Request) {
           orderBy: { _count: { memberId: 'desc' } },
           take: 10,
         }),
+        //  ⏰ أوقات الزحمة: عدد الدخول في كل ساعة من اليوم (بالتوقيت المحلي)
+        prisma.$queryRaw<Array<{ hour: string; count: bigint }>>`
+          SELECT strftime('%H', checkInTime / 1000, 'unixepoch', 'localtime') AS hour,
+                 COUNT(*) AS count
+          FROM MemberCheckIn
+          WHERE checkInTime >= ${startMs} AND checkInTime <= ${endMs}
+          GROUP BY hour
+          ORDER BY hour
+        `,
       ])
 
       // الحصول على معلومات الأعضاء (batch query بدلاً من N+1)
@@ -137,6 +146,11 @@ export async function GET(request: Request) {
         uniqueMembers: Number(uniqueRaw[0]?.n ?? 0),
         dailyStats: dailyRaw.map(row => ({ date: row.day, count: Number(row.count) })),
         topMembers: topMembersWithInfo,
+        //  24 ساعة (حتى اللي مفيهاش حضور = 0) عشان الرسم يبقى كامل
+        hourlyStats: Array.from({ length: 24 }, (_, h) => ({
+          hour: h,
+          count: Number(hourlyRaw.find(r => Number(r.hour) === h)?.count ?? 0),
+        })),
       }
     }
 

@@ -8,6 +8,7 @@ import { useDebounce } from '../../hooks/useDebounce'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
 import { LoadingScreen } from '../../components/Spinner'
+import CoachClassBookings from '../../components/CoachClassBookings'
 
 const SignaturePad = nextDynamic(() => import('../../components/SignaturePad'), { ssr: false })
 
@@ -929,6 +930,9 @@ export default function CoachDashboard() {
 
           </div>
         </div>
+
+        {/*  🧘 كلاساتي — عدد الحجوزات وأسماء الحاجزين (بيظهر بس لو الكوتش عنده كلاسات) */}
+        <CoachClassBookings />
 
         {/*  Monthly Target Card — يظهر بس لو الميزة مفعّلة في حاسبة التحصيل */}
         {useSeparateCoachTarget && targetInfo && (

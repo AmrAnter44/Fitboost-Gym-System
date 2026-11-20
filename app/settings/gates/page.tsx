@@ -417,7 +417,7 @@ export default function GatesPage() {
         </div>
 
         {/* ── تعليمات ربط الجهاز ── */}
-        {gates.length > 0 && <GateListenerSetup eventSecret={eventSecret} gateHost={gates[0]?.host} />}
+        {gates.length > 0 && <GateListenerSetup eventSecret={eventSecret} gateHost={gates[0]?.host} gateId={gates[0]?.id} />}
 
         {/* ── التقرير ── */}
         <GateReport />

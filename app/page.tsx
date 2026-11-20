@@ -168,6 +168,8 @@ export default function HomePage() {
   const [todayClasses, setTodayClasses] = useState<any[]>([])
   const [classBookings, setClassBookings] = useState<any[]>([])
 
+  //  ⏰ الراش تايم — أكتر ساعة زحمة في آخر 30 يوم
+  const [rushHour, setRushHour] = useState<{ hour: number; pct: number } | null>(null)
   const [websiteVisits, setWebsiteVisits] = useState<{ branch: number; gym: number; configured: boolean; branchName?: string; gymName?: string }>({
     branch: 0,
     gym: 0,
@@ -252,14 +254,26 @@ export default function HomePage() {
       weekStart.setDate(weekStart.getDate() - 6)
       const todayFormatted = new Date().toISOString().split('T')[0]
 
-      const [summaryRes, statsRes, yesterdayCheckInsRes, historyRes, salesCallsRes] = await Promise.all([
+      const monthStart = new Date()
+      monthStart.setDate(monthStart.getDate() - 29)
+      const [summaryRes, statsRes, yesterdayCheckInsRes, historyRes, salesCallsRes, rushRes] = await Promise.all([
         fetch('/api/dashboard/summary'),
         fetch('/api/member-checkin/stats'),
         // statsOnly=1 → الأرقام بس من غير قايمة الحضور التفصيلية (كانت آلاف الصفوف بتترمي)
         fetch(`/api/member-checkin/history?startDate=${yesterdayDateFormatted}&endDate=${yesterdayDateFormatted}&statsOnly=1`),
         fetch(`/api/member-checkin/history?startDate=${weekStart.toISOString().split('T')[0]}&endDate=${todayFormatted}&statsOnly=1`),
         fetch('/api/dashboard/sales-calls'),
+        fetch(`/api/member-checkin/history?startDate=${monthStart.toLocaleDateString('en-CA')}&endDate=${new Date().toLocaleDateString('en-CA')}&statsOnly=1`),
       ])
+
+      //  ⏰ الراش تايم (آخر 30 يوم)
+      try {
+        const rd = rushRes.ok ? await rushRes.json() : null
+        const hours: { hour: number; count: number }[] = rd?.stats?.hourlyStats || []
+        const total = hours.reduce((a, h) => a + h.count, 0)
+        const peak = hours.reduce<{ hour: number; count: number } | null>((best, h) => (!best || h.count > best.count ? h : best), null)
+        setRushHour(total > 0 && peak ? { hour: peak.hour, pct: Math.round((peak.count / total) * 100) } : null)
+      } catch { setRushHour(null) }
 
       //  تارجت المكالمات — بيظهر بس لو enabled (سيلز/أدمن)
       try {
@@ -655,7 +669,7 @@ export default function HomePage() {
         )}
 
         {/* Stat cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8 items-stretch">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8 items-stretch">
           <StatCard
             label={t('dashboard.totalMembers')}
             value={stats.members}
@@ -688,6 +702,20 @@ export default function HomePage() {
             icon={<IconChartBar className="w-5 h-5" />}
             trend={<TrendIndicator value={stats.todayCheckIns} previousValue={previousStats.todayCheckIns} showLabel={false} />}
           />
+          {/*  ⏰ الراش تايم — أكتر ساعة زحمة في آخر 30 يوم (التفاصيل في صفحة حضور الأعضاء) */}
+          <Link href="/member-attendance" className="block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+            <StatCard
+              label={locale === 'ar' ? 'الراش تايم' : 'Rush hour'}
+              value={rushHour ? (() => {
+                const fmt = (h: number) => { const d = new Date(); d.setHours(h, 0, 0, 0); return d.toLocaleTimeString(locale === 'ar' ? 'ar-EG' : 'en-US', { hour: 'numeric' }) }
+                return <span className="whitespace-nowrap">{fmt(rushHour.hour)} – {fmt((rushHour.hour + 1) % 24)}</span>
+              })() : '—'}
+              sub={rushHour
+                ? (locale === 'ar' ? `آخر 30 يوم · ${rushHour.pct}%` : `Last 30 days · ${rushHour.pct}%`)
+                : (locale === 'ar' ? 'آخر 30 يوم · مفيش حضور' : 'Last 30 days · no check-ins')}
+              icon={<IconClock className="w-5 h-5" />}
+            />
+          </Link>
           {websiteVisits.configured && (
             <StatCard
               label={locale === 'ar' ? 'زوار الموقع' : 'Website Visitors'}
