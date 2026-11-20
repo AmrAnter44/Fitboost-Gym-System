@@ -21,6 +21,7 @@ interface Offer {
   duration: number
   price: number
   minPrice?: number | null
+  originalPrice?: number | null
   freePTSessions: number
   inBodyScans: number
   invitations: number
@@ -107,6 +108,7 @@ export default function OffersPage() {
     name: '',
     duration: '',
     price: '',
+    originalPrice: '',
     minPrice: '',
     freePTSessions: '',
     freeNutritionSessions: '',
@@ -179,6 +181,7 @@ export default function OffersPage() {
       name: offer.name,
       duration: offer.duration.toString(),
       price: offer.price.toString(),
+      originalPrice: offer.originalPrice != null ? offer.originalPrice.toString() : '',
       minPrice: offer.minPrice != null ? offer.minPrice.toString() : '',
       freePTSessions: offer.freePTSessions.toString(),
       freeNutritionSessions: (offer as any).freeNutritionSessions?.toString() || '0',
@@ -267,6 +270,7 @@ export default function OffersPage() {
       name: '',
       duration: '',
       price: '',
+      originalPrice: '',
       minPrice: '',
       freePTSessions: '',
       freeNutritionSessions: '',
@@ -401,6 +405,23 @@ export default function OffersPage() {
               <div>
                 <label className={labelCls}>{t('offers.price')} *</label>
                 <input type="number" step="0.01" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className={inputCls} placeholder={t('offers.pricePlaceholder')} required />
+              </div>
+
+              {/*  🏷️ العرض: كان بكام — بيظهر مشطوب وبيتكتب في الإيصال كخصم */}
+              <div>
+                <label className={labelCls}>{direction === 'rtl' ? 'السعر قبل العرض (كان بكام)' : 'Price before offer (was)'}</label>
+                <input type="number" step="0.01" min="0" value={formData.originalPrice} onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })} className={inputCls} placeholder={direction === 'rtl' ? 'سيب فاضي لو مفيش عرض' : 'Leave empty if no offer'} />
+                {Number(formData.originalPrice) > 0 && Number(formData.price) > 0 && (
+                  Number(formData.originalPrice) > Number(formData.price) ? (
+                    <p className="text-xs text-green-700 dark:text-green-400 mt-1 font-bold">
+                      {direction === 'rtl'
+                        ? `كان ${formData.originalPrice} ← بقى ${formData.price} — خصم ${Number(formData.originalPrice) - Number(formData.price)} جنيه (بيظهر في الإيصال)`
+                        : `Was ${formData.originalPrice} → now ${formData.price} — ${Number(formData.originalPrice) - Number(formData.price)} EGP off (shown on receipt)`}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">{direction === 'rtl' ? 'لازم يكون أكبر من سعر الباقة' : 'Must be higher than the package price'}</p>
+                  )
+                )}
               </div>
 
               <div>
@@ -641,7 +662,12 @@ export default function OffersPage() {
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-400">{t('offers.price')}</span>
-                    <span className="text-2xl font-bold text-primary-600 dark:text-primary-400">{offer.price} {t('offers.priceEGP')}</span>
+                    <span className="flex items-baseline gap-2">
+                      {offer.originalPrice != null && offer.originalPrice > offer.price && (
+                        <span className="text-sm text-gray-400 line-through">{offer.originalPrice}</span>
+                      )}
+                      <span className="text-2xl font-bold text-primary-600 dark:text-primary-400">{offer.price} {t('offers.priceEGP')}</span>
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-600 dark:text-gray-400">{t('offers.ptSessions')}</span>

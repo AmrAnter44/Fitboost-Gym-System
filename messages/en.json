@@ -1918,6 +1918,7 @@
   },
   "receipts": {
     "title": "Receipts",
+    "cancelled": "Cancelled",
     "subtitle": "View and manage all receipts",
     "loading": "Loading...",
     "loginRequired": "You must login first",

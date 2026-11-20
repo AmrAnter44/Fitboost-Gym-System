@@ -66,6 +66,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const queryClient = useQueryClient()
   const [subscriptionPrice, setSubscriptionPrice] = useState('')
   const [discount, setDiscount] = useState('0') // 💸 خصم على سعر الباقة
+  //  🏷️ سعر الباقة قبل العرض (كان بكام) — بيتكتب في الإيصال كسعر أصلي + خصم
+  const [offerOriginalPrice, setOfferOriginalPrice] = useState<number | null>(null)
   const [freePTSessions, setFreePTSessions] = useState('0')
   const [freeNutritionSessions, setFreeNutritionSessions] = useState('0')
   const [freePhysioSessions, setFreePhysioSessions] = useState('0')
@@ -203,6 +205,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
     expiry.setDate(expiry.getDate() + offer.duration + scheduleExtraDays(start))
 
     setSubscriptionPrice(offer.price.toString())
+    setOfferOriginalPrice(offer.originalPrice != null && offer.originalPrice > offer.price ? offer.originalPrice : null)
     setFreePTSessions(offer.freePTSessions.toString())
     setFreeNutritionSessions((offer.freeNutritionSessions || 0).toString())
     setFreePhysioSessions((offer.freePhysioSessions || 0).toString())
@@ -246,7 +249,9 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
           memberId: member.id,
           //  💸 السعر المرسل = سعر الباقة بعد الخصم
           subscriptionPrice: Math.max(0, (parseInt(subscriptionPrice) || 0) - Math.max(0, parseInt(discount) || 0)),
-          discount: Math.max(0, parseInt(discount) || 0),
+          //  💸 الخصم في الإيصال = خصم العرض (كان بكام − سعر الباقة) + الخصم الإضافي
+          discount: Math.max(0, parseInt(discount) || 0) + (offerOriginalPrice ? Math.max(0, offerOriginalPrice - (parseInt(subscriptionPrice) || 0)) : 0),
+          originalPrice: offerOriginalPrice ?? (Math.max(0, parseInt(discount) || 0) > 0 ? (parseInt(subscriptionPrice) || 0) : null),
           remainingAmount: parseInt(remainingAmount) || 0,
           remainingDueDate: remainingDueDate || null,
           freePTSessions: parseInt(freePTSessions) || 0,
@@ -383,7 +388,11 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
                   </svg>
                   <div className="font-bold text-primary-800 dark:text-primary-200 mb-1 text-sm">{offer.name}</div>
-                  <div className="text-xl font-bold text-green-600 dark:text-green-400 mb-1">{offer.price} {t('renewal.currency')}</div>
+                  <div className="text-xl font-bold text-green-600 dark:text-green-400">{offer.price} {t('renewal.currency')}</div>
+                  {offer.originalPrice != null && offer.originalPrice > offer.price && (
+                    <div className="text-xs text-gray-400 line-through">{offer.originalPrice} {t('renewal.currency')}</div>
+                  )}
+                  <div className="mb-1" />
                   <div className="text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
                     <div>PT: {offer.freePTSessions}</div>
                     <div>InBody: {offer.inBodyScans}</div>

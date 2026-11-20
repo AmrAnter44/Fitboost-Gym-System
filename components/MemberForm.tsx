@@ -138,6 +138,8 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
   const expiryLocked = !canEditDates || (appliedOfferDuration !== null && !isOwner)
   // سعر الباقة الأصلي + الحد الأدنى (للتحقق من الخصم)
   const [appliedOfferPrice, setAppliedOfferPrice] = useState<number | null>(null)
+  //  🏷️ سعر الباقة قبل العرض (كان بكام) — بيتكتب في الإيصال كسعر أصلي + خصم
+  const [appliedOfferOriginal, setAppliedOfferOriginal] = useState<number | null>(null)
   const [appliedOfferMinPrice, setAppliedOfferMinPrice] = useState<number | null>(null)
   // الخصم اللي حطه الـ user (للأكونتات اللي مش OWNER/ADMIN)
   const [discount, setDiscount] = useState<number>(0)
@@ -408,8 +410,15 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
       remainingFreezeDays: parseInt(formData.remainingFreezeDays.toString()),
       subscriptionPrice: parseInt(formData.subscriptionPrice.toString()),
       // الخصم (يظهر في الإيصال) — السعر الأصلي للباقة قبل الخصم
-      discount: !isPrivilegedUser && discount > 0 ? discount : 0,
-      originalPrice: !isPrivilegedUser && discount > 0 && appliedOfferPrice !== null ? appliedOfferPrice : null,
+      //  💸 الخصم في الإيصال = (سعر الباقة قبل العرض أو سعرها) − السعر النهائي
+      //     بيشمل خصم العرض + أي خصم إضافي من الريسيبشن
+      ...(() => {
+        if (appliedOfferPrice === null) return { discount: 0, originalPrice: null }
+        const base = appliedOfferOriginal ?? appliedOfferPrice
+        const finalPrice = Number(formData.subscriptionPrice) || 0
+        const d = Math.round((base - finalPrice) * 100) / 100
+        return d > 0 ? { discount: d, originalPrice: base } : { discount: 0, originalPrice: null }
+      })(),
       remainingAmount: formData.remainingAmount || 0,
       remainingDueDate: formData.remainingDueDate || null,
       staffName: user?.name || '',
@@ -528,6 +537,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
     // نخزّن الـ duration والسعر الأصلي والحد الأدنى عشان الـ expiry والخصم يتحدّثوا
     setAppliedOfferDuration(offer.duration)
     setAppliedOfferPrice(offer.price)
+    setAppliedOfferOriginal(offer.originalPrice != null && offer.originalPrice > offer.price ? offer.originalPrice : null)
     setAppliedOfferMinPrice(offer.minPrice ?? null)
     setDiscount(0) // إعادة الخصم لـ 0 عند تطبيق باقة جديدة
 
@@ -587,6 +597,9 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
                 </div>
                 <div className="font-bold text-primary-800 dark:text-primary-200 mb-1 text-sm">{offer.name}</div>
                 <div className="text-xl font-bold text-green-600 dark:text-green-400">{offer.price} {t('members.egp')}</div>
+                {offer.originalPrice != null && offer.originalPrice > offer.price && (
+                  <div className="text-xs text-gray-400 line-through">{offer.originalPrice} {t('members.egp')}</div>
+                )}
               </button>
             ))}
           </div>

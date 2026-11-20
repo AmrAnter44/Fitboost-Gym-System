@@ -7,6 +7,15 @@ import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLo
 
 export const dynamic = 'force-dynamic'
 
+//  🏷️ السعر قبل العرض — لازم يكون أكبر من سعر الباقة، وإلا يتشال (مفيش عرض)
+async function saveOriginalPrice(id: string, raw: unknown, price: number) {
+  const n = raw === '' || raw == null ? null : Number(raw)
+  const v = n != null && Number.isFinite(n) && n > Number(price) ? n : null
+  try {
+    await prisma.$executeRawUnsafe(`UPDATE Offer SET originalPrice = ? WHERE id = ?`, v, id)
+  } catch (e) { console.error('save originalPrice failed:', e) }
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -16,6 +25,16 @@ export async function GET(request: Request) {
       where: activeOnly ? { isActive: true } : undefined,
       orderBy: { duration: 'asc' }
     })
+
+    //  🏷️ السعر قبل العرض — عمود جديد، بنقراه بـ raw SQL ونـ merge
+    try {
+      const rows: any[] = await prisma.$queryRawUnsafe(`SELECT id, originalPrice FROM Offer`)
+      const map = new Map(rows.map(r => [r.id, r.originalPrice]))
+      for (const o of offers as any[]) {
+        const v = map.get(o.id)
+        o.originalPrice = v != null && Number(v) > Number(o.price) ? Number(v) : null
+      }
+    } catch { /* العمود لسه مش موجود — عادي */ }
 
     return NextResponse.json(offers)
   } catch (error) {
@@ -80,6 +99,8 @@ export async function POST(request: Request) {
         allowedCheckInEnd: validEnd
       } as any
     })
+
+    await saveOriginalPrice(offer.id, body.originalPrice, offer.price)
 
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
@@ -167,6 +188,8 @@ export async function PUT(request: Request) {
         allowedCheckInEnd: validEnd
       } as any
     })
+
+    if (body.originalPrice !== undefined) await saveOriginalPrice(offer.id, body.originalPrice, offer.price)
 
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,

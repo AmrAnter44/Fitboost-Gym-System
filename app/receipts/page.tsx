@@ -1144,7 +1144,13 @@ export default function ReceiptsPage() {
  {details.subscriptionPrice && (
  <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-blue-200 dark:border-blue-700">
  <span className="text-sm text-gray-600 dark:text-gray-300">{t('receipts.details.subscriptionPrice')}</span>
+ {/*  السعر بعد الخصم فوق، واللي قبل الخصم مشطوب تحته */}
+ <span className="flex flex-col items-end leading-tight">
  <span className="font-bold text-blue-700 dark:text-blue-400">{details.subscriptionPrice} {t('members.egp')}</span>
+ {Number(details.discount) > 0 && Number(details.originalPrice) > 0 && (
+ <span className="text-xs text-gray-400 line-through">{details.originalPrice} {t('members.egp')}</span>
+ )}
+ </span>
  </div>
  )}
 
@@ -1421,6 +1427,14 @@ export default function ReceiptsPage() {
  <span className="text-gray-600 dark:text-gray-300 text-sm font-semibold">{t('receipts.card.paidAmount')}</span>
  <span className="font-bold text-green-600 dark:text-green-400 text-xl">{receipt.amount.toLocaleString()} {t('members.egp')}</span>
  </div>
+
+ {/*  💰 عليه باقي — تحت المبلغ المدفوع */}
+ {Number(details.remainingAmount) > 0 && !receipt.isCancelled && (
+ <div className="flex items-center justify-between bg-red-50 dark:bg-red-900/30 rounded-lg p-3">
+ <span className="text-gray-600 dark:text-gray-300 text-sm font-semibold">{direction === 'rtl' ? 'عليه باقي' : 'Remaining'}</span>
+ <span className="font-bold text-red-600 dark:text-red-400 text-xl">{Number(details.remainingAmount).toLocaleString()} {t('members.egp')}</span>
+ </div>
+ )}
 
  <div className="flex items-center justify-between">
  <span className="text-gray-500 dark:text-gray-400 text-sm">{t('receipts.table.paymentMethod')}</span>

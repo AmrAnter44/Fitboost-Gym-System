@@ -58,6 +58,8 @@ export async function POST(request: Request) {
       paymentMethod,
       staffName,
       offerId,         // 📦 الباقة المطبَّقة عند التجديد (لو فيه)
+      discount,        // 💸 الخصم (عرض الباقة + خصم إضافي) — بيظهر في الإيصال
+      originalPrice,   // 🏷️ السعر قبل الخصم
       salesStaffId,    // 🧑‍💼 موظف السيلز — string = تعيين، null = بدون سيلز، undefined = مايتغيرش
       resetBenefits = false  //  وضع المزايا: false = تجميع (default) | true = ريست
     } = body
@@ -243,6 +245,7 @@ export async function POST(request: Request) {
                 birthDate: (member as any).birthDate || null,
                 notes: notes || member.notes || null,
                 subscriptionPrice,
+                ...(Number(discount) > 0 ? { discount: Number(discount), originalPrice: Number(originalPrice) || (Number(subscriptionPrice) + Number(discount)) } : {}), //  💸 الخصم + السعر الأصلي
                 paidAmount,
                 remainingAmount: remainingAmount || 0,
                 freePTSessions: additionalFreePT,
@@ -378,6 +381,7 @@ export async function POST(request: Request) {
               birthDate: (member as any).birthDate || null,
               notes: notes || member.notes || null,
               subscriptionPrice,
+              ...(Number(discount) > 0 ? { discount: Number(discount), originalPrice: Number(originalPrice) || (Number(subscriptionPrice) + Number(discount)) } : {}), //  💸 الخصم + السعر الأصلي
               paidAmount,
               remainingAmount: remainingAmount || 0,
               freePTSessions: additionalFreePT,
