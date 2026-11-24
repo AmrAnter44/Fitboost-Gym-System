@@ -1418,18 +1418,32 @@ function FollowUpsPageContent() {
 
   //  مساعد للبحث عن memberId بالهاتف — يُستخدم في زر "تجديد سريع"
   const phoneToMemberId = useMemo(() => {
-    const map = new Map<string, string>()
+    //  الموبايل الأساسي الأول، وبعده الاحتياطي — ولو الرقم متكرر ناخد آخر اشتراك
+    const map = new Map<string, { id: string; expiry: number }>()
+    const backup = new Map<string, { id: string; expiry: number }>()
     allMembersData.forEach((m: Member) => {
-      if (m.phone && m.id) {
-        map.set(normalizePhone(m.phone), m.id)
+      if (!m.id) return
+      const expiry = m.expiryDate ? new Date(m.expiryDate).getTime() || 0 : 0
+      const put = (target: typeof map, phone?: string | null) => {
+        const key = phone ? normalizePhone(phone) : ''
+        if (key && expiry >= (target.get(key)?.expiry ?? -Infinity)) target.set(key, { id: m.id, expiry })
       }
+      put(map, m.phone)
+      put(backup, (m as any).backupPhone)
     })
+    backup.forEach((v, k) => { if (!map.has(k)) map.set(k, v) })
     return map
   }, [allMembersData, normalizePhone])
 
   const getMemberIdByPhone = useCallback((phone: string): string | null => {
-    return phoneToMemberId.get(normalizePhone(phone)) || null
+    return phoneToMemberId.get(normalizePhone(phone))?.id || null
   }, [phoneToMemberId, normalizePhone])
+
+  //  بروفايل صاحب الكارت: من رقم الكارت لو لسه من غير كومنت، وبعد الكومنت من الموبايل
+  const getFollowUpMemberId = useCallback((fu: FollowUp): string | null => {
+    const synthetic = /^(?:expired|expiring)-(.+)$/.exec(fu.id)
+    return synthetic?.[1] || getMemberIdByPhone(fu.visitor.phone)
+  }, [getMemberIdByPhone])
 
   //  تحسين الأداء: حساب أولوية المتابعة (memoized)
   // todayMidnight بيتحدث مع بيانات المتابعات (كل ما الداتا اتجابت من جديد)
@@ -3677,12 +3691,12 @@ function FollowUpsPageContent() {
                       role="button"
                       tabIndex={0}
                       onClick={() => {
-                        const mid = getMemberIdByPhone(followUp.visitor.phone)
+                        const mid = getFollowUpMemberId(followUp)
                         if (mid) router.push(`/members/${mid}`)
                         else openHistoryModal(followUp.visitor as any)
                       }}
                       onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLElement).click() }}
-                      title={getMemberIdByPhone(followUp.visitor.phone) ? (locale === 'ar' ? 'فتح بروفايل العضو' : 'Open member profile') : (locale === 'ar' ? 'عرض سجل الزائر' : 'Open visitor history')}
+                      title={getFollowUpMemberId(followUp) ? (locale === 'ar' ? 'فتح بروفايل العضو' : 'Open member profile') : (locale === 'ar' ? 'عرض سجل الزائر' : 'Open visitor history')}
                       className="cursor-pointer hover:ring-2 hover:ring-primary-400 transition-shadow bg-gradient-to-r from-primary-50 via-white to-primary-50 dark:from-primary-900/20 dark:via-gray-800 dark:to-primary-900/20 p-3 sm:p-4 rounded-xl ring-1 ring-primary-200 dark:ring-primary-900/50 shadow-sm"
                     >
                       <div className="flex flex-col gap-2.5">
