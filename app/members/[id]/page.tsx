@@ -213,6 +213,10 @@ export default function MemberDetailPage() {
  //  قيد إخفاء أرقام الأعضاء: بنتشيّك على القيمة الخام عشان الأونر/الأدمن يشوفوا الأرقام عادي
  const hideNumbers = permissions?.hideMemberNumbers === true
  const canOverrideInvitationSales = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN'
+ //  إسقاط المديونية للمالك والأدمن بس — الباقي يقدر يدفع بس
+ const canWaiveRemaining = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN'
+ const [showWaiveModal, setShowWaiveModal] = useState(false)
+ const [waiveData, setWaiveData] = useState({ amount: 0, reason: '' })
  const { t, tr, direction, locale } = useLanguage()
  const toast = useToast()
  const { settings } = useServiceSettings()
@@ -1157,6 +1161,37 @@ export default function MemberDetailPage() {
  } catch (error) {
  console.error(error)
  toast.error(t('memberDetails.error'))
+ } finally {
+ setLoading(false)
+ }
+ }
+
+ const handleWaiveRemaining = async () => {
+ if (!member || !canWaiveRemaining) return
+ const amount = Number(waiveData.amount)
+ if (!(amount > 0) || amount > member.remainingAmount) {
+ toast.warning(locale === 'ar' ? 'اكتب مبلغ صحيح ميزيدش عن المديونية' : 'Enter a valid amount up to the balance due')
+ return
+ }
+ setLoading(true)
+ try {
+ const response = await fetch('/api/members/waive-remaining', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ memberId: member.id, amount, reason: waiveData.reason }),
+ })
+ const data = await response.json()
+ if (response.ok && data.success) {
+ toast.success(locale === 'ar' ? `تم إسقاط ${amount} ج.م من المديونية` : `${amount} EGP waived`)
+ setShowWaiveModal(false)
+ setWaiveData({ amount: 0, reason: '' })
+ fetchMember()
+ } else {
+ toast.error(data.error || (locale === 'ar' ? 'فشل إسقاط المديونية' : 'Failed to waive balance'))
+ }
+ } catch (error) {
+ console.error(error)
+ toast.error(t('memberDetails.connectionError'))
  } finally {
  setLoading(false)
  }
@@ -3346,6 +3381,17 @@ export default function MemberDetailPage() {
  >
  {t('memberDetails.paymentModal.payButton')}
  </button>
+ {canWaiveRemaining && (
+ <button
+ type="button"
+ data-waive-remaining
+ onClick={() => { setWaiveData({ amount: member.remainingAmount, reason: '' }); setShowWaiveModal(true) }}
+ disabled={loading}
+ className="w-full mt-2 border border-red-400 text-red-600 dark:text-red-300 py-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+ >
+ {locale === 'ar' ? 'إسقاط المديونية' : 'Waive balance'}
+ </button>
+ )}
  </div>
  )}
  </div>
@@ -3569,6 +3615,51 @@ export default function MemberDetailPage() {
  )}
 
  {/* Modal: دفع المبلغ */}
+ {showWaiveModal && canWaiveRemaining && (
+ <div
+ className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center p-4"
+ style={{ zIndex: 9999 }}
+ onClick={(e) => { if (e.target === e.currentTarget) setShowWaiveModal(false) }}
+ >
+ <div data-waive-modal className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto max-w-md w-full p-6">
+ <div className="flex justify-between items-center mb-4">
+ <h3 className="text-2xl font-bold">{locale === 'ar' ? 'إسقاط المديونية' : 'Waive balance'}</h3>
+ <button type="button" onClick={() => setShowWaiveModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-3xl leading-none">×</button>
+ </div>
+ <p className="bg-red-50 dark:bg-red-900/20 border-s-4 border-red-500 p-3 rounded-lg mb-4 text-sm text-red-800 dark:text-red-200">
+ {locale === 'ar'
+ ? `المديونية الحالية ${member.remainingAmount} ج.م. المبلغ اللي هيتسقط مش هيتحسب إيراد ومش هيطلع له إيصال.`
+ : `Current balance is ${member.remainingAmount} EGP. The waived amount is not revenue and has no receipt.`}
+ </p>
+ <label className="block text-sm font-medium mb-1 dark:text-white">{locale === 'ar' ? 'المبلغ' : 'Amount'}</label>
+ <input
+ type="number"
+ min="1"
+ max={member.remainingAmount}
+ value={waiveData.amount || ''}
+ onChange={(e) => setWaiveData({ ...waiveData, amount: Number(e.target.value) || 0 })}
+ className="w-full px-3 py-2 border rounded-lg mb-3 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+ />
+ <label className="block text-sm font-medium mb-1 dark:text-white">{locale === 'ar' ? 'السبب (اختياري)' : 'Reason (optional)'}</label>
+ <input
+ type="text"
+ maxLength={300}
+ value={waiveData.reason}
+ onChange={(e) => setWaiveData({ ...waiveData, reason: e.target.value })}
+ className="w-full px-3 py-2 border rounded-lg mb-4 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+ />
+ <div className="flex gap-2">
+ <button type="button" data-waive-confirm onClick={handleWaiveRemaining} disabled={loading} className="flex-1 bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 disabled:bg-gray-400 font-bold">
+ {locale === 'ar' ? 'تأكيد الإسقاط' : 'Confirm waive'}
+ </button>
+ <button type="button" onClick={() => setShowWaiveModal(false)} className="flex-1 bg-gray-200 dark:bg-gray-700 dark:text-white py-2.5 rounded-lg font-bold">
+ {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
+
  {activeModal === 'payment' && (
  <div 
  className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center p-4"

@@ -68,7 +68,30 @@ export async function GET(request: Request) {
       }
     })
 
-    return NextResponse.json(moreSubscriptions)
+    //  🔗 بروفايل العميل: العضو المربوط، ولو مش مربوط بنلاقيه بالتليفون أو الاحتياطي
+    const phoneKey = (p: string | null | undefined) => {
+      const d = String(p || '').replace(/\D/g, '')
+      return d.length >= 10 ? d.slice(-10) : ''
+    }
+    const memberIds = new Set<string>()
+    const byPhone = new Map<string, string>()
+    const byBackup = new Map<string, string>()
+    try {
+      if (moreSubscriptions.length > 0) {
+        const members = await prisma.member.findMany({ select: { id: true, phone: true, backupPhone: true } })
+        for (const m of members) {
+          memberIds.add(m.id)
+          const k = phoneKey(m.phone); if (k && !byPhone.has(k)) byPhone.set(k, m.id)
+          const bk = phoneKey(m.backupPhone); if (bk && !byBackup.has(bk)) byBackup.set(bk, m.id)
+        }
+      }
+    } catch { /* نكمّل من غير روابط البروفايل */ }
+
+    return NextResponse.json(moreSubscriptions.map(sub => {
+      const k = phoneKey(sub.phone)
+      const linked = sub.memberId && memberIds.has(sub.memberId) ? sub.memberId : null
+      return { ...sub, profileMemberId: linked || (k ? byPhone.get(k) || byBackup.get(k) || null : null) }
+    }))
   } catch (error: any) {
     console.error('Error fetching More subscriptions:', error)
 

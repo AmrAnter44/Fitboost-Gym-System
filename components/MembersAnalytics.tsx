@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import Link from 'next/link'
 import { useLanguage } from '../contexts/LanguageContext'
 import { formatDateYMD } from '../lib/dateFormatter'
 
@@ -439,7 +440,14 @@ export default function MembersAnalytics({ members }: MembersAnalyticsProps) {
                       #{member.memberNumber}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                      {member.name}
+                      <Link
+                        href={`/members/${member.id}`}
+                        data-member-link={member.id}
+                        title={locale === 'ar' ? 'فتح بروفايل العضو' : 'Open member profile'}
+                        className="cursor-pointer rounded hover:text-primary-600 dark:hover:text-primary-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                      >
+                        {member.name}
+                      </Link>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300" dir="ltr">
                       {member.phone}

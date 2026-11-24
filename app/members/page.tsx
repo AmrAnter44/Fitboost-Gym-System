@@ -120,6 +120,8 @@ function MembersPageContent() {
   const [showRemainingWA, setShowRemainingWA] = useState(false)
   const [remainingWAMessage, setRemainingWAMessage] = useState('أهلاً {name} 👋\nبنفكّرك إن عليك مبلغ باقي {amount} ج.م من اشتراكك في الجيم.\nياريت تعدّي علينا لسداده، وشكراً لتعاونك 🙏')
   const [remainingWAStarting, setRemainingWAStarting] = useState(false)
+  //  ☑️ اللي هيتبعتلهم — بيبدأ فاضي عشان مفيش رسالة تتبعت لحد من غير ما تختاره
+  const [remainingWASelected, setRemainingWASelected] = useState<Set<string>>(() => new Set())
   const toast = useToast()
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
@@ -143,8 +145,9 @@ function MembersPageContent() {
   const assignGender = useCallback(async (id: string, gender: string) => {
     setGenderBusyId(id)
     try {
-      const r = await fetch('/api/members', {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      //  مسار مخصص للجنس بس — مش مربوط بصلاحية تعديل العضو أو الاسم/الموبايل
+      const r = await fetch('/api/members/no-gender', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, gender }),
       })
       if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || tr('فشل الحفظ', 'Save failed')); return }
@@ -886,6 +889,11 @@ function MembersPageContent() {
   // useMemo: كانت بتتحسب من جديد (~12 مرور كامل على كل الأعضاء + آلاف الـ Date)
   // مع كل render — بما فيها كل حرف في خانة البحث
   const stats = useMemo(() => ({
+    //  🚻 عدد الرجالة/السيدات للجيم المكس
+    gender: {
+      male: membersData.filter(m => (m as any).gender === 'male').length,
+      female: membersData.filter(m => (m as any).gender === 'female').length,
+    },
     total: membersData.length,
     active: membersData.filter(m => isMemberActiveNow(m)).length,
     expired: membersData.filter(m => {
@@ -1450,6 +1458,31 @@ function MembersPageContent() {
               </button>
             )
           })}
+          {/*  🚻 رجالة / سيدات جنب باقي الفلاتر (جيم مكس) — دوسة تانية تلغي الفلتر، وبيشتغل مع الحالة */}
+          {settings.mixedGymEnabled && ([
+            { id: 'male', dot: 'bg-blue-500', label: locale === 'ar' ? 'رجالة' : 'Men', count: stats.gender.male, on: 'bg-blue-600 text-white ring-blue-600' },
+            { id: 'female', dot: 'bg-pink-500', label: locale === 'ar' ? 'سيدات' : 'Women', count: stats.gender.female, on: 'bg-pink-600 text-white ring-pink-600' },
+          ] as const).map(chip => {
+            const isActive = filterGender === chip.id
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                data-gender-chip={chip.id}
+                aria-pressed={isActive}
+                onClick={() => setFilterGender(isActive ? 'all' : chip.id)}
+                className={`shrink-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-full ring-1 text-sm font-bold transition-colors duration-200 ${
+                  isActive ? chip.on : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                <span className={`inline-block w-2 h-2 rounded-full ${isActive ? 'bg-white' : chip.dot}`} aria-hidden="true" />
+                <span>{chip.label}</span>
+                <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[1.5rem] text-center ${isActive ? 'bg-white/25' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                  {chip.count}
+                </span>
+              </button>
+            )
+          })}
         </div>
 
         {/*  🗓️ فلتر تاريخ الانتهاء — يظهر بس مع حالة المنتهيين/اللي بيخلصوا */}
@@ -1517,25 +1550,6 @@ function MembersPageContent() {
                 ))}
             </select>
           </div>
-
-          {/* 🚻 فلتر الجندر — يظهر بس لو الجيم مكس */}
-          {settings.mixedGymEnabled && (
-            <div className="flex-1 min-w-0">
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                {locale === 'ar' ? 'الجندر' : 'Gender'}
-              </label>
-              <select
-                value={filterGender}
-                onChange={(e) => setFilterGender(e.target.value as any)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-              >
-                <option value="all">{locale === 'ar' ? '— الكل —' : '— All —'}</option>
-                <option value="male">{locale === 'ar' ? 'ذكر' : 'Male'}</option>
-                <option value="female">{locale === 'ar' ? 'أنثى' : 'Female'}</option>
-                <option value="unknown">{locale === 'ar' ? 'غير محدد' : 'Unknown'}</option>
-              </select>
-            </div>
-          )}
 
           {/*  فلتر السوشيال ميديا — dropdown ثابت زي الباقة/السيلز/الكوتش */}
           <div className="flex-1 min-w-0">
@@ -1614,6 +1628,30 @@ function MembersPageContent() {
                 <span>{chip.label}</span>
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${isActive ? 'bg-black/15 dark:bg-white/20' : 'bg-gray-100 dark:bg-gray-700'}`}>
                   {chip.count || 0}
+                </span>
+              </button>
+            )
+          })}
+          {/*  🚻 رجالة / سيدات جنب باقي الفلاتر (جيم مكس) — دوسة تانية تلغي الفلتر، وبيشتغل مع الحالة */}
+          {settings.mixedGymEnabled && ([
+            { id: 'male', dot: 'bg-blue-500', label: locale === 'ar' ? 'رجالة' : 'Men', count: stats.gender.male, on: 'bg-blue-600 text-white ring-blue-600' },
+            { id: 'female', dot: 'bg-pink-500', label: locale === 'ar' ? 'سيدات' : 'Women', count: stats.gender.female, on: 'bg-pink-600 text-white ring-pink-600' },
+          ] as const).map(chip => {
+            const isActive = filterGender === chip.id
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                data-gender-chip={chip.id}
+                aria-pressed={isActive}
+                onClick={() => setFilterGender(isActive ? 'all' : chip.id)}
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-full ring-1 text-xs font-bold transition-colors duration-200 ${
+                  isActive ? chip.on : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                <span>{chip.label}</span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${isActive ? 'bg-white/25' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                  {chip.count}
                 </span>
               </button>
             )
@@ -1788,22 +1826,6 @@ function MembersPageContent() {
                 </select>
               </section>
 
-              {/* 🚻 Gender — يظهر بس لو الجيم مكس */}
-              {settings.mixedGymEnabled && (
-                <section>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'الجندر' : 'Gender'}</label>
-                  <select
-                    value={filterGender}
-                    onChange={(e) => setFilterGender(e.target.value as any)}
-                    className="w-full min-h-[44px] px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-                  >
-                    <option value="all">{locale === 'ar' ? '— الكل —' : '— All —'}</option>
-                    <option value="male">{locale === 'ar' ? 'ذكر' : 'Male'}</option>
-                    <option value="female">{locale === 'ar' ? 'أنثى' : 'Female'}</option>
-                    <option value="unknown">{locale === 'ar' ? 'غير محدد' : 'Unknown'}</option>
-                  </select>
-                </section>
-              )}
             </div>
 
             {/* Footer actions */}
@@ -2178,13 +2200,27 @@ function MembersPageContent() {
 
         // 📱 واتساب للكل — نفس نظام الإرسال الجماعي (فواصل عشوائية + حد يومي)، من غير تسجيل متابعة
         const remainingWATargets = [...overdue, ...dueToday, ...upcoming, ...noDate].filter(m => m.phone)
+        const remainingWAChosen = remainingWATargets.filter(m => remainingWASelected.has(m.id))
+        const remainingWAGroups = [
+          { key: 'overdue', label: tr('فات ميعادهم', 'Overdue'), dot: 'bg-red-500', members: overdue.filter(m => m.phone) },
+          { key: 'today', label: tr('ميعادهم النهارده', 'Due today'), dot: 'bg-yellow-500', members: dueToday.filter(m => m.phone) },
+          { key: 'upcoming', label: tr('لسه ميعادهم جاي', 'Upcoming'), dot: 'bg-green-500', members: upcoming.filter(m => m.phone) },
+          { key: 'noDate', label: tr('بدون ميعاد', 'No due date'), dot: 'bg-gray-400', members: noDate.filter(m => m.phone) },
+        ].filter(g => g.members.length > 0)
+        const toggleRemainingWA = (ids: string[], on: boolean) => setRemainingWASelected(prev => {
+          const next = new Set(prev)
+          ids.forEach(id => (on ? next.add(id) : next.delete(id)))
+          return next
+        })
+        //  {dueDate} فاضي للي مالهمش ميعاد — ننبّه قبل الإرسال
+        const chosenWithoutDate = /\{dueDate\}/.test(remainingWAMessage) ? remainingWAChosen.filter(m => !m.remainingDueDate).length : 0
         const startRemainingWA = async () => {
-          if (!remainingWAMessage.trim() || remainingWATargets.length === 0 || remainingWAStarting) return
+          if (!remainingWAMessage.trim() || remainingWAChosen.length === 0 || remainingWAStarting) return
           const num = (key: string, def: number) => { const v = Number(localStorage.getItem(key)); return Number.isFinite(v) && v > 0 ? v : def }
           setRemainingWAStarting(true)
           try {
             const ok = await bulkSender.start({
-              targets: remainingWATargets.map(m => ({
+              targets: remainingWAChosen.map(m => ({
                 visitor: {
                   id: m.id, name: m.name, phone: m.phone, source: 'member',
                   vars: {
@@ -2205,7 +2241,7 @@ function MembersPageContent() {
               },
               meta: { userName: user?.name, sourceFilter: 'members-remaining', skipFollowUp: true },
             })
-            if (ok) setShowRemainingWA(false)
+            if (ok) { setShowRemainingWA(false); setRemainingWASelected(new Set()) }
           } finally {
             setRemainingWAStarting(false)
           }
@@ -2305,7 +2341,7 @@ function MembersPageContent() {
                 )}
                 {remainingWATargets.length > 0 && (
                   <button
-                    onClick={() => setShowRemainingWA(true)}
+                    onClick={() => { setRemainingWASelected(new Set()); setShowRemainingWA(true) }}
                     type="button"
                     disabled={bulkSender.running}
                     title={bulkSender.running ? tr('فيه إرسال جماعي شغّال دلوقتي', 'A bulk send is already running') : undefined}
@@ -2322,19 +2358,74 @@ function MembersPageContent() {
               {/* 📱 نافذة رسالة الواتساب للأعضاء اللي عليهم بواقي */}
               {showRemainingWA && (
                 <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setShowRemainingWA(false) }}>
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg ring-1 ring-gray-200 dark:ring-gray-700" dir={direction}>
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700" dir={direction}>
                     <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{tr('واتساب للأعضاء اللي عليهم بواقي', 'WhatsApp members with dues')} ({remainingWATargets.length})</h3>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{tr('واتساب للأعضاء اللي عليهم بواقي', 'WhatsApp members with dues')} ({remainingWAChosen.length}/{remainingWATargets.length})</h3>
                       <button type="button" onClick={() => setShowRemainingWA(false)} aria-label={tr('إغلاق', 'Close')} className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg w-8 h-8 flex items-center justify-center">✕</button>
                     </div>
                     <div className="p-4 space-y-3">
                       <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{tr("الرسالة بتتبعت من واتساب الجيم المربوط بالسيستم، لكل عضو لوحده، وبين كل رسالة والتانية 15–30 ثانية عشان الرقم ما يتحظرش. {name} = اسم العضو، {amount} = المبلغ الباقي عليه، {dueDate} = موعد السداد لو محدد.", "Sent from the gym's connected WhatsApp, one member at a time, 15–30 seconds apart to avoid a ban. {name} = member name, {amount} = their remaining amount, {dueDate} = due date if set.")}</p>
+                      {/*  ☑️ اختيار مين يوصله: مجموعة كاملة أو أعضاء بعينهم */}
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{tr('مين يوصله؟', 'Who gets it?')}</span>
+                          <span className="flex gap-3 text-xs font-bold">
+                            <button type="button" onClick={() => toggleRemainingWA(remainingWATargets.map(m => m.id), true)} className="text-emerald-700 dark:text-emerald-400 hover:underline">{tr('تحديد الكل', 'Select all')}</button>
+                            <button type="button" onClick={() => setRemainingWASelected(new Set())} className="text-gray-500 dark:text-gray-400 hover:underline">{tr('إلغاء الكل', 'Clear')}</button>
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {remainingWAGroups.map(g => {
+                            const picked = g.members.filter(m => remainingWASelected.has(m.id)).length
+                            const all = picked === g.members.length
+                            return (
+                              <button key={g.key} type="button" aria-pressed={all}
+                                onClick={() => toggleRemainingWA(g.members.map(m => m.id), !all)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ring-1 transition-colors ${all
+                                  ? 'bg-emerald-600 ring-emerald-600 text-white'
+                                  : 'bg-white dark:bg-gray-700 ring-gray-300 dark:ring-gray-600 text-gray-700 dark:text-gray-200 hover:ring-emerald-400'}`}>
+                                <span className={`w-2 h-2 rounded-full ${all ? 'bg-white' : g.dot}`} aria-hidden="true" />
+                                {g.label} ({picked}/{g.members.length})
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <div className="max-h-52 overflow-y-auto rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+                          {remainingWAGroups.map(g => (
+                            <div key={g.key}>
+                              <div className="sticky top-0 z-10 px-3 py-1.5 text-[11px] font-bold bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400">{g.label}</div>
+                              {g.members.map(m => (
+                                <label key={m.id} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                  <input type="checkbox" className="w-4 h-4 accent-emerald-600 shrink-0" checked={remainingWASelected.has(m.id)} onChange={(e) => toggleRemainingWA([m.id], e.target.checked)} />
+                                  <span className="flex-1 min-w-0 truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{m.name}</span>
+                                  <span className="text-end shrink-0">
+                                    <span className="block text-xs font-bold text-orange-600 dark:text-orange-400">{m.remainingAmount.toLocaleString()} {tr('ج.م', 'EGP')}</span>
+                                    {m.remainingDueDate && <span className="block text-[11px] text-gray-500 dark:text-gray-400">{formatDateYMD(m.remainingDueDate)}</span>}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/*  ✍️ رسايل جاهزة تتعدّل براحتك */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{tr('رسالة جاهزة:', 'Template:')}</span>
+                        <button type="button" onClick={() => setRemainingWAMessage('أهلاً {name} 👋\nميعاد سداد الباقي عليك ({amount} ج.م) كان يوم {dueDate} وعدّى.\nياريت تعدّي علينا في أقرب وقت، وشكراً لتعاونك 🙏')} className="px-2.5 py-1 rounded-lg text-xs font-bold bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300">{tr('فات ميعادهم', 'Overdue')}</button>
+                        <button type="button" onClick={() => setRemainingWAMessage('أهلاً {name} 👋\nبنفكّرك إن عليك مبلغ باقي {amount} ج.م، وميعاد سداده يوم {dueDate}.\nمستنيينك، وشكراً لتعاونك 🙏')} className="px-2.5 py-1 rounded-lg text-xs font-bold bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300">{tr('لسه ميعادهم جاي', 'Upcoming')}</button>
+                      </div>
                       <textarea
                         value={remainingWAMessage}
                         onChange={(e) => setRemainingWAMessage(e.target.value)}
                         rows={5}
                         className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
+                      {chosenWithoutDate > 0 && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 font-bold">
+                          {tr(`الرسالة فيها {dueDate} و${chosenWithoutDate} من المختارين مالهمش ميعاد — هيوصلهم فاضي`, `The message uses {dueDate} but ${chosenWithoutDate} selected have no due date`)}
+                        </p>
+                      )}
                       {remainingWATargets.length < withRemaining.length && (
                         <p className="text-xs text-amber-600 dark:text-amber-400 font-bold">
                           {withRemaining.length - remainingWATargets.length} {tr('عضو من غير رقم تليفون — مش هيتبعتلهم', 'members have no phone and will be skipped')}
@@ -2344,10 +2435,10 @@ function MembersPageContent() {
                         <button
                           type="button"
                           onClick={startRemainingWA}
-                          disabled={!remainingWAMessage.trim() || remainingWAStarting}
+                          disabled={!remainingWAMessage.trim() || remainingWAStarting || remainingWAChosen.length === 0}
                           className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg transition-colors duration-200"
                         >
-                          {remainingWAStarting ? tr('جاري البدء...', 'Starting...') : `${tr('ابعت لـ', 'Send to')} ${remainingWATargets.length} ${tr('عضو', 'members')}`}
+                          {remainingWAStarting ? tr('جاري البدء...', 'Starting...') : remainingWAChosen.length === 0 ? tr('اختار مين يوصله', 'Select recipients') : `${tr('ابعت لـ', 'Send to')} ${remainingWAChosen.length} ${tr('عضو', 'members')}`}
                         </button>
                         <button type="button" onClick={() => setShowRemainingWA(false)} className="px-5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold rounded-lg">
                           {tr('إلغاء', 'Cancel')}

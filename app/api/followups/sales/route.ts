@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { hasAnyPermission } from '../../../../lib/routeGuard'
 import { prisma } from '../../../../lib/prisma'
 import { verifyAuth } from '../../../../lib/auth'
+import { isPTReceipt } from '../../../../lib/translateReceiptType'
 
 export const dynamic = 'force-dynamic'
 
@@ -139,7 +140,7 @@ export async function GET(request: Request) {
             isCancelled: false,
             createdAt: { gte: startOfMonth, lte: endOfMonth }
           },
-          select: { memberId: true, amount: true, createdAt: true, type: true }
+          select: { memberId: true, amount: true, createdAt: true, type: true, ptNumber: true }
         })
       : []
 
@@ -158,6 +159,8 @@ export async function GET(request: Request) {
     const memberNewRevenue: Record<string, number> = {}       //  💰 عضويات جديدة
     const memberRenewalRevenue: Record<string, number> = {}   //  💰 تجديدات
     for (const receipt of thisMonthReceipts) {
+      //  🚫 البي تي مش داخل في تحصيل/عمولة السيلز — حتى لو إيصاله مربوط بعضو
+      if (receipt.ptNumber != null || isPTReceipt(receipt.type)) continue
       if (receipt.memberId && receiptCounts(receipt.memberId, receipt.createdAt as Date)) {
         memberRevenueMap[receipt.memberId] = (memberRevenueMap[receipt.memberId] || 0) + receipt.amount
         const cat = classifyReceipt((receipt as any).type)

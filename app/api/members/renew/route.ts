@@ -90,6 +90,13 @@ export async function POST(request: Request) {
       }
     }
 
+    //  🛡️ التجديد/الترقية بيكتبوا باقي جديد مكان القديم — فالمديونية لازم تتقفل الأول
+    if (user.role !== 'OWNER' && user.role !== 'ADMIN' && (member.remainingAmount || 0) > 0) {
+      return NextResponse.json({
+        error: `العضو عليه مديونية ${member.remainingAmount} جنيه. لازم تتدفع أو الأدمن يسقطها قبل التجديد`
+      }, { status: 403 })
+    }
+
     //  🔁 لو فيه تجديد مجدول لسه ما اتفعّلش — نمنع تجديد تاني عشان مايحصلش لخبطة
     const existingPending = await readPendingRenewal(memberId)
     if (existingPending) {

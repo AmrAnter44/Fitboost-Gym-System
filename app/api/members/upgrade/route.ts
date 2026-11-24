@@ -76,6 +76,13 @@ export async function POST(request: Request) {
       }
     }
 
+    //  🛡️ التجديد/الترقية بيكتبوا باقي جديد مكان القديم — فالمديونية لازم تتقفل الأول
+    if (user.role !== 'OWNER' && user.role !== 'ADMIN' && (member.remainingAmount || 0) > 0) {
+      return NextResponse.json({
+        error: `العضو عليه مديونية ${member.remainingAmount} جنيه. لازم تتدفع أو الأدمن يسقطها قبل الترقية`
+      }, { status: 403 })
+    }
+
     // 2. التحقق من وجود اشتراك نشط
     if (!member.startDate || !member.expiryDate) {
       return NextResponse.json({

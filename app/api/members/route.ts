@@ -505,6 +505,7 @@ export async function POST(request: Request) {
     let adminOverride: { from: string; to: string | null; role: string } | null = null
     let effectiveSalesStaffId: string | null = submittedSalesStaffId
     const isPrivileged = user.role === 'OWNER' || user.role === 'ADMIN'
+    let followUpOwnsSale = false
     {
       const trimmedPhone = (phone || '').trim()
       if (trimmedPhone) {
@@ -514,6 +515,7 @@ export async function POST(request: Request) {
           select: { assignedTo: true }
         })
         if (matched?.assignedTo) {
+          followUpOwnsSale = true
           if (!isPrivileged) {
             // ريسبشن وموظفين عاديين: السيرفر بيغصب التخصيص بغض النظر عن اللي اتبعت
             if (matched.assignedTo !== submittedSalesStaffId) {
@@ -525,6 +527,18 @@ export async function POST(request: Request) {
             adminOverride = { from: matched.assignedTo, to: submittedSalesStaffId, role: user.role }
           }
         }
+      }
+    }
+
+    //  🧑‍💼 حساب سيلز عادي: العضو بيتسجل باسمه مهما اتبعت — إلا لو عليه متابعة مع زميل.
+    //  بنقرا من الداتابيز عشان التوكن ممكن يكون قديم بعد تغيير الصلاحيات أو ربط الموظف.
+    if (!isPrivileged && !followUpOwnsSale) {
+      const seller: any = await prisma.user.findUnique({
+        where: { id: user.userId },
+        select: { isSales: true, staffId: true, permissions: { select: { canManageSales: true } } } as any,
+      })
+      if (seller?.isSales && seller?.staffId && !seller?.permissions?.canManageSales) {
+        effectiveSalesStaffId = seller.staffId
       }
     }
 
@@ -1084,6 +1098,13 @@ export async function PUT(request: Request) {
       updateData.subscriptionPrice = parseInt(data.subscriptionPrice.toString())
     }
     if (data.remainingAmount !== undefined) {
+      //  🛡️ تقليل المديونية من غير دفع = إسقاط، وده للمالك والأدمن بس
+      if (user.role !== 'OWNER' && user.role !== 'ADMIN') {
+        const debtNow = await prisma.member.findUnique({ where: { id }, select: { remainingAmount: true } })
+        if (!(parseInt(data.remainingAmount.toString()) >= (debtNow?.remainingAmount || 0))) {
+          return NextResponse.json({ error: 'مينفعش تقلل المديونية. ادفعها من زرار الدفع أو ارجع للأدمن لإسقاطها' }, { status: 403 })
+        }
+      }
       updateData.remainingAmount = parseInt(data.remainingAmount.toString())
       if (parseInt(data.remainingAmount.toString()) === 0) {
         updateData.remainingDueDate = null

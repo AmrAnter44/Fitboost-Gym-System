@@ -18,7 +18,8 @@ interface SalesStaffSelectorProps {
   value: string | null
   onChange: (salesStaffId: string | null) => void
   requireConfirmIfChanging?: boolean
-  locked?: { reason: string }
+  //  valueName: اسم الموظف المقفول عليه — لو وظيفته مكتوبة بشكل مش في القايمة (زي «سيلز» بالعربي)
+  locked?: { reason: string; valueName?: string }
   autoSelectLeastLoaded?: boolean
 }
 
@@ -82,6 +83,7 @@ export default function SalesStaffSelector({ value, onChange, requireConfirmIfCh
   }, [autoSelectLeastLoaded, loading, locked, value, staff, onChange])
 
   const selectedStaff = staff.find(s => s.id === value)
+  const lockedOutsideList = !!locked?.valueName && !!value && !selectedStaff
   const nameOf = (id: string | null) => (id ? staff.find(s => s.id === id)?.name || '—' : '—')
 
   const guardedChange = (next: string | null) => {
@@ -134,6 +136,7 @@ export default function SalesStaffSelector({ value, onChange, requireConfirmIfCh
             }`}
           >
             <option value="">{locale === 'ar' ? '— بدون موظف سيلز —' : '— No Sales Staff —'}</option>
+            {lockedOutsideList && <option value={value!}>{locked!.valueName}</option>}
             {staff.map(s => (
               <option key={s.id} value={s.id}>
                 {s.name} — #{s.staffCode}{s.position ? ` (${s.position})` : ''}

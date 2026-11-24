@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useToast } from '@/contexts/ToastContext'
@@ -78,6 +79,7 @@ interface More {
   sessionsRemaining: number
   coachName: string
   coachUserId?: string
+  profileMemberId?: string | null
   pricePerSession: number
   totalAmount: number
   startDate: string
@@ -93,7 +95,10 @@ interface More {
 type PaymentMethod = string | PaymentMethodType[]
 
 export default function MorePage() {
+  const router = useRouter()
   const { hasPermission, user, loading: authLoading } = usePermissions()
+  //  نفس قاعدة بروفايل العضو في السيرفر — اللي ملوش صلاحية مايتودّاش لصفحة فاضية
+  const canOpenMemberProfile = ['OWNER', 'ADMIN', 'MANAGER', 'COACH'].includes(user?.role || '') || hasPermission('canViewMembers')
   const { t, direction, locale } = useLanguage()
   const toast = useToast()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
@@ -1148,12 +1153,18 @@ export default function MorePage() {
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div
+                      data-profile-link={sub.profileMemberId && canOpenMemberProfile ? sub.profileMemberId : undefined}
+                      className={`flex items-center gap-3 min-w-0 flex-1 ${sub.profileMemberId && canOpenMemberProfile ? 'cursor-pointer group' : ''}`}
+                      onClick={sub.profileMemberId && canOpenMemberProfile ? () => router.push(`/members/${sub.profileMemberId}`) : undefined}
+                      role={sub.profileMemberId && canOpenMemberProfile ? 'link' : undefined}
+                      title={sub.profileMemberId && canOpenMemberProfile ? (locale === 'ar' ? 'فتح بروفايل العضو' : 'Open member profile') : undefined}
+                    >
                       <div className={`w-10 h-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0 ${expired || isExpiringSoon ? 'text-white' : 'text-gray-900'}`}>
                         {IconUser}
                       </div>
                       <div className="min-w-0">
-                        <div className={`font-bold text-base truncate ${expired || isExpiringSoon ? 'text-white' : 'text-gray-900'}`}>{sub.clientName}</div>
+                        <div className={`font-bold text-base truncate transition-opacity ${sub.profileMemberId && canOpenMemberProfile ? 'group-hover:opacity-70' : ''} ${expired || isExpiringSoon ? 'text-white' : 'text-gray-900'}`}>{sub.clientName}</div>
                         <div className={`text-xs truncate ${expired || isExpiringSoon ? 'text-white/80' : 'text-gray-900/70'}`}>
                           #{sub.moreNumber} • {sub.phone}
                         </div>

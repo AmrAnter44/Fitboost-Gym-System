@@ -79,6 +79,8 @@ function PTPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
+  //  نفس قاعدة بروفايل العضو في السيرفر — اللي ملوش صلاحية مايتودّاش لصفحة فاضية
+  const canOpenMemberProfile = ['OWNER', 'ADMIN', 'MANAGER', 'COACH'].includes(user?.role || '') || hasPermission('canViewMembers')
   const { t, tr, direction, locale } = useLanguage()
   const toast = useToast()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
@@ -1771,10 +1773,11 @@ function PTPageContent() {
                   <div className={`p-3 ${isExpired ? 'bg-red-600 dark:bg-red-700' : isExpiringSoon ? 'bg-orange-600 dark:bg-orange-700' : 'bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800'}`}>
                     <div className="flex items-center justify-between">
                       <div
-                        className={`flex items-center gap-3 min-w-0 ${session.memberId ? 'cursor-pointer group' : ''}`}
-                        onClick={session.memberId ? () => router.push(`/members/${session.memberId}`) : undefined}
-                        role={session.memberId ? 'button' : undefined}
-                        title={session.memberId ? (locale === 'ar' ? 'فتح صفحة العضو' : 'Open member profile') : undefined}
+                        data-profile-link={session.memberId && canOpenMemberProfile ? session.memberId : undefined}
+                        className={`flex items-center gap-3 min-w-0 ${session.memberId && canOpenMemberProfile ? 'cursor-pointer group' : ''}`}
+                        onClick={session.memberId && canOpenMemberProfile ? () => router.push(`/members/${session.memberId}`) : undefined}
+                        role={session.memberId && canOpenMemberProfile ? 'link' : undefined}
+                        title={session.memberId && canOpenMemberProfile ? (locale === 'ar' ? 'فتح بروفايل العضو' : 'Open member profile') : undefined}
                       >
                         {/* Profile Image */}
                         <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0">
@@ -1786,7 +1789,7 @@ function PTPageContent() {
                         </div>
                         <div className="min-w-0">
                           <div className="font-bold text-white text-base inline-flex items-center gap-1.5">
-                            <span className={`truncate ${session.memberId ? 'group-hover:underline' : ''}`}>{session.clientName}</span>
+                            <span className={`truncate transition-opacity ${session.memberId && canOpenMemberProfile ? 'group-hover:opacity-70' : ''}`}>{session.clientName}</span>
                             {session.memberNumber != null && (
                               <span className="text-xs font-bold text-white/90">#{session.memberNumber}</span>
                             )}

@@ -655,6 +655,7 @@ export async function printReceipt(
   options?: {
     printOnly?: boolean  // ✅ طباعة فقط (بدون PDF)
     pdfOnly?: boolean    // ✅ PDF فقط (بدون طباعة)
+    savePdf?: boolean    // 📄 تحميل PDF بنفس شكل الطباعة (A4)
     skipBoth?: boolean   // تخطي الطباعة والـ PDF (للاستخدام الداخلي)
   }
 ): Promise<{ filePath?: string } | void> {
@@ -669,6 +670,12 @@ export async function printReceipt(
     if (data.iosAppUrl === undefined) data.iosAppUrl = settings.iosAppUrl
   }
   const receiptHTML = generateReceiptHTML(data)
+
+  // 📄 تحميل PDF بنفس شكل الطباعة
+  if (options?.savePdf) {
+    const { saveReceiptPDF } = await import('./receiptPdf')
+    return saveReceiptPDF(receiptHTML, data.receiptNumber)
+  }
 
   // ✅ حالة 1: طباعة فقط (بدون PDF)
   if (options?.printOnly) {
@@ -756,6 +763,7 @@ export async function printReceiptFromData(
   options?: {
     printOnly?: boolean  // ✅ طباعة فقط
     pdfOnly?: boolean    // ✅ PDF فقط
+    savePdf?: boolean    // 📄 تحميل PDF بنفس شكل الطباعة (A4)
     skipBoth?: boolean   // تخطي الاثنين
   }
 ): Promise<{ filePath?: string } | void> {

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { printReceiptFromData } from '../lib/printSystem'
+import ReceiptPdfButton from './ReceiptPdfButton'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useLanguage } from '../contexts/LanguageContext'
 import { normalizePaymentMethod, getPaymentMethodLabel } from '../lib/paymentHelpers'
@@ -410,6 +411,16 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
             </svg>
             <span>{t('receipts.detail.printReceipt')}</span>
           </button>
+
+          <ReceiptPdfButton
+            receiptNumber={receipt.receiptNumber}
+            type={receipt.type}
+            amount={receipt.amount}
+            details={details}
+            date={receipt.createdAt}
+            memberId={receipt.memberId}
+            className="flex-1 bg-white dark:bg-gray-800 ring-1 ring-emerald-500 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-4 py-2.5 rounded-lg transition-colors duration-200 font-bold"
+          />
 
           <button
             type="button"

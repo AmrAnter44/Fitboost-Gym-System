@@ -36,7 +36,9 @@ interface MemberFormProps {
 }
 
 export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefillData, hidePhone = false }: MemberFormProps) {
-  const { user } = usePermissions()
+  const { user, hasPermission } = usePermissions()
+  //  🧑‍💼 حساب سيلز عادي: العضو اللي بيفتحه بيتسجل باسمه (مسؤول السيلز والأدمن يختاروا)
+  const isSalesRep = !!user?.isSales && !!user?.staffId && !hasPermission('canManageSales')
   const phoneLocked = hidePhone && !!prefillData?.phone
   // كل المستخدمين يقدروا يعدلوا التواريخ في فورم إضافة العضو
   const canEditDates = true
@@ -272,6 +274,12 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
       clearTimeout(timer)
     }
   }, [formData.phone])
+
+  //  🧑‍💼 السيلز: ديفولت العضو باسمه — إلا لو الرقم عليه متابعة مع زميل (بتفضل مع صاحبها)
+  useEffect(() => {
+    if (!isSalesRep || matchedFollowUp?.salesStaffId) return
+    setFormData(prev => (prev.salesStaffId === user?.staffId ? prev : { ...prev, salesStaffId: user?.staffId || null }))
+  }, [isSalesRep, user?.staffId, matchedFollowUp?.salesStaffId, formData.salesStaffId])
 
   // Validate referral member number
   useEffect(() => {
@@ -1031,7 +1039,9 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
         onChange={(salesStaffId) => setFormData({ ...formData, salesStaffId })}
         autoSelectLeastLoaded
         locked={
-          matchedFollowUp && !(user?.role === 'OWNER' || user?.role === 'ADMIN')
+          isSalesRep && !matchedFollowUp?.salesStaffId
+            ? { reason: `${direction === 'rtl' ? 'العضو هيتسجل باسمك' : 'This member will be under your name'}: ${user?.name || ''}`, valueName: user?.name || '' }
+            : matchedFollowUp && !(user?.role === 'OWNER' || user?.role === 'ADMIN')
             ? { reason: `${direction === 'rtl' ? 'الموظف اللي كان بيتابع المتابعة' : 'The sales rep already following up'}: ${matchedFollowUp.salesStaffName}` }
             : undefined
         }

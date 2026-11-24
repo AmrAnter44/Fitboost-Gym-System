@@ -491,6 +491,8 @@ function FollowUpsPageContent() {
   }, [contactedFilter])
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [sourceFilter, setSourceFilter] = useState('all') //  فلتر المصدر
+  //  🔥 زرار «ترتيب: أولوية»: اللي انتهى امبارح الأول وبعدين اللي قبله — مقفول لحد ما تدوسه
+  const [expiryPriority, setExpiryPriority] = useState(false)
   const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female' | 'unknown'>('all') // 🚻 فلتر الجندر
   const [socialFilter, setSocialFilter] = useState<string[]>([]) //  فلتر السوشيال ميديا (بوب-أب)
   const [salesFilter, setSalesFilter] = useState('all') //  فلتر السيلز (all, my-followups, my-overdue, today)
@@ -522,13 +524,6 @@ function FollowUpsPageContent() {
       setSalesFilter('my-followups')
     }
   }, [user?.isSales, canManageSales])
-  const [sortByPriority, setSortByPriority] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('followups-sortByPriority')
-      return saved !== null ? saved === 'true' : true
-    }
-    return true
-  })
   const [expiringDays, setExpiringDays] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('followups_expiringDays')
@@ -640,6 +635,42 @@ function FollowUpsPageContent() {
   const isExpiringToday = useCallback((phone?: string | null) =>
     !!phone && expiringTodayPhones.has(String(phone).replace(/\D/g, '').slice(-10)), [expiringTodayPhones])
 
+  //  📅 تاريخ انتهاء الاشتراك لصفوف «منتهي / قرب يخلص» — بالعضو نفسه، ولو متابعة حقيقية بالرقم
+  const memberExpiryMaps = useMemo(() => {
+    type SubInfo = { id: string; expiry: number; startDate: string | null; price: number | null }
+    const byId = new Map<string, SubInfo>()
+    const byPhone = new Map<string, SubInfo>()
+    for (const m of allMembersData as any[]) {
+      if (!m.expiryDate) continue
+      const t = new Date(m.expiryDate).getTime()
+      if (Number.isNaN(t)) continue
+      const info: SubInfo = { id: m.id, expiry: t, startDate: m.startDate || null, price: m.subscriptionPrice ?? null }
+      byId.set(m.id, info)
+      const p = String(m.phone || '').replace(/\D/g, '').slice(-10)
+      if (p && t > (byPhone.get(p)?.expiry ?? -Infinity)) byPhone.set(p, info)
+    }
+    return { byId, byPhone }
+  }, [allMembersData])
+
+  //  بيانات اشتراك العضو لصفوف «منتهي / قرب يخلص»: البداية + النهاية + السعر + رقمه للبروفايل
+  const getMemberSubscription = useCallback((fu: FollowUp) => {
+    const src = fu.visitor?.source
+    if (src !== 'expired-member' && src !== 'expiring-member') return null
+    const synthetic = /^(?:expired|expiring)-(.+)$/.exec(fu.id)
+    if (synthetic) {
+      const v = memberExpiryMaps.byId.get(synthetic[1])
+      if (v) return v
+    }
+    return memberExpiryMaps.byPhone.get(String(fu.visitor?.phone || '').replace(/\D/g, '').slice(-10)) ?? null
+  }, [memberExpiryMaps])
+
+  const getMemberExpiry = useCallback((fu: FollowUp): number | null =>
+    getMemberSubscription(fu)?.expiry ?? null, [getMemberSubscription])
+
+  //  فلتر «من تاريخ / إلى تاريخ»: الأعضاء بتاريخ الانتهاء، وباقي المتابعات بتاريخ الإضافة
+  const getFollowUpRangeTime = useCallback((fu: FollowUp) =>
+    getMemberExpiry(fu) ?? new Date(fu.createdAt).getTime(), [getMemberExpiry])
+
   //  تحسين الأداء: تنظيف رقم التليفون (memoized)
   const normalizePhone = useCallback((phone: string) => {
     if (!phone) return ''
@@ -648,6 +679,9 @@ function FollowUpsPageContent() {
     if (normalized.startsWith('0')) normalized = normalized.substring(1)
     return normalized
   }, [])
+
+  //  🌐 بيتغيّر لما الترجمة تحمّل أو اللغة تتبدّل — عشان الكروت تتبني تاني بالكلام المترجم
+  const followUpI18nReady = t('followups.notes.system')
 
   //  دمج المتابعات الحقيقية مع الأعضاء المنتهيين + الأعضاء القريبين من الانتهاء + Day Use + Invitations
   // ملاحظة: فلترة السيلز تتم في النهاية على الـ merged list (real + ephemeral) بشكل موحّد
@@ -737,7 +771,7 @@ function FollowUpsPageContent() {
       .filter(record => !realFollowUpPhones.has(normalizePhone(record.phone)) && !memberPhones.has(normalizePhone(record.phone)))
       .map(record => ({
         id: `dayuse-${record.id}`,
-        notes: t('followups.notes.dayUse', { serviceType: record.serviceType }),
+        notes: t('followups.notes.dayUse', { serviceType: locale === 'ar' ? ({ InBody: 'إنبودي', DayUse: 'يوم استخدام' } as Record<string, string>)[record.serviceType] || record.serviceType : record.serviceType }),
         contacted: false,
         nextFollowUpDate: undefined, // لا يُحدد تلقائياً
         result: undefined,
@@ -785,7 +819,7 @@ function FollowUpsPageContent() {
       .filter(visitor => !realFollowUpPhones.has(normalizePhone(visitor.phone)) && !memberPhones.has(normalizePhone(visitor.phone)))
       .map(visitor => ({
         id: `visitor-${visitor.id}`,
-        notes: visitor.notes || (visitor.source || 'walk-in'),
+        notes: visitor.notes || '', //  المصدر ظاهر في شارة لوحده — مايتكتبش كملاحظة
         contacted: false,
         nextFollowUpDate: undefined, // لا يُحدد تلقائياً
         result: undefined,
@@ -822,7 +856,7 @@ function FollowUpsPageContent() {
 
     return merged
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [followUps, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, visitors, normalizePhone, user, permissionsLoading, canManageSales, debouncedSearchTerm, loadingMembers, allMembersData])
+  }, [followUps, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, visitors, normalizePhone, user, permissionsLoading, canManageSales, debouncedSearchTerm, loadingMembers, allMembersData, followUpI18nReady])
 
   // الأرشفة التلقائية للمتابعات بعد تحويل الزائر لعضوية اتشالت — السجل بقى يفضل ظاهر
   // مع badge "✓ عضو الآن" بدل ما يتأرشف. لو فيه متابعات قديمة متأرشفة بـ reason='converted'
@@ -1374,6 +1408,14 @@ function FollowUpsPageContent() {
     return activeMemberPhones.has(normalizedVisitorPhone)
   }, [activeMemberPhones, normalizePhone])
 
+  //  ✅ اللي اشترك وبقى عضو نشط بيتشال من قايمة المتابعات.
+  //     بيفضل: «قرب يخلص» (لسه محتاج متابعة للتجديد)، وأي حد بتدوّر عليه بالبحث.
+  //     allFollowUps نفسها مابتتغيرش عشان إحصائيات تحويلات السيلز تفضل صح.
+  const listFollowUps = useMemo(() => {
+    if (debouncedSearchTerm.trim() || debouncedSearchId.trim()) return allFollowUps
+    return allFollowUps.filter(fu => fu.visitor.source === 'expiring-member' || !isVisitorAMember(fu.visitor.phone))
+  }, [allFollowUps, isVisitorAMember, debouncedSearchTerm, debouncedSearchId])
+
   //  مساعد للبحث عن memberId بالهاتف — يُستخدم في زر "تجديد سريع"
   const phoneToMemberId = useMemo(() => {
     const map = new Map<string, string>()
@@ -1420,7 +1462,7 @@ function FollowUpsPageContent() {
 
   // فلترة النتائج
   const filteredFollowUps = useMemo(() => {
-    return allFollowUps
+    return listFollowUps
       .filter(fu => {
         const searchNormalized = normalizeArabic(debouncedSearchTerm)
         const matchesSearch =
@@ -1500,7 +1542,7 @@ function FollowUpsPageContent() {
         //  فلتر بنطاق التاريخ (createdAt الخاص بالمتابعة)
         let matchesDateRange = true
         if (dateFromFilter || dateToFilter) {
-          const created = new Date(fu.createdAt).getTime()
+          const created = getFollowUpRangeTime(fu)
           if (dateFromFilter) {
             const [y, m, d] = dateFromFilter.split('-').map(Number)
             const fromTs = new Date(y, m - 1, d, 0, 0, 0, 0).getTime()
@@ -1516,26 +1558,38 @@ function FollowUpsPageContent() {
         return matchesSearch && matchesId && matchesResult && matchesContacted && matchesPriority && matchesSource && matchesGender && matchesSocial && matchesSales && matchesAssignedStaff && matchesDateRange
       })
       .sort((a, b) => {
-        if (sortByPriority) {
-          //  ترتيب حسب الأولوية ثم الأحدث أولاً
-          const aPriority = getFollowUpPriority(a)
-          const bPriority = getFollowUpPriority(b)
-
-          // ترتيب: overdue > today > upcoming > none
-          const priorityOrder: {[key: string]: number} = { overdue: 0, today: 1, upcoming: 2, none: 3 }
-          const priorityDiff = priorityOrder[aPriority] - priorityOrder[bPriority]
-          if (priorityDiff !== 0) return priorityDiff
+        if (expiryPriority) {
+          const ea = getMemberExpiry(a), eb = getMemberExpiry(b)
+          if (sourceFilter === 'expiring-member' || sourceFilter === 'expiring-today') {
+            //  📅 قربوا يخلصوا: اللي هيخلص الأول فوق، واللي تاريخه عدّى تحتهم
+            if (ea == null || eb == null) { if (ea !== eb) return ea == null ? 1 : -1 }
+            else {
+              const pastA = ea < todayMidnight, pastB = eb < todayMidnight
+              if (pastA !== pastB) return pastA ? 1 : -1
+              if (ea !== eb) return pastA ? eb - ea : ea - eb
+            }
+          } else {
+            //  📅 المنتهيين فوق: آخر واحد انتهى الأول ونرجع لورا، وبعدهم باقي المتابعات
+            const endedA = ea != null && ea < todayMidnight, endedB = eb != null && eb < todayMidnight
+            if (endedA !== endedB) return endedA ? -1 : 1
+            if (endedA && endedB && ea !== eb) return eb! - ea!
+          }
         }
+
+        //  الترتيب العادي: متأخر > النهارده > جاي > من غير ميعاد
+        const priorityOrder: {[key: string]: number} = { overdue: 0, today: 1, upcoming: 2, none: 3 }
+        const priorityDiff = priorityOrder[getFollowUpPriority(a)] - priorityOrder[getFollowUpPriority(b)]
+        if (priorityDiff !== 0) return priorityDiff
 
         //  ترتيب حسب تاريخ الإضافة: الأحدث أولاً
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       })
-  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, contactMethodFilter, priorityFilter, sourceFilter, genderFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority, getFollowUpPriority, user, isMyFollowUp, isExpiringToday])
+  }, [listFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, contactMethodFilter, priorityFilter, sourceFilter, genderFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, expiryPriority, getFollowUpPriority, user, isMyFollowUp, isExpiringToday, getMemberExpiry, getFollowUpRangeTime, todayMidnight])
 
   // إعادة تعيين الصفحة للأولى عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearchTerm, resultFilter, contactedFilter, contactMethodFilter, priorityFilter, sourceFilter, genderFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority])
+  }, [debouncedSearchTerm, resultFilter, contactedFilter, contactMethodFilter, priorityFilter, sourceFilter, genderFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, expiryPriority])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredFollowUps.length / itemsPerPage)
@@ -1835,6 +1889,7 @@ function FollowUpsPageContent() {
       'no-answer': locale === 'ar' ? 'لم يرد' : 'No answer',
       postponed: t('followups.results.postponed'),
       subscribed: t('followups.results.subscribed'),
+      success: locale === 'ar' ? 'نجحت' : 'Success',
     }
     if (!result) return <span className="text-gray-400 dark:text-gray-500">-</span>
     return (
@@ -1855,8 +1910,10 @@ function FollowUpsPageContent() {
       'facebook': t('followups.sources.facebook'),
       'instagram': t('followups.sources.instagram'),
       'tiktok': locale === 'ar' ? 'تيك توك' : 'TikTok',
-      'chatgpt': 'ChatGPT',
-      'google_maps': locale === 'ar' ? 'جوجل ماب / Google Maps' : 'Google Maps',
+      'chatgpt': locale === 'ar' ? 'شات جي بي تي' : 'ChatGPT',
+      'google_maps': locale === 'ar' ? 'جوجل ماب' : 'Google Maps',
+      'phone': locale === 'ar' ? 'تليفون' : 'Phone',
+      'member': locale === 'ar' ? 'عضو' : 'Member',
       'suggestion': locale === 'ar' ? 'اقتراح' : 'Suggestion',
       'friend_referral': locale === 'ar' ? 'إحالة من صديق' : 'Friend Referral',
       'friend': t('followups.sources.friend'),
@@ -1912,7 +1969,7 @@ function FollowUpsPageContent() {
     // فلتر مرة على كل المتابعات لتطبيق الفلاتر الأخرى (ما عدا contacted)
     const searchNormalized = normalizeArabic(debouncedSearchTerm)
 
-    for (const fu of allFollowUps) {
+    for (const fu of listFollowUps) {
       const mine = isMyFollowUp(fu)
       if (mine) myFollowUps++
 
@@ -1976,7 +2033,7 @@ function FollowUpsPageContent() {
 
       //  date range
       if (dateFromFilter || dateToFilter) {
-        const created = new Date(fu.createdAt).getTime()
+        const created = getFollowUpRangeTime(fu)
         if (dateFromFilter) {
           const [y, m, d] = dateFromFilter.split('-').map(Number)
           if (created < new Date(y, m - 1, d, 0, 0, 0, 0).getTime()) continue
@@ -1996,13 +2053,13 @@ function FollowUpsPageContent() {
       else notContacted++
     }
     return { myFollowUps, todayCount, notContacted, contacted, contactedWhatsapp, contactedCall }
-  }, [allFollowUps, isMyFollowUp, getFollowUpPriority, user?.isSales, canManageSales, debouncedSearchTerm, resultFilter, priorityFilter, salesFilter, assignedStaffFilter, sourceFilter, dateFromFilter, dateToFilter, isExpiringToday])
+  }, [listFollowUps, isMyFollowUp, getFollowUpPriority, user?.isSales, canManageSales, debouncedSearchTerm, resultFilter, priorityFilter, salesFilter, assignedStaffFilter, sourceFilter, dateFromFilter, dateToFilter, isExpiringToday, getFollowUpRangeTime])
 
   //  قائمة مفلترة بكل الفلاتر **ما عدا** فلتر المصدر (Source) وفلتر «تم التواصل»
   //  — تُستخدم لحساب أرقام أزرار المصدر. بنتجاهل contacted هنا عشان عدّاد «أعضاء منتهين»
   //  يفضل شامل (متواصل + غير متواصل) فيبقى «منتهي بدون متابعة» دايمًا جزء منه مش أكبر منه.
   const followUpsFilteredExceptSource = useMemo(() => {
-    return allFollowUps.filter(fu => {
+    return listFollowUps.filter(fu => {
       const searchNormalized = normalizeArabic(debouncedSearchTerm)
       const matchesSearch =
         normalizeArabic(fu.visitor.name).includes(searchNormalized) ||
@@ -2037,7 +2094,7 @@ function FollowUpsPageContent() {
 
       let matchesDateRange = true
       if (dateFromFilter || dateToFilter) {
-        const created = new Date(fu.createdAt).getTime()
+        const created = getFollowUpRangeTime(fu)
         if (dateFromFilter) {
           const [y, m, d] = dateFromFilter.split('-').map(Number)
           if (created < new Date(y, m - 1, d, 0, 0, 0, 0).getTime()) matchesDateRange = false
@@ -2050,7 +2107,7 @@ function FollowUpsPageContent() {
 
       return matchesSearch && matchesResult && matchesContacted && matchesPriority && matchesSales && matchesAssignedStaff && matchesDateRange
     })
-  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, getFollowUpPriority, isMyFollowUp])
+  }, [listFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, getFollowUpPriority, isMyFollowUp, getFollowUpRangeTime])
 
   // Stats - memoized لتجنب إعادة الحساب في كل render
   // الأرقام تتحدّث ديناميكياً مع باقي الفلاتر
@@ -2103,22 +2160,6 @@ function FollowUpsPageContent() {
       //  النشطين الأول وبعدهم المنتهيين
       .sort((a, b) => Number(a.isExpired) - Number(b.isExpired))
   }, [allMembersData])
-
-  //  قائمة المتحولين لأعضاء - مبسط ومحسّن: أي شخص رقمه موجود في الأعضاء النشطين
-  // يشمل: زوار، دعوات، أعضاء منتهيين، أعضاء قريبين من الانتهاء - كلهم بنفس المنطق
-  //  dedupe بالـ normalized phone عشان منكررش نفس الشخص
-  const convertedMembers = useMemo(() => {
-    const seen = new Set<string>()
-    const out: typeof allFollowUps = []
-    for (const fu of allFollowUps) {
-      if (!isVisitorAMember(fu.visitor.phone)) continue
-      const key = normalizePhone(fu.visitor.phone)
-      if (!key || seen.has(key)) continue
-      seen.add(key)
-      out.push(fu)
-    }
-    return out
-  }, [allFollowUps, isVisitorAMember, normalizePhone])
 
   //  إحصائيات فردية لكل سيلز
   // محسّن: pass واحد على allFollowUps بدلاً من filter لكل سيلز
@@ -3041,7 +3082,7 @@ function FollowUpsPageContent() {
                   }`}
                 >
                   <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                  {t('followups.quickFilters.all')} ({allFollowUps.length})
+                  {t('followups.quickFilters.all')} ({listFollowUps.length})
                 </button>
               )}
               <button
@@ -3127,19 +3168,17 @@ function FollowUpsPageContent() {
               )}
             </div>
             <button
-              onClick={() => { const v = !sortByPriority; setSortByPriority(v); localStorage.setItem('followups-sortByPriority', String(v)) }}
+              type="button"
+              data-expiry-priority
+              aria-pressed={expiryPriority}
+              onClick={() => setExpiryPriority(v => !v)}
+              title={direction === 'rtl' ? 'اللي انتهى امبارح الأول وبعدين اللي قبله' : 'Most recently expired first'}
               className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-colors duration-200 inline-flex items-center gap-1.5 ${
-                sortByPriority ? 'bg-orange-500 text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                expiryPriority ? 'bg-orange-500 text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
-              {sortByPriority ? (
-                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.24 17 7.092 18.246 9.61 18 11 18 12c0 1.105.395 2.16 1.103 2.93.711.769 1.066 1.756.554 2.727z"/></svg>
-              ) : (
-                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              )}
-              {direction === 'rtl'
-                ? (sortByPriority ? 'ترتيب: أولوية' : 'ترتيب: الأحدث')
-                : (sortByPriority ? 'Sort: Priority' : 'Sort: Newest')}
+              <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.24 17 7.092 18.246 9.61 19 11 19 13a7 7 0 01-1.343 5.657z"/></svg>
+              {direction === 'rtl' ? 'ترتيب: أولوية' : 'Sort: Priority'}
             </button>
           </div>
         )}
@@ -3462,10 +3501,16 @@ function FollowUpsPageContent() {
             {currentFollowUps.map((followUp) => {
               const isExpired = followUp.visitor.source === 'expired-member'
               const isExpiring = followUp.visitor.source === 'expiring-member'
+              //  📋 عضو منتهي/قرب يخلص: بيانات اشتراكه في بلوك واحد بدل التكرار
+              const memberSub = getMemberSubscription(followUp)
+              //  صف اتولّد من العضو (لسه مفيش متابعة متسجلة) — ملاحظته وتاريخ تحديثه مش معلومة حقيقية
+              const isAutoMemberRow = /^(expired|expiring)-/.test(followUp.id)
+              const cardDateLocale = locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB'
 
               return (
                 <div
                   key={followUp.id}
+                  data-followup-card={followUp.id}
                   className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 sm:p-5 ring-1 ${
                     isExpired
                       ? 'ring-red-300 dark:ring-red-900/50 bg-gradient-to-br from-red-50/50 to-white dark:from-red-900/10 dark:to-gray-800'
@@ -3654,7 +3699,7 @@ function FollowUpsPageContent() {
                               }`}>
                                 {followUp.visitor.name}
                               </span>
-                              {isVisitorAMember(followUp.visitor.phone) && (
+                              {isVisitorAMember(followUp.visitor.phone) && !isExpiring && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-300 dark:ring-emerald-800">
                                   <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
                                   {locale === 'ar' ? 'عضو الآن' : 'Now a Member'}
@@ -3702,12 +3747,12 @@ function FollowUpsPageContent() {
                     </div>
 
                     {/* المصدر ومهتم بإيه - معلومات مهمة */}
-                    <div className="grid grid-cols-1 gap-2">
+                    <div className={`grid grid-cols-1 gap-2 ${memberSub && !followUp.visitor.interestedIn ? 'hidden' : ''}`}>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-gray-500 dark:text-gray-400 inline-flex items-center">
+                        <span className={`text-gray-500 dark:text-gray-400 items-center ${memberSub ? 'hidden' : 'inline-flex'}`}>
                           <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
                         </span>
-                        <span className={`${
+                        <span className={`${memberSub ? 'hidden ' : ''}${
                           followUp.visitor.source === 'invitation'
                             ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300 px-3 py-1 rounded-full text-xs font-bold'
                             : followUp.visitor.source === 'member-invitation'
@@ -3726,11 +3771,13 @@ function FollowUpsPageContent() {
                         {/* مهتم بإيه - بروز أكبر */}
                         {followUp.visitor.interestedIn && (
                           <>
-                            <span className="text-gray-400 dark:text-gray-500">•</span>
+                            {!memberSub && <span className="text-gray-400 dark:text-gray-500">•</span>}
                             <div className="flex items-center gap-1.5 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40 px-3 py-1 rounded-full ring-1 ring-blue-300 dark:ring-blue-900/50">
                               <svg className="w-3.5 h-3.5 text-blue-700 dark:text-blue-300" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
                               <span className="text-blue-900 dark:text-blue-200 text-xs font-bold">
-                                {followUp.visitor.interestedIn}
+                                {locale === 'ar'
+                                  ? (({ pt: 'الحصص المخصصة', inbody: 'إنبودي', gym: 'جيم', nutrition: 'تغذية', physiotherapy: 'علاج طبيعي' } as Record<string, string>)[String(followUp.visitor.interestedIn).trim().toLowerCase()] || followUp.visitor.interestedIn)
+                                  : followUp.visitor.interestedIn}
                               </span>
                             </div>
                           </>
@@ -3738,16 +3785,61 @@ function FollowUpsPageContent() {
                       </div>
                     </div>
 
+                    {/*  📋 بيانات الاشتراك للمنتهي واللي قرب يخلص + زرار البروفايل */}
+                    {memberSub && (() => {
+                      const fmt = (v: string | number | null) => {
+                        if (v == null) return '—'
+                        const d = new Date(v)
+                        return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString(cardDateLocale, { day: 'numeric', month: 'short', year: 'numeric' })
+                      }
+                      const day = new Date(memberSub.expiry); day.setHours(0, 0, 0, 0)
+                      const today = new Date(); today.setHours(0, 0, 0, 0)
+                      const diff = Math.round((day.getTime() - today.getTime()) / 86400000)
+                      const n = Math.abs(diff)
+                      const daysAr = n === 1 ? 'يوم' : n === 2 ? 'يومين' : n <= 10 ? `${n} أيام` : `${n} يوم`
+                      const past = diff < 0
+                      const title = past ? (locale === 'ar' ? 'اشتراك منتهي' : 'Expired subscription') : (locale === 'ar' ? 'اشتراك قرب يخلص' : 'Expiring subscription')
+                      const when = past
+                        ? (diff === -1 ? (locale === 'ar' ? 'انتهى امبارح' : 'Expired yesterday') : (locale === 'ar' ? `انتهى من ${daysAr}` : `Expired ${n}d ago`))
+                        : diff === 0
+                          ? (locale === 'ar' ? 'بينتهي النهارده' : 'Expires today')
+                          : (locale === 'ar' ? `فاضل ${daysAr}` : `${n}d left`)
+                      const cells = [
+                        { label: locale === 'ar' ? 'بداية الاشتراك' : 'Start date', value: fmt(memberSub.startDate) },
+                        { label: locale === 'ar' ? 'نهاية الاشتراك' : 'End date', value: fmt(memberSub.expiry) },
+                        { label: locale === 'ar' ? 'سعر الاشتراك' : 'Subscription price', value: memberSub.price != null ? `${Number(memberSub.price).toLocaleString('en-US')} ${locale === 'ar' ? 'ج.م' : 'EGP'}` : '—' },
+                      ]
+                      return (
+                        <div data-member-sub={memberSub.id} data-member-expiry={day.getTime()} className={`rounded-xl overflow-hidden ring-1 ${past ? 'ring-red-200 dark:ring-red-900/60' : 'ring-amber-200 dark:ring-amber-900/60'}`}>
+                          <div className={`flex items-center justify-between gap-3 px-3.5 py-2.5 ${past ? 'bg-red-50 dark:bg-red-950/40' : 'bg-amber-50 dark:bg-amber-950/30'}`}>
+                            <div className="flex items-center gap-2 flex-wrap min-w-0">
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${past ? 'bg-red-500' : 'bg-amber-500'}`} aria-hidden="true" />
+                              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{title}</span>
+                              <span className={`text-xs font-bold ${past ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'}`}>{when}</span>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 bg-white/60 dark:bg-gray-900/30">
+                            {cells.map((c, i) => (
+                              <div key={c.label} className={`flex sm:block items-center justify-between gap-2 px-3.5 py-2 ${i > 0 ? 'border-t sm:border-t-0 sm:border-s border-gray-200 dark:border-gray-700' : ''}`}>
+                                <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">{c.label}</div>
+                                <div className="text-sm font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap sm:mt-0.5">{c.value}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })()}
+
                     {/* تفاصيل الزائر الإضافية: تاريخ أول تواصل، حالة الزائر، العضو المُحيل، الملاحظات */}
-                    {(followUp.visitor.createdAt || followUp.visitor.status || followUp.visitor.referrerMemberNumber || followUp.visitor.notes) && (
+                    {(followUp.visitor.createdAt || (followUp.visitor.status && !memberSub) || followUp.visitor.referrerMemberNumber) && (
                       <div className="flex items-center gap-2 flex-wrap text-xs">
                         {followUp.visitor.createdAt && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
                             <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                            <span>{locale === 'ar' ? 'أول تواصل:' : 'First contact:'} {new Date(followUp.visitor.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}</span>
+                            <span>{locale === 'ar' ? 'أول تواصل:' : 'First contact:'} {new Date(followUp.visitor.createdAt).toLocaleDateString(cardDateLocale)}</span>
                           </span>
                         )}
-                        {followUp.visitor.status && (
+                        {followUp.visitor.status && !memberSub && (
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold ${
                             followUp.visitor.status === 'contacted' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
                             : followUp.visitor.status === 'subscribed' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
@@ -3755,7 +3847,7 @@ function FollowUpsPageContent() {
                             : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
                           }`}>
                             {locale === 'ar'
-                              ? (followUp.visitor.status === 'pending' ? 'في الانتظار' : followUp.visitor.status === 'contacted' ? 'تم التواصل' : followUp.visitor.status === 'subscribed' ? 'مشترك' : followUp.visitor.status === 'rejected' ? 'رفض' : followUp.visitor.status === 'lost' ? 'مفقود' : followUp.visitor.status)
+                              ? (followUp.visitor.status === 'pending' ? 'في الانتظار' : followUp.visitor.status === 'contacted' ? 'تم التواصل' : followUp.visitor.status === 'subscribed' ? 'مشترك' : followUp.visitor.status === 'rejected' ? 'رفض' : followUp.visitor.status === 'lost' ? 'مفقود' : followUp.visitor.status === 'converted' ? 'اشترك' : followUp.visitor.status === 'not_interested' ? 'مش مهتم' : followUp.visitor.status === 'expired' ? 'منتهي' : followUp.visitor.status === 'expiring' ? 'قرب ينتهي' : 'غير محدد')
                               : followUp.visitor.status}
                           </span>
                         )}
@@ -3781,7 +3873,7 @@ function FollowUpsPageContent() {
                     )}
 
                     {/* موظف المبيعات */}
-                    {followUp.salesName && (
+                    {followUp.salesName && followUp.salesName !== t('followups.notes.system') && (
                       <div className="flex items-center gap-2">
                         <span className="text-gray-500 dark:text-gray-400 inline-flex items-center">
                           <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
@@ -3804,10 +3896,10 @@ function FollowUpsPageContent() {
                           <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 mb-1">{lastComment.notes}</p>
                           <p className="text-[10px] text-gray-500 dark:text-gray-400">
                             {lastComment.salesName && <span className="text-orange-500 dark:text-orange-400 font-medium">{lastComment.salesName} • </span>}
-                            {new Date(lastComment.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
+                            {new Date(lastComment.createdAt).toLocaleDateString(cardDateLocale)}
                           </p>
                         </div>
-                      ) : followUp.notes ? (
+                      ) : followUp.notes && !isAutoMemberRow ? (
                         <div className="bg-gray-50 dark:bg-gray-900/40 p-2.5 rounded-lg border-s-4 border-gray-400 dark:border-gray-500">
                           <div className="flex items-start gap-2 mb-1">
                             <span className="text-gray-600 dark:text-gray-300 text-xs font-semibold inline-flex items-center gap-1">
@@ -3821,12 +3913,13 @@ function FollowUpsPageContent() {
                     })()}
 
                     {/* النتيجة وحالة التواصل والتواريخ */}
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                       <div className="flex flex-col gap-1">
                         <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{t('followups.table.resultLabel')}</span>
                         {getResultBadge(followUp.result)}
                       </div>
-                      <div className="flex flex-col gap-1">
+                      {/*  حالة التواصل في نص الكارت */}
+                      <div data-contact-status className="flex flex-col items-center text-center gap-1">
                         <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{t('followups.table.contactStatusLabel')}</span>
                         {followUp.contacted ? (
                           <span className="text-green-600 dark:text-green-400 text-xs font-medium inline-flex items-center gap-1">
@@ -3840,19 +3933,23 @@ function FollowUpsPageContent() {
                           </span>
                         )}
                       </div>
+                      <div className="flex justify-end gap-3 sm:gap-5">
                       {followUp.nextFollowUpDate && (
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col items-end text-end gap-1">
                           <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{locale === 'ar' ? 'المتابعة القادمة' : 'Next follow-up'}</span>
                           <span className="text-xs font-medium text-primary-600 dark:text-primary-400">
-                            {new Date(followUp.nextFollowUpDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
+                            {new Date(followUp.nextFollowUpDate).toLocaleDateString(cardDateLocale, { month: 'short', day: 'numeric' })}
                           </span>
                         </div>
                       )}
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{locale === 'ar' ? 'آخر تحديث' : 'Last update'}</span>
-                        <span className="text-[10px] text-gray-600 dark:text-gray-300">
-                          {new Date(followUp.updatedAt || followUp.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
-                        </span>
+                      {!isAutoMemberRow && (
+                        <div className="flex flex-col items-end text-end gap-1">
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{locale === 'ar' ? 'آخر تحديث' : 'Last update'}</span>
+                          <span className="text-[10px] text-gray-600 dark:text-gray-300">
+                            {new Date(followUp.updatedAt || followUp.createdAt).toLocaleDateString(cardDateLocale, { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                      )}
                       </div>
                     </div>
                   </div>
@@ -3986,75 +4083,6 @@ function FollowUpsPageContent() {
           )}
         </>
       ))}
-
-      {/* Recently Converted Section */}
-      {convertedMembers.length > 0 && viewMode === 'list' && (
-        <div className="mt-6 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 ring-1 ring-emerald-300 dark:ring-emerald-900/50 rounded-xl p-4 sm:p-6">
-          <h3 className="font-bold text-emerald-900 dark:text-emerald-100 mb-4 flex items-center gap-2 text-lg sm:text-xl">
-            <svg className="w-6 h-6" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-            <span>{t('followups.convertedMembers')}</span>
-            <span className="bg-emerald-600 text-white text-sm px-3 py-1 rounded-full">
-              {convertedMembers.length}
-            </span>
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {convertedMembers
-              .slice(0, 6)
-              .map((fu) => {
-                const isExpired = fu.visitor.source === 'expired-member'
-                const isExpiring = fu.visitor.source === 'expiring-member'
-                const isRenewal = isExpired || isExpiring
-
-                return (
-                  <div
-                    key={fu.id}
-                    className="bg-white dark:bg-gray-800 ring-1 ring-emerald-200 dark:ring-emerald-900/50 rounded-lg p-3 hover:shadow-md transition-shadow duration-200"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <p className="font-bold text-gray-900 dark:text-gray-100 text-sm sm:text-base">{fu.visitor.name}</p>
-                        <p className={`text-xs text-gray-500 dark:text-gray-400 ${hideNumbers ? 'select-none tracking-widest' : ''}`} dir="ltr">{hideNumbers ? maskPhone(fu.visitor.phone) : fu.visitor.phone}</p>
-                        {isRenewal && (
-                          <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 text-[10px] font-bold rounded-full">
-                            <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                            {locale === 'ar' ? 'تجديد' : 'Renewal'}
-                          </span>
-                        )}
-                        {!isRenewal && (
-                          <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 text-[10px] font-bold rounded-full">
-                            <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
-                            {locale === 'ar' ? 'عضو جديد' : 'New member'}
-                          </span>
-                        )}
-                      </div>
-                      <svg className="w-6 h-6 text-green-600 dark:text-green-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                    </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-300 mt-2 space-y-1">
-                      <p className="flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                        <span>{getSourceLabel(fu.visitor.source)}</span>
-                      </p>
-                      {fu.salesName && (
-                        <p className="flex items-center gap-1.5">
-                          <svg className="w-3.5 h-3.5 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                          <span className="font-semibold text-emerald-700 dark:text-emerald-300">{fu.salesName}</span>
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-          </div>
-          {convertedMembers.length > 6 && (
-            <p className="text-center text-sm text-emerald-700 dark:text-emerald-300 mt-4 font-medium">
-              {locale === 'ar'
-                ? `وأكثر من ${convertedMembers.length - 6} شخص آخر تحول لعضو / جدد`
-                : `And ${convertedMembers.length - 6} more people converted / renewed`}
-            </p>
-          )}
-        </div>
-      )}
-
 
       {/* Quick Tips */}
       <div className="mt-4 bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 border-s-4 border-primary-500 p-5 rounded-lg">

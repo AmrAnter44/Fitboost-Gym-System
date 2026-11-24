@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react'
 import nextDynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import ExcelJS from 'exceljs'
 import { useLanguage } from '../../contexts/LanguageContext'
@@ -15,8 +16,9 @@ import { useToast } from '../../contexts/ToastContext'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { LoadingScreen } from '../../components/Spinner'
 import FullReportExportButton from '../../components/FullReportExportButton'
-import { isPTReceipt, isFloorReceipt } from '../../lib/translateReceiptType'
+import { isPTReceipt, isMoreReceipt, isFloorReceipt } from '../../lib/translateReceiptType'
 import { countsAsRevenue } from '../../lib/revenueFilters'
+import GenderCountPills, { type GenderFilter, type GenderCounts } from '../../components/GenderCountPills'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +28,36 @@ const MembersAnalytics = nextDynamic(() => import('../../components/MembersAnaly
 })
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
+//  🚻 فلتر الجنس لتابات التقارير (إيرادات / اشتراكات / متابعات / PT) — «الكل» بيعدّي كل حاجة
+//  🔗 اسم العضو في التقارير بيفتح بروفايله — بنلاقيه بالـ id، وبعدها رقم العضوية، وبعدها التليفون
+type MemberRef = { memberId?: unknown; memberNumber?: unknown; phone?: unknown }
+const MemberLinkContext = React.createContext<(ref: MemberRef) => string | null>(() => null)
+const phoneKey = (p: unknown) => String(p || '').replace(/\D/g, '').slice(-9)
+
+function MemberNameLink({ name, memberId, memberNumber, phone }: MemberRef & { name: React.ReactNode }) {
+  const resolve = React.useContext(MemberLinkContext)
+  const { locale } = useLanguage()
+  const id = name && name !== '-' ? resolve({ memberId, memberNumber, phone }) : null
+  if (!id) return <>{name}</>
+  return (
+    <Link
+      href={`/members/${id}`}
+      data-member-link={id}
+      onClick={(e) => e.stopPropagation()}
+      title={locale === 'ar' ? 'فتح بروفايل العضو' : 'Open member profile'}
+      className="cursor-pointer rounded hover:text-primary-600 dark:hover:text-primary-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+    >
+      {name}
+    </Link>
+  )
+}
+
+const GenderReportContext = React.createContext<{
+  filter: GenderFilter
+  receiptOk: (r: any) => boolean
+  phoneOk: (phone: unknown, fallback?: unknown) => boolean
+}>({ filter: 'all', receiptOk: () => true, phoneOk: () => true })
 
 const IconChartBar = (p: { className?: string }) => (
   <svg {...stroke} className={p.className} aria-hidden="true">
@@ -78,7 +110,7 @@ const IconTrendUp = (p: { className?: string }) => (
   </svg>
 )
 
-type TabType = 'revenue' | 'subscriptions' | 'forecast' | 'followups' | 'pt' | 'staff'
+type TabType = 'revenue' | 'subscriptions' | 'forecast' | 'followups' | 'pt' | 'more' | 'staff'
 
 const TAB_ICONS: Record<TabType, (p: { className?: string }) => JSX.Element> = {
   revenue: IconMoney,
@@ -86,6 +118,7 @@ const TAB_ICONS: Record<TabType, (p: { className?: string }) => JSX.Element> = {
   forecast: IconTrendUp,
   followups: IconNote,
   pt: IconDumbbell,
+  more: IconDumbbell,
   staff: IconUsers,
 }
 
@@ -117,6 +150,61 @@ export default function ReportsPage() {
   const [paymentFilter, setPaymentFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
 
+  //  🚻 الرجالة والسيدات — للجيم المكس بس، والديفولت «الكل»
+  const [genderFilter, setGenderFilter] = useState<GenderFilter>('all')
+  const mixedGym = !!settings.mixedGymEnabled
+  const { data: genderIndex } = useQuery<{ counts: GenderCounts; phones: Record<string, string>; receipts: Record<string, string> }>({
+    queryKey: ['reports-gender-index', dateFrom, dateTo],
+    queryFn: async () => {
+      const res = await fetch(`/api/reports/gender-index?startDate=${dateFrom}&endDate=${dateTo}`)
+      if (!res.ok) throw new Error('gender-index')
+      return res.json()
+    },
+    enabled: mixedGym && !permLoading,
+    staleTime: 30 * 1000,
+  })
+  const genderCtx = useMemo(() => {
+    const filter: GenderFilter = mixedGym ? genderFilter : 'all'
+    const norm = (g: unknown) => (g === 'male' || g === 'female' ? g : 'unknown')
+    return {
+      filter,
+      receiptOk: (rc: any) => filter === 'all' || (genderIndex?.receipts?.[rc.id] ?? 'unknown') === filter,
+      phoneOk: (phone: unknown, fallback?: unknown) => {
+        if (filter === 'all') return true
+        const sig = String(phone || '').replace(/\D/g, '').slice(-9)
+        return (genderIndex?.phones?.[sig] ?? norm(fallback)) === filter
+      },
+    }
+  }, [mixedGym, genderFilter, genderIndex])
+
+  //  🔗 فهرس الأعضاء لروابط الأسماء — نفس كاش تقرير المتابعات، ومن غير صلاحية الأعضاء الاسم بيفضل نص عادي
+  const canOpenMembers = !permLoading && hasPermission('canViewMembers' as any)
+  const { data: linkMembers = [] } = useQuery({
+    queryKey: ['followups-report-members'],
+    queryFn: () => fetchMembersData(),
+    enabled: canOpenMembers,
+    staleTime: 60 * 1000,
+  })
+  const resolveMember = useMemo(() => {
+    const ids = new Set<string>()
+    const byNumber = new Map<string, string>()
+    const byPhone = new Map<string, { id: string; t: number }>()
+    for (const m of linkMembers as any[]) {
+      ids.add(m.id)
+      if (m.memberNumber != null) byNumber.set(String(m.memberNumber), m.id)
+      const t = m.expiryDate ? new Date(m.expiryDate).getTime() : 0
+      for (const ph of [m.phone, m.backupPhone]) {
+        const k = phoneKey(ph)
+        if (k.length === 9 && t >= (byPhone.get(k)?.t ?? -Infinity)) byPhone.set(k, { id: m.id, t })
+      }
+    }
+    return ({ memberId, memberNumber, phone }: MemberRef): string | null => {
+      if (memberId && ids.has(String(memberId))) return String(memberId)
+      if (memberNumber != null && byNumber.has(String(memberNumber))) return byNumber.get(String(memberNumber))!
+      return byPhone.get(phoneKey(phone))?.id ?? null
+    }
+  }, [linkMembers])
+
   if (permLoading) return <LoadingScreen fullScreen />
   if (!hasPermission('canViewReports' as any) && !hasPermission('canViewFinancials' as any)) {
     return <div className="flex items-center justify-center min-h-screen"><p className="text-lg text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'ليس لديك صلاحية' : 'Permission denied'}</p></div>
@@ -127,12 +215,14 @@ export default function ReportsPage() {
   const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' }) : '-'
   const formatCurrency = (n: number) => `${n.toLocaleString()} ${locale === 'ar' ? 'ج.م' : 'EGP'}`
 
+  const canSeeMore = settings.moreEnabled && hasPermission('canViewMore' as any)
   const tabs: { id: TabType; label: string }[] = [
     { id: 'revenue', label: t('reports.tabs.revenue' as any) },
     { id: 'subscriptions', label: locale === 'ar' ? 'الاشتراكات' : 'Subscriptions' },
     { id: 'forecast', label: locale === 'ar' ? 'التحليلات' : 'Analytics' },
     { id: 'followups', label: t('reports.tabs.followups' as any) },
     { id: 'pt', label: t('reports.tabs.pt' as any) },
+    ...(canSeeMore ? [{ id: 'more' as TabType, label: locale === 'ar' ? 'تقارير المزيد' : 'More Reports' }] : []),
     { id: 'staff', label: t('reports.tabs.staff' as any) },
   ]
 
@@ -187,6 +277,19 @@ export default function ReportsPage() {
         })}
       </div>
 
+      {/*  🚻 الرجالة والسيدات بالعدد — للتابات اللي فيها أعضاء، ولو الجيم مكس */}
+      {mixedGym && ['revenue', 'subscriptions', 'followups', 'pt', 'more'].includes(activeTab) && (
+        <GenderCountPills
+          value={genderFilter}
+          onChange={setGenderFilter}
+          counts={genderIndex?.counts || { all: 0, male: 0, female: 0, unknown: 0 }}
+          ar={locale === 'ar'}
+          className="mb-4"
+        />
+      )}
+
+      <MemberLinkContext.Provider value={resolveMember}>
+      <GenderReportContext.Provider value={genderCtx}>
       {/* Tab Content */}
       {activeTab === 'revenue' && <RevenueTab dateFrom={dateFrom} dateTo={dateTo} paymentFilter={paymentFilter} setPaymentFilter={setPaymentFilter} typeFilter={typeFilter} setTypeFilter={setTypeFilter} formatDate={formatDate} formatCurrency={formatCurrency} direction={direction} locale={locale} t={t} />}
       {activeTab === 'revenue' && settings.mixedGymEnabled && <RevenueByGenderCard dateFrom={dateFrom} dateTo={dateTo} formatCurrency={formatCurrency} direction={direction} />}
@@ -194,7 +297,10 @@ export default function ReportsPage() {
       {activeTab === 'forecast' && <ForecastTab direction={direction} locale={locale} />}
       {activeTab === 'followups' && <FollowupsTab dateFrom={dateFrom} dateTo={dateTo} formatDate={formatDate} direction={direction} locale={locale} t={t} />}
       {activeTab === 'pt' && <PTTab dateFrom={dateFrom} dateTo={dateTo} formatDate={formatDate} formatCurrency={formatCurrency} direction={direction} locale={locale} t={t} />}
+      {activeTab === 'more' && canSeeMore && <PTTab service="more" dateFrom={dateFrom} dateTo={dateTo} formatDate={formatDate} formatCurrency={formatCurrency} direction={direction} locale={locale} t={t} />}
       {activeTab === 'staff' && <StaffTab dateFrom={dateFrom} dateTo={dateTo} formatDate={formatDate} formatCurrency={formatCurrency} direction={direction} locale={locale} t={t} isAdmin={isAdmin} />}
+      </GenderReportContext.Provider>
+      </MemberLinkContext.Provider>
     </div>
   )
 }
@@ -209,6 +315,7 @@ const tableTrCls = 'hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors
 // =========== REVENUE TAB ===========
 function RevenueTab({ dateFrom, dateTo, paymentFilter, setPaymentFilter, typeFilter, setTypeFilter, formatDate, formatCurrency, direction, locale, t }: any) {
   const toast = useToast()
+  const gender = React.useContext(GenderReportContext)
   // 🗓️ جلب الإيصالات في النطاق المحدد بس — بدل تحميل كل إيصالات التاريخ كله
   const { data: receipts = [], isLoading } = useQuery({
     queryKey: ['receipts-report', dateFrom, dateTo],
@@ -224,9 +331,10 @@ function RevenueTab({ dateFrom, dateTo, paymentFilter, setPaymentFilter, typeFil
       //  بنعرض كل الإيصالات بما فيها الملغية — الملغي بيتعلّم عليه X أحمر
       if (paymentFilter !== 'all' && (r.paymentMethod || '').toLowerCase() !== paymentFilter) return false
       if (typeFilter !== 'all' && r.type !== typeFilter) return false
+      if (!gender.receiptOk(r)) return false
       return true
     })
-  }, [receipts, dateFrom, dateTo, paymentFilter, typeFilter])
+  }, [receipts, dateFrom, dateTo, paymentFilter, typeFilter, gender])
 
   //  المرتجع = ملغي اتحدّدله طريقة استرجاع · الملغي = ملغي من غير استرجاع
   const isRefunded = (r: any) => !!r.isCancelled && !!r.refundMethod
@@ -352,7 +460,13 @@ function RevenueTab({ dateFrom, dateTo, paymentFilter, setPaymentFilter, typeFil
                   </td>
                   <td className={`${tableTdCls} font-bold ${cancelled ? 'text-red-500 dark:text-red-400 line-through' : 'text-green-600 dark:text-green-400'}`}>{formatCurrency(r.amount || 0)}</td>
                   <td className={tableTdCls}>{r.paymentMethod || '-'}</td>
-                  <td className={tableTdCls}>{getClientName(r)}</td>
+                  <td className={tableTdCls}>
+                    {(() => {
+                      let d: any = {}
+                      try { d = typeof r.itemDetails === 'string' ? JSON.parse(r.itemDetails) : (r.itemDetails || {}) } catch { /* مش JSON */ }
+                      return <MemberNameLink name={getClientName(r)} memberId={r.memberId} memberNumber={d?.memberNumber} phone={d?.phone} />
+                    })()}
+                  </td>
                   <td className={tableTdCls}>{r.staffName || '-'}</td>
                 </tr>
                 )
@@ -389,6 +503,7 @@ function RevenueTab({ dateFrom, dateTo, paymentFilter, setPaymentFilter, typeFil
 // =========== FOLLOWUPS TAB ===========
 function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: any) {
   const toast = useToast()
+  const gender = React.useContext(GenderReportContext)
   const router = useRouter()
   const { data: followups = [], isLoading } = useQuery({
     queryKey: ['followups-report', dateFrom, dateTo],
@@ -447,9 +562,9 @@ function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: an
     const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
     return followups.filter((f: any) => {
       const d = new Date(f.createdAt)
-      return d >= from && d <= to
+      return d >= from && d <= to && gender.phoneOk(f.visitor?.phone, f.visitor?.gender)
     })
-  }, [followups, dateFrom, dateTo])
+  }, [followups, dateFrom, dateTo, gender])
 
   const salesOptions = useMemo(() => {
     const m = new Map<string, string>()
@@ -571,7 +686,7 @@ function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: an
                   className={`${tableTrCls} cursor-pointer hover:bg-primary-50/60 dark:hover:bg-primary-900/20`}
                 >
                   <td className={`${tableTdCls} font-bold text-gray-900 dark:text-gray-100`}>
-                    {f.visitor?.name || '-'}
+                    <MemberNameLink name={f.visitor?.name || '-'} phone={f.visitor?.phone} />
                     {remainingOf(f) > 0 && (
                       <span className="ms-2 inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 whitespace-nowrap">
                         {ar ? 'باقي' : 'Due'} {Math.round(remainingOf(f)).toLocaleString(ar ? 'ar-EG' : 'en-US')}
@@ -596,13 +711,26 @@ function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: an
   )
 }
 
-// =========== PT TAB ===========
-function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale, t }: any) {
+// =========== PT / MORE TABS ===========
+async function fetchMoreReport() {
+  const res = await fetch('/api/more')
+  if (!res.ok) throw new Error('more-report')
+  return res.json()
+}
+
+//  البي تي والمزيد نفس الجدول، وكل واحد بيقرا بياناته وإيصالاته لوحده
+function PTTab({ service = 'pt', dateFrom, dateTo, formatDate, formatCurrency, direction, locale, t }: any) {
+  const isMore = service === 'more'
+  const numKey: 'ptNumber' | 'moreNumber' = isMore ? 'moreNumber' : 'ptNumber'
+  const isServiceReceipt = isMore ? isMoreReceipt : isPTReceipt
+  const tabLabel = isMore ? (locale === 'ar' ? 'تقارير المزيد' : 'More Reports') : t('reports.tabs.pt' as any)
+  const numberLabel = isMore ? (locale === 'ar' ? 'رقم المزيد' : 'More #') : t('reports.ptNumber' as any)
   const toast = useToast()
-  const { data: ptList = [], isLoading } = useQuery({ queryKey: ['pt-report'], queryFn: fetchPTSessions })
+  const gender = React.useContext(GenderReportContext)
+  const { data: ptList = [], isLoading } = useQuery<any[]>({ queryKey: [isMore ? 'more-report' : 'pt-report'], queryFn: isMore ? fetchMoreReport : fetchPTSessions })
   //  جلب الإيصالات كمان عشان نحسب الـ revenue الفعلي (مطابق للتقفيل الشهري)
   const { data: receipts = [], isLoading: receiptsLoading } = useQuery({
-    queryKey: ['pt-report-receipts', dateFrom, dateTo],
+    queryKey: ['service-report-receipts', dateFrom, dateTo],
     queryFn: () => fetchReceiptsByDateRange(dateFrom, dateTo),
   })
 
@@ -621,26 +749,27 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
     //  عشان اشتراك إيصاله في الفترة يظهر حتى لو تاريخ بدايته/إنشائه بره الفترة
     const paidPtNumbers = new Set<number>(
       (receipts || [])
-        .filter((r: any) => countsAsRevenue(r) && isPTReceipt(r.type) && r.ptNumber != null)
+        .filter((r: any) => countsAsRevenue(r) && isServiceReceipt(r.type) && r[numKey] != null)
         .filter((r: any) => { const d = new Date(r.createdAt); return d >= from && d <= to })
-        .map((r: any) => r.ptNumber as number)
+        .map((r: any) => r[numKey] as number)
     )
     return ptList.filter((p: any) => {
       //  يظهر لو بدأ اشتراكه في الفترة، أو ليه دفعة (إيصال) في الفترة
       const d = new Date(p.startDate || p.createdAt)
       const startedInRange = d >= from && d <= to
-      const paidInRange = p.ptNumber != null && paidPtNumbers.has(p.ptNumber)
+      const paidInRange = p[numKey] != null && paidPtNumbers.has(p[numKey])
       if (!startedInRange && !paidInRange) return false
       if (coachFilter && (p.coachName || '').trim() !== coachFilter) return false
+      if (!gender.phoneOk(p.phone)) return false
       return true
     })
-  }, [ptList, receipts, dateFrom, dateTo, coachFilter])
+  }, [ptList, receipts, dateFrom, dateTo, coachFilter, gender])
 
   //  🔗 خريطة رقم الـ PT → الكوتش الحقيقي (من سجل الـ PT) — أدق من اسم الكوتش في الإيصال
   //  لأن إيصال ممكن يتدفع قبل ما الكوتش يتحدد نهائيًا فيتخزّن اسم ناقص/مختلف
   const ptNumToCoach = useMemo(() => {
     const m = new Map<number, string>()
-    ;(ptList || []).forEach((p: any) => { if (p.ptNumber != null) m.set(p.ptNumber, (p.coachName || '').trim()) })
+    ;(ptList || []).forEach((p: any) => { if (p[numKey] != null) m.set(p[numKey], (p.coachName || '').trim()) })
     return m
   }, [ptList])
   const normNm = (s: any) => String(s ?? '').trim().toLowerCase()
@@ -652,7 +781,7 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
     const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
     return (receipts || [])
       .filter((r: any) => countsAsRevenue(r)) //  نفس قاعدة التقفيل الشهري بالظبط
-      .filter((r: any) => isPTReceipt(r.type))
+      .filter((r: any) => isServiceReceipt(r.type) && gender.receiptOk(r))
       .filter((r: any) => {
         const d = new Date(r.createdAt)
         return d >= from && d <= to
@@ -660,8 +789,8 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
       .filter((r: any) => {
         if (!coachFilter) return true
         //  رقم الـ PT هو الحَكَم: لو الإيصال مربوط بـ PT معروف يُنسب لكوتشه الحقيقي
-        if (r.ptNumber != null && ptNumToCoach.has(r.ptNumber)) {
-          return normNm(ptNumToCoach.get(r.ptNumber)) === normNm(coachFilter)
+        if (r[numKey] != null && ptNumToCoach.has(r[numKey])) {
+          return normNm(ptNumToCoach.get(r[numKey])) === normNm(coachFilter)
         }
         //  fallback: اسم الكوتش المكتوب في الإيصال (بعد تطبيع المسافات وحالة الأحرف)
         try {
@@ -669,7 +798,7 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
           return normNm(details.coachName) === normNm(coachFilter)
         } catch { return false }
       })
-  }, [receipts, dateFrom, dateTo, coachFilter, ptNumToCoach])
+  }, [receipts, dateFrom, dateTo, coachFilter, ptNumToCoach, gender, isMore])
 
   const isRefunded = (r: any) => !!r.isCancelled && !!r.refundMethod
   const totalRevenue = useMemo(() => ptReceiptsInRange.reduce((s: number, r: any) => s + (r.amount || 0), 0), [ptReceiptsInRange]) // إجمالي
@@ -680,10 +809,10 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
   const ptCancelStatus = useMemo(() => {
     const m = new Map<number, { refunded: boolean; voided: boolean }>()
     for (const r of (receipts || [])) {
-      if (!r.isCancelled || !isPTReceipt(r.type) || r.ptNumber == null) continue
-      const cur = m.get(r.ptNumber) || { refunded: false, voided: false }
+      if (!r.isCancelled || !isServiceReceipt(r.type) || r[numKey] == null) continue
+      const cur = m.get(r[numKey]) || { refunded: false, voided: false }
       if (r.refundMethod) cur.refunded = true; else cur.voided = true
-      m.set(r.ptNumber, cur)
+      m.set(r[numKey], cur)
     }
     return m
   }, [receipts])
@@ -694,25 +823,25 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
   const ptCollectedByNumber = useMemo(() => {
     const m = new Map<number, number>()
     for (const r of ptReceiptsInRange) {
-      if (r.ptNumber == null) continue
-      m.set(r.ptNumber, (m.get(r.ptNumber) || 0) + (r.amount || 0))
+      if (r[numKey] == null) continue
+      m.set(r[numKey], (m.get(r[numKey]) || 0) + (r.amount || 0))
     }
     return m
   }, [ptReceiptsInRange])
-  const collectedFor = (p: any) => (p.ptNumber != null ? (ptCollectedByNumber.get(p.ptNumber) || 0) : 0)
+  const collectedFor = (p: any) => (p[numKey] != null ? (ptCollectedByNumber.get(p[numKey]) || 0) : 0)
 
   const exportExcel = async () => {
     try {
       const wb = new ExcelJS.Workbook(); wb.creator = 'Fitboost'
-      const ws = wb.addWorksheet(t('reports.tabs.pt' as any), { views: [{ rightToLeft: direction === 'rtl' }] })
+      const ws = wb.addWorksheet(tabLabel, { views: [{ rightToLeft: direction === 'rtl' }] })
 
-      const hdr = ws.addRow([t('reports.ptNumber' as any), t('reports.clientName' as any), t('reports.phone' as any), t('reports.coach' as any), t('reports.sessionsPurchased' as any), t('reports.sessionsRemaining' as any), t('reports.pricePerSession' as any), t('reports.totalRevenue' as any), t('reports.remainingAmount' as any), t('reports.startDate' as any), t('reports.expiryDate' as any)])
+      const hdr = ws.addRow([numberLabel, t('reports.clientName' as any), t('reports.phone' as any), t('reports.coach' as any), t('reports.sessionsPurchased' as any), t('reports.sessionsRemaining' as any), t('reports.pricePerSession' as any), t('reports.totalRevenue' as any), t('reports.remainingAmount' as any), t('reports.startDate' as any), t('reports.expiryDate' as any)])
       hdr.font = { bold: true, size: 12, name: 'Arial', color: { argb: 'FFFFFFFF' } }
       hdr.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E86AB' } }
       hdr.alignment = { horizontal: 'center', vertical: 'middle' }; hdr.height = 28
 
       filtered.forEach((p: any, i: number) => {
-        const row = ws.addRow([p.ptNumber || '-', p.clientName || '-', p.phone || '-', p.coachName || '-', p.sessionsPurchased || 0, p.sessionsRemaining || 0, p.pricePerSession || 0, collectedFor(p), p.remainingAmount || 0, formatDate(p.startDate), formatDate(p.expiryDate)])
+        const row = ws.addRow([p[numKey] || '-', p.clientName || '-', p.phone || '-', p.coachName || '-', p.sessionsPurchased || 0, p.sessionsRemaining || 0, p.pricePerSession || 0, collectedFor(p), p.remainingAmount || 0, formatDate(p.startDate), formatDate(p.expiryDate)])
         if (i % 2 === 0) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } }
         row.alignment = { horizontal: 'center', vertical: 'middle' }
       })
@@ -725,7 +854,7 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
       ws.columns = [{ width: 12 }, { width: 20 }, { width: 16 }, { width: 18 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 14 }]
 
       const buf = await wb.xlsx.writeBuffer()
-      downloadBuffer(buf, `PT_Report_${dateFrom}_${dateTo}.xlsx`)
+      downloadBuffer(buf, `${isMore ? 'More' : 'PT'}_Report_${dateFrom}_${dateTo}.xlsx`)
       toast.success(t('reports.exportSuccess' as any))
     } catch { toast.error(t('reports.exportError' as any)) }
   }
@@ -780,14 +909,14 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
           <table className="w-full text-sm">
             <thead className={tableHeadCls}>
               <tr>
-                {[t('reports.ptNumber' as any), t('reports.clientName' as any), t('reports.phone' as any), t('reports.coach' as any), t('reports.sessionsPurchased' as any), t('reports.sessionsRemaining' as any), t('reports.pricePerSession' as any), t('reports.totalRevenue' as any), t('reports.remainingAmount' as any)].map((h, i) =>
+                {[numberLabel, t('reports.clientName' as any), t('reports.phone' as any), t('reports.coach' as any), t('reports.sessionsPurchased' as any), t('reports.sessionsRemaining' as any), t('reports.pricePerSession' as any), t('reports.totalRevenue' as any), t('reports.remainingAmount' as any)].map((h, i) =>
                   <th key={i} className={tableThCls}>{h}</th>
                 )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
               {filtered.map((p: any, i: number) => {
-                const st = p.ptNumber != null ? ptCancelStatus.get(p.ptNumber) : undefined
+                const st = p[numKey] != null ? ptCancelStatus.get(p[numKey]) : undefined
                 const refunded = !!st?.refunded
                 const voided = !!st?.voided && !refunded
                 const cancelled = refunded || voided
@@ -795,7 +924,7 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
                 <tr key={p.id || i} className={`${tableTrCls} ${cancelled ? 'bg-red-50/60 dark:bg-red-900/10' : ''}`}>
                   <td className={`${tableTdCls} font-mono ${cancelled ? 'text-red-500 dark:text-red-400' : ''}`}>
                     <div className="inline-flex items-center gap-1.5">
-                      <span className={cancelled ? 'line-through' : ''}>{p.ptNumber || '-'}</span>
+                      <span className={cancelled ? 'line-through' : ''}>{p[numKey] || '-'}</span>
                       {cancelled && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -804,7 +933,7 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
                       )}
                     </div>
                   </td>
-                  <td className={`${tableTdCls} font-bold ${cancelled ? 'text-red-500 dark:text-red-400 line-through' : 'text-gray-900 dark:text-gray-100'}`}>{p.clientName || '-'}</td>
+                  <td className={`${tableTdCls} font-bold ${cancelled ? 'text-red-500 dark:text-red-400 line-through' : 'text-gray-900 dark:text-gray-100'}`}><MemberNameLink name={p.clientName || '-'} memberId={p.memberId} memberNumber={p.memberNumber} phone={p.phone} /></td>
                   <td className={`${tableTdCls} font-mono`}>{p.phone || '-'}</td>
                   <td className={tableTdCls}>{p.coachName || '-'}</td>
                   <td className={`${tableTdCls} text-center`}>{p.sessionsPurchased || 0}</td>
@@ -1153,6 +1282,7 @@ function ForecastTab({ direction, locale }: any) {
 // =========== SUBSCRIPTIONS TAB — اشتراكات بالمدة + مين جدّد ===========
 function SubscriptionsTab({ dateFrom, dateTo, formatDate, direction, locale }: any) {
   const ar = locale === 'ar'
+  const gender = React.useContext(GenderReportContext)
   const [durFilter, setDurFilter] = useState<'all' | 'month' | 'q' | 'half' | 'year' | 'other'>('all')
   const [subTypeFilter, setSubTypeFilter] = useState<'all' | 'new' | 'renew'>('all')
   const [showExpiredList, setShowExpiredList] = useState(false) //  📋 تفاصيل المنتهيين
@@ -1194,11 +1324,11 @@ function SubscriptionsTab({ dateFrom, dateTo, formatDate, direction, locale }: a
 
   const data = useMemo(() => {
     const subs = (receipts || [])
-      .filter((r: any) => countsAsRevenue(r) && isFloorReceipt(r.type) && (isNewType(r.type) || isRenewalType(r.type)))
+      .filter((r: any) => countsAsRevenue(r) && isFloorReceipt(r.type) && (isNewType(r.type) || isRenewalType(r.type)) && gender.receiptOk(r))
     const mk = () => ({ total: 0, nw: 0, renew: 0, amount: 0, nwAmount: 0, renewAmount: 0 })
     const buckets: Record<string, ReturnType<typeof mk>> = { month: mk(), q: mk(), half: mk(), year: mk(), other: mk() }
     const sums = { nw: 0, renew: 0, nwAmount: 0, renewAmount: 0 }
-    const list: { name: string; number: string; date: string; days: number | null; bucket: string; renew: boolean; amount: number }[] = []
+    const list: { memberId?: string | null; phone?: string | null; name: string; number: string; date: string; days: number | null; bucket: string; renew: boolean; amount: number }[] = []
     for (const r of subs) {
       const b = bucketOf(daysOf(r))
       buckets[b].total++
@@ -1209,13 +1339,14 @@ function SubscriptionsTab({ dateFrom, dateTo, formatDate, direction, locale }: a
       else { buckets[b].nw++; buckets[b].nwAmount += amt; sums.nw++; sums.nwAmount += amt }
       const d = parseDetails(r)
       list.push({
+        memberId: r.memberId, phone: d.phone,
         name: d.memberName || d.name || '-', number: d.memberNumber || '-',
         date: r.createdAt, days: daysOf(r), bucket: b, renew, amount: r.amount || 0,
       })
     }
     list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     return { buckets, list, total: subs.length, sums }
-  }, [receipts])
+  }, [receipts, gender])
 
   //  ⌛ منتهي في الفترة: اللي تاريخ انتهاء اشتراكهم وقع في الفترة —
   //     «مجدّدوش»: تاريخ انتهاءهم الحالي لسه في الفترة وعدّى (الاشتراك فعلاً خلص)
@@ -1225,8 +1356,8 @@ function SubscriptionsTab({ dateFrom, dateTo, formatDate, direction, locale }: a
     const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
     const now = new Date()
     const inRange = (v: any) => { if (!v) return false; const d = new Date(v); return d >= from && d <= to }
-    const notRenewed = (members as any[]).filter(m => m.expiryDate && inRange(m.expiryDate) && new Date(m.expiryDate) < now && !m.isBanned)
-    const renewedReceipts = (receipts || []).filter((r: any) => countsAsRevenue(r) && isRenewalType(r.type) && inRange(parseDetails(r).previousExpiryDate))
+    const notRenewed = (members as any[]).filter(m => m.expiryDate && inRange(m.expiryDate) && new Date(m.expiryDate) < now && !m.isBanned && gender.phoneOk(m.phone, m.gender))
+    const renewedReceipts = (receipts || []).filter((r: any) => countsAsRevenue(r) && isRenewalType(r.type) && inRange(parseDetails(r).previousExpiryDate) && gender.receiptOk(r))
     const renewedIds = new Set(renewedReceipts.map((r: any) => r.memberId || parseDetails(r).memberNumber))
     return {
       notRenewedList: [...notRenewed].sort((a: any, b: any) => new Date(b.expiryDate).getTime() - new Date(a.expiryDate).getTime()),
@@ -1236,7 +1367,7 @@ function SubscriptionsTab({ dateFrom, dateTo, formatDate, direction, locale }: a
       renewedCount: renewedIds.size,
       renewedAmount: renewedReceipts.reduce((sum: number, r: any) => sum + (r.amount || 0), 0),
     }
-  }, [members, receipts, dateFrom, dateTo])
+  }, [members, receipts, dateFrom, dateTo, gender])
 
   //  الفلاتر: المدة + النوع (جديد/تجديد)
   const filtered = useMemo(() => data.list.filter(item => {
@@ -1355,7 +1486,7 @@ function SubscriptionsTab({ dateFrom, dateTo, formatDate, direction, locale }: a
                     {expiredData.notRenewedList.map((m: any) => (
                       <tr key={m.id} className="border-b border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/40">
                         <td className="py-2 font-bold">
-                          <a href={`/members/${m.id}`} className="text-gray-800 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-400 hover:underline">{m.name}</a>
+                          <a href={`/members/${m.id}`} className="text-gray-800 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-400">{m.name}</a>
                         </td>
                         <td className="py-2 text-center text-gray-700 dark:text-gray-300 font-mono">{m.memberNumber ?? '—'}</td>
                         <td className="py-2 text-center text-gray-700 dark:text-gray-300 font-mono" dir="ltr">{m.phone || '—'}</td>
@@ -1426,7 +1557,7 @@ function SubscriptionsTab({ dateFrom, dateTo, formatDate, direction, locale }: a
               <tbody>
                 {filtered.map((it, i) => (
                   <tr key={i} className="border-b border-gray-100 dark:border-gray-700/60">
-                    <td className="py-2 font-bold text-gray-800 dark:text-gray-100">{it.name}</td>
+                    <td className="py-2 font-bold text-gray-800 dark:text-gray-100"><MemberNameLink name={it.name} memberId={it.memberId} memberNumber={it.number} phone={it.phone} /></td>
                     <td className="py-2 text-center text-gray-700 dark:text-gray-300 font-mono">{it.number}</td>
                     <td className="py-2 text-center text-gray-700 dark:text-gray-300">{labelOf(it.days)}</td>
                     <td className="py-2 text-center">
