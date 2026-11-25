@@ -904,7 +904,8 @@ export default function SearchModal() {
   if (!isOpen) return null
 
   return (
-    <>
+    //  🔝 طبقة واحدة فوق الفورمز المفتوحة (z-[10000])، وجواها نفس ترتيب النوافذ
+    <div className="relative z-[10050]">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[9998] animate-backdrop-in"
@@ -1827,6 +1828,6 @@ export default function SearchModal() {
           animation: slideDown 0.3s ease-out;
         }
       `}</style>
-    </>
+    </div>
   )
 }

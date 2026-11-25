@@ -1006,12 +1006,14 @@ export default function ExpensesPage() {
                        {t('expenses.actions.edit')}
                     </button>
                   )}
-                  <button
-                    onClick={() => handleDelete(expense)}
-                    className="text-red-600 hover:text-red-800 font-bold"
-                  >
-                     {t('expenses.actions.delete')}
-                  </button>
+                  {hasPermission('canDeleteExpense') && (
+                    <button
+                      onClick={() => handleDelete(expense)}
+                      className="text-red-600 hover:text-red-800 font-bold"
+                    >
+                       {t('expenses.actions.delete')}
+                    </button>
+                  )}
                 </div>
               </div>
 

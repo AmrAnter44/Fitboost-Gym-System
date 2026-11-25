@@ -10,6 +10,7 @@ import Link from 'next/link'
 import RenewalForm from '../../../components/RenewalForm'
 import UpgradeForm from '../../../components/UpgradeForm'
 import TransferMembershipForm from '../../../components/TransferMembershipForm'
+import NationalIdInput from '../../../components/NationalIdInput'
 import QuickMemberFollowUpModal from '../../../components/QuickMemberFollowUpModal'
 import { sessionsLeftBeforePayment, isPaymentLocked } from '../../../lib/sessionPaymentLimit'
 import ImageUpload from '../../../components/ImageUpload'
@@ -218,6 +219,8 @@ export default function MemberDetailPage() {
  const [showWaiveModal, setShowWaiveModal] = useState(false)
  const [waiveData, setWaiveData] = useState({ amount: 0, reason: '' })
  const { t, tr, direction, locale } = useLanguage()
+ const [editNationalIdIsPassport, setEditNationalIdIsPassport] = useState(false)
+ const [guestIdIsPassport, setGuestIdIsPassport] = useState(false)
  const toast = useToast()
  const { settings } = useServiceSettings()
  const queryClient = useQueryClient()
@@ -1357,8 +1360,8 @@ export default function MemberDetailPage() {
  toast.warning(t('memberDetails.invitationModal.enterGuestInfo'))
  return
  }
- if (invitationData.guestNationalId && invitationData.guestNationalId.length !== 14) {
- toast.warning(tr('الرقم القومي للضيف لازم يكون 14 رقم', 'Guest national ID must be 14 digits'))
+ if (invitationData.guestNationalId && !guestIdIsPassport && invitationData.guestNationalId.length !== 14) {
+ toast.warning(tr('الرقم القومي للضيف لازم يكون 14 رقم، ولو أجنبي دوس «جواز سفر»', 'Guest national ID must be 14 digits, or switch to Passport'))
  return
  }
 
@@ -1658,6 +1661,10 @@ export default function MemberDetailPage() {
  const handleEditBasicInfo = async () => {
  if (!member || !editBasicInfoData.name.trim() || !editBasicInfoData.phone.trim()) {
  toast.warning(t('memberDetails.editModal.enterNameAndPhone'))
+ return
+ }
+ if (editBasicInfoData.nationalId.trim() && !editNationalIdIsPassport && editBasicInfoData.nationalId.trim().length !== 14) {
+ toast.warning(tr('الرقم القومي لازم يكون 14 رقم، ولو أجنبي دوس «جواز سفر»', 'National ID must be 14 digits, or switch to Passport'))
  return
  }
 
@@ -3909,18 +3916,15 @@ export default function MemberDetailPage() {
  </div>
 
  <div>
- <label className="block text-xs font-medium mb-1">
- {t('memberDetails.nationalId')}
- </label>
- <input
- type="text"
- inputMode="numeric"
+ <NationalIdInput
+ ar={locale === 'ar'}
  value={editBasicInfoData.nationalId}
- onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, nationalId: e.target.value.replace(/[^\d]/g, '') })}
- className="w-full px-2 py-1.5 border rounded text-sm font-mono dark:border-gray-600 dark:bg-gray-700 dark:text-white"
- placeholder={locale === 'ar' ? 'الرقم القومي (اختياري)' : 'National ID (optional)'}
- dir="ltr"
- maxLength={14}
+ onChange={(v) => setEditBasicInfoData({ ...editBasicInfoData, nationalId: v })}
+ onPassportChange={setEditNationalIdIsPassport}
+ label={t('memberDetails.nationalId')}
+ labelClassName="block text-xs font-medium"
+ nationalPlaceholder={locale === 'ar' ? 'الرقم القومي (اختياري)' : 'National ID (optional)'}
+ inputClassName="w-full px-2 py-1.5 border rounded text-sm font-mono dark:border-gray-600 dark:bg-gray-700 dark:text-white"
  />
  </div>
 
@@ -4444,18 +4448,15 @@ export default function MemberDetailPage() {
  </div>
 
  <div>
- <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
- {tr('الرقم القومي للضيف', 'Guest national ID')} <span className="text-xs text-gray-500 dark:text-gray-400">{tr('(اختياري)', '(optional)')}</span>
- </label>
- <input
- type="text"
- inputMode="numeric"
- maxLength={14}
+ <NationalIdInput
+ ar={locale === 'ar'}
  value={invitationData.guestNationalId}
- onChange={(e) => setInvitationData({ ...invitationData, guestNationalId: e.target.value.replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660)).replace(/\D/g, '').slice(0, 14) })}
- className="w-full px-4 py-3 ring-1 ring-gray-300 dark:ring-gray-600/60 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 font-mono"
- placeholder="14 رقم"
- dir="ltr"
+ onChange={(v) => setInvitationData({ ...invitationData, guestNationalId: v })}
+ onPassportChange={setGuestIdIsPassport}
+ label={<>{tr('الرقم القومي للضيف', 'Guest national ID')} <span className="text-xs text-gray-500 dark:text-gray-400">{tr('(اختياري)', '(optional)')}</span></>}
+ labelClassName="block text-sm font-medium text-gray-700 dark:text-white"
+ nationalPlaceholder={tr('14 رقم', '14 digits')}
+ inputClassName="w-full px-4 py-3 ring-1 ring-gray-300 dark:ring-gray-600/60 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 font-mono"
  />
  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{tr('لو اتكتب: الشخص الواحد ليه 3 دعوات بس', 'If entered: max 3 invitations per person')}</p>
  </div>
@@ -4524,7 +4525,7 @@ export default function MemberDetailPage() {
  <button
  type="button"
  onClick={handleSubmitInvitation}
- disabled={loading || !invitationData.guestName.trim() || !invitationData.guestPhone.trim() || (!!invitationData.guestNationalId && invitationData.guestNationalId.length !== 14)}
+ disabled={loading || !invitationData.guestName.trim() || !invitationData.guestPhone.trim() || (!!invitationData.guestNationalId && !guestIdIsPassport && invitationData.guestNationalId.length !== 14)}
  className="flex-1 bg-primary-600 text-primary-contrast py-2.5 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold text-sm"
  >
  {loading ? t('memberDetails.invitationModal.saving') : `${t('memberDetails.invitationModal.registerInvitation')}`}

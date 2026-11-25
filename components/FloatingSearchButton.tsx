@@ -23,7 +23,7 @@ export default function FloatingSearchButton() {
       aria-label={`${t('nav.quickSearch')} (Ctrl+K)`}
       className={`
         fixed bottom-6 end-6
-        z-50
+        z-[10040]
         hidden sm:flex
         w-14 h-14
         bg-gradient-to-br from-primary-500 to-primary-600

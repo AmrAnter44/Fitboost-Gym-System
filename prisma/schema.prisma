@@ -1623,6 +1623,7 @@ model Complaint {
   resolution   String?                        // رد/حل الشكوى — ده اللي العضو بيشوفه كردّ في التطبيق
   source       String   @default("staff")      // staff (سجّلها موظف) | app (العضو بعتها من التطبيق)
   createdBy    String?                         // اسم الموظف اللي سجّلها
+  complaintNumber Int?                         // 🔢 رقم الشكوى (1، 2، 3…)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

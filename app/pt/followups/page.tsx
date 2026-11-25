@@ -438,9 +438,11 @@ export default function PTFollowupsPage() {
                               <span className="text-gray-500 dark:text-gray-400">· {formatDateTime(log.createdAt, locale)}</span>
                               {log.staff?.name && <span className="text-gray-500 dark:text-gray-400">· {log.staff.name}</span>}
                             </div>
-                            <button onClick={() => deleteLog(log.id)} className="text-xs text-red-600 dark:text-red-400 hover:underline">
-                              {locale === 'ar' ? 'حذف' : 'Delete'}
-                            </button>
+                            {hasPermission('canEditPT') && (
+                              <button onClick={() => deleteLog(log.id)} className="text-xs text-red-600 dark:text-red-400 hover:underline">
+                                {locale === 'ar' ? 'حذف' : 'Delete'}
+                              </button>
+                            )}
                           </div>
                           {log.notes && <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">{log.notes}</p>}
                           {log.nextContactAt && (

@@ -2481,7 +2481,7 @@ export default function SettingsPage() {
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4">{t('settingsPage.display.primaryColorDesc')}</p>
 
                   {/* ألوان جاهزة */}
-                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 sm:gap-3 mb-4">
+                  <div className="grid grid-cols-5 sm:grid-cols-9 gap-2 sm:gap-3 mb-4">
                     {[
                       { hex: '#fbe003', label: tr('أصفر', 'Yellow') },
                       { hex: '#ef4444', label: tr('أحمر', 'Red') },
@@ -2491,6 +2491,7 @@ export default function SettingsPage() {
                       { hex: '#8b5cf6', label: tr('بنفسجي', 'Purple') },
                       { hex: '#14b8a6', label: tr('تركواز', 'Teal') },
                       { hex: '#ec4899', label: tr('وردي', 'Pink') },
+                      { hex: '#6b7280', label: tr('رمادي', 'Gray') },
                     ].map(c => (
                       <button
                         key={c.hex}

@@ -324,6 +324,31 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'الموظف غير موجود' }, { status: 404 })
     }
 
+    //  ✏️ تغيير اسم الموظف: الاشتراكات والحصص بتحفظ اسم الكوتش نفسه، فلازم الاسم الجديد
+    //  يتكتب فيها كمان — وإلا الكوتش بيختفي من فلاتر المزيد/البي تي وأكونته ميشوفش عملاءه
+    let renamedRows: Record<string, number> | null = null
+    const oldName = (staffBefore?.name || '').trim()
+    const newName = (staff.name || '').trim()
+    if (oldName && newName && oldName !== newName) {
+      //  لو فيه موظف تاني لسه بنفس الاسم القديم، مش هنعرف الصفوف دي بتاعة مين — منغيرش حاجة
+      const sameOldName = await prisma.staff.count({ where: { name: oldName, id: { not: id } } })
+      if (sameOldName === 0) {
+        try {
+          const [pt, ptSessions, more, moreSessions, schedules, groupClasses] = await prisma.$transaction([
+            prisma.pT.updateMany({ where: { coachName: oldName }, data: { coachName: newName } }),
+            prisma.pTSession.updateMany({ where: { coachName: oldName }, data: { coachName: newName } }),
+            prisma.more.updateMany({ where: { coachName: oldName }, data: { coachName: newName } }),
+            prisma.moreSession.updateMany({ where: { coachName: oldName }, data: { coachName: newName } }),
+            prisma.classSchedule.updateMany({ where: { coachName: oldName }, data: { coachName: newName } }),
+            prisma.groupClass.updateMany({ where: { instructorName: oldName }, data: { instructorName: newName } }),
+          ])
+          renamedRows = { pt: pt.count, ptSessions: ptSessions.count, more: more.count, moreSessions: moreSessions.count, schedules: schedules.count, groupClasses: groupClasses.count }
+        } catch (e) {
+          console.error('staff rename cascade failed:', e)
+        }
+      }
+    }
+
     //  💼 كتابة حقول العمولة بـ raw SQL (drift-safe) — كل عمود اتبعت بس
     try {
       const sets: string[] = []
@@ -356,7 +381,7 @@ export async function PUT(request: Request) {
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
       action: 'UPDATE', resource: 'Staff', resourceId: staff.id,
-      details: { staffCode: staff.staffCode, name: staff.name, fieldChanges: await buildFieldChanges(staffBefore, updateData) },
+      details: { staffCode: staff.staffCode, name: staff.name, fieldChanges: await buildFieldChanges(staffBefore, updateData), ...(renamedRows ? { renamedRows } : {}) },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 

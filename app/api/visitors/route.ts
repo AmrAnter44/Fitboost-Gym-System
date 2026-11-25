@@ -84,8 +84,19 @@ export async function GET(request: Request) {
       _count: true,
     })
 
+    //  اسم السيلز المسؤول عن آخر متابعة (للبحث الذكي في الداشبورد)
+    const assignedIds = Array.from(new Set(visitors.map(v => v.followUps?.[0]?.assignedTo).filter((x): x is string => !!x)))
+    const staffNames: Record<string, string> = {}
+    if (assignedIds.length > 0) {
+      const rows = await prisma.staff.findMany({ where: { id: { in: assignedIds } }, select: { id: true, name: true } })
+      for (const s of rows) staffNames[s.id] = s.name
+    }
+
     return NextResponse.json({
-      visitors,
+      visitors: visitors.map(v => {
+        const a = v.followUps?.[0]?.assignedTo
+        return a && staffNames[a] ? { ...v, assignedName: staffNames[a] } : v
+      }),
       stats,
       total: visitors.length,
     })

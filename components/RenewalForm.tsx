@@ -9,6 +9,7 @@ import { usePermissions } from '../hooks/usePermissions'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 import type { PaymentMethod } from '../lib/paymentHelpers'
+import DiscountInput, { discountAmount, type DiscountMode } from './DiscountInput'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -65,7 +66,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
   const [subscriptionPrice, setSubscriptionPrice] = useState('')
-  const [discount, setDiscount] = useState('0') // 💸 خصم على سعر الباقة
+  const [discount, setDiscount] = useState('') // 💸 خصم على سعر الباقة (جنيه أو ٪)
+  const [discountMode, setDiscountMode] = useState<DiscountMode>('amount')
   //  🏷️ سعر الباقة قبل العرض (كان بكام) — بيتكتب في الإيصال كسعر أصلي + خصم
   const [offerOriginalPrice, setOfferOriginalPrice] = useState<number | null>(null)
   const [freePTSessions, setFreePTSessions] = useState('0')
@@ -248,10 +250,10 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
         body: JSON.stringify({
           memberId: member.id,
           //  💸 السعر المرسل = سعر الباقة بعد الخصم
-          subscriptionPrice: Math.max(0, (parseInt(subscriptionPrice) || 0) - Math.max(0, parseInt(discount) || 0)),
+          subscriptionPrice: Math.max(0, (parseInt(subscriptionPrice) || 0) - discountAmount(parseInt(subscriptionPrice) || 0, discountMode, discount)),
           //  💸 الخصم في الإيصال = خصم العرض (كان بكام − سعر الباقة) + الخصم الإضافي
-          discount: Math.max(0, parseInt(discount) || 0) + (offerOriginalPrice ? Math.max(0, offerOriginalPrice - (parseInt(subscriptionPrice) || 0)) : 0),
-          originalPrice: offerOriginalPrice ?? (Math.max(0, parseInt(discount) || 0) > 0 ? (parseInt(subscriptionPrice) || 0) : null),
+          discount: discountAmount(parseInt(subscriptionPrice) || 0, discountMode, discount) + (offerOriginalPrice ? Math.max(0, offerOriginalPrice - (parseInt(subscriptionPrice) || 0)) : 0),
+          originalPrice: offerOriginalPrice ?? (discountAmount(parseInt(subscriptionPrice) || 0, discountMode, discount) > 0 ? (parseInt(subscriptionPrice) || 0) : null),
           remainingAmount: parseInt(remainingAmount) || 0,
           remainingDueDate: remainingDueDate || null,
           freePTSessions: parseInt(freePTSessions) || 0,
@@ -311,7 +313,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const duration = calculateDays(startDate, expiryDate)
   //  💸 السعر بعد الخصم = سعر الباقة − الخصم (مش بيقل عن صفر)
   const basePrice = parseInt(subscriptionPrice) || 0
-  const discountValue = Math.max(0, parseInt(discount) || 0)
+  const discountValue = discountAmount(basePrice, discountMode, discount)
   const finalPrice = Math.max(0, basePrice - discountValue)
   const totalAmount = finalPrice
   //  لو resetBenefits ON، الـ total = اللي بيجي مع الباقة فقط
@@ -509,26 +511,15 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
               </div>
 
               {/*  💸 خصم على سعر الباقة */}
-              <div>
-                <label htmlFor="renewal-discount" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                  {direction === 'rtl' ? 'الخصم (جنيه)' : 'Discount (EGP)'}
-                </label>
-                <input
-                  id="renewal-discount"
-                  type="number"
-                  value={discount}
-                  onChange={(e) => setDiscount(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-                  placeholder="0"
-                  min="0"
-                  max={basePrice || undefined}
-                />
-                {discountValue > 0 && (
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-bold">
-                    {direction === 'rtl' ? 'السعر بعد الخصم:' : 'Price after discount:'} {finalPrice} {direction === 'rtl' ? 'جنيه' : 'EGP'}
-                  </p>
-                )}
-              </div>
+              <DiscountInput
+                id="renewal-discount"
+                base={basePrice}
+                mode={discountMode}
+                onModeChange={setDiscountMode}
+                value={discount}
+                onChange={setDiscount}
+                direction={direction === 'rtl' ? 'rtl' : 'ltr'}
+              />
 
               {settings.remainingEnabled && (
                 <div>

@@ -85,8 +85,8 @@ export async function POST(request: Request) {
       )
     }
     // الرقم القومي اختياري — بس لو اتكتب لازم يبقى 14 رقم (وساعتها بيتطبق حد الـ 3 دعوات)
-    if (guestNationalId && guestNationalId.length !== 14) {
-      return NextResponse.json({ error: 'الرقم القومي للضيف لازم يكون 14 رقم' }, { status: 400 })
+    if (guestNationalId && !/^([0-9]{14}|[A-Za-z0-9]{3,30})$/.test(String(guestNationalId))) {
+      return NextResponse.json({ error: 'الرقم القومي للضيف لازم يكون 14 رقم، أو رقم جواز سفر صحيح' }, { status: 400 })
     }
 
     // التحقق من وجود العضو وأن لديه دعوات متبقية

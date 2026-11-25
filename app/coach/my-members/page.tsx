@@ -36,7 +36,6 @@ interface AssignedMember {
   freePTSessions: number
   inBodyScans: number
   freeAssessmentSessions: number
-  subscriptionPrice: number
   remainingAmount: number | null
   //  حقول جديدة
   coachConversionNote: string | null
@@ -509,9 +508,9 @@ export default function CoachMyMembers() {
                         {/*  زرار تسجيل عدم الحضور — بدون خصم حصة */}
                         <button
                           onClick={() => setNoShowPopup({ show: true, member, notes: '', saving: false, error: '' })}
-                          disabled={!isActive}
+                          disabled={member.freePTSessions <= 0 || !isActive}
                           className={`py-2 rounded-lg text-sm font-bold transition-colors duration-200 inline-flex items-center justify-center gap-1.5 ${
-                            isActive
+                            member.freePTSessions > 0 && isActive
                               ? 'bg-orange-500 hover:bg-orange-600 text-white'
                               : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                           }`}
@@ -693,7 +692,7 @@ export default function CoachMyMembers() {
                       </div>
                     )}
 
-                    {(member.startDate || member.expiryDate || member.subscriptionPrice) && (
+                    {(member.startDate || member.expiryDate) && (
                       <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg px-3 py-2 space-y-1.5">
                         <p className="text-xs font-bold text-blue-800 dark:text-blue-300 mb-1 flex items-center gap-1.5">
                           <svg {...stroke} className="w-3.5 h-3.5">
@@ -718,16 +717,6 @@ export default function CoachMyMembers() {
                             </span>
                             <span className={`font-bold ${isExpired ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-100'}`}>
                               {new Date(member.expiryDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
-                            </span>
-                          </div>
-                        )}
-                        {member.subscriptionPrice > 0 && (
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="text-gray-600 dark:text-gray-300">
-                              {locale === 'ar' ? 'الباكدج:' : 'Package:'}
-                            </span>
-                            <span className="font-bold text-green-700 dark:text-green-400">
-                              {Math.round(member.subscriptionPrice)} {locale === 'ar' ? 'ج' : 'EGP'}
                             </span>
                           </div>
                         )}

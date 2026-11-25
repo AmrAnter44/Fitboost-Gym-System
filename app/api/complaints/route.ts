@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { verifyAuth } from '../../../lib/auth'
+import { ensureComplaintNumbers, assignComplaintNumber, getComplaintNumbers } from '../../../lib/complaintNumber'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,11 +19,21 @@ export async function GET(request: Request) {
     const memberId = searchParams.get('memberId')
     const q = searchParams.get('q')?.trim()
 
+    try { await ensureComplaintNumbers() } catch (e) { console.error('complaint numbers:', e) }
+
     const where: any = {}
     if (status && STATUSES.includes(status)) where.status = status
     if (memberId) where.memberId = memberId
+    //  البحث برقم الشكوى (#12 أو 12)
+    let numberIds: string[] = []
+    const qNum = q ? Number(q.replace(/^#/, '')) : NaN
+    if (q && Number.isInteger(qNum) && qNum > 0) {
+      const rows: Array<{ id: string }> = await prisma.$queryRawUnsafe('SELECT id FROM Complaint WHERE complaintNumber = ?', qNum)
+      numberIds = rows.map(r => r.id)
+    }
     if (q) {
       where.OR = [
+        ...(numberIds.length ? [{ id: { in: numberIds } }] : []),
         { body: { contains: q } },
         { subject: { contains: q } },
         { memberName: { contains: q } },
@@ -40,7 +51,8 @@ export async function GET(request: Request) {
     const byStatus: Record<string, number> = { open: 0, resolved: 0 }
     counts.forEach((c) => { byStatus[c.status] = c._count._all })
 
-    return NextResponse.json({ complaints, byStatus })
+    const numbers = await getComplaintNumbers(complaints.map(c => c.id))
+    return NextResponse.json({ complaints: complaints.map(c => ({ ...c, complaintNumber: numbers.get(c.id) ?? null })), byStatus })
   } catch (error) {
     console.error('Load complaints error:', error)
     return NextResponse.json({ error: 'فشل تحميل الشكاوى' }, { status: 500 })
@@ -81,7 +93,8 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({ complaint }, { status: 201 })
+    const complaintNumber = await assignComplaintNumber(complaint.id).catch(() => null)
+    return NextResponse.json({ complaint: { ...complaint, complaintNumber } }, { status: 201 })
   } catch (error) {
     console.error('Create complaint error:', error)
     return NextResponse.json({ error: 'فشل إضافة الشكوى' }, { status: 500 })

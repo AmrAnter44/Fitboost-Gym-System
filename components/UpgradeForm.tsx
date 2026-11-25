@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 import Paymentmethodselector from './Paymentmethodselector'
+import DiscountInput, { discountAmount, type DiscountMode } from './DiscountInput'
 import type { PaymentMethod } from '../lib/paymentHelpers'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
@@ -60,6 +61,9 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
   const [remainingAmount, setRemainingAmount] = useState('0')
   const [remainingDueDate, setRemainingDueDate] = useState('')
   const [customPrice, setCustomPrice] = useState<string>('')
+  //  🏷️ خصم على مبلغ الترقية (جنيه أو ٪)
+  const [discount, setDiscount] = useState('')
+  const [discountMode, setDiscountMode] = useState<DiscountMode>('amount')
 
   useEffect(() => {
     fetchOffers()
@@ -150,6 +154,11 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
   }
 
   const selectedOffer = offers.find(o => o.id === selectedOfferId)
+  const upgradeBase = selectedOffer ? Math.max(0, calculateUpgradeAmount(selectedOffer.price)) : 0
+  const upgradeDiscount = discountAmount(upgradeBase, discountMode, discount)
+  const finalUpgradeAmount = Math.max(0, upgradeBase - upgradeDiscount)
+  //  الخصم بيتحسب على باقة معيّنة — يتصفّر لما تتغير
+  useEffect(() => { setDiscount('') }, [selectedOfferId])
 
   const handleUpgrade = async () => {
     if (!selectedOfferId) {
@@ -176,7 +185,8 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
           staffName: currentUser.name,
           remainingAmount: parseInt(remainingAmount) || 0,
           remainingDueDate: remainingDueDate || null,
-          ...(customPrice !== '' && !isNaN(parseFloat(customPrice)) ? { customPrice: parseFloat(customPrice) } : {})
+          ...(customPrice !== '' && !isNaN(parseFloat(customPrice)) ? { customPrice: parseFloat(customPrice) } : {}),
+          ...(upgradeDiscount > 0 ? { discount: upgradeDiscount } : {})
         })
       })
 
@@ -391,6 +401,16 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
                   {calculateUpgradeAmount(selectedOffer.price)} {t('members.egp')}
                 </span>
               </div>
+              <DiscountInput
+                id="upgrade-discount"
+                base={upgradeBase}
+                mode={discountMode}
+                onModeChange={setDiscountMode}
+                value={discount}
+                onChange={setDiscount}
+                direction={direction === 'rtl' ? 'rtl' : 'ltr'}
+                netLabel={direction === 'rtl' ? 'هيدفع بعد الخصم:' : 'To pay after discount:'}
+              />
             </div>
           </div>
         )}
@@ -419,7 +439,7 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
                 value={paymentMethod}
                 onChange={setPaymentMethod}
                 allowMultiple={true}
-                totalAmount={selectedOffer ? calculateUpgradeAmount(selectedOffer.price) - (parseInt(remainingAmount) || 0) : 0}
+                totalAmount={selectedOffer ? finalUpgradeAmount - (parseInt(remainingAmount) || 0) : 0}
                 memberPoints={member.points || 0}
                 pointsValueInEGP={settings.pointsValueInEGP}
                 pointsEnabled={settings.pointsEnabled}
@@ -443,7 +463,7 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
                   />
                   {parseInt(remainingAmount) > 0 && selectedOffer && (
                     <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                      {direction === 'rtl' ? 'المدفوع:' : 'Paid:'} {calculateUpgradeAmount(selectedOffer.price) - (parseInt(remainingAmount) || 0)} {direction === 'rtl' ? 'جنيه' : 'EGP'}
+                      {direction === 'rtl' ? 'المدفوع:' : 'Paid:'} {finalUpgradeAmount - (parseInt(remainingAmount) || 0)} {direction === 'rtl' ? 'جنيه' : 'EGP'}
                     </p>
                   )}
                 </div>

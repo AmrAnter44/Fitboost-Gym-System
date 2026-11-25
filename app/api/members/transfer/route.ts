@@ -24,6 +24,7 @@ interface NewMemberPayload {
   idCardFront?: string | null
   idCardBack?: string | null
   notes?: string | null
+  gender?: string | null
 }
 
 function calcRemainingDays(expiryDate: Date | null | undefined): number {
@@ -115,6 +116,10 @@ export async function POST(request: Request) {
       // العميل الجديد بياخد الاسم/التليفون/الصورة بس
       if (!newMember?.name?.trim() || !newMember?.phone?.trim()) {
         return NextResponse.json({ error: 'اسم ورقم العضو الجديد مطلوبين' }, { status: 400 })
+      }
+      //  🚻 جنس المالك الجديد — لو اتبعت لازم يكون قيمة معروفة
+      if (newMember.gender != null && newMember.gender !== '' && !['male', 'female', 'unknown'].includes(newMember.gender)) {
+        return NextResponse.json({ error: 'الجنس غير صالح' }, { status: 400 })
       }
       const phoneRegex = /^(010|011|012|015)[0-9]{8}$/
       if (!phoneRegex.test(newMember.phone.trim())) {
@@ -219,6 +224,8 @@ export async function POST(request: Request) {
               name: newMember!.name.trim(),
               phone: newMember!.phone.trim(),
               profileImage: newMember!.profileImage || null,
+              //  المالك الجديد ممكن يكون جنسه مختلف عن القديم
+              ...(newMember!.gender ? { gender: newMember!.gender } : {}),
               notes: (fromMember.notes || '') + identityNote,
               transferredFromPhone: fromMember.phone, // 📤 الرقم القديم قبل تغيير الملكية
               transferredFromAt: today,

@@ -95,7 +95,7 @@ export default function Toast({ message, type = 'info', onClose, duration = 4000
 
   return (
     <div
-      className={`fixed z-[10000] transition-all duration-300 ${
+      className={`fixed z-[100000] transition-all duration-300 ${
         isExiting
           ? 'opacity-0 translate-x-full'
           : 'opacity-100 translate-x-0'

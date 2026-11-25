@@ -495,6 +495,8 @@ function FollowUpsPageContent() {
   const [expiryPriority, setExpiryPriority] = useState(false)
   const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female' | 'unknown'>('all') // 🚻 فلتر الجندر
   const [socialFilter, setSocialFilter] = useState<string[]>([]) //  فلتر السوشيال ميديا (بوب-أب)
+  //  📞 جاي من كارت «متابعة معلقة» في الداشبورد: متابعات حقيقية آخرها لسه متواصلش معاها
+  const [pendingOnly, setPendingOnly] = useState(false)
   const [salesFilter, setSalesFilter] = useState('all') //  فلتر السيلز (all, my-followups, my-overdue, today)
   const [assignedStaffFilter, setAssignedStaffFilter] = useState('all') //  فلتر بموظف سيلز محدد
   const [dateFromFilter, setDateFromFilter] = useState('') //  فلتر تاريخ من (YYYY-MM-DD)
@@ -1259,6 +1261,11 @@ function FollowUpsPageContent() {
       router.replace('/followups', { scroll: false })
     }
     //  🔁 جاي من بار تذكيرات السيلز: ?due=today → فلتر «متابعاتي المستحقة النهاردة»
+    if (searchParams.get('pending') === '1') {
+      setViewMode('list')
+      setPendingOnly(true)
+      router.replace('/followups', { scroll: false })
+    }
     if (searchParams.get('due') === 'today') {
       setViewMode('list')
       setSalesFilter('my-due')
@@ -1412,9 +1419,13 @@ function FollowUpsPageContent() {
   //     بيفضل: «قرب يخلص» (لسه محتاج متابعة للتجديد)، وأي حد بتدوّر عليه بالبحث.
   //     allFollowUps نفسها مابتتغيرش عشان إحصائيات تحويلات السيلز تفضل صح.
   const listFollowUps = useMemo(() => {
-    if (debouncedSearchTerm.trim() || debouncedSearchId.trim()) return allFollowUps
-    return allFollowUps.filter(fu => fu.visitor.source === 'expiring-member' || !isVisitorAMember(fu.visitor.phone))
-  }, [allFollowUps, isVisitorAMember, debouncedSearchTerm, debouncedSearchId])
+    //  «المعلقة بس»: الصفوف اللي السيستم بيعملها لوحده (منتهي/قرب يخلص/داي يوز/دعوات/زوار من غير متابعة) مش متابعات
+    const base = pendingOnly
+      ? allFollowUps.filter(fu => !fu.contacted && !/^(expired|expiring|dayuse|invitation|visitor)-/.test(fu.id))
+      : allFollowUps
+    if (debouncedSearchTerm.trim() || debouncedSearchId.trim()) return base
+    return base.filter(fu => fu.visitor.source === 'expiring-member' || !isVisitorAMember(fu.visitor.phone))
+  }, [allFollowUps, isVisitorAMember, debouncedSearchTerm, debouncedSearchId, pendingOnly])
 
   //  مساعد للبحث عن memberId بالهاتف — يُستخدم في زر "تجديد سريع"
   const phoneToMemberId = useMemo(() => {
@@ -3193,6 +3204,17 @@ function FollowUpsPageContent() {
             >
               <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.24 17 7.092 18.246 9.61 19 11 19 13a7 7 0 01-1.343 5.657z"/></svg>
               {direction === 'rtl' ? 'ترتيب: أولوية' : 'Sort: Priority'}
+            </button>
+          </div>
+        )}
+
+        {pendingOnly && (
+          <div data-pending-only className="mx-3 sm:mx-4 mt-3 flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 text-sm">
+            <span className="font-bold text-blue-800 dark:text-blue-200">
+              {direction === 'rtl' ? `المتابعات المعلقة بس (${listFollowUps.length})` : `Pending follow-ups only (${listFollowUps.length})`}
+            </span>
+            <button type="button" onClick={() => setPendingOnly(false)} className="px-2.5 py-1 rounded-md text-xs font-bold bg-white dark:bg-gray-800 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40">
+              {direction === 'rtl' ? 'عرض الكل' : 'Show all'}
             </button>
           </div>
         )}

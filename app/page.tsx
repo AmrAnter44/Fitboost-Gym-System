@@ -534,7 +534,7 @@ export default function HomePage() {
 
               {alerts.pendingFollowups > 0 && (
                 <Link
-                  href="/followups"
+                  href="/followups?pending=1"
                   className="bg-gray-50 dark:bg-gray-900/40 ring-1 ring-blue-200 dark:ring-blue-900/50 p-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200"
                 >
                   <div className="flex items-center gap-3">
@@ -707,8 +707,14 @@ export default function HomePage() {
             <StatCard
               label={locale === 'ar' ? 'الراش تايم' : 'Rush hour'}
               value={rushHour ? (() => {
-                const fmt = (h: number) => { const d = new Date(); d.setHours(h, 0, 0, 0); return d.toLocaleTimeString(locale === 'ar' ? 'ar-EG' : 'en-US', { hour: 'numeric' }) }
-                return <span className="whitespace-nowrap">{fmt(rushHour.hour)} – {fmt((rushHour.hour + 1) % 24)}</span>
+                //  مختصر عشان ميطلعش برّه الكارت: «10 – 11 م» (ص/م مرة واحدة لو الساعتين في نفس الفترة)
+                const h1 = rushHour.hour, h2 = (rushHour.hour + 1) % 24
+                const num = (h: number) => String(h % 12 || 12)
+                const per = (h: number) => (h < 12 ? (locale === 'ar' ? 'ص' : 'AM') : (locale === 'ar' ? 'م' : 'PM'))
+                const text = per(h1) === per(h2)
+                  ? `${num(h1)} – ${num(h2)} ${per(h1)}`
+                  : `${num(h1)} ${per(h1)} – ${num(h2)} ${per(h2)}`
+                return <span data-rush-hour className="whitespace-nowrap" dir={locale === 'ar' ? 'rtl' : 'ltr'}>{text}</span>
               })() : '—'}
               sub={rushHour
                 ? (locale === 'ar' ? `آخر 30 يوم · ${rushHour.pct}%` : `Last 30 days · ${rushHour.pct}%`)

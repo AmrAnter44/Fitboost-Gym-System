@@ -66,7 +66,7 @@ export const memberCreateSchema = z.object({
     z.literal(''),
     z.null(),
     z.undefined(),
-    z.string().regex(/^[0-9]{14}$/, 'الرقم القومي يجب أن يكون 14 رقم')
+    z.string().regex(/^([0-9]{14}|[A-Za-z0-9]{3,30})$/, 'الرقم القومي لازم يكون 14 رقم، أو رقم جواز سفر صحيح')
   ]).optional().nullable(),
 
   birthDate: z.union([z.literal(''), z.null(), z.undefined(), isoDateString]).optional().nullable(),

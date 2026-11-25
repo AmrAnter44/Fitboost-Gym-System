@@ -1056,6 +1056,22 @@ function migrateDatabase(dbPath) {
       db.prepare(`ALTER TABLE Complaint ADD COLUMN source TEXT NOT NULL DEFAULT 'staff'`).run();
     }
 
+    // ✅ Complaint — رقم لكل شكوى، والقديمة بتاخد أرقام بالترتيب حسب تاريخها
+    if (tableExists(db, 'Complaint')) {
+      if (!columnExists(db, 'Complaint', 'complaintNumber')) {
+        db.prepare(`ALTER TABLE Complaint ADD COLUMN complaintNumber INTEGER`).run();
+      }
+      const missing = db.prepare(`SELECT id FROM Complaint WHERE complaintNumber IS NULL ORDER BY createdAt ASC, id ASC`).all();
+      if (missing.length > 0) {
+        const numberAll = db.transaction(() => {
+          let next = Number(db.prepare(`SELECT MAX(complaintNumber) AS m FROM Complaint`).get().m || 0);
+          const set = db.prepare(`UPDATE Complaint SET complaintNumber = ? WHERE id = ? AND complaintNumber IS NULL`);
+          for (const row of missing) set.run(++next, row.id);
+        });
+        numberAll();
+      }
+    }
+
     // InternalMessage + InternalMessageRecipient — الإيميل الداخلي
     if (!tableExists(db, 'InternalMessage')) {
       db.exec(`

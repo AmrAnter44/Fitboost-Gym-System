@@ -742,6 +742,32 @@ function PTTab({ service = 'pt', dateFrom, dateTo, formatDate, formatCurrency, d
     Array.from(new Set((ptList || []).map((p: any) => (p.coachName || '').trim()).filter(Boolean))).sort((a: any, b: any) => a.localeCompare(b, 'ar'))
   ), [ptList])
 
+  //  🆕/🔁 نوع كل اشتراك في الفترة: من نوع إيصاله (التجديد بيحدّث نفس رقم الاشتراك فبنعرفه من الإيصال)
+  const [kindFilter, setKindFilter] = useState<'' | 'new' | 'renew'>('')
+  const kindByNumber = useMemo(() => {
+    const RENEW = ['ptRenewal', 'تجديد برايفت', 'moreRenewal', 'تجديد المزيد']
+    const NEW = ['PT', 'newPT', 'new pt', 'ptDayUse', 'PT Day Use', 'برايفت جديد', 'اشتراك برايفت', 'moreSubscription', 'اشتراك المزيد']
+    const from = new Date(dateFrom); from.setHours(0, 0, 0, 0)
+    const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
+    const m = new Map<number, 'new' | 'renew'>()
+    for (const r of (receipts || [])) {
+      if (!isServiceReceipt(r.type) || r[numKey] == null) continue
+      const d = new Date(r.createdAt); if (d < from || d > to) continue
+      if (RENEW.includes(r.type)) m.set(r[numKey], 'renew')
+      else if (NEW.includes(r.type) && !m.has(r[numKey])) m.set(r[numKey], 'new')
+    }
+    return m
+  }, [receipts, dateFrom, dateTo, isMore])
+  //  من غير إيصال في الفترة: لو الاشتراك بدأ في الفترة يبقى جديد (التجديد دايمًا بيعمل إيصال تجديد)
+  const kindOf = (p: any): 'new' | 'renew' | null => {
+    const k = p[numKey] != null ? kindByNumber.get(p[numKey]) : undefined
+    if (k) return k
+    const from = new Date(dateFrom); from.setHours(0, 0, 0, 0)
+    const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
+    const d = new Date(p.startDate || p.createdAt)
+    return d >= from && d <= to ? 'new' : null
+  }
+
   const filtered = useMemo(() => {
     const from = new Date(dateFrom); from.setHours(0, 0, 0, 0)
     const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
@@ -761,9 +787,27 @@ function PTTab({ service = 'pt', dateFrom, dateTo, formatDate, formatCurrency, d
       if (!startedInRange && !paidInRange) return false
       if (coachFilter && (p.coachName || '').trim() !== coachFilter) return false
       if (!gender.phoneOk(p.phone)) return false
+      if (kindFilter && kindOf(p) !== kindFilter) return false
       return true
     })
-  }, [ptList, receipts, dateFrom, dateTo, coachFilter, gender])
+  }, [ptList, receipts, dateFrom, dateTo, coachFilter, gender, kindFilter, kindByNumber])
+  //  العدّ من غير فلتر النوع — عشان كارت «جديد» و«مجدد» يفضلوا ثابتين لما تختار واحد فيهم
+  const kindCounts = useMemo(() => {
+    let n = 0, r = 0
+    for (const p of ptList) {
+      const k = kindOf(p)
+      if (!k) continue
+      if (coachFilter && (p.coachName || '').trim() !== coachFilter) continue
+      if (!gender.phoneOk(p.phone)) continue
+      if (k === 'new') n++; else r++
+    }
+    return { newCount: n, renewCount: r }
+  }, [ptList, kindByNumber, coachFilter, gender, dateFrom, dateTo])
+  const kindLabel = (k: 'new' | 'renew' | null) => k === 'new' ? (locale === 'ar' ? 'جديد' : 'New') : k === 'renew' ? (locale === 'ar' ? 'مجدد' : 'Renewal') : '-'
+  const memberCodeLabel = locale === 'ar' ? 'كود العضو' : 'Member code'
+  const kindColLabel = locale === 'ar' ? 'النوع' : 'Type'
+  const startLabel = locale === 'ar' ? 'بداية الاشتراك' : 'Start'
+  const endLabel = locale === 'ar' ? 'نهاية الاشتراك' : 'End'
 
   //  🔗 خريطة رقم الـ PT → الكوتش الحقيقي (من سجل الـ PT) — أدق من اسم الكوتش في الإيصال
   //  لأن إيصال ممكن يتدفع قبل ما الكوتش يتحدد نهائيًا فيتخزّن اسم ناقص/مختلف
@@ -835,23 +879,26 @@ function PTTab({ service = 'pt', dateFrom, dateTo, formatDate, formatCurrency, d
       const wb = new ExcelJS.Workbook(); wb.creator = 'Fitboost'
       const ws = wb.addWorksheet(tabLabel, { views: [{ rightToLeft: direction === 'rtl' }] })
 
-      const hdr = ws.addRow([numberLabel, t('reports.clientName' as any), t('reports.phone' as any), t('reports.coach' as any), t('reports.sessionsPurchased' as any), t('reports.sessionsRemaining' as any), t('reports.pricePerSession' as any), t('reports.totalRevenue' as any), t('reports.remainingAmount' as any), t('reports.startDate' as any), t('reports.expiryDate' as any)])
+      const hdr = ws.addRow([numberLabel, memberCodeLabel, t('reports.clientName' as any), kindColLabel, t('reports.phone' as any), t('reports.coach' as any), t('reports.sessionsPurchased' as any), t('reports.sessionsRemaining' as any), t('reports.pricePerSession' as any), t('reports.totalRevenue' as any), t('reports.remainingAmount' as any), startLabel, endLabel])
       hdr.font = { bold: true, size: 12, name: 'Arial', color: { argb: 'FFFFFFFF' } }
       hdr.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E86AB' } }
       hdr.alignment = { horizontal: 'center', vertical: 'middle' }; hdr.height = 28
 
       filtered.forEach((p: any, i: number) => {
-        const row = ws.addRow([p[numKey] || '-', p.clientName || '-', p.phone || '-', p.coachName || '-', p.sessionsPurchased || 0, p.sessionsRemaining || 0, p.pricePerSession || 0, collectedFor(p), p.remainingAmount || 0, formatDate(p.startDate), formatDate(p.expiryDate)])
+        const row = ws.addRow([p[numKey] || '-', p.memberNumber || '-', p.clientName || '-', kindLabel(kindOf(p)), p.phone || '-', p.coachName || '-', p.sessionsPurchased || 0, p.sessionsRemaining || 0, p.pricePerSession || 0, collectedFor(p), p.remainingAmount || 0, formatDate(p.startDate), formatDate(p.expiryDate)])
         if (i % 2 === 0) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } }
         row.alignment = { horizontal: 'center', vertical: 'middle' }
       })
 
       //  totalRevenue من إيصالات PT الفعلية في النطاق (مطابق للتقفيل الشهري)
-      const totRow = ws.addRow(['', '', '', t('reports.total' as any), '', '', '', totalRevenue, totalRemaining, '', ''])
+      const totRow = ws.addRow(['', '', '', '', '', t('reports.total' as any), '', '', '', totalRevenue, totalRemaining, '', ''])
+      ws.addRow([])
+      ws.addRow([locale === 'ar' ? 'جديد' : 'New', kindCounts.newCount]).font = { bold: true }
+      ws.addRow([locale === 'ar' ? 'مجدد' : 'Renewal', kindCounts.renewCount]).font = { bold: true }
       totRow.font = { bold: true, size: 13, name: 'Arial' }
       totRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFD700' } }
 
-      ws.columns = [{ width: 12 }, { width: 20 }, { width: 16 }, { width: 18 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 14 }]
+      ws.columns = [{ width: 12 }, { width: 12 }, { width: 20 }, { width: 10 }, { width: 16 }, { width: 18 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 14 }]
 
       const buf = await wb.xlsx.writeBuffer()
       downloadBuffer(buf, `${isMore ? 'More' : 'PT'}_Report_${dateFrom}_${dateTo}.xlsx`)
@@ -883,6 +930,23 @@ function PTTab({ service = 'pt', dateFrom, dateTo, formatDate, formatCurrency, d
             ))}
           </select>
         </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{kindColLabel}</label>
+          <div className="inline-flex rounded-lg ring-1 ring-gray-300 dark:ring-gray-600 overflow-hidden text-sm font-bold" role="group">
+            {([['', locale === 'ar' ? 'الكل' : 'All'], ['new', `${kindLabel('new')} (${kindCounts.newCount})`], ['renew', `${kindLabel('renew')} (${kindCounts.renewCount})`]] as const).map(([k, label]) => (
+              <button
+                key={k || 'all'}
+                type="button"
+                data-pt-kind-filter={k || 'all'}
+                onClick={() => setKindFilter(k as any)}
+                className={`px-3 py-2 transition-colors duration-200 ${kindFilter === k ? 'bg-primary-500 text-primary-contrast' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex-1" />
         <button onClick={exportExcel} type="button" className={exportBtnCls}>
           <IconDownload className="w-4 h-4" />
           <span>{t('reports.exportExcel' as any)}</span>
@@ -896,8 +960,10 @@ function PTTab({ service = 'pt', dateFrom, dateTo, formatDate, formatCurrency, d
           : 'Total Revenue is calculated from actual receipts in the date range (matches monthly closing)'}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-7 gap-3 mb-4">
         <SummaryCard Icon={IconDumbbell} label={t('reports.count' as any)} value={filtered.length} />
+        <SummaryCard Icon={IconDumbbell} label={locale === 'ar' ? 'جديد' : 'New'} value={kindCounts.newCount} />
+        <SummaryCard Icon={IconDumbbell} label={locale === 'ar' ? 'مجدد' : 'Renewal'} value={kindCounts.renewCount} />
         <SummaryCard Icon={IconMoney} label={locale === 'ar' ? 'الإجمالي' : 'Total'} value={formatCurrency(totalRevenue)} />
         <SummaryCard Icon={IconMoney} label={locale === 'ar' ? 'المرتجعات' : 'Refunds'} value={formatCurrency(ptRefunds)} />
         <SummaryCard Icon={IconMoney} label={locale === 'ar' ? 'الصافي' : 'Net'} value={formatCurrency(ptNet)} />
@@ -909,7 +975,7 @@ function PTTab({ service = 'pt', dateFrom, dateTo, formatDate, formatCurrency, d
           <table className="w-full text-sm">
             <thead className={tableHeadCls}>
               <tr>
-                {[numberLabel, t('reports.clientName' as any), t('reports.phone' as any), t('reports.coach' as any), t('reports.sessionsPurchased' as any), t('reports.sessionsRemaining' as any), t('reports.pricePerSession' as any), t('reports.totalRevenue' as any), t('reports.remainingAmount' as any)].map((h, i) =>
+                {[numberLabel, memberCodeLabel, t('reports.clientName' as any), kindColLabel, t('reports.phone' as any), t('reports.coach' as any), t('reports.sessionsPurchased' as any), t('reports.sessionsRemaining' as any), t('reports.pricePerSession' as any), t('reports.totalRevenue' as any), t('reports.remainingAmount' as any), startLabel, endLabel].map((h, i) =>
                   <th key={i} className={tableThCls}>{h}</th>
                 )}
               </tr>
@@ -933,7 +999,19 @@ function PTTab({ service = 'pt', dateFrom, dateTo, formatDate, formatCurrency, d
                       )}
                     </div>
                   </td>
+                  <td data-member-code className={`${tableTdCls} font-mono`}>{p.memberNumber || '-'}</td>
                   <td className={`${tableTdCls} font-bold ${cancelled ? 'text-red-500 dark:text-red-400 line-through' : 'text-gray-900 dark:text-gray-100'}`}><MemberNameLink name={p.clientName || '-'} memberId={p.memberId} memberNumber={p.memberNumber} phone={p.phone} /></td>
+                  <td className={tableTdCls}>
+                    {(() => {
+                      const k = kindOf(p)
+                      if (!k) return <span className="text-gray-400">-</span>
+                      return (
+                        <span data-pt-kind={k} className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${k === 'new' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'}`}>
+                          {kindLabel(k)}
+                        </span>
+                      )
+                    })()}
+                  </td>
                   <td className={`${tableTdCls} font-mono`}>{p.phone || '-'}</td>
                   <td className={tableTdCls}>{p.coachName || '-'}</td>
                   <td className={`${tableTdCls} text-center`}>{p.sessionsPurchased || 0}</td>
@@ -941,15 +1019,18 @@ function PTTab({ service = 'pt', dateFrom, dateTo, formatDate, formatCurrency, d
                   <td className={tableTdCls}>{formatCurrency(p.pricePerSession || 0)}</td>
                   <td className={`${tableTdCls} font-bold ${cancelled ? 'text-red-500 dark:text-red-400 line-through' : 'text-green-600 dark:text-green-400'}`}>{formatCurrency(collectedFor(p))}</td>
                   <td className={`${tableTdCls} text-orange-600 dark:text-orange-400`}>{formatCurrency(p.remainingAmount || 0)}</td>
+                  <td className={`${tableTdCls} whitespace-nowrap`}>{p.startDate ? formatDate(p.startDate) : '-'}</td>
+                  <td className={`${tableTdCls} whitespace-nowrap`}>{p.expiryDate ? formatDate(p.expiryDate) : '-'}</td>
                 </tr>
                 )
               })}
             </tbody>
             <tfoot>
               <tr className="bg-primary-50 dark:bg-primary-900/20 font-bold border-t-2 border-primary-200 dark:border-primary-900/50">
-                <td className="px-4 py-3 text-gray-900 dark:text-gray-100" colSpan={7}>{t('reports.total' as any)}</td>
+                <td className="px-4 py-3 text-gray-900 dark:text-gray-100" colSpan={9}>{t('reports.total' as any)}</td>
                 <td className="px-4 py-3 text-green-600 dark:text-green-400">{formatCurrency(totalRevenue)}</td>
                 <td className="px-4 py-3 text-orange-600 dark:text-orange-400">{formatCurrency(totalRemaining)}</td>
+                <td colSpan={2} />
               </tr>
             </tfoot>
           </table>

@@ -76,11 +76,13 @@ export async function GET(request: Request) {
     const memberIds = new Set<string>()
     const byPhone = new Map<string, string>()
     const byBackup = new Map<string, string>()
+    const numById = new Map<string, string | null>()
     try {
       if (moreSubscriptions.length > 0) {
-        const members = await prisma.member.findMany({ select: { id: true, phone: true, backupPhone: true } })
+        const members = await prisma.member.findMany({ select: { id: true, phone: true, backupPhone: true, memberNumber: true } })
         for (const m of members) {
           memberIds.add(m.id)
+          numById.set(m.id, m.memberNumber ?? null)
           const k = phoneKey(m.phone); if (k && !byPhone.has(k)) byPhone.set(k, m.id)
           const bk = phoneKey(m.backupPhone); if (bk && !byBackup.has(bk)) byBackup.set(bk, m.id)
         }
@@ -90,7 +92,8 @@ export async function GET(request: Request) {
     return NextResponse.json(moreSubscriptions.map(sub => {
       const k = phoneKey(sub.phone)
       const linked = sub.memberId && memberIds.has(sub.memberId) ? sub.memberId : null
-      return { ...sub, profileMemberId: linked || (k ? byPhone.get(k) || byBackup.get(k) || null : null) }
+      const profileMemberId = linked || (k ? byPhone.get(k) || byBackup.get(k) || null : null)
+      return { ...sub, profileMemberId, memberNumber: profileMemberId ? numById.get(profileMemberId) ?? null : null }
     }))
   } catch (error: any) {
     console.error('Error fetching More subscriptions:', error)

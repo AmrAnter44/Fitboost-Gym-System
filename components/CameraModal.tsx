@@ -24,35 +24,51 @@ export default function CameraModal({ isOpen, onClose, onCapture, autoCapture = 
   const [isCameraReady, setIsCameraReady] = useState(false)
   //  countdown للـ auto-capture
   const [countdown, setCountdown] = useState<number | null>(null)
+  //  📷 الكاميرا الأمامية أو الخلفية — والزرار بيظهر بس لو الجهاز فيه أكتر من كاميرا
+  const [facing, setFacing] = useState<'user' | 'environment'>('user')
+  const [hasMultipleCameras, setHasMultipleCameras] = useState(false)
+  const streamRef = useRef<MediaStream | null>(null)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
+    const stopStream = () => {
+      streamRef.current?.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+    }
     if (!isOpen) {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop())
-        setStream(null)
-        setIsCameraReady(false)
-      }
+      stopStream()
+      setStream(null)
+      setIsCameraReady(false)
       setCapturedImage(null)
       setError(null)
+      setFacing('user')
       return
     }
 
+    let cancelled = false
     const startCamera = async () => {
+      stopStream()
+      setIsCameraReady(false)
       try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: 'user'
-          },
-          audio: false
-        })
+        const video = { width: { ideal: 1280 }, height: { ideal: 720 } }
+        let mediaStream: MediaStream
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({ video: { ...video, facingMode: { ideal: facing } }, audio: false })
+        } catch {
+          //  لو الكاميرا المطلوبة مش متاحة نفتح أي كاميرا موجودة
+          mediaStream = await navigator.mediaDevices.getUserMedia({ video, audio: false })
+        }
+        if (cancelled) { mediaStream.getTracks().forEach(track => track.stop()); return }
 
+        streamRef.current = mediaStream
         setStream(mediaStream)
         setError(null)
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices()
+          if (!cancelled) setHasMultipleCameras(devices.filter(d => d.kind === 'videoinput').length > 1)
+        } catch { /* مش مهم */ }
 
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream
@@ -63,21 +79,21 @@ export default function CameraModal({ isOpen, onClose, onCapture, autoCapture = 
         }
       } catch (err: any) {
         console.error('Camera access error:', err)
-        setError(t('members.form.cameraAccessFailed'))
+        if (!cancelled) setError(t('members.form.cameraAccessFailed'))
       }
     }
 
     startCamera()
 
     return () => {
+      cancelled = true
       if (videoRef.current) {
         videoRef.current.onloadedmetadata = null
       }
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop())
-      }
+      stopStream()
     }
-  }, [isOpen])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, facing])
 
   useEffect(() => {
     if (!isOpen) return
@@ -221,6 +237,21 @@ export default function CameraModal({ isOpen, onClose, onCapture, autoCapture = 
                 muted
                 className="max-w-full max-h-full object-contain rounded-lg"
               />
+              {hasMultipleCameras && !capturedImage && (
+                <button
+                  type="button"
+                  data-camera-flip
+                  onClick={() => setFacing(f => (f === 'user' ? 'environment' : 'user'))}
+                  aria-label={locale === 'ar' ? 'قلب الكاميرا' : 'Flip camera'}
+                  title={locale === 'ar' ? 'قلب الكاميرا' : 'Flip camera'}
+                  className="absolute top-3 end-3 z-10 inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/60 hover:bg-black/75 text-white text-sm font-bold backdrop-blur-sm transition-colors duration-200"
+                >
+                  <svg className="w-5 h-5" {...stroke}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06" />
+                  </svg>
+                  {locale === 'ar' ? (facing === 'user' ? 'الكاميرا الخلفية' : 'الكاميرا الأمامية') : (facing === 'user' ? 'Back camera' : 'Front camera')}
+                </button>
+              )}
               {/*  Countdown overlay لما الـ autoCapture مفعّل */}
               {autoCapture && countdown !== null && isCameraReady && !capturedImage && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">

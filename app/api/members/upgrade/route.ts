@@ -47,7 +47,8 @@ export async function POST(request: Request) {
       staffName,
       remainingAmount = 0,
       remainingDueDate,
-      customPrice
+      customPrice,
+      discount: rawDiscount
     } = body
 
 
@@ -134,11 +135,14 @@ export async function POST(request: Request) {
     // 8. حساب مبلغ الترقية
     // لو فيه customPrice → استخدمه، لو الاشتراك منتهي → السعر كامل، غيره → الفرق
     const effectivePrice = customPrice != null ? customPrice : newOffer.price
-    const upgradeAmount = customPrice != null
+    const upgradeBase = customPrice != null
       ? customPrice
       : isExpired
         ? newOffer.price
         : newOffer.price - member.subscriptionPrice
+    //  🏷️ خصم على مبلغ الترقية (الفورم بيبعته بالجنيه حتى لو اتكتب كنسبة)
+    const upgradeDiscount = Math.min(Math.max(0, Number(rawDiscount) || 0), Math.max(0, upgradeBase))
+    const upgradeAmount = round2(upgradeBase - upgradeDiscount)
 
 
     // 9. حساب تاريخ النهاية الجديد (من تاريخ البداية الأصلي)
@@ -208,6 +212,7 @@ export async function POST(request: Request) {
 
       // تفاصيل الترقية
       upgradeAmount,
+      ...(upgradeDiscount > 0 ? { discount: upgradeDiscount, originalPrice: upgradeBase } : {}),
       startDate: formatDateYMD(member.startDate),      // تاريخ البداية لم يتغير
       subscriptionDays: newOffer.duration,
       isUpgrade: true,

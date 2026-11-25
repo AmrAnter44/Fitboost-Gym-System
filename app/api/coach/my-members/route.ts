@@ -44,7 +44,6 @@ export async function GET(request: Request) {
         freePTSessions: true,
         inBodyScans: true,
         freeAssessmentSessions: true,
-        subscriptionPrice: true,
         remainingAmount: true,
         coachConversionNote: true,
         coachConversionNoteAt: true,

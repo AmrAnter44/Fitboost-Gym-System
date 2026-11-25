@@ -42,6 +42,10 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   try {
     const user = await verifyAuth(request)
     if (!user) return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })
+    //  🔒 الشكوى سجل مهم — حذفها للمالك والأدمن بس
+    if (user.role !== 'OWNER' && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'حذف الشكاوى للأدمن فقط' }, { status: 403 })
+    }
     await prisma.complaint.delete({ where: { id: params.id } })
     return NextResponse.json({ success: true })
   } catch (error) {

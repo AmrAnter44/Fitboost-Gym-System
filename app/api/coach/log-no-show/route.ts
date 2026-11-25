@@ -31,6 +31,10 @@ export async function POST(request: Request) {
     if (member.coachId !== user.staffId) {
       return NextResponse.json({ error: 'هذا العضو غير معين لك' }, { status: 403 })
     }
+    //  «مجاش» للحصص المجانية بس — لو العضو ملوش حصص مفيش حاجة يتسجل عليها
+    if ((member.freePTSessions || 0) <= 0) {
+      return NextResponse.json({ error: 'العضو ملوش حصص PT مجانية' }, { status: 400 })
+    }
 
     //  جلب اسم الكوتش
     const staff = await prisma.staff.findUnique({ where: { id: user.staffId } })

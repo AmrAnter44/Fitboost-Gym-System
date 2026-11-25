@@ -12,6 +12,7 @@ import { calculateDaysBetween, formatDateYMD } from '../lib/dateFormatter'
 // ReceiptToPrint popup — يظهر بعد إنشاء العضو بدل الطباعة التلقائية
 // المستخدم بيختار من البوب اب: يطبع، يرسل واتساب، أو يغلق
 import { ReceiptToPrint } from './ReceiptToPrint'
+import NationalIdInput from './NationalIdInput'
 import { usePermissions } from '../hooks/usePermissions'
 import { maskPhone } from '../lib/maskPhone'
 import { useLanguage } from '../contexts/LanguageContext'
@@ -45,6 +46,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
   //  🔓 تاريخ الانتهاء مع الباقة بيتحسب تلقائي — الأونر بس يقدر يعدّله بإيده
   const isOwner = user?.role === 'OWNER'
   const { t, tr, direction, locale } = useLanguage()
+  const [nationalIdIsPassport, setNationalIdIsPassport] = useState(false)
   const toast = useToast()
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
@@ -143,9 +145,23 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
   //  🏷️ سعر الباقة قبل العرض (كان بكام) — بيتكتب في الإيصال كسعر أصلي + خصم
   const [appliedOfferOriginal, setAppliedOfferOriginal] = useState<number | null>(null)
   const [appliedOfferMinPrice, setAppliedOfferMinPrice] = useState<number | null>(null)
-  // الخصم اللي حطه الـ user (للأكونتات اللي مش OWNER/ADMIN)
-  const [discount, setDiscount] = useState<number>(0)
   const isPrivilegedUser = user?.role === 'OWNER' || user?.role === 'ADMIN'
+  //  🏷️ الخصم: بالجنيه أو بالنسبة المئوية — الريسيبشن في حدود الباقة، والأدمن على السعر اللي كتبه
+  const [discountMode, setDiscountMode] = useState<'amount' | 'percent'>('amount')
+  const [discountInput, setDiscountInput] = useState('')
+  //  سعر الأدمن قبل الخصم (الخانة المفتوحة) — الصافي = السعر − الخصم
+  const [adminBasePrice, setAdminBasePrice] = useState<number>(0)
+  const discountBase: number | null = isPrivilegedUser ? adminBasePrice : appliedOfferPrice
+  const maxDiscount = discountBase === null ? 0
+    : (!isPrivilegedUser && appliedOfferMinPrice !== null ? Math.max(0, discountBase - appliedOfferMinPrice) : Math.max(0, discountBase))
+  const discountFromInput = (raw: string) => {
+    if (discountBase === null) return 0
+    const v = parseFloat(raw) || 0
+    if (v <= 0) return 0
+    const amt = discountMode === 'percent' ? Math.round(discountBase * Math.min(v, 100) / 100) : Math.round(v)
+    return Math.min(amt, maxDiscount)
+  }
+  const discount = discountFromInput(discountInput)
 
   // إغلاق الفورم عند الضغط على Escape (نفس نمط ReceiptDetailModal)
   //  🧾 مش وقت الحفظ ولا والإيصال ظاهر — لأن بوب أب الإيصال جوّه الفورم، فقفل الفورم
@@ -358,15 +374,15 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.startDate, appliedOfferDuration])
 
-  // للموظفين العاديين: لما الخصم يتغير، نحدّث subscriptionPrice = offerPrice - discount
+  // لما الخصم أو السعر يتغير: subscriptionPrice = السعر قبل الخصم − الخصم
   useEffect(() => {
-    if (isPrivilegedUser || appliedOfferPrice === null) return
-    const newPrice = Math.max(0, appliedOfferPrice - discount)
+    if (discountBase === null) return
+    const newPrice = Math.max(0, discountBase - discount)
     if (newPrice !== formData.subscriptionPrice) {
       setFormData(prev => ({ ...prev, subscriptionPrice: newPrice }))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [discount, appliedOfferPrice, isPrivilegedUser])
+  }, [discount, discountBase])
 
   const calculateDuration = () => {
     if (!formData.startDate || !formData.expiryDate) return null
@@ -377,6 +393,11 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
     e.preventDefault()
     setLoading(true)
 
+    //  الرقم القومي 14 رقم — إلا لو زرار «جواز سفر» مفتوح
+    if (formData.nationalId && !nationalIdIsPassport && formData.nationalId.length !== 14) {
+      toast.error(direction === 'rtl' ? 'الرقم القومي لازم يكون 14 رقم، ولو أجنبي دوس «جواز سفر»' : 'National ID must be 14 digits, or switch to Passport')
+      return
+    }
     if (formData.startDate && formData.expiryDate) {
       const start = new Date(formData.startDate)
       const end = new Date(formData.expiryDate)
@@ -421,7 +442,10 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
       //  💸 الخصم في الإيصال = (سعر الباقة قبل العرض أو سعرها) − السعر النهائي
       //     بيشمل خصم العرض + أي خصم إضافي من الريسيبشن
       ...(() => {
-        if (appliedOfferPrice === null) return { discount: 0, originalPrice: null }
+        //  الأدمن من غير باقة: الخصم على السعر اللي كتبه
+        if (appliedOfferPrice === null) {
+          return isPrivilegedUser && discount > 0 ? { discount, originalPrice: adminBasePrice } : { discount: 0, originalPrice: null }
+        }
         const base = appliedOfferOriginal ?? appliedOfferPrice
         const finalPrice = Number(formData.subscriptionPrice) || 0
         const d = Math.round((base - finalPrice) * 100) / 100
@@ -536,6 +560,75 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
   const duration = calculateDuration()
   const paidAmount = formData.subscriptionPrice
 
+  const discountUnit = discountMode === 'percent' ? '٪' : (direction === 'rtl' ? 'جنيه' : 'EGP')
+  const discountDisabled = !isPrivilegedUser && appliedOfferPrice === null
+  const renderDiscountField = () => (
+    <div data-discount-field>
+      <label className="flex items-center text-sm font-bold text-orange-700 dark:text-orange-400 mb-1.5 gap-1.5 flex-wrap">
+        <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+        <span>{direction === 'rtl' ? `خصم (${discountUnit})` : `Discount (${discountUnit})`}</span>
+        {!isPrivilegedUser && appliedOfferMinPrice !== null && appliedOfferPrice !== null && (
+          <span className="text-[10px] text-gray-500 dark:text-gray-400 mx-1">
+            {direction === 'rtl' ? `الحد الأقصى للخصم: ${maxDiscount}` : `Max discount: ${maxDiscount}`}
+          </span>
+        )}
+      </label>
+      <div className="flex gap-2">
+        <input
+          type="number"
+          min="0"
+          max={discountMode === 'percent' ? 100 : (discountBase !== null ? maxDiscount : undefined)}
+          step={discountMode === 'percent' ? '0.01' : '1'}
+          value={discountInput}
+          onChange={(e) => {
+            const raw = e.target.value
+            const v = parseFloat(raw) || 0
+            if (v < 0) { setDiscountInput(''); return }
+            // كلامب لو الـ user كتب أكتر من المسموح (نخلي الـ field يعرض الحد الأقصى)
+            if (discountBase !== null && discountBase > 0) {
+              const amt = discountMode === 'percent' ? Math.round(discountBase * Math.min(v, 100) / 100) : Math.round(v)
+              if (amt > maxDiscount || (discountMode === 'percent' && v > 100)) {
+                setDiscountInput(discountMode === 'percent' ? String(Math.floor(maxDiscount / discountBase * 10000) / 100) : String(maxDiscount))
+                return
+              }
+            }
+            setDiscountInput(raw)
+          }}
+          disabled={discountDisabled}
+          className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors duration-200"
+          placeholder="0"
+        />
+        <div className="flex shrink-0 rounded-lg ring-1 ring-orange-300 dark:ring-orange-700 overflow-hidden text-sm font-bold" role="group">
+          {(['amount', 'percent'] as const).map(m => (
+            <button
+              key={m}
+              type="button"
+              data-discount-mode={m}
+              disabled={discountDisabled}
+              onClick={() => { if (m !== discountMode) { setDiscountMode(m); setDiscountInput('') } }}
+              className={`px-3 py-2 transition-colors duration-200 disabled:cursor-not-allowed ${discountMode === m ? 'bg-orange-500 text-white' : 'bg-white dark:bg-gray-700 text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-gray-600'}`}
+            >
+              {m === 'percent' ? '٪' : (direction === 'rtl' ? 'جنيه' : 'EGP')}
+            </button>
+          ))}
+        </div>
+      </div>
+      {!discountDisabled && (
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+          {discountMode === 'percent' && discount > 0 && (
+            <>{direction === 'rtl' ? 'الخصم' : 'Discount'}: <strong>{discount}</strong> {direction === 'rtl' ? 'جنيه' : 'EGP'} · </>
+          )}
+          {direction === 'rtl' ? 'الصافي بعد الخصم' : 'Net after discount'}: <strong className="text-green-700 dark:text-green-400">{formData.subscriptionPrice}</strong> {direction === 'rtl' ? 'جنيه' : 'EGP'}
+        </p>
+      )}
+      {discountDisabled && (
+        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+          {direction === 'rtl' ? 'اختار باقة الأول عشان تقدر تطبّق خصم' : 'Pick a package first to apply a discount'}
+        </p>
+      )}
+    </div>
+  )
+
   // دالة تطبيق العرض
   const applyOffer = (offer: any) => {
     const startDate = formData.startDate || formatDateYMD(new Date())
@@ -547,7 +640,8 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
     setAppliedOfferPrice(offer.price)
     setAppliedOfferOriginal(offer.originalPrice != null && offer.originalPrice > offer.price ? offer.originalPrice : null)
     setAppliedOfferMinPrice(offer.minPrice ?? null)
-    setDiscount(0) // إعادة الخصم لـ 0 عند تطبيق باقة جديدة
+    setDiscountInput('') // إعادة الخصم لـ 0 عند تطبيق باقة جديدة
+    setAdminBasePrice(offer.price)
 
     setFormData(prev => ({
       ...prev,
@@ -863,18 +957,16 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.form.nationalIdOptional')}</label>
-            <input
-              type="text"
-              value={formData.nationalId}
-              onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-              placeholder="29512345678901"
-              dir="ltr"
-              maxLength={14}
-            />
-          </div>
+          <NationalIdInput
+            ar={direction === 'rtl'}
+            value={formData.nationalId}
+            onChange={(v) => setFormData({ ...formData, nationalId: v })}
+            onPassportChange={setNationalIdIsPassport}
+            label={t('members.form.nationalIdOptional')}
+            labelClassName="block text-sm font-bold text-gray-700 dark:text-gray-300"
+            nationalPlaceholder="29512345678901"
+            inputClassName="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
+          />
 
           <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.form.birthDateOptional')}</label>
@@ -1302,17 +1394,20 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
 
         {isPrivilegedUser ? (
           /* OWNER/ADMIN: حقل السعر مفتوح بالكامل */
-          <div className="mb-2">
+          <div className="mb-2 space-y-2">
+            <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.form.subscriptionPriceRequired')}</label>
             <input
               type="number"
               required
               min="0"
-              value={formData.subscriptionPrice}
-              onChange={(e) => setFormData({ ...formData, subscriptionPrice: parseInt(e.target.value) || 0 })}
+              value={adminBasePrice}
+              onChange={(e) => setAdminBasePrice(parseInt(e.target.value) || 0)}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
               placeholder="0"
             />
+            </div>
+            {renderDiscountField()}
           </div>
         ) : (
           /* ريسبشن وغيرهم: السعر مقفول، يقدر يحط خصم فقط في الحد المسموح */
@@ -1328,50 +1423,7 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 cursor-not-allowed"
               />
             </div>
-            <div>
-              <label className="flex items-center text-sm font-bold text-orange-700 dark:text-orange-400 mb-1.5 gap-1.5 flex-wrap">
-                <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
-                <span>{direction === 'rtl' ? 'خصم (جنيه)' : 'Discount (EGP)'}</span>
-                {appliedOfferMinPrice !== null && appliedOfferPrice !== null && (
-                  <span className="text-[10px] text-gray-500 dark:text-gray-400 mx-1">
-                    {direction === 'rtl'
-                      ? `الحد الأقصى للخصم: ${appliedOfferPrice - appliedOfferMinPrice}`
-                      : `Max discount: ${appliedOfferPrice - appliedOfferMinPrice}`}
-                  </span>
-                )}
-              </label>
-              <input
-                type="number"
-                min="0"
-                max={appliedOfferPrice !== null && appliedOfferMinPrice !== null ? appliedOfferPrice - appliedOfferMinPrice : undefined}
-                value={discount}
-                onChange={(e) => {
-                  let v = parseInt(e.target.value) || 0
-                  if (v < 0) v = 0
-                  // كلامب لو الـ user كتب أكتر من المسموح (نخلي الـ field يعرض الحد الأقصى)
-                  if (appliedOfferPrice !== null && appliedOfferMinPrice !== null) {
-                    const maxDiscount = appliedOfferPrice - appliedOfferMinPrice
-                    if (v > maxDiscount) v = maxDiscount
-                  } else if (appliedOfferPrice !== null && v > appliedOfferPrice) {
-                    v = appliedOfferPrice
-                  }
-                  setDiscount(v)
-                }}
-                disabled={appliedOfferPrice === null}
-                className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors duration-200"
-                placeholder="0"
-              />
-              {appliedOfferPrice !== null && (
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  {direction === 'rtl' ? 'الصافي بعد الخصم' : 'Net after discount'}: <strong className="text-green-700 dark:text-green-400">{formData.subscriptionPrice}</strong> {direction === 'rtl' ? 'جنيه' : 'EGP'}
-                </p>
-              )}
-              {appliedOfferPrice === null && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                  {direction === 'rtl' ? 'اختار باقة الأول عشان تقدر تطبّق خصم' : 'Pick a package first to apply a discount'}
-                </p>
-              )}
-            </div>
+            {renderDiscountField()}
           </div>
         )}
 

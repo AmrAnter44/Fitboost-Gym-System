@@ -76,8 +76,11 @@ export function generatePalette(baseHex: string): ColorPalette {
   for (const [shade, lightness] of Object.entries(shadeMap)) {
     // Adjust saturation slightly for lighter/darker shades
     let adjS = s
-    if (lightness > 80) adjS = Math.max(s * 0.7, 20)
-    if (lightness < 25) adjS = Math.max(s * 0.8, 15)
+    //  الألوان الرمادية (تشبع قليل) بتفضل رمادي — من غير ما نزوّد التشبع فتطلع مايلة للأحمر/الأزرق
+    if (s >= 12) {
+      if (lightness > 80) adjS = Math.max(s * 0.7, 20)
+      if (lightness < 25) adjS = Math.max(s * 0.8, 15)
+    }
 
     const hex = hslToHex(h, adjS, lightness)
     palette[shade] = {
@@ -193,8 +196,8 @@ export function getColorBlockingScript(): string {
         for (var shade in shades) {
           var lgt = shades[shade];
           var adjS = hsl.s;
-          if (lgt > 80) adjS = Math.max(hsl.s * 0.7, 20);
-          if (lgt < 25) adjS = Math.max(hsl.s * 0.8, 15);
+          if (hsl.s >= 12 && lgt > 80) adjS = Math.max(hsl.s * 0.7, 20);
+          if (hsl.s >= 12 && lgt < 25) adjS = Math.max(hsl.s * 0.8, 15);
           var hex = hslToHex(hsl.h, adjS, lgt);
           var hx = hex.replace('#', '');
           var rN = parseInt(hx.substring(0,2),16);

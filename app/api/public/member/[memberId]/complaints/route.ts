@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { assignComplaintNumber } from '@/lib/complaintNumber';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
 import { verifyMemberPhone, memberPhoneFrom } from '@/lib/memberVerify';
@@ -116,7 +117,8 @@ export async function POST(
       select: { id: true, subject: true, body: true, status: true, createdAt: true },
     });
 
-    return NextResponse.json({ success: true, complaint }, { status: 201 });
+    const complaintNumber = await assignComplaintNumber(complaint.id).catch(() => null);
+    return NextResponse.json({ success: true, complaint: { ...complaint, complaintNumber } }, { status: 201 });
   } catch (error) {
     console.error('Create member complaint error:', error instanceof Error ? error.message : 'unknown');
     return NextResponse.json({ error: 'حدث خطأ في الخادم' }, { status: 500 });

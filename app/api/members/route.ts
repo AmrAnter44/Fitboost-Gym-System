@@ -1140,7 +1140,13 @@ export async function PUT(request: Request) {
     if (data.name) updateData.name = data.name
     if (data.phone) updateData.phone = data.phone
     if (data.backupPhone !== undefined) updateData.backupPhone = data.backupPhone || null
-    if (data.nationalId !== undefined) updateData.nationalId = data.nationalId || null
+    if (data.nationalId !== undefined) {
+      const nid = data.nationalId ? String(data.nationalId).trim() : ''
+      if (nid && !/^([0-9]{14}|[A-Za-z0-9]{3,30})$/.test(nid)) {
+        return NextResponse.json({ error: 'الرقم القومي لازم يكون 14 رقم، أو رقم جواز سفر صحيح' }, { status: 400 })
+      }
+      updateData.nationalId = nid || null
+    }
     if (data.birthDate !== undefined) {
       updateData.birthDate = data.birthDate ? new Date(data.birthDate) : null
     }

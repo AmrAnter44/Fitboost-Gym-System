@@ -1051,7 +1051,7 @@ export default function AdminUsersPage() {
             )}
 
             {/* Sales tag */}
-            {editingUser.role !== 'OWNER' && editingUser.role !== 'ADMIN' && (
+            {editingUser.role !== 'OWNER' && editingUser.role !== 'ADMIN' && editingUser.role !== 'COACH' && (
               <div className="bg-orange-50 dark:bg-orange-900/20 ring-1 ring-orange-200 dark:ring-orange-900/50 rounded-xl px-4 py-3 mb-5 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">

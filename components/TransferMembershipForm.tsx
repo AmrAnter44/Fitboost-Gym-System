@@ -82,6 +82,7 @@ export default function TransferMembershipForm({ member, onClose, onSuccess }: P
 
   const [newName, setNewName] = useState('')
   const [newPhone, setNewPhone] = useState('')
+  const [newGender, setNewGender] = useState('')
   const [profileImage, setProfileImage] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(false)
@@ -161,6 +162,7 @@ export default function TransferMembershipForm({ member, onClose, onSuccess }: P
       if (!/^(010|011|012|015)[0-9]{8}$/.test(newPhone.trim())) {
         return locale === 'ar' ? 'رقم الهاتف غير صحيح' : 'Invalid phone number'
       }
+      if (settings.mixedGymEnabled && !newGender) return locale === 'ar' ? 'حدد جنس المالك الجديد' : 'Choose the new owner gender'
     }
     return null
   }
@@ -187,6 +189,7 @@ export default function TransferMembershipForm({ member, onClose, onSuccess }: P
           name: newName.trim(),
           phone: newPhone.trim(),
           profileImage,
+          ...(settings.mixedGymEnabled && newGender ? { gender: newGender } : {}),
         }
       }
       const res = await fetch('/api/members/transfer', {
@@ -411,10 +414,41 @@ export default function TransferMembershipForm({ member, onClose, onSuccess }: P
                   onChange={(e) => setNewPhone(e.target.value)}
                   placeholder="010xxxxxxxx"
                   dir="ltr"
+                  data-new-owner-phone
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 font-mono"
                 />
               </div>
             </div>
+
+            {settings.mixedGymEnabled && (
+              <div>
+                <p className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                  {locale === 'ar' ? 'جنس المالك الجديد' : 'New Owner Gender'} *
+                </p>
+                <div className="grid grid-cols-2 gap-2" role="radiogroup">
+                  {[
+                    { v: 'male', ar: 'رجالي', en: 'Male' },
+                    { v: 'female', ar: 'سيدات', en: 'Female' },
+                  ].map(g => (
+                    <button
+                      key={g.v}
+                      type="button"
+                      role="radio"
+                      aria-checked={newGender === g.v}
+                      data-new-owner-gender={g.v}
+                      onClick={() => setNewGender(g.v)}
+                      className={`py-2 rounded-lg font-bold text-sm ring-1 transition-colors duration-200 ${
+                        newGender === g.v
+                          ? 'bg-purple-600 text-white ring-purple-600'
+                          : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      {locale === 'ar' ? g.ar : g.en}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="bg-white dark:bg-gray-800 ring-1 ring-purple-200 dark:ring-purple-900/50 rounded-lg p-3">
               <p className="text-xs font-bold text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-1.5">

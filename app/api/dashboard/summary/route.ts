@@ -6,6 +6,47 @@ import { verifyAuth } from '../../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
 
+//  نفس تطبيع الموبايل في صفحة المتابعات
+const normalizePhone = (phone?: string | null) => {
+  let n = String(phone || '').replace(/[\s\-\(\)\+]/g, '').trim()
+  if (n.startsWith('2')) n = n.substring(1)
+  if (n.startsWith('0')) n = n.substring(1)
+  return n
+}
+
+//  📞 «متابعة معلقة» = شخص آخر متابعة ليه لسه متواصلش معاه — كل شخص مرة واحدة،
+//  ومن غير الأعضاء النشطين (صفحة المتابعات بتخفيهم)، والسيلز بيشوف بتوعه بس
+async function countPendingFollowups(user: { isSales?: boolean; staffId?: string | null; role?: string; permissions?: any }) {
+  const [rows, activeMembers] = await Promise.all([
+    prisma.followUp.findMany({
+      where: { archived: false, visitor: { isDeleted: false } },
+      select: { contacted: true, createdAt: true, assignedTo: true, visitor: { select: { phone: true, source: true } } },
+    }),
+    prisma.member.findMany({ where: { isActive: true }, select: { phone: true } }),
+  ])
+  const activePhones = new Set(activeMembers.map(m => normalizePhone(m.phone)).filter(Boolean))
+  const salesOnlyMine = !!user.isSales && !!user.staffId && user.role !== 'OWNER' && user.role !== 'ADMIN' && !user.permissions?.canManageSales
+  const latest = new Map<string, (typeof rows)[number]>()
+  for (const r of rows) {
+    const key = normalizePhone(r.visitor?.phone)
+    if (!key) continue
+    const cur = latest.get(key)
+    if (!cur || r.createdAt > cur.createdAt) latest.set(key, r)
+  }
+  let n = 0
+  latest.forEach((r, key) => {
+    if (r.contacted) return
+    if (activePhones.has(key)) return
+    if (salesOnlyMine) {
+      const src = r.visitor?.source
+      const unassignedShared = !r.assignedTo && (src === 'member-invitation' || src === 'expired-member' || src === 'expiring-member')
+      if (r.assignedTo !== user.staffId && !unassignedShared) return
+    }
+    n++
+  })
+  return n
+}
+
 export async function GET(request: Request) {
   try {
     const user = await verifyAuth(request)
@@ -55,7 +96,7 @@ export async function GET(request: Request) {
         _count: true,
         where: { createdAt: { gte: startOfYesterday, lt: startOfToday } },
       }),
-      prisma.followUp.count({ where: { contacted: false, archived: false } }),
+      countPendingFollowups(user),
       // إيرادات آخر 14 يوم مجمعة باليوم في SQL (بتوقيت السيرفر المحلي)
       prisma.$queryRaw<Array<{ day: string; count: bigint; revenue: number }>>`
         SELECT date(createdAt / 1000, 'unixepoch', 'localtime') AS day,
