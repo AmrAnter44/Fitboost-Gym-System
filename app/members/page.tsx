@@ -262,6 +262,8 @@ function MembersPageContent() {
   // فلتر تاريخ الاشتراك — مدى (من/إلى) يحدده المستخدم (YYYY-MM-DD)
   const [filterSubFrom, setFilterSubFrom] = useState<string>('')
   const [filterSubTo, setFilterSubTo] = useState<string>('')
+  //  🗓️ المدى ده على إيه: اشتراكات بدأت (تاريخ البداية) ولا اشتراكات انتهت (تاريخ الانتهاء)
+  const [filterSubKind, setFilterSubKind] = useState<'start' | 'end'>('start')
   //  فلتر تاريخ الانتهاء — مدى (من/إلى) لمنتهيي الاشتراك (YYYY-MM-DD)
   const [filterExpFrom, setFilterExpFrom] = useState<string>('')
   const [filterExpTo, setFilterExpTo] = useState<string>('')
@@ -277,14 +279,17 @@ function MembersPageContent() {
   const [showDateRangeModal, setShowDateRangeModal] = useState(false)
   const [tempSubFrom, setTempSubFrom] = useState<string>('')
   const [tempSubTo, setTempSubTo] = useState<string>('')
+  const [tempSubKind, setTempSubKind] = useState<'start' | 'end'>('start')
   const openDateRangeModal = () => {
     setTempSubFrom(filterSubFrom)
     setTempSubTo(filterSubTo)
+    setTempSubKind(filterSubKind)
     setShowDateRangeModal(true)
   }
   const saveDateRange = () => {
     setFilterSubFrom(tempSubFrom)
     setFilterSubTo(tempSubTo)
+    setFilterSubKind(tempSubKind)
     setShowDateRangeModal(false)
   }
   const clearDateRange = () => {
@@ -453,11 +458,12 @@ function MembersPageContent() {
       filtered = filtered.filter((member) => socialFilter.includes(member.source))
     }
 
-    //  فلتر تاريخ الاشتراك — مدى (من/إلى) حسب startDate
+    //  فلتر تاريخ الاشتراك — مدى (من/إلى) حسب تاريخ البداية أو تاريخ الانتهاء
     if (filterSubFrom || filterSubTo) {
       filtered = filtered.filter((member) => {
-        if (!member.startDate) return false
-        const d = new Date(member.startDate)
+        const raw = filterSubKind === 'end' ? member.expiryDate : member.startDate
+        if (!raw) return false
+        const d = new Date(raw)
         if (isNaN(d.getTime())) return false
         const dymd = formatDateYMD(d) // 'YYYY-MM-DD' — مقارنة باليوم بس
         if (filterSubFrom && dymd < filterSubFrom) return false
@@ -508,7 +514,7 @@ function MembersPageContent() {
     })
 
     return sorted
-  }, [debouncedSearch, debouncedSearchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, filterExpFrom, filterExpTo, socialFilter, membersData])
+  }, [debouncedSearch, debouncedSearchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, filterSubKind, filterExpFrom, filterExpTo, socialFilter, membersData])
 
   // جلب المحظورين عند التحميل (لو عنده صلاحية)
   useEffect(() => {
@@ -641,7 +647,7 @@ function MembersPageContent() {
   useEffect(() => {
     if (!didMountRef.current) return
     setCurrentPage(1)
-  }, [search, searchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, filterExpFrom, filterExpTo, socialFilter])
+  }, [search, searchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterGender, filterSubFrom, filterSubTo, filterSubKind, filterExpFrom, filterExpTo, socialFilter])
 
   //  استرجاع الصفحة + العضو اللي كنا واقفين عنده لما نرجع من البروفايل
   //  ملاحظة: مبنمسحش القيمة فورًا (عشان StrictMode في التطوير بيعمل mount مرتين
@@ -1572,7 +1578,7 @@ function MembersPageContent() {
               >
                 <span className={`truncate ${filterSubFrom || filterSubTo ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
                   {filterSubFrom || filterSubTo
-                    ? `${filterSubFrom || '…'} → ${filterSubTo || '…'}`
+                    ? `${filterSubKind === 'end' ? (locale === 'ar' ? 'انتهت: ' : 'Ended: ') : (locale === 'ar' ? 'بدأت: ' : 'Started: ')}${filterSubFrom || '…'} ${locale === 'ar' ? '←' : '→'} ${filterSubTo || '…'}`
                     : (locale === 'ar' ? 'اختر التاريخ' : 'Select date')}
                 </span>
                 <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-3.5 h-3.5 text-gray-400 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -1774,7 +1780,7 @@ function MembersPageContent() {
                   >
                     <span className={`truncate ${filterSubFrom || filterSubTo ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
                       {filterSubFrom || filterSubTo
-                        ? `${filterSubFrom || '…'} → ${filterSubTo || '…'}`
+                        ? `${filterSubKind === 'end' ? (locale === 'ar' ? 'انتهت: ' : 'Ended: ') : (locale === 'ar' ? 'بدأت: ' : 'Started: ')}${filterSubFrom || '…'} ${locale === 'ar' ? '←' : '→'} ${filterSubTo || '…'}`
                         : (locale === 'ar' ? 'اختر التاريخ' : 'Select date')}
                     </span>
                     <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4 text-gray-400 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -1926,6 +1932,28 @@ function MembersPageContent() {
 
             {/* Body */}
             <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={locale === 'ar' ? 'نوع التاريخ' : 'Date type'}>
+                {([['start', locale === 'ar' ? 'اشتراكات بدأت' : 'Started'], ['end', locale === 'ar' ? 'اشتراكات انتهت' : 'Ended']] as const).map(([k, label]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    role="radio"
+                    aria-checked={tempSubKind === k}
+                    data-date-kind={k}
+                    onClick={() => setTempSubKind(k)}
+                    className={`px-3 py-2.5 rounded-lg text-sm font-bold ring-1 transition-colors duration-200 ${tempSubKind === k
+                      ? 'bg-primary-600 text-primary-contrast ring-primary-600'
+                      : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
+                {tempSubKind === 'end'
+                  ? (locale === 'ar' ? 'الأعضاء اللي تاريخ انتهاء اشتراكهم في المدة دي' : 'Members whose subscription ends in this range')
+                  : (locale === 'ar' ? 'الأعضاء اللي تاريخ بداية اشتراكهم في المدة دي' : 'Members whose subscription starts in this range')}
+              </p>
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   {locale === 'ar' ? 'من' : 'From'}

@@ -111,6 +111,7 @@ export default function HomePage() {
   const { settings } = useServiceSettings()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
+  const [staffBarcodeImage, setStaffBarcodeImage] = useState<string | null>(null)
 
   const [stats, setStats] = useState({
     members: 0,
@@ -221,6 +222,18 @@ export default function HomePage() {
         if (data.user.role === 'COACH') {
           router.push('/coach')
           return
+        }
+
+        //  باركود الموظف (نفس اللي في أكونت الكباتن) — بيظهر في الموبايل بس
+        if (data.user.staffCode) {
+          const numericCode = String(data.user.staffCode).replace(/[sS]/g, '')
+          if (/^\d+$/.test(numericCode)) {
+            fetch('/api/barcode', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text: (100000000 + parseInt(numericCode, 10)).toString() }),
+            }).then(r => r.json()).then(d => { if (d.barcode) setStaffBarcodeImage(d.barcode) }).catch(() => {})
+          }
         }
 
         fetchStats()
@@ -436,6 +449,12 @@ export default function HomePage() {
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('dashboard.welcomeMessage')}</p>
         </div>
+
+        {staffBarcodeImage && (
+          <div className="md:hidden flex justify-center bg-white rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 mb-6" data-staff-barcode>
+            <img src={staffBarcodeImage} alt="Barcode" className="h-28 w-auto" />
+          </div>
+        )}
 
         {/*  Smart Search — رقم/اسم/تليفون عبر الأعضاء، الزوار، والاستخدام اليومي */}
         <DashboardSmartSearch />
