@@ -21,17 +21,17 @@
   --color-primary-950: #322d06;
 
   /* RGB Values for transparency */
-  --color-primary-50-rgb: 252, 250, 238;
-  --color-primary-100-rgb: 248, 244, 216;
-  --color-primary-200-rgb: 240, 234, 178;
-  --color-primary-300-rgb: 253, 237, 104;
-  --color-primary-400-rgb: 252, 230, 43;
-  --color-primary-500-rgb: 251, 224, 3;
-  --color-primary-600-rgb: 202, 180, 2;
-  --color-primary-700-rgb: 161, 144, 2;
-  --color-primary-800-rgb: 126, 112, 2;
-  --color-primary-900-rgb: 86, 78, 11;
-  --color-primary-950-rgb: 50, 45, 6;
+  --color-primary-50-rgb: 252 250 238;
+  --color-primary-100-rgb: 248 244 216;
+  --color-primary-200-rgb: 240 234 178;
+  --color-primary-300-rgb: 253 237 104;
+  --color-primary-400-rgb: 252 230 43;
+  --color-primary-500-rgb: 251 224 3;
+  --color-primary-600-rgb: 202 180 2;
+  --color-primary-700-rgb: 161 144 2;
+  --color-primary-800-rgb: 126 112 2;
+  --color-primary-900-rgb: 86 78 11;
+  --color-primary-950-rgb: 50 45 6;
 
   /* Contrast text colors (auto-computed for accessibility) */
   --color-primary-contrast: #0F172A;

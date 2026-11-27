@@ -306,6 +306,27 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
     }
   }, [settings.primaryTextColor, settings.primaryColor])
 
+  //  🛡️ لو ألوان الثيم اتشالت من الصفحة لأي سبب (زي إعادة رسم الصفحة بعد خطأ تحميل)،
+  //  الأزرار اللي بلون السيستم كانت بتختفي لحد الريفرش — هنا بنرجّعها فوراً
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof MutationObserver === 'undefined') return
+    const root = document.documentElement
+    const restoreIfMissing = () => {
+      const color = settings.primaryColor
+      if (!color) return
+      if (root.style.getPropertyValue('--color-primary-500-rgb')) return
+      applyPaletteToDOM(color)
+      const override = (settings.primaryTextColor === 'white' || settings.primaryTextColor === 'black')
+        ? settings.primaryTextColor
+        : 'auto'
+      applyPrimaryTextOverride(color, override)
+    }
+    restoreIfMissing()
+    const observer = new MutationObserver(restoreIfMissing)
+    observer.observe(root, { attributes: true, attributeFilter: ['style'] })
+    return () => observer.disconnect()
+  }, [settings.primaryColor, settings.primaryTextColor])
+
   return (
     <ServiceSettingsContext.Provider value={{ settings, loading, refetch: fetchSettings }}>
       {children}
